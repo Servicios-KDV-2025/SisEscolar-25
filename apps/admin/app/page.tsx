@@ -1,6 +1,9 @@
+"use client"
 import Image, { type ImageProps } from "next/image";
 import styles from "./page.module.css";
 import { Button } from "@repo/ui/components/shadcn/button";
+// import { useQuery } from "convex/react";
+// import { api } from '@repo/convex/convex/_generated/api'
 
 type Props = Omit<ImageProps, "src"> & {
   srcLight: string;
@@ -20,6 +23,8 @@ const ThemeImage = (props: Props) => {
 };
 
 export default function Home() {
+  // const users = useQuery(api.functions.users.getUsers);
+
   return (
     <div className={styles.page}>
       <main className={styles.main}>
@@ -46,6 +51,9 @@ export default function Home() {
             target="_blank"
             rel="noopener noreferrer"
           >
+            {/* {users.map(u => (
+              <p key={u.id}>{u.name}</p>
+            ))} */}
             <Image
               className={styles.logo}
               src="/vercel.svg"

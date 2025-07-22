@@ -1,6 +1,10 @@
 {
   "extends": "@repo/typescript-config/nextjs.json",
   "compilerOptions": {
+    "baseUrl": ".", // esto ya suele estar
+    "paths": {
+      "@repo/convex/*": ["../../packages/convex-shared/*"]
+    },
     "plugins": [
       {
         "name": "next"
