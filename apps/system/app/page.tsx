@@ -1,6 +1,13 @@
+"use client";
+
 import Image, { type ImageProps } from "next/image";
 import styles from "./page.module.css";
 import { Button } from "@repo/ui/components/shadcn/button";
+import { useQuery } from "convex/react";
+import { api } from "@repo/convex/convex/_generated/api";
+
+import { Authenticated, Unauthenticated } from 'convex/react'
+import { SignInButton, SignOutButton, UserButton } from '@clerk/nextjs'
 
 type Props = Omit<ImageProps, "src"> & {
   srcLight: string;
@@ -19,6 +26,9 @@ const ThemeImage = (props: Props) => {
 };
 
 export default function Home() {
+  const data = useQuery(api.functions.users.getUsers);
+  console.log(data);
+
   return (
     <div className={styles.page}>
       <main className={styles.main}>
@@ -96,7 +106,23 @@ export default function Home() {
           />
           Go to turborepo.com →
         </a>
+
+        <>
+      <Authenticated>
+        <UserButton />
+        <Content />
+        <SignOutButton />
+      </Authenticated>
+      <Unauthenticated>
+        <SignInButton />
+      </Unauthenticated>
+    </>
       </footer>
     </div>
   );
+}
+
+function Content() {
+  const messages = useQuery(api.functions.users.getUsers)
+  return <div>Authenticated content: {messages?.length}</div>
 }
