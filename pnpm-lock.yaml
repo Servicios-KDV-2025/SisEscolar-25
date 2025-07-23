@@ -22,7 +22,7 @@ importers:
     dependencies:
       '@repo/convex':
         specifier: workspace:*
-        version: link:../../packages/convex-shared
+        version: link:../../packages/convex
       '@repo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -98,7 +98,7 @@ importers:
         specifier: 5.8.2
         version: 5.8.2
 
-  packages/convex-shared:
+  packages/convex:
     dependencies:
       convex:
         specifier: ^1.25.4
