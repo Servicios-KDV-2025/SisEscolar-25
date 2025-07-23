@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-// import { ConvexProvider } from "convex/react";
-// import { convex } from "../convexClient";
 import "./globals.css";
+import ConvexProviderWrapper from "components/ConvexProviderWrapper";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -26,9 +25,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {/* <ConvexProvider client={convex}> */}
+        <ConvexProviderWrapper>
           {children}
-        {/* </ConvexProvider> */}
+        </ConvexProviderWrapper>
       </body>
     </html>
   );
