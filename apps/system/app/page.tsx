@@ -5,6 +5,7 @@ import styles from "./page.module.css";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
+import { useUser } from "@clerk/nextjs";
 
 import { Authenticated, Unauthenticated } from 'convex/react'
 import { SignInButton, SignOutButton, UserButton } from '@clerk/nextjs'
@@ -28,6 +29,9 @@ const ThemeImage = (props: Props) => {
 export default function Home() {
   const data = useQuery(api.functions.users.getUsers);
   console.log(data);
+
+  const { user } = useUser();
+  console.log(user?.firstName, user?.lastName, user?.emailAddresses);
 
   return (
     <div className={styles.page}>
