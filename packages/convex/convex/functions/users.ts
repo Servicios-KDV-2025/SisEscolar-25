@@ -1,11 +1,24 @@
 import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
 
-
 export const createUser = mutation({
-    args: { name: v.string() },
+    args: { 
+        name: v.string(),
+        lastName: v.string(),
+        email: v.string(),
+        phone: v.string(),
+        address: v.string(),
+        birthDate: v.string(),
+        admissionDate: v.string(),
+        imgUrl: v.string(),
+    },
     handler: async (ctx, args) => {
-        await ctx.db.insert('user', { ...args });
+        const now = Date.now();
+        await ctx.db.insert('user', { 
+            ...args,
+            createdAt: now,
+            updatedAt: now,
+        });
     }
 });
 
