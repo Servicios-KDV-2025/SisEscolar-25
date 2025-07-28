@@ -11,6 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "convex": "^1.25.4"
+    "@clerk/backend": "^2.6.0",
+    "convex": "^1.25.4",
+    "svix": "^1.69.0"
   }
 }

@@ -125,8 +125,8 @@ export default function Home() {
     </div>
   );
 }
-
 function Content() {
   const messages = useQuery(api.functions.users.getUsers)
   return <div>Authenticated content: {messages?.length}</div>
 }
+
