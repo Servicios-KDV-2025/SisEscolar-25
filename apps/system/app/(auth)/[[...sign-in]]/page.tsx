@@ -12,8 +12,6 @@ export default function authPage() {
         </Authenticated>
         <Unauthenticated>
           <div className="flex flex-col items-center justify-center h-screen">
-              
-              {/* <CustomSignIn /> */}
               <SignIn />
           </div>
         </Unauthenticated>
