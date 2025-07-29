@@ -16,10 +16,14 @@ const applicationTable = defineSchema({
         imgUrl: v.optional(v.string()),
         createdAt: v.number(),
         updatedAt: v.number(),
-    }),
- 
+        clerkId: v.string(),
+        status: v.optional(v.union(
+            v.literal('active'),
+            v.literal('inactive')
+        )),
+    }).index("byClerkId", ["clerkId"]),
 
-    //Relación entre usuarios y escuelas
+
     userSchool: defineTable({
         userId: v.id('user'),
         schoolId: v.id('school'),
@@ -40,7 +44,7 @@ const applicationTable = defineSchema({
             v.literal("secretary"),
             v.literal("direction"),
             v.literal("schoolControl"),
-            v.literal("tecnology"),
+            v.literal("technology"),
         )),
         createdAt: v.number(),
         updatedAt: v.number(),
@@ -71,7 +75,7 @@ const applicationTable = defineSchema({
     student: defineTable({
         schoolId: v.id("school"),
         groupId: v.id("group"),
-        fatherId: v.id("usuarios"),
+        tutorId: v.id("user"),
         enrollment: v.string(),
         name: v.string(),
         lastName: v.optional(v.string()),
