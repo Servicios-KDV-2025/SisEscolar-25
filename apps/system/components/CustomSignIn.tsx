@@ -34,16 +34,16 @@ export default function SignInForm() {
 
       // Si el proceso de inicio de sesión está completo, establecer la sesión creada como activa
       // y redirigir al usuario
-    //   if (signInAttempt.status === 'complete') {
-    //     await setActive({ session: signInAttempt.createdSessionId })
-    //     router.push('/')
-    //     toast.success('Inicio de sesión exitoso')
-    //   } else {
-    //     // Si el estado no está completo, verificar por qué. El usuario puede necesitar
-    //     // completar pasos adicionales.
-    //     console.error(JSON.stringify(signInAttempt, null, 2))
-    //     setError('Error en el proceso de inicio de sesión')
-    //   }
+      if (signInAttempt.status === 'complete') {
+        await setActive({ session: signInAttempt.createdSessionId })
+        router.push('/')
+        // toast.success('Inicio de sesión exitoso')
+      } else {
+        // Si el estado no está completo, verificar por qué. El usuario puede necesitar
+        // completar pasos adicionales.
+        console.error(JSON.stringify(signInAttempt, null, 2))
+        setError('Error en el proceso de inicio de sesión')
+      }
     } catch (err) {
       // Ver https://clerk.com/docs/custom-flows/error-handling
       // para más información sobre el manejo de errores

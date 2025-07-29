@@ -1,8 +1,7 @@
 'use client'
 import { SignIn, SignOutButton } from "@clerk/nextjs";
-import { api } from "@repo/convex/index";
 import CustomSignIn from "components/CustomSignIn";
-import { Authenticated, Unauthenticated, useQuery } from "convex/react";
+import { Authenticated, Unauthenticated } from "convex/react";
 
 export default function authPage() {
   return (
