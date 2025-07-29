@@ -14,10 +14,10 @@ const applicationTable = defineSchema({
         createdAt: v.number(),
         updatedAt: v.number(),
         clerkId: v.string(),
-        status: v.union(
+        status: v.optional(v.union(
             v.literal('active'),
             v.literal('inactive')
-        ),
+        )),
     }).index("byClerkId", ["clerkId"]),
 
 
