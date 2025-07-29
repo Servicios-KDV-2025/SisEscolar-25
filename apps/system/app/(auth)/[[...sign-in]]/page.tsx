@@ -11,8 +11,11 @@ export default function authPage() {
             <SignOutButton />
         </Authenticated>
         <Unauthenticated>
-            <CustomSignIn />
-            <SignIn />
+          <div className="flex flex-col items-center justify-center h-screen">
+              
+              {/* <CustomSignIn /> */}
+              <SignIn />
+          </div>
         </Unauthenticated>
     </div>
   );
