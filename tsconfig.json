@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@repo/convex": ["packages/convex"],
+      "@/convex/*": ["packages/convex/convex/*"]
+    }
+  }
+}
