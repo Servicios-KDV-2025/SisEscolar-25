@@ -11,17 +11,21 @@ const applicationTable = defineSchema({
         email: v.string(),
         phone: v.optional(v.string()),
         address: v.optional(v.string()),
-        birthDate: v.optional(v.string()),
-        admissionDate: v.optional(v.string()),
+        birthDate: v.optional(v.number()),
+        admissionDate: v.optional(v.number()),
         imgUrl: v.optional(v.string()),
-        createdAt: v.number(),
-        updatedAt: v.number(),
         clerkId: v.string(),
         status: v.optional(v.union(
             v.literal('active'),
             v.literal('inactive')
         )),
-    }).index("byClerkId", ["clerkId"]),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+    })
+    .index("by_clerkId", ["clerkId"])
+    .index("by_email", ["email"])
+    .index("by_status", ["status"])
+    ,
 
 
     userSchool: defineTable({
@@ -48,7 +52,14 @@ const applicationTable = defineSchema({
         )),
         createdAt: v.number(),
         updatedAt: v.number(),
-    }),
+    })
+    .index("by_userId", ["userId"])
+    .index("by_schoolId", ["schoolId"])
+    .index("by_role", ["role"])
+    .index("by_status", ["status"])
+    .index("by_department", ["department"])
+    ,
+
 
 
     //Escuelas
@@ -68,7 +79,15 @@ const applicationTable = defineSchema({
         ),
         createdAt: v.number(),
         updatedAt: v.number(),
-    }),
+    })
+    .index("by_subdomain", ["subdomain"])
+    .index("by_name", ["name"])
+    .index("by_cctCode", ["cctCode"])
+    .index("by_shortName", ["shortName"])
+    .index("by_phone", ["phone"])
+    .index("by_email", ["email"])
+    .index("by_status", ["status"])
+    ,
  
 
     //estudiantes
@@ -79,8 +98,8 @@ const applicationTable = defineSchema({
         enrollment: v.string(),
         name: v.string(),
         lastName: v.optional(v.string()),
-        birthDate: v.optional(v.string()),
-        admissionDate: v.optional(v.string()),
+        birthDate: v.optional(v.number()),
+        admissionDate: v.optional(v.number()),
         imgUrl: v.optional(v.string()),
         status: v.union(
             v.literal('active'),
@@ -102,7 +121,12 @@ const applicationTable = defineSchema({
             v.literal('archived'),
             v.literal('inactive')
         ),
-    }).index("by_school", ["schoolId", "status"]),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+    })
+    .index("by_school", ["schoolId"])
+    .index("by_status", ["status"])
+    ,
  
 
     //Materias
@@ -115,7 +139,12 @@ const applicationTable = defineSchema({
             v.literal('active'),
             v.literal('inactive')
         ),
-    }).index("by_school", ["schoolId"]),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+    })
+    .index("by_school", ["schoolId"])
+    .index("by_status", ["status"])
+    ,
  
 
     //Aulas
@@ -128,7 +157,12 @@ const applicationTable = defineSchema({
             v.literal('active'),
             v.literal('inactive')
         ),
-    }).index("by_school", ["schoolId"]),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+    })
+    .index("by_school", ["schoolId"])
+    .index("by_status", ["status"])
+    ,
  
 
     //Grupos
@@ -140,7 +174,12 @@ const applicationTable = defineSchema({
             v.literal('active'),
             v.literal('inactive')
         ),
-    }).index("by_school", ["schoolId"]),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+    })
+    .index("by_school", ["schoolId"])
+    .index("by_status", ["status"])
+    ,
  
     //Horarios
     schedule: defineTable({
@@ -152,7 +191,12 @@ const applicationTable = defineSchema({
             v.literal('active'),
             v.literal('inactive')
         ),
-    }).index("by_school", ["schoolId"]),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+    })
+    .index("by_school", ["schoolId"])
+    .index("by_status", ["status"])
+    ,
  
 
 
@@ -182,13 +226,15 @@ const applicationTable = defineSchema({
         classroomId: v.id("classroom"),
         teacherId: v.id("user"),
         groupId: v.optional(v.id("group")),
-        scheduleId: v.id("schedule"),
+        // scheduleId: v.id("schedule"),
         name: v.string(),
         status: v.union(
             v.literal('active'),
             v.literal('inactive')
         ),
         createdBy: v.optional(v.id("user")),
+        createdAt: v.number(),
+        updatedAt: v.number(),
     })
         .index("by_cycle", ["schoolCycleId"])
         .index("by_subject", ["subjectId"])
@@ -227,17 +273,20 @@ const applicationTable = defineSchema({
     //Calificaciones
     grade: defineTable({
         studentClassId: v.id("studentClass"),
-        term: v.id("term"),
+        termId: v.id("term"),
         score: v.number(),
         isFinal: v.optional(v.boolean()),
         comments: v.optional(v.string()),
         registeredById: v.id("user"),
         registrationDate: v.number(),
-        createdBy: v.id("user"),
         updatedBy: v.optional(v.id("user")),
         updatedAt: v.optional(v.number()),
     })
-        .index("by_student_class", ["studentClassId"]),
+        .index("by_student_class", ["studentClassId"])
+        .index("by_term", ["termId"])
+        .index("by_registered_by", ["registeredById"])
+        .index("by_updated_by", ["updatedBy"])
+    ,
  
     //Asistencia
     attendance: defineTable({
