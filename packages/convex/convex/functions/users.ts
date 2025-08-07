@@ -29,8 +29,8 @@ export const upsertFromClerk = internalMutation({
         email: email,
         phone: phone,
         address: "", // Clerk no proporciona dirección por defecto
-        birthDate: "", // Clerk no proporciona fecha de nacimiento por defecto
-        admissionDate: "", // Campo específico de tu aplicación
+        birthDate: Date.now(), // Clerk no proporciona fecha de nacimiento por defecto
+        admissionDate: Date.now(), // Campo específico de tu aplicación
         imgUrl: data.image_url ?? "",
         clerkId: data.id,
         createdAt: Date.now(),
@@ -41,7 +41,7 @@ export const upsertFromClerk = internalMutation({
       // Busca por clerkId
       const user = await ctx.db
         .query("user")
-        .withIndex("byClerkId", (q) => q.eq("clerkId", data.id))
+        .withIndex("by_clerkId", (q) => q.eq("clerkId", data.id))
         .unique();
   
       if (user === null) {
@@ -62,7 +62,7 @@ export const deleteFromClerk = internalMutation({
     async handler(ctx, { clerkUserId }) {
       const user = await ctx.db
         .query("user")
-        .withIndex("byClerkId", (q) => q.eq("clerkId", clerkUserId))
+        .withIndex("by_clerkId", (q) => q.eq("clerkId", clerkUserId))
         .unique();
       if (user !== null) {
         await ctx.db.delete(user._id);
@@ -80,8 +80,8 @@ export const createUser = mutation({
         email: v.string(),
         phone: v.optional(v.string()),
         address: v.optional(v.string()),
-        birthDate: v.optional(v.string()),
-        admissionDate: v.optional(v.string()),
+        birthDate: v.optional(v.number()),
+        admissionDate: v.optional(v.number()),
         imgUrl: v.optional(v.string()),
         clerkId: v.string(),
         status: v.optional(v.union(
@@ -92,10 +92,10 @@ export const createUser = mutation({
     handler: async (ctx, args) => {
         const now = Date.now();
         
-        // Validar que el email no esté duplicado
+        // Validar que el email no esté duplicado (usar índice por email)
         const existingUser = await ctx.db
             .query("user")
-            .filter((q) => q.eq(q.field("email"), args.email))
+            .withIndex("by_email", (q) => q.eq("email", args.email))
             .first();
             
         if (existingUser) {
@@ -105,7 +105,7 @@ export const createUser = mutation({
         // Validar que el clerkId no esté duplicado
         const existingClerkUser = await ctx.db
             .query("user")
-            .withIndex("byClerkId", (q) => q.eq("clerkId", args.clerkId))
+            .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))
             .unique();
             
         if (existingClerkUser) {
@@ -172,13 +172,10 @@ export const getUserByClerkId = query({
     handler: async (ctx, args) => {
         const user = await ctx.db
             .query("user")
-            .withIndex("byClerkId", (q) => q.eq("clerkId", args.clerkId))
+            .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))
             .unique();
-            
-        if (!user) {
-            throw new Error("Usuario no encontrado");
-        }
-        return user;
+        // Retornar null si no existe, útil para queries en el cliente
+        return user ?? null;
     }
 });
 
@@ -226,8 +223,8 @@ export const updateUser = mutation({
         email: v.optional(v.string()),
         phone: v.optional(v.string()),
         address: v.optional(v.string()),
-        birthDate: v.optional(v.string()),
-        admissionDate: v.optional(v.string()),
+        birthDate: v.optional(v.number()),
+        admissionDate: v.optional(v.number()),
         imgUrl: v.optional(v.string()),
         status: v.optional(v.union(
             v.literal('active'),
@@ -243,19 +240,15 @@ export const updateUser = mutation({
             throw new Error("Usuario no encontrado");
         }
         
-        // Si se está actualizando el email, verificar que no esté duplicado
+        // Si se está actualizando el email, verificar que no esté duplicado (usar índice por email)
         if (updateData.email && updateData.email !== existingUser.email) {
-            const emailExists = await ctx.db
+            const emailToCheck = updateData.email as string;
+            const emailHolder = await ctx.db
                 .query("user")
-                .filter((q) => 
-                    q.and(
-                        q.eq(q.field("email"), updateData.email),
-                        q.neq(q.field("_id"), userId)
-                    )
-                )
+                .withIndex("by_email", (q) => q.eq("email", emailToCheck))
                 .first();
-                
-            if (emailExists) {
+
+            if (emailHolder && emailHolder._id !== userId) {
                 throw new Error("Ya existe un usuario con este email");
             }
         }

@@ -34,8 +34,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ clerkId }) => {
     email: '',
     phone: '',
     address: '',
-    birthDate: '',
-    admissionDate: '',
+    birthDate: 0,
+    admissionDate: 0,
   });
 
   // Inicializar datos de edición cuando el usuario cambie
@@ -47,8 +47,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ clerkId }) => {
         email: currentUser.email || '',
         phone: currentUser.phone || '',
         address: currentUser.address || '',
-        birthDate: currentUser.birthDate || '',
-        admissionDate: currentUser.admissionDate || '',
+        birthDate: currentUser.birthDate || 0,
+        admissionDate: currentUser.admissionDate || 0,
       });
     }
   }, [currentUser]);
@@ -67,8 +67,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ clerkId }) => {
         email: currentUser.email || '',
         phone: currentUser.phone || '',
         address: currentUser.address || '',
-        birthDate: currentUser.birthDate || '',
-        admissionDate: currentUser.admissionDate || '',
+        birthDate: currentUser.birthDate || 0,
+        admissionDate: currentUser.admissionDate || 0,
       });
     }
   };
@@ -244,7 +244,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ clerkId }) => {
                 <Input
                   type="date"
                   value={editData.birthDate}
-                  onChange={(e) => setEditData({ ...editData, birthDate: e.target.value })}
+                  onChange={(e) => setEditData({ ...editData, birthDate: new Date(e.target.value).getTime() })}
                 />
               ) : (
                 <p className="text-sm text-muted-foreground">
@@ -262,7 +262,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ clerkId }) => {
                 <Input
                   type="date"
                   value={editData.admissionDate}
-                  onChange={(e) => setEditData({ ...editData, admissionDate: e.target.value })}
+                  onChange={(e) => setEditData({ ...editData, admissionDate: new Date(e.target.value).getTime() })}
                 />
               ) : (
                 <p className="text-sm text-muted-foreground">
