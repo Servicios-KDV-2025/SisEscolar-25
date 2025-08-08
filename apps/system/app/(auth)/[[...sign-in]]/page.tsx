@@ -5,7 +5,7 @@ import { Authenticated, Unauthenticated } from "convex/react";
 import { useUser } from "@clerk/nextjs";
 import { UserSchools } from "components/UserSchools";
 
-export default function authPage() {
+export default function AuthPage() {
   const { user } = useUser();
   return (
     <div>

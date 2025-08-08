@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@repo/ui/components/shadcn/alert';
 import { Badge } from '@repo/ui/components/shadcn/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@repo/ui/components/shadcn/avatar';
 import { Separator } from '@repo/ui/components/shadcn/separator';
+import { Id } from '../../../packages/convex/convex/_generated/dataModel';
 // Iconos comentados temporalmente - instalar lucide-react si se necesitan
 // import { 
 //   Building2Icon, 
@@ -30,15 +31,12 @@ export const UserSchools: React.FC<UserSchoolsProps> = ({ clerkId }) => {
   const { currentUser } = useUserWithConvex(clerkId);
   const {
     userSchools,
-    selectedSchool,
+    // selectedSchool,
     isLoading,
     error,
-    fetchUserActiveSchools,
-    updateUserSchool,
-    removeUserFromSchool,
     deactivateUserInSchool,
     activateUserInSchool,
-    clearError,
+    removeUserFromSchool,
   } = useUserSchoolsWithConvex(currentUser?._id);
 
   const [showInactive, setShowInactive] = useState(false);
@@ -48,17 +46,25 @@ export const UserSchools: React.FC<UserSchoolsProps> = ({ clerkId }) => {
     ? userSchools 
     : userSchools.filter(school => school.status === 'active');
 
-  const handleToggleStatus = async (userSchoolId: string, currentStatus: 'active' | 'inactive') => {
-    if (currentStatus === 'active') {
-      await deactivateUserInSchool(userSchoolId as any);
-    } else {
-      await activateUserInSchool(userSchoolId as any);
+  const handleToggleStatus = async (userSchoolId: Id<"userSchool">, currentStatus: 'active' | 'inactive') => {
+    try {
+      if (currentStatus === 'active') {
+        await deactivateUserInSchool(userSchoolId);
+      } else {
+        await activateUserInSchool(userSchoolId);
+      }
+    } catch (error) {
+      console.error('Error toggling school status:', error);
     }
   };
 
-  const handleRemoveFromSchool = async (userSchoolId: string) => {
+  const handleRemoveFromSchool = async (userSchoolId: Id<"userSchool">) => {
     if (confirm('¿Estás seguro de que quieres removerte de esta escuela?')) {
-      await removeUserFromSchool(userSchoolId as any);
+      try {
+        await removeUserFromSchool(userSchoolId);
+      } catch (error) {
+        console.error('Error removing from school:', error);
+      }
     }
   };
 
