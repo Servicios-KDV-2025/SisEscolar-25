@@ -12,8 +12,8 @@ export interface User {
   email: string;
   phone?: string;
   address?: string;
-  birthDate?: string;
-  admissionDate?: string;
+  birthDate?: number;
+  admissionDate?: number;
   imgUrl?: string;
   createdAt: number;
   updatedAt: number;
@@ -28,8 +28,8 @@ export interface UpdateUserData {
   email?: string;
   phone?: string;
   address?: string;
-  birthDate?: string;
-  admissionDate?: string;
+  birthDate?: number;
+  admissionDate?: number;
   imgUrl?: string;
   status?: 'active' | 'inactive';
 }
