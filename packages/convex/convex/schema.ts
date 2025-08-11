@@ -133,7 +133,6 @@ const applicationTable = defineSchema({
     name: v.string(),
     grade: v.string(),
     status: v.union(v.literal("active"), v.literal("inactive")),
-    createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_school", ["schoolId"])
