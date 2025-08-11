@@ -2,20 +2,13 @@
 
 import * as React from "react"
 import {
-  BookOpen,
-  Bot,
   Command,
-  Frame,
   LifeBuoy,
-  Map,
-  PieChart,
   Send,
-  Settings2,
   SquareTerminal,
 } from "lucide-react"
 
 import { NavMain } from "@repo/ui/components/nav-main"
-import { NavProjects } from "@repo/ui/components/nav-projects"
 import { NavSecondary } from "@repo/ui/components/nav-secondary"
 import { NavUser } from "@repo/ui/components/nav-user"
 import {
@@ -36,89 +29,106 @@ const data = {
   },
   navMain: [
     {
-      title: "Playground",
+      title: "Ciclos Escolares",
       url: "#",
       icon: SquareTerminal,
       isActive: true,
       items: [
         {
-          title: "History",
-          url: "#",
+          title: "Ciclos Escolares",
+          url: `#`,
         },
         {
-          title: "Starred",
-          url: "#",
+          title: "Calendario Escolar",
+          url: `#`,
         },
         {
-          title: "Settings",
-          url: "#",
+          title: "Clases por Alumno",
+          url: `#`,
+        },
+        {
+          title: "Grupos",
+          url: `#`,
+        },
+        {
+          title: "Catalogo de Clases",
+          url: `#`,
+        },
+        {
+          title: "Eventos Por Clase",
+          url: `#`,
+        },
+        {
+          title: "Eventos Escolares",
+          url: `#`,
         },
       ],
     },
     {
-      title: "Models",
-      url: "#",
-      icon: Bot,
+      title: "Salones",
+      url: `#`,
+      icon: SquareTerminal,
+      isActive: true,
+    },
+    {
+      title: "Materias",
+      url: `/materias`,
+      icon: SquareTerminal,
+      isActive: true,
+    },
+    {
+      title: "Departamentos",
+      url: `/departamentos`,
+      icon: SquareTerminal,
+      isActive: true,
+    },
+    {
+      title: "Personal",
+      url: `/personal`,
+      icon: SquareTerminal,
+      isActive: true,
+    },
+    {
+      title: "Periodos",
+      url: `/periodos`,
+      icon: SquareTerminal,
+      isActive: true,
+    },
+    {
+      title: "Horarios",
+      url: `/horarios`,
+      icon: SquareTerminal,
+      isActive: true,
+    },
+    {
+      title: "Horarios por Clase",
+      url: `/horariosPorClase`,
+      icon: SquareTerminal,
+      isActive: true,
+    },
+    {
+      title: "Alumnos",
+      url: `/alumnos`,
+      icon: SquareTerminal,
+      isActive: true,
+    },
+    {
+      title: "Calificaciones",
+      url: `/calificaciones`,
+      icon: SquareTerminal,
+      isActive: true,
       items: [
         {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
+          title: "Calificaciones",
+          url: `/calificaciones`,
         },
       ],
     },
     {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
+      title: "Padres",
+      url: `/padres`,
+      icon: SquareTerminal,
+      isActive: true,
     },
   ],
   navSecondary: [
@@ -131,23 +141,6 @@ const data = {
       title: "Feedback",
       url: "#",
       icon: Send,
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
     },
   ],
 }
@@ -177,7 +170,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
