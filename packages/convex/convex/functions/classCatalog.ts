@@ -16,7 +16,6 @@ export const createClassCatalog = mutation({
             v.literal('inactive')
         ),
         createdBy: v.optional(v.id("user")),
-        createdAt: v.number(),
         updatedAt: v.number(),
     },
     handler: async (ctx, args) => {
@@ -46,7 +45,6 @@ export const getAllClassCatalog = query({
                 name: clase.name,
                 status: clase.status,
                 createdBy: clase.createdBy,
-                createdAt: clase.createdAt,
                 updatedAt: clase.updatedAt,
                 schoolCycle: cycle,
                 subject,
@@ -57,7 +55,7 @@ export const getAllClassCatalog = query({
             }),
         );
 
-        return res
+        return res;
     },
 });
 
@@ -75,6 +73,7 @@ export const getClassCatalog = query({
 // Update
 export const updateClassCatalog = mutation({
     args: {
+        _id: v.id("classCatalog"),
         schoolCycleId: v.id("schoolCycle"),
         subjectId: v.id("subject"),
         classroomId: v.id("classroom"),
@@ -87,8 +86,23 @@ export const updateClassCatalog = mutation({
             v.literal('inactive')
         ),
         createdBy: v.optional(v.id("user")),
-        createdAt: v.number(),
         updatedAt: v.number(),
     },
-    handler: async (ctx, args) => {}
-})
+    handler: async (ctx, args) => {
+        const catalog = await ctx.db.get(args._id);
+
+        if (!catalog) return null;
+
+        const { _id, ...data } = args;
+        await ctx.db.patch(_id, data);
+    }
+});
+
+export const deleteClassCatalog = mutation({
+    args: { _id: v.id("classCatalog") },
+    handler: async (ctx, args) => {
+        const catalog = await ctx.db.get(args._id);
+        if (!catalog) return null;
+        await ctx.db.delete(args._id);
+    }
+});
