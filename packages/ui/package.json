@@ -7,7 +7,8 @@
     "./hooks/use-mobile": "./src/hooks/use-mobile.ts",
     "./lib/utils": "./src/lib/utils.ts",
     "./postcss.config": "./postcss.config.mjs",
-    "./styles/*": "./src/styles/*"
+    "./styles/*": "./src/styles/*",
+    "./icons": "./src/icons.ts"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
