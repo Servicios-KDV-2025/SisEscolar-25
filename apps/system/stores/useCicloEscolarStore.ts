@@ -182,7 +182,7 @@ export const useCicloEscolarWithConvex = (escuelaID?: Id<"school">) => {
   React.useEffect(() => {
     if (ciclosEscolares) {
       // Mapear los datos de Convex al formato esperado por el store
-      const mappedCiclos: CicloEscolar[] = ciclosEscolares.map(ciclo => ({
+      const mappedCiclos: CicloEscolar[] = ciclosEscolares.map((ciclo: any) => ({
         _id: ciclo._id,
         schoolId: ciclo.schoolId,
         name: ciclo.name,
