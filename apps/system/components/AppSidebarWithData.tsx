@@ -2,27 +2,25 @@
 
 import React from 'react';
 import { useUser } from '@clerk/nextjs';
-import { useParams } from 'next/navigation';
 import { AppSidebar } from '@repo/ui/components/app-sidebar';
 import { useUserWithConvex } from '../stores/userStore';
-import { useCurrentSchoolBySubdomain } from '../stores/userSchoolsStore';
+import { useCurrentSchool } from '../stores/userSchoolsStore';
 
 export function AppSidebarWithData({ ...props }: React.ComponentProps<typeof AppSidebar>) {
   const { user: clerkUser, isLoaded } = useUser();
   const { currentUser, isLoading } = useUserWithConvex(clerkUser?.id);
-  const params = useParams();
-  const subdomain = params?.subdomain as string;
   
-  // Usar el hook especializado que valida automáticamente en Convex
+  // Usar el hook que detecta automáticamente el subdominio desde params
   const {
     currentSchool,
+    subdomain,
     isLoading: schoolsLoading,
     error,
-  } = useCurrentSchoolBySubdomain(currentUser?._id, subdomain);
+  } = useCurrentSchool(currentUser?._id);
 
   // Debug logs
   console.log('=== SIDEBAR DEBUG ===');
-  console.log('subdomain:', subdomain);
+  console.log('subdomain (auto-detected):', subdomain);
   console.log('currentUser:', currentUser);
   console.log('schoolsLoading:', schoolsLoading);
   console.log('currentSchool:', currentSchool);

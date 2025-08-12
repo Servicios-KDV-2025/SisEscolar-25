@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { useQuery, useMutation } from 'convex/react';
+import { useParams } from 'next/navigation';
 import { api } from '../../../packages/convex/convex/_generated/api';
 import { Id } from '../../../packages/convex/convex/_generated/dataModel';
 import React from 'react';
@@ -471,7 +472,26 @@ export const useUserSchoolsStoreOnly = () => {
   return useUserSchoolsStore();
 };
 
-// Hook especializado para obtener la escuela actual por subdominio
+// Hook especializado para obtener la escuela actual (detecta subdominio automáticamente)
+export const useCurrentSchool = (userId?: Id<"user">) => {
+  const params = useParams();
+  const subdomain = params?.subdomain as string;
+  
+  // Query para obtener la escuela actual por subdominio
+  const currentSchool = useQuery(
+    api.functions.schools.getUserSchoolBySubdomain,
+    userId && subdomain ? { userId, subdomain } : 'skip'
+  );
+
+  return React.useMemo(() => ({
+    currentSchool: currentSchool || null,
+    subdomain,
+    isLoading: currentSchool === undefined && !!userId && !!subdomain,
+    error: null, // Convex maneja errores automáticamente
+  }), [currentSchool, userId, subdomain]);
+};
+
+// Hook especializado para obtener la escuela actual por subdominio (versión manual)
 export const useCurrentSchoolBySubdomain = (userId?: Id<"user">, subdomain?: string) => {
   // Query para obtener la escuela actual por subdominio
   const currentSchool = useQuery(
