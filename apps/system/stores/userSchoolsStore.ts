@@ -469,4 +469,19 @@ export const useUserSchoolsWithConvex = (userId?: Id<"user">) => {
 // Hook para usar solo el store sin Convex (para casos simples)
 export const useUserSchoolsStoreOnly = () => {
   return useUserSchoolsStore();
+};
+
+// Hook especializado para obtener la escuela actual por subdominio
+export const useCurrentSchoolBySubdomain = (userId?: Id<"user">, subdomain?: string) => {
+  // Query para obtener la escuela actual por subdominio
+  const currentSchool = useQuery(
+    api.functions.schools.getUserSchoolBySubdomain,
+    userId && subdomain ? { userId, subdomain } : 'skip'
+  );
+
+  return React.useMemo(() => ({
+    currentSchool: currentSchool || null,
+    isLoading: currentSchool === undefined && !!userId && !!subdomain,
+    error: null, // Convex maneja errores automáticamente
+  }), [currentSchool, userId, subdomain]);
 }; 
