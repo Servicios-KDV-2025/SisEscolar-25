@@ -136,6 +136,7 @@ const applicationTable = defineSchema({
     updatedAt: v.number(),
   })
     .index("by_school", ["schoolId"])
+<<<<<<< HEAD
     .index("by_status", ["status"]),
   //Horarios
   schedule: defineTable({
@@ -147,6 +148,23 @@ const applicationTable = defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   })
+=======
+    .index("by_status", ["status"])
+    ,
+ 
+    //Horarios
+    schedule: defineTable({
+        schoolId: v.id("school"),
+        name: v.string(),
+        startTime: v.string(),
+        endTime: v.string(),
+        status: v.union(
+            v.literal('active'),
+            v.literal('inactive')
+        ),
+        updatedAt: v.number(),
+    })
+>>>>>>> c547f73 (Creacion de shedule)
     .index("by_school", ["schoolId"])
     .index("by_status", ["status"]),
 
