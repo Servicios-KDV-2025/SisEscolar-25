@@ -13,9 +13,15 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as functions_classCatalog from "../functions/classCatalog.js";
 import type * as functions_schools from "../functions/schools.js";
 import type * as functions_users from "../functions/users.js";
+import type * as gradeRubrics from "../gradeRubrics.js";
+import type * as grades from "../grades.js";
+import type * as group from "../group.js";
 import type * as http from "../http.js";
+import type * as termAverages from "../termAverages.js";
+import type * as terms from "../terms.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -26,9 +32,15 @@ import type * as http from "../http.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  "functions/classCatalog": typeof functions_classCatalog;
   "functions/schools": typeof functions_schools;
   "functions/users": typeof functions_users;
+  gradeRubrics: typeof gradeRubrics;
+  grades: typeof grades;
+  group: typeof group;
   http: typeof http;
+  termAverages: typeof termAverages;
+  terms: typeof terms;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,
