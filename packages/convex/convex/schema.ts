@@ -191,7 +191,6 @@ const applicationTable = defineSchema({
             v.literal('active'),
             v.literal('inactive')
         ),
-        createdAt: v.number(),
         updatedAt: v.number(),
     })
     .index("by_school", ["schoolId"])
