@@ -4,6 +4,8 @@
     "paths": {
       "@repo/convex": ["packages/convex"],
       "@/convex/*": ["packages/convex/convex/*"]
-    }
+    },
+    "incremental": false,  // Desactiva compilación incremental
+    "tsBuildInfoFile": null // Evita archivos de build info
   }
 }
