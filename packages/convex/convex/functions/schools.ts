@@ -192,6 +192,52 @@ export const getUserSchool = query({
     }
 });
 
+// Obtener la escuela actual del usuario por subdominio
+export const getUserSchoolBySubdomain = query({
+    args: { 
+        userId: v.id("user"),
+        subdomain: v.string(),
+    },
+    handler: async (ctx, args) => {
+        // Primero buscar la escuela por subdominio
+        const school = await ctx.db
+            .query("school")
+            .withIndex("by_subdomain", (q) => q.eq("subdomain", args.subdomain))
+            .filter((q) => q.eq(q.field("status"), "active"))
+            .unique();
+
+        if (!school) {
+            throw new Error("Escuela no encontrada o inactiva");
+        }
+
+        // Verificar que el usuario tiene acceso a esta escuela
+        const userSchool = await ctx.db
+            .query("userSchool")
+            .filter((q) => 
+                q.and(
+                    q.eq(q.field("userId"), args.userId),
+                    q.eq(q.field("schoolId"), school._id),
+                    q.eq(q.field("status"), "active")
+                )
+            )
+            .unique();
+
+        if (!userSchool) {
+            throw new Error("El usuario no tiene acceso a esta escuela");
+        }
+
+        return {
+            userSchoolId: userSchool._id,
+            school: school,
+            role: userSchool.role,
+            status: userSchool.status,
+            department: userSchool.department,
+            createdAt: userSchool.createdAt,
+            updatedAt: userSchool.updatedAt,
+        };
+    }
+});
+
 // Asignar un usuario a una escuela
 export const assignUserToSchool = mutation({
     args: {
