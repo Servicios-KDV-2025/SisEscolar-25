@@ -11,7 +11,7 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select";
 import { Switch } from "@repo/ui/components/shadcn/switch";
-import { Plus, Pencil, Trash2, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye } from "@repo/ui/icons";
 import { z } from "zod";
 import { UseFormReturn } from "react-hook-form";
 

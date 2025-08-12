@@ -151,19 +151,9 @@ const applicationTable = defineSchema({
         ),
         updatedAt: v.number(),
     })
+    .index("by_school", ["schoolId"])
     .index("by_status", ["status"]),
-  //Horarios
-  schedule: defineTable({
-    schoolId: v.id("school"),
-    name: v.string(),
-    startTime: v.string(),
-    endTime: v.string(),
-    status: v.union(
-        v.literal("active"),
-         v.literal("inactive")),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  }),
+
   //Periodos
   term: defineTable({
     classCatalogId: v.id("classCatalog"),
