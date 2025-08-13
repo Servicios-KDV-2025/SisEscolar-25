@@ -6,6 +6,7 @@ import {
   LifeBuoy,
   Send,
   SquareTerminal,
+  Users,
 } from "lucide-react"
 
 
@@ -147,6 +148,39 @@ const defaultNavData = {
       icon: SquareTerminal,
       isActive: true,
     },
+    {
+      title: "Usuarios",
+      url: `#`,
+      icon: Users,
+      isActive: true,
+      items: [
+        {
+          title: "Super Administrador",
+          url: `/usuarios/super-administrador`,
+        },
+        {
+          title: "Administradores",
+          url: `/usuarios/administradores`,
+        },
+        {
+          title: "Docentes",
+          url: `/usuarios/docentes`,
+        },
+        {
+          title: "Auditor",
+          url: `/usuarios/auditores`,
+        },
+        {
+          title: "Tutores",
+          url: `/usuarios/tutores`,
+        },
+        {
+          title: "Alumnos",
+          url: `/usuarios/alumnos`,
+        },
+      ],
+    },
+    
   ],
   navSecondary: [
     {
