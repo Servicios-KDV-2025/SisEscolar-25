@@ -93,7 +93,7 @@ export function CrudDialog({
   deleteConfirmationDescription = 'Esta acción no se puede deshacer.',
   submitButtonText,
   cancelButtonText = 'Cancelar',
-  deleteButtonText = 'Eliminare',
+  deleteButtonText = 'Eliminar',
   isLoading = false,
   isSubmitting = false,
   isDeleting = false,
