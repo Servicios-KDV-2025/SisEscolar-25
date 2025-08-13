@@ -3,7 +3,8 @@
 import React from "react";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { toast } from "sonner";
-import { useEscuela } from "@/app/store/useEscuelaStore";
+import { useUserSchoolsStore } from "stores/userSchoolsStore"; 
+import { useSchdule } from "stores/schedule";
 import { usePeriodo } from "@/app/store/usePeriodoStore";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
@@ -84,11 +85,11 @@ function validarHora12(hora: string) {
 
 export default function PeriodosPage() {
   const {
-    escuela,
+    userSchools, //escuela
     isLoading,
     error,
-    clearErrors
-  } = useEscuela();
+    clearError // clearErros
+  } = useUserSchoolsStore();
 
   // Usar el store de periodos
   const {
