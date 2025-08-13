@@ -214,6 +214,7 @@ const applicationTable = defineSchema({
 
     //Clases
     classCatalog: defineTable({
+        schoolId: v.id("school"),
         schoolCycleId: v.id("schoolCycle"),
         subjectId: v.id("subject"),
         classroomId: v.id("classroom"),
