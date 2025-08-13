@@ -1,30 +1,112 @@
 "use client";
 
-// import Image from "next/image";
-// import { useBreadcrumbStore } from "@/app/store/breadcrumbStore";
-
+import React from "react";
+import Image from "next/image";
+import { useUser } from '@clerk/nextjs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card";
 import { Badge } from "@repo/ui/components/shadcn/badge";
-import { BookOpen, Users, Calendar, BarChart3,  Settings, GraduationCap, /* MapPin, */ Shield, Clock, Award } from "@repo/ui/icons";
+import { BookOpen, Users, Calendar, BarChart3,  Settings, GraduationCap, MapPin, Shield, Clock, Award } from "@repo/ui/icons";
 import { SignOutButton } from "@clerk/nextjs";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Separator } from "@repo/ui/components/shadcn/separator";
-// import { useEscuela } from "@/app/store/useEscuelaStore";
+import { useUserWithConvex } from "../../../../stores/userStore";
+import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
+
 
 export default function EscuelaHome() {
+  // Get current user from Clerk
+  const { user: clerkUser, isLoaded } = useUser();
+  const { currentUser, isLoading: userLoading } = useUserWithConvex(clerkUser?.id);
   
-  // const { escuela } = useEscuela();
+  // Get current school information using the subdomain
+  const {
+    currentSchool,
+    subdomain,
+    isLoading: schoolLoading,
+    error: schoolError,
+  } = useCurrentSchool(currentUser?._id);
 
-  // if (!escuela) {
-  //   return (
-  //     <div className="flex items-center justify-center min-h-[60vh]">
-  //       <div className="text-center space-y-4">
-  //         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-  //         <p className="text-muted-foreground">Cargando información de la escuela...</p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  // Combined loading state
+  const isLoading = !isLoaded || userLoading || schoolLoading;
+
+  // Debug logs (similar to sidebar)
+  console.log('=== INICIO PAGE DEBUG ===');
+  console.log('subdomain (auto-detected):', subdomain);
+  console.log('currentUser:', currentUser);
+  console.log('schoolLoading:', schoolLoading);
+  console.log('currentSchool:', currentSchool);
+  console.log('schoolError:', schoolError);
+
+  // Prepare school data with loading and error states
+  const schoolData = React.useMemo(() => {
+    // Loading state - incluye cuando currentUser existe pero currentSchool aún no
+    if (isLoading || (currentUser && !currentSchool && !schoolError)) {
+      return {
+        name: "Cargando...",
+        description: "Cargando información de la escuela...",
+        shortName: "Cargando",
+        address: "Cargando dirección...",
+        cctCode: "Cargando",
+        imgUrl: "/avatars/default-school.jpg",
+        _id: null,
+        status: 'active' as const
+      };
+    }
+
+    // Error or no school found - solo después de que ya terminó de cargar
+    if (schoolError || (!currentSchool && currentUser && !isLoading)) {
+      return {
+        name: "Escuela no encontrada",
+        description: "Escuela no encontrada o no disponible",
+        shortName: "Error",
+        address: "Dirección no disponible",
+        cctCode: "N/A",
+        imgUrl: "/avatars/default-school.jpg",
+        _id: null,
+        status: 'inactive' as const
+      };
+    }
+
+    // Valid school data
+    if (currentSchool) {
+      return {
+        name: currentSchool.school.name,
+        description: currentSchool.school.description,
+        shortName: currentSchool.school.shortName,
+        address: currentSchool.school.address,
+        cctCode: currentSchool.school.cctCode,
+        imgUrl: currentSchool.school.imgUrl || "/avatars/default-school.jpg",
+        _id: currentSchool.school._id,
+        status: currentSchool.school.status
+      };
+    }
+
+    // Fallback para casos no contemplados
+    return {
+      name: "Cargando...",
+      description: "Cargando información de la escuela...",
+      shortName: "Cargando",
+      address: "Cargando dirección...",
+      cctCode: "Cargando",
+      imgUrl: "/avatars/default-school.jpg",
+      _id: null,
+      status: 'active' as const
+    };
+  }, [isLoading, schoolError, currentSchool, currentUser]);
+
+  // Show loading screen for initial load
+  if (isLoading || (currentUser && !currentSchool && !schoolError)) {
+    return (
+      <div className="space-y-8 p-6 max-w-7xl mx-auto">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="space-y-4 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Cargando información de la escuela...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const quickActions = [
     {
@@ -92,36 +174,37 @@ export default function EscuelaHome() {
         <div className="relative p-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="flex items-start gap-6">
-              {/* {escuela.logoUrl && (
+              {schoolData.imgUrl && schoolData.imgUrl !== "/avatars/default-school.jpg" && (
                 <div className="relative shrink-0">
                   <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl" />
                   <Image
-                    src={escuela.logoUrl}
+                    src={schoolData.imgUrl}
                     alt="Logo de la escuela"
                     width={100}
                     height={100}
                     className="relative rounded-2xl shadow-lg ring-1 ring-white/20"
                   />
                 </div>
-              )} */}
+              )}
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  {/* <h1 className="text-4xl font-bold tracking-tight">{escuela.nombre}</h1> */}
-                  <h1 className="text-4xl font-bold tracking-tight">Nombre de la escuela</h1>
-                  <Badge variant="secondary" className="text-xs">
+                  <h1 className="text-4xl font-bold tracking-tight">{schoolData.name}</h1>
+                  <Badge 
+                    variant={schoolData.status === 'active' ? 'secondary' : 'destructive'} 
+                    className="text-xs"
+                  >
                     <Shield className="w-3 h-3 mr-1" />
-                    Activa
+                    {schoolData.status === 'active' ? 'Activa' : 'Inactiva'}
                   </Badge>
                 </div>
-                {/* {escuela.direccion && (
+                {schoolData.address && (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <MapPin className="w-4 h-4" />
-                    <span>{escuela.direccion}</span>
+                    <span>{schoolData.address}</span>
                   </div>
-                )} */}
+                )}
                 <p className="text-lg text-muted-foreground max-w-2xl">
-                  Plataforma integral de gestión educativa para administrar estudiantes, 
-                  calificaciones, horarios y recursos académicos de manera eficiente.
+                  {schoolData.description}
                 </p>
               </div>
             </div>
@@ -193,8 +276,7 @@ export default function EscuelaHome() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
             <GraduationCap className="h-5 w-5 text-primary" />
-            {/* Bienvenido a {escuela.nombre} */}
-            Bienvenido a la escuela
+            Bienvenido a {schoolData.name}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -205,8 +287,10 @@ export default function EscuelaHome() {
           </p>
           <Separator />
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            {/* <span>ID de la Institución: <code className="bg-muted px-2 py-1 rounded text-xs">{escuela._id}</code></span> */}
-            <span>ID de la Institución: <code className="bg-muted px-2 py-1 rounded text-xs">id de la escuela</code></span>
+            <span>CCT: <code className="bg-muted px-2 py-1 rounded text-xs">{schoolData.cctCode}</code></span>
+            {schoolData._id && (
+              <span>ID: <code className="bg-muted px-2 py-1 rounded text-xs">{schoolData._id}</code></span>
+            )}
           </div>
         </CardContent>
       </Card>
