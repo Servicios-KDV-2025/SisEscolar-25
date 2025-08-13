@@ -5,7 +5,6 @@ import { Button } from "@repo/ui/components/shadcn/button";
 import { toast } from "sonner";
 import { useUserSchoolsStore } from "stores/userSchoolsStore"; 
 import { useSchdule } from "stores/schedule";
-import { usePeriodo } from "@/app/store/usePeriodoStore";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
@@ -28,15 +27,15 @@ const periodoSchema = z.object({
 const ampmOptions = ["AM", "PM"];
 
 // Helper para convertir a 24h
-function to24h(hora: string, ampm: string) {
+function to24h(hour: string, ampm: string) {
   if (!/^\d{1,2}:\d{2}$/.test(hora)) {
-    return hora;
+    return hour;
   }
 
-  const [h, m] = hora.split(":").map(Number);
+  const [h, m] = hour.split(":").map(Number);
 
   if (h < 1 || h > 12 || m < 0 || m > 59) {
-    return hora;
+    return hour;
   }
 
   let h24 = h;
@@ -46,31 +45,31 @@ function to24h(hora: string, ampm: string) {
 }
 
 // Helper para convertir de 24h a 12h
-function from24h(hora24: string) {
-  if (!hora24) return { hora: "7:00", ampm: "AM" };
-  const [h, m] = hora24.split(":").map(Number);
+function from24h(hour24: string) {
+  if (!hour24) return { hour: "7:00", ampm: "AM" };
+  const [h, m] = hour24.split(":").map(Number);
   const ampm = h >= 12 ? "PM" : "AM";
-  let hora = h % 12;
-  if (hora === 0) hora = 12;
-  return { hora: `${hora}:${m.toString().padStart(2, "0")}`, ampm };
+  let hour = h % 12;
+  if (hour === 0) hour = 12;
+  return { hour: `${hour}:${m.toString().padStart(2, "0")}`, ampm };
 }
 
 // Formato 12 horas para mostrar
-function formatoHora12(hora24: string) {
+function formatHour12(hora24: string) {
   if (!hora24) return "";
   const [h, m] = hora24.split(":").map(Number);
   const ampm = h >= 12 ? "PM" : "AM";
-  const hora12 = ((h + 11) % 12 + 1);
-  return `${hora12}:${m.toString().padStart(2, "0")} ${ampm}`;
+  const hour12 = ((h + 11) % 12 + 1);
+  return `${hour12}:${m.toString().padStart(2, "0")} ${ampm}`;
 }
 
 // Función para validar formato de hora 12h
-function validarHora12(hora: string) {
-  if (!/^\d{1,2}:\d{2}$/.test(hora)) {
+function validateHour12(hour: string) {
+  if (!/^\d{1,2}:\d{2}$/.test(hour)) {
     return "Formato inválido. Use H:MM o HH:MM";
   }
 
-  const [h, m] = hora.split(":").map(Number);
+  const [h, m] = hour.split(":").map(Number);
 
   if (h < 1 || h > 12) {
     return "La hora debe estar entre 1 y 12";
@@ -83,7 +82,7 @@ function validarHora12(hora: string) {
   return null;
 }
 
-export default function PeriodosPage() {
+export default function SchedulePage() {
   const {
     userSchools, //escuela
     isLoading,
@@ -91,20 +90,20 @@ export default function PeriodosPage() {
     clearError // clearErros
   } = useUserSchoolsStore();
 
-  // Usar el store de periodos
+  // Usar el store de horarios
   const {
-    periodos,
+    schedule,
     isCreating,
     isUpdating,
     isDeleting,
     createError,
     updateError,
     deleteError,
-    crearPeriodo,
-    actualizarPeriodo,
-    eliminarPeriodo,
+    createSchedule,
+    updateSchedule,
+    deleteSchedule,
     clearErrors: clearStoreErrors,
-  } = usePeriodo(escuela?._id);
+  } = useSchdule(userSchools[0]?.userSchoolId);
 
   // Hook del CrudDialog
   const {
@@ -116,7 +115,7 @@ export default function PeriodosPage() {
     openView,
     openDelete,
     close
-  } = useCrudDialog(periodoSchema, {
+  } = useCrudDialog(scheduleSchema, {
     nombre: "",
     horaInicio: "07:00",
     horaFin: "08:00",
@@ -124,29 +123,31 @@ export default function PeriodosPage() {
   });
 
   const handleSubmit = async (values: Record<string, unknown>) => {
-    if (!escuela?._id) {
+    if (!userSchools[0]?.userSchoolId) {
       toast.error('Error: Escuela no seleccionada');
       return;
     }
 
     try {
       if (operation === 'create') {
-        await crearPeriodo({
-          escuelaId: escuela._id,
-          nombre: values.nombre as string,
-          horaInicio: values.horaInicio as string,
-          horaFin: values.horaFin as string,
-          activo: values.activo as boolean
+        await createSchedule({
+          schoolId: userSchools[0]?.userSchoolId,
+          name: values.name as string,
+          startTime: values.startTime as string,
+          endTime: values.endTime as string,
+          status: values.status as 'active' | 'inactive',
+          updatedAt: Date.now()
         });
         toast.success('Creado correctamente')
       } else if (operation === 'edit' && data?._id) {
-        await actualizarPeriodo({
+        await updateSchedule({
           id: data._id,
-          escuelaId: escuela._id,
-          nombre: values.nombre as string,
-          horaInicio: values.horaInicio as string,
-          horaFin: values.horaFin as string,
-          activo: values.activo as boolean
+          schoolId: userSchools[0]?.userSchoolId,
+          name: values.name as string,
+          startTime: values.startTime as string,
+          endTime: values.endTime as string,
+          status: values.status as 'active' | 'inactive',
+          updatedAt: Date.now()
         });
         toast.success('Actualizado correctamente')
       }
@@ -157,22 +158,22 @@ export default function PeriodosPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!escuela?._id) {
+    if (!userSchools[0]?.userSchoolId) {
       toast.error('Error: Escuela no seleccionada');
       return;
     }
 
     try {
-      await eliminarPeriodo(id, escuela._id);
+      await deleteSchedule(id, userSchools[0]?.userSchoolId);
       toast.success('Eliminado correctamente')
     } catch (error) {
-      console.error('Error al eliminar periodo:', error);
+      console.error('Error al eliminar horario:', error);
       throw error;
     }
   };
 
   const handleRetry = () => {
-    if (clearErrors) clearErrors();
+    if (clearError) clearError();
     clearStoreErrors();
   };
 
@@ -196,7 +197,7 @@ export default function PeriodosPage() {
     );
   }
 
-  if (!escuela) {
+  if (!userSchools) {
     return <div className="text-center py-10">No se encontró la escuela.</div>;
   }
 
@@ -236,37 +237,37 @@ export default function PeriodosPage() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl">
-        {periodos?.length === 0 && (
-          <p className="text-muted-foreground col-span-full">No hay periodos registrados.</p>
+        {schedule?.length === 0 && (
+          <p className="text-muted-foreground col-span-full">No hay horarios registrados.</p>
         )}
-        {periodos?.map((periodo) => (
-          <div key={periodo._id} className="border rounded-lg p-6 flex flex-col justify-between shadow bg-white">
+        {schedule?.map((schedule) => (
+          <div key={schedule._id} className="border rounded-lg p-6 flex flex-col justify-between shadow bg-white">
             <div>
-              <div className="font-semibold text-lg">{periodo.nombre}</div>
+              <div className="font-semibold text-lg">{schedule.name}</div>
               <div className="text-base text-muted-foreground">
-                {formatoHora12(periodo.horaInicio)} - {formatoHora12(periodo.horaFin)}
+                {formatHour12(schedule.startTime)} - {formatHour12(schedule.endTime)}
               </div>
               <div className="mt-2">
                 <Badge
                   variant="secondary"
                   className={
-                    periodo.activo
+                    schedule.status === 'active'
                       ? "bg-green-800 text-white"
                       : "bg-red-500 text-white"
                   }
                 >
-                  {periodo.activo ? "Activo" : "Inactivo"}
+                  {schedule.status === 'active' ? "Activo" : "Inactivo"}
                 </Badge>
               </div>
             </div>
             <div className="flex gap-2 mt-4">
-              <Button variant="outline" size="sm" onClick={() => openView({ ...periodo, _id: periodo._id })}>
+              <Button variant="outline" size="sm" onClick={() => openView({ ...schedule, _id: schedule._id })}>
                 <Eye className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="sm" onClick={() => openEdit({ ...periodo, _id: periodo._id })} disabled={isUpdating}>
+              <Button variant="outline" size="sm" onClick={() => openEdit({ ...schedule, _id: schedule._id })} disabled={isUpdating}>
                 <Pencil className="h-4 w-4" />
               </Button>
-              <Button variant="destructive" size="sm" onClick={() => openDelete({ ...periodo, _id: periodo._id })} disabled={isDeleting}>
+              <Button variant="destructive" size="sm" onClick={() => openDelete({ ...schedule, _id: schedule._id })} disabled={isDeleting}>
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
@@ -277,68 +278,69 @@ export default function PeriodosPage() {
       {/* CrudDialog */}
       <CrudDialog
         operation={operation}
-        title={operation === 'create' ? 'Crear Nuevo Periodo' :
-          operation === 'edit' ? 'Editar Periodo' : 'Ver Periodo'}
-        description={operation === 'create' ? 'Completa la información del nuevo periodo' :
-          operation === 'edit' ? 'Modifica la información del periodo' : 'Información del periodo'}
+        title={operation === 'create' ? 'Crear Nuevo Horario' :
+          operation === 'edit' ? 'Editar Horario' : 'Ver Horiario'}
+        description={operation === 'create' ? 'Completa la información del nuevo horario' :
+          operation === 'edit' ? 'Modifica la información del horario' : 'Información del horario'}
         schema={periodoSchema}
         defaultValues={{
-          nombre: "",
-          horaInicio: "07:00",
-          horaFin: "08:00",
-          activo: true
+          name: "",
+          startTime: "07:00",
+          endTime: "08:00",
+          status: 'active',
+          updatedAt: Date.now(),
         }}
         data={data}
         isOpen={isOpen}
         onOpenChange={close}
         onSubmit={handleSubmit}
         onDelete={handleDelete}
-        deleteConfirmationTitle="¿Eliminar periodo?"
-        deleteConfirmationDescription="Esta acción no se puede deshacer. El periodo será eliminado permanentemente."
+        deleteConfirmationTitle="¿Eliminar horario?"
+        deleteConfirmationDescription="Esta acción no se puede deshacer. El horario será eliminado permanentemente."
       >
-        {(form, operation) => <PeriodoForm form={form} operation={operation} />}
+        {(form, operation) => <ScheduleForm form={form} operation={operation} />}
       </CrudDialog>
     </div>
   );
 }
 
 // Componente separado para el formulario
-function PeriodoForm({ form, operation }: { form: UseFormReturn<Record<string, unknown>>; operation: string }) {
-  const [inicio, setInicio] = React.useState({ hora: "7:00", ampm: "AM" });
-  const [fin, setFin] = React.useState({ hora: "8:00", ampm: "AM" });
-  const [errorInicio, setErrorInicio] = React.useState<string | null>(null);
-  const [errorFin, setErrorFin] = React.useState<string | null>(null);
+function ScheduleForm({ form, operation }: { form: UseFormReturn<Record<string, unknown>>; operation: string }) {
+  const [start, setStart] = React.useState({ hour: "7:00", ampm: "AM" });
+  const [end, setEnd] = React.useState({ hour: "8:00", ampm: "AM" });
+  const [errorStart, setErrorStart] = React.useState<string | null>(null);
+  const [errorEnd, setErrorEnd] = React.useState<string | null>(null);
 
   // Inicializar valores del formulario
   React.useEffect(() => {
-    const horaInicio = form.watch('horaInicio') as string;
-    const horaFin = form.watch('horaFin') as string;
+    const startTime = form.watch('startTime') as string;
+    const endTime = form.watch('endTime') as string;
 
-    if (horaInicio) {
-      const inicioData = from24h(horaInicio);
-      setInicio(inicioData);
+    if (startTime) {
+      const startData = from24h(startTime);
+      setStart(startData);
     }
-    if (horaFin) {
-      const finData = from24h(horaFin);
-      setFin(finData);
+    if (endTime) {
+      const endData = from24h(endTime);
+      setEnd(endData);
     }
   }, [form]);
 
   // Sincronizar selectores con formulario
   React.useEffect(() => {
-    const errorIni = validarHora12(inicio.hora);
-    const errorFinVal = validarHora12(fin.hora);
+    const errorstart = validateHour12(start.hour);
+    const errorendVal = validateHour12(end.hour);
 
-    setErrorInicio(errorIni);
-    setErrorFin(errorFinVal);
+    setErrorStart(errorstart);
+    setErrorEnd(errorendVal);
 
-    if (!errorIni && !errorFinVal) {
-      const horaInicio = to24h(inicio.hora, inicio.ampm);
-      const horaFin = to24h(fin.hora, fin.ampm);
-      form.setValue("horaInicio", horaInicio);
-      form.setValue("horaFin", horaFin);
+    if (!errorstart && !errorendVal) {
+      const startTime = to24h(start.hour, start.ampm);
+      const endTime = to24h(end.hour, end.ampm);
+      form.setValue("startTime", startTime);
+      form.setValue("endTime", endTime);
     }
-  }, [inicio, fin, form]);
+  }, [start, end, form]);
 
   return (
     <div className="grid grid-cols-1 gap-4">
@@ -368,14 +370,14 @@ function PeriodoForm({ form, operation }: { form: UseFormReturn<Record<string, u
             <Input
               type="text"
               placeholder="H:MM"
-              value={inicio.hora}
-              onChange={e => setInicio(i => ({ ...i, hora: e.target.value }))}
-              className={`w-20 ${errorInicio ? 'border-red-500' : ''}`}
+              value={start.hour}
+              onChange={e => setStart(i => ({ ...i, hora: e.target.value }))}
+              className={`w-20 ${errorStart ? 'border-red-500' : ''}`}
               disabled={operation === 'view'}
             />
             <Select
-              value={inicio.ampm}
-              onValueChange={ampm => setInicio(i => ({ ...i, ampm }))}
+              value={start.ampm}
+              onValueChange={ampm => setStart(i => ({ ...i, ampm }))}
               disabled={operation === 'view'}
             >
               <SelectTrigger className="w-16">
@@ -388,7 +390,7 @@ function PeriodoForm({ form, operation }: { form: UseFormReturn<Record<string, u
               </SelectContent>
             </Select>
           </div>
-          {errorInicio && <p className="text-red-500 text-xs mt-1">{errorInicio}</p>}
+          {errorStart && <p className="text-red-500 text-xs mt-1">{errorStart}</p>}
         </div>
 
         <div>
@@ -397,14 +399,14 @@ function PeriodoForm({ form, operation }: { form: UseFormReturn<Record<string, u
             <Input
               type="text"
               placeholder="H:MM"
-              value={fin.hora}
-              onChange={e => setFin(f => ({ ...f, hora: e.target.value }))}
-              className={`w-20 ${errorFin ? 'border-red-500' : ''}`}
+              value={end.hour}
+              onChange={e => setEnd(f => ({ ...f, hour: e.target.value }))}
+              className={`w-20 ${errorEnd ? 'border-red-500' : ''}`}
               disabled={operation === 'view'}
             />
             <Select
-              value={fin.ampm}
-              onValueChange={ampm => setFin(f => ({ ...f, ampm }))}
+              value={end.ampm}
+              onValueChange={ampm => setEnd(f => ({ ...f, ampm }))}
               disabled={operation === 'view'}
             >
               <SelectTrigger className="w-16">
@@ -417,7 +419,7 @@ function PeriodoForm({ form, operation }: { form: UseFormReturn<Record<string, u
               </SelectContent>
             </Select>
           </div>
-          {errorFin && <p className="text-red-500 text-xs mt-1">{errorFin}</p>}
+          {errorEnd && <p className="text-red-500 text-xs mt-1">{errorEnd}</p>}
         </div>
       </div>
 
