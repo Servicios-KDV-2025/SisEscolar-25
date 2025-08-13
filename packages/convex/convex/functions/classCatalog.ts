@@ -4,6 +4,7 @@ import { mutation, query } from "../_generated/server";
 // Create
 export const createClassCatalog = mutation({
     args: {
+        schoolId: v.id("school"),
         schoolCycleId: v.id("schoolCycle"),
         subjectId: v.id("subject"),
         classroomId: v.id("classroom"),
@@ -25,33 +26,38 @@ export const createClassCatalog = mutation({
 
 // Read
 export const getAllClassCatalog = query({
+    args: {
+        schoolId: v.id("school"),
+    },
     handler: async (ctx, args) => {
         const catalog = await ctx.db
             .query("classCatalog")
             .collect();
 
+        if (!catalog || !args.schoolId) return null;
+
         const res = await Promise.all(
             catalog.map(async (clase) => {
-              const [cycle, subject, classroom, teacher, group] = await Promise.all([
-                clase.schoolCycleId ? ctx.db.get(clase.schoolCycleId) : null,
-                clase.subjectId ? ctx.db.get(clase.subjectId) : null,
-                clase.classroomId ? ctx.db.get(clase.classroomId) : null,
-                clase.teacherId ? ctx.db.get(clase.teacherId) : null,
-                clase.groupId ? ctx.db.get(clase.groupId) : null,
-              ]);
+                const [cycle, subject, classroom, teacher, group] = await Promise.all([
+                    clase.schoolCycleId ? ctx.db.get(clase.schoolCycleId) : null,
+                    clase.subjectId ? ctx.db.get(clase.subjectId) : null,
+                    clase.classroomId ? ctx.db.get(clase.classroomId) : null,
+                    clase.teacherId ? ctx.db.get(clase.teacherId) : null,
+                    clase.groupId ? ctx.db.get(clase.groupId) : null,
+                ]);
 
-              return {
-                _id: clase._id,
-                name: clase.name,
-                status: clase.status,
-                createdBy: clase.createdBy,
-                updatedAt: clase.updatedAt,
-                schoolCycle: cycle,
-                subject,
-                classroom,
-                teacher,
-                group,
-              }
+                return {
+                    _id: clase._id,
+                    name: clase.name,
+                    status: clase.status,
+                    createdBy: clase.createdBy,
+                    updatedAt: clase.updatedAt,
+                    schoolCycle: cycle,
+                    subject,
+                    classroom,
+                    teacher,
+                    group,
+                }
             }),
         );
 
@@ -61,11 +67,13 @@ export const getAllClassCatalog = query({
 
 export const getClassCatalog = query({
     args: {
+        schoolId: v.id("school"),
         _id: v.id("classCatalog")
     },
     handler: async (ctx, args) => {
         const catalog = await ctx.db.get(args._id);
-        if (!catalog) return null;
+        
+        if (!catalog || catalog.schoolId !== args.schoolId) return null;
         return catalog;
     }
 });
@@ -74,6 +82,7 @@ export const getClassCatalog = query({
 export const updateClassCatalog = mutation({
     args: {
         _id: v.id("classCatalog"),
+        schoolId: v.id("school"),
         schoolCycleId: v.id("schoolCycle"),
         subjectId: v.id("subject"),
         classroomId: v.id("classroom"),
@@ -91,7 +100,7 @@ export const updateClassCatalog = mutation({
     handler: async (ctx, args) => {
         const catalog = await ctx.db.get(args._id);
 
-        if (!catalog) return null;
+        if (!catalog || catalog.schoolId !== args.schoolId) return null;
 
         const { _id, ...data } = args;
         await ctx.db.patch(_id, data);
@@ -99,10 +108,13 @@ export const updateClassCatalog = mutation({
 });
 
 export const deleteClassCatalog = mutation({
-    args: { _id: v.id("classCatalog") },
+    args: {
+        _id: v.id("classCatalog"),
+        schoolId: v.id("school"),
+    },
     handler: async (ctx, args) => {
         const catalog = await ctx.db.get(args._id);
-        if (!catalog) return null;
+        if (!catalog || catalog.schoolId !== args.schoolId) return null;
         await ctx.db.delete(args._id);
     }
 });

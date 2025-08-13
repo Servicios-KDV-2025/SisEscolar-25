@@ -4,6 +4,11 @@
   "description": "",
   "main": "index.js",
   "types": "index.ts",
+  "exports": {
+    "./_generated/api": "./_generated/api.js",
+    "./_generated/dataModel": "./_generated/dataModel.d.ts",
+    "./schema": "./schema.ts"
+  },
   "scripts": {
     "dev": "convex dev"
   },

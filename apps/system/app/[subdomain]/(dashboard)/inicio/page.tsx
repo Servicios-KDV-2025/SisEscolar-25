@@ -2,11 +2,10 @@
 
 import React from "react";
 import Image from "next/image";
-import { useUser } from '@clerk/nextjs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card";
 import { Badge } from "@repo/ui/components/shadcn/badge";
-import { BookOpen, Users, Calendar, BarChart3,  Settings, GraduationCap, MapPin, Shield, Clock, Award } from "@repo/ui/icons";
-import { SignOutButton } from "@clerk/nextjs";
+import { BookOpen, Users, Calendar, BarChart3, Settings, GraduationCap, MapPin, Shield, Clock, Award } from "@repo/ui/icons";
+import { SignOutButton, useUser } from "@clerk/nextjs";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Separator } from "@repo/ui/components/shadcn/separator";
 import { useUserWithConvex } from "../../../../stores/userStore";
@@ -28,14 +27,6 @@ export default function EscuelaHome() {
 
   // Combined loading state
   const isLoading = !isLoaded || userLoading || schoolLoading;
-
-  // Debug logs (similar to sidebar)
-  console.log('=== INICIO PAGE DEBUG ===');
-  console.log('subdomain (auto-detected):', subdomain);
-  console.log('currentUser:', currentUser);
-  console.log('schoolLoading:', schoolLoading);
-  console.log('currentSchool:', currentSchool);
-  console.log('schoolError:', schoolError);
 
   // Prepare school data with loading and error states
   const schoolData = React.useMemo(() => {
@@ -166,6 +157,14 @@ export default function EscuelaHome() {
     }
   ];
 
+  // Debug logs (similar to sidebar)
+  console.log('=== INICIO PAGE DEBUG ===');
+  console.log('subdomain (auto-detected):', subdomain);
+  console.log('currentUser:', currentUser);
+  console.log('schoolLoading:', schoolLoading);
+  console.log('currentSchool:', currentSchool);
+  console.log('schoolError:', schoolError);
+
   return (
     <div className="space-y-8 p-6 max-w-7xl mx-auto">
       <SignOutButton />
@@ -204,6 +203,8 @@ export default function EscuelaHome() {
                   </div>
                 )}
                 <p className="text-lg text-muted-foreground max-w-2xl">
+                  {/* Plataforma integral de gestión educativa para administrar estudiantes,
+                  calificaciones, horarios y recursos académicos de manera eficiente. */}
                   {schoolData.description}
                 </p>
               </div>
@@ -248,7 +249,7 @@ export default function EscuelaHome() {
             <p className="text-muted-foreground">Accede a las funciones principales del sistema</p>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {quickActions.map((action, index) => (
             <Card key={index} className="group cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
@@ -281,8 +282,8 @@ export default function EscuelaHome() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-muted-foreground leading-relaxed">
-            Esta plataforma te permitirá gestionar de manera integral todos los aspectos 
-            administrativos y académicos de la institución. Desde el seguimiento de estudiantes 
+            Esta plataforma te permitirá gestionar de manera integral todos los aspectos
+            administrativos y académicos de la institución. Desde el seguimiento de estudiantes
             hasta la generación de reportes académicos, todo en un solo lugar.
           </p>
           <Separator />
