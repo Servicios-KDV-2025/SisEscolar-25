@@ -69,7 +69,7 @@ import { v } from "convex/values"
 //   }
 // })
 
-// 1. Obtener horarios POR una escuela específica
+// Obtener horarios POR una escuela específica
 export const getSchedulesBySchools = query({
   args: {
     schoolId: v.id("school"),
@@ -86,7 +86,7 @@ export const getSchedulesBySchools = query({
   },
 });
 
-// 2. Obtener un solo horiario por su ID
+// Obtener un solo horiario por su ID
 export const getScheduleById = query({
   args: {
     id: v.id('schedule'),
