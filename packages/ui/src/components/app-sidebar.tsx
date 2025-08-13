@@ -70,7 +70,7 @@ const defaultNavData = {
         },
         {
           title: "Catalogo de Clases",
-          url: `#`,
+          url: `/catalogo-clases`,
         },
         {
           title: "Eventos Por Clase",
