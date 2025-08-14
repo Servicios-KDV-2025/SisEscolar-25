@@ -89,6 +89,12 @@ const defaultNavData = {
       isActive: true,
     },
     {
+      title: "Asistencia",
+      url: `/attendance`,
+      icon: SquareTerminal,
+      isActive: true,
+    },
+    {
       title: "Materias",
       url: `/materias`,
       icon: SquareTerminal,
