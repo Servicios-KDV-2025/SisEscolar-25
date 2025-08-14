@@ -1,4 +1,4 @@
-import { AppSidebar } from "@repo/ui/components/app-sidebar";
+import { AppSidebarWithData } from "../../../components/AppSidebarWithData";
 import { SidebarInset, SidebarProvider } from "@repo/ui/components/shadcn/sidebar";
 import { SiteHeader } from "@repo/ui/components/site-header";
 import { ReactNode } from "react";
@@ -16,7 +16,7 @@ export default async function EscuelaLayout({
       <SidebarProvider className="flex flex-col">
         <SiteHeader />
         <div className="flex flex-1">
-          <AppSidebar />
+          <AppSidebarWithData />
           <SidebarInset>
             <div className="flex flex-1 flex-col gap-4 p-4">
               {children}

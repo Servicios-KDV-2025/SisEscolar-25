@@ -8,7 +8,8 @@
     "./lib/utils": "./src/lib/utils.ts",
     "./postcss.config": "./postcss.config.mjs",
     "./styles/*": "./src/styles/*",
-    "./icons": "./src/icons.ts"
+    "./icons": "./src/icons.ts",
+    "./components/dialog": "./src/components/dialog/crud-dialog.tsx"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",

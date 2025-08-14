@@ -1,0 +1,564 @@
+
+"use client";
+
+import React, { useState, useMemo } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card";
+import { Badge } from "@repo/ui/components/shadcn/badge";
+import { Button } from "@repo/ui/components/shadcn/button";
+import { Input } from "@repo/ui/components/shadcn/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/shadcn/avatar";
+import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@repo/ui/components/shadcn/form";
+import { 
+  Shield, Users, Search, Plus, Eye, Edit, Trash2, Filter, 
+  Mail, Phone, MapPin, Calendar, UserCheck, UserX 
+} from "@repo/ui/icons";
+import { superAdminSchema, type SuperAdminWithMetadata } from "@/types/schemas";
+
+type SuperAdmin = SuperAdminWithMetadata;
+
+// Datos de ejemplo (mock data)
+const mockSuperAdmins: SuperAdmin[] = [
+  {
+    _id: "1",
+    name: "María",
+    lastName: "González Pérez",
+    email: "maria.gonzalez@escuela.edu.mx",
+    phone: "+52 555 1234567",
+    address: "Av. Educación 123, CDMX",
+    status: "active",
+    _creationTime: Date.now() - 86400000 * 30, // 30 días atrás
+    createdAt: Date.now() - 86400000 * 30, // 30 días atrás
+    updatedAt: Date.now() - 86400000 * 5,  // 5 días atrás
+    clerkId: "clerk_maria123",
+    admissionDate: Date.now() - 86400000 * 365, // 1 año atrás
+  },
+  {
+    _id: "2", 
+    name: "Carlos",
+    lastName: "Rodríguez Martín",
+    email: "carlos.rodriguez@escuela.edu.mx",
+    phone: "+52 555 2345678",
+    address: "Calle Principal 456, CDMX",
+    status: "active",
+    _creationTime: Date.now() - 86400000 * 60,
+    createdAt: Date.now() - 86400000 * 60,
+    updatedAt: Date.now() - 86400000 * 2,
+    clerkId: "clerk_carlos456",
+    admissionDate: Date.now() - 86400000 * 500,
+  },
+  {
+    _id: "3",
+    name: "Ana",
+    lastName: "López Silva",
+    email: "ana.lopez@escuela.edu.mx", 
+    phone: "+52 555 3456789",
+    status: "inactive",
+    _creationTime: Date.now() - 86400000 * 90,
+    createdAt: Date.now() - 86400000 * 90,
+    updatedAt: Date.now() - 86400000 * 10,
+    clerkId: "clerk_ana789",
+    admissionDate: Date.now() - 86400000 * 200,
+  },
+  {
+    _id: "4",
+    name: "Roberto",
+    lastName: "Hernández Castro",
+    email: "roberto.hernandez@escuela.edu.mx",
+    phone: "+52 555 4567890",
+    address: "Zona Escolar 789, CDMX",
+    status: "active",
+    _creationTime: Date.now() - 86400000 * 15,
+    createdAt: Date.now() - 86400000 * 15,
+    updatedAt: Date.now() - 86400000 * 1,
+    clerkId: "clerk_roberto012",
+    admissionDate: Date.now() - 86400000 * 180,
+  },
+];
+
+export default function SuperadminPage() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // Hook del CRUD Dialog
+  const {
+    isOpen,
+    operation,
+    data,
+    openCreate,
+    openEdit,
+    openView,
+    openDelete,
+    close,
+  } = useCrudDialog(superAdminSchema, {
+    status: "active",
+    admissionDate: Date.now(),
+  });
+
+  // Filtrado de datos
+  const filteredSuperAdmins = useMemo(() => {
+    return mockSuperAdmins.filter((admin) => {
+      const searchMatch = 
+        admin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        admin.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        admin.email.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const statusMatch = statusFilter === "all" || admin.status === statusFilter;
+      
+      return searchMatch && statusMatch;
+    });
+  }, [searchTerm, statusFilter]);
+
+  // Funciones CRUD (mock)
+  const handleCreate = async (data: Record<string, unknown>) => {
+    console.log("Crear super-administrador:", data);
+    // Aquí iría la integración con Convex
+  };
+
+  const handleUpdate = async (data: Record<string, unknown>) => {
+    console.log("Actualizar super-administrador:", data);
+    // Aquí iría la integración con Convex
+  };
+
+  const handleDelete = async (id: string) => {
+    console.log("Eliminar super-administrador:", id);
+    // Aquí iría la integración con Convex
+  };
+
+  // Funciones de utilidad
+  const formatDate = (timestamp?: number) => {
+    if (!timestamp) return "No disponible";
+    return new Date(timestamp).toLocaleDateString('es-MX', {
+      year: 'numeric',
+      month: 'short', 
+      day: 'numeric'
+    });
+  };
+
+  const getInitials = (name: string, lastName?: string) => {
+    const first = name.charAt(0).toUpperCase();
+    const last = lastName ? lastName.charAt(0).toUpperCase() : "";
+    return first + last;
+  };
+
+
+
+  const stats = [
+    {
+      title: "Total Super Administradores",
+      value: mockSuperAdmins.length.toString(),
+      icon: Users,
+      trend: "Usuarios registrados"
+    },
+    {
+      title: "Activos",
+      value: mockSuperAdmins.filter(admin => admin.status === "active").length.toString(),
+      icon: UserCheck,
+      trend: "Estado activo"
+    },
+    {
+      title: "Inactivos", 
+      value: mockSuperAdmins.filter(admin => admin.status === "inactive").length.toString(),
+      icon: UserX,
+      trend: "Estado inactivo"
+    },
+
+  ];
+
+  return (
+    <div className="space-y-8 p-6">
+      {/* Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
+        <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
+        <div className="relative p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-primary/10 rounded-xl">
+                  <Shield className="h-8 w-8 text-primary" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold tracking-tight">Super-Administradores</h1>
+                  <p className="text-lg text-muted-foreground">
+                    Gestión de usuarios con permisos administrativos completos
+                  </p>
+                </div>
+              </div>
+            </div>
+            <Button size="lg" className="gap-2" onClick={openCreate}>
+              <Plus className="w-4 h-4" />
+              Agregar Super-Admin
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Estadísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {stats.map((stat, index) => (
+          <Card key={index} className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {stat.title}
+              </CardTitle>
+              <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                <stat.icon className="h-4 w-4 text-primary" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-3xl font-bold">{stat.value}</div>
+              <p className="text-xs text-muted-foreground">{stat.trend}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Filtros y búsqueda */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                Filtros y Búsqueda
+              </CardTitle>
+              <CardDescription>
+                Encuentra super-administradores por nombre, email o estado
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nombre, apellido o email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="active">Activos</SelectItem>
+                <SelectItem value="inactive">Inactivos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tabla de Super-Administradores */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Lista de Super-Administradores</span>
+            <Badge variant="outline">{filteredSuperAdmins.length} usuarios</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Usuario</TableHead>
+                  <TableHead>Contacto</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Fecha de Ingreso</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredSuperAdmins.map((admin) => (
+                  <TableRow key={admin._id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={admin.imgUrl} alt={admin.name} />
+                          <AvatarFallback className="bg-primary/10">
+                            {getInitials(admin.name, admin.lastName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium">
+                            {admin.name} {admin.lastName}
+                          </div>
+                          <div className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            {admin.email}
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        {admin.phone && (
+                          <div className="text-sm flex items-center gap-1">
+                            <Phone className="h-3 w-3 text-muted-foreground" />
+                            {admin.phone}
+                          </div>
+                        )}
+                        {admin.address && (
+                          <div className="text-sm text-muted-foreground flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {admin.address}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant={admin.status === "active" ? "default" : "secondary"}
+                        className={admin.status === "active" ? "bg-green-500 hover:bg-green-600" : ""}
+                      >
+                        {admin.status === "active" ? "Activo" : "Inactivo"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 text-sm">
+                        <Calendar className="h-3 w-3 text-muted-foreground" />
+                        {formatDate(admin.admissionDate)}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openView(admin)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEdit(admin)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openDelete(admin)}
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          
+          {filteredSuperAdmins.length === 0 && (
+            <div className="text-center py-12">
+              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">No se encontraron super-administradores</h3>
+              <p className="text-muted-foreground mb-4">
+                Intenta ajustar los filtros o agregar un nuevo super-administrador.
+              </p>
+              <Button onClick={openCreate} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Agregar Super-Admin
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Dialog CRUD */}
+      <CrudDialog
+        operation={operation}
+        title={
+          operation === "create" 
+            ? "Agregar Super-Administrador"
+            : operation === "edit"
+            ? "Editar Super-Administrador"
+            : operation === "view"
+            ? "Ver Super-Administrador"
+            : "Eliminar Super-Administrador"
+        }
+        description={
+          operation === "create"
+            ? "Completa la información para agregar un nuevo super-administrador"
+            : operation === "edit"
+            ? "Modifica la información del super-administrador"
+            : operation === "view"
+            ? "Información detallada del super-administrador"
+            : undefined
+        }
+        schema={superAdminSchema}
+        data={data}
+        isOpen={isOpen}
+        onOpenChange={close}
+        onSubmit={operation === "create" ? handleCreate : handleUpdate}
+        onDelete={handleDelete}
+        deleteConfirmationTitle="¿Eliminar super-administrador?"
+        deleteConfirmationDescription="Esta acción eliminará permanentemente al super-administrador del sistema. Esta acción no se puede deshacer."
+      >
+        {(form, currentOperation) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nombre *</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      value={field.value as string || ""}
+                      placeholder="Nombre del super-administrador"
+                      disabled={currentOperation === "view"}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="lastName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Apellidos</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      value={field.value as string || ""}
+                      placeholder="Apellidos"
+                      disabled={currentOperation === "view"}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email *</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      value={field.value as string || ""}
+                      type="email"
+                      placeholder="email@escuela.edu.mx"
+                      disabled={currentOperation === "view"}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Teléfono</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      value={field.value as string || ""}
+                      placeholder="+52 555 1234567"
+                      disabled={currentOperation === "view"}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem className="md:col-span-2">
+                  <FormLabel>Dirección</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      value={field.value as string || ""}
+                      placeholder="Dirección completa"
+                      disabled={currentOperation === "view"}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Estado</FormLabel>
+                  <FormControl>
+                    <Select 
+                      value={field.value as string} 
+                      onValueChange={field.onChange}
+                      disabled={currentOperation === "view"}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar estado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Activo</SelectItem>
+                        <SelectItem value="inactive">Inactivo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {currentOperation === "view" && data && (
+              <div className="md:col-span-2 space-y-4 pt-4 border-t">
+                <h3 className="font-medium text-sm text-muted-foreground">Información adicional</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">ID de Usuario:</span>
+                    <p className="font-mono">{data._id as string}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Fecha de Creación:</span>
+                    <p>{formatDate(data.createdAt as number)}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Última Actualización:</span>
+                    <p>{formatDate(data.updatedAt as number)}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Clerk ID:</span>
+                    <p className="font-mono">{data.clerkId as string}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </CrudDialog>
+    </div>
+  );
+}

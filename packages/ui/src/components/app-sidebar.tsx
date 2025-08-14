@@ -6,7 +6,9 @@ import {
   LifeBuoy,
   Send,
   SquareTerminal,
+  Users,
 } from "lucide-react"
+
 
 import { NavMain } from "@repo/ui/components/nav-main"
 import { NavSecondary } from "@repo/ui/components/nav-secondary"
@@ -21,12 +23,28 @@ import {
   SidebarMenuItem,
 } from "@repo/ui/components/shadcn/sidebar"
 
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
+
+// Interfaz para los datos del usuario
+interface UserData {
+  name: string;
+  email: string;
+  avatar: string;
+}
+
+// Interfaz para los datos de la escuela
+interface SchoolData {
+  name: string;
+  shortName: string;
+  logo: string;
+}
+
+// Props del componente
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  user?: UserData;
+  school?: SchoolData;
+}
+
+const defaultNavData = {
   navMain: [
     {
       title: "Ciclos Escolares",
@@ -52,7 +70,7 @@ const data = {
         },
         {
           title: "Catalogo de Clases",
-          url: `#`,
+          url: `/catalogo-clases`,
         },
         {
           title: "Eventos Por Clase",
@@ -130,6 +148,39 @@ const data = {
       icon: SquareTerminal,
       isActive: true,
     },
+    {
+      title: "Usuarios",
+      url: `#`,
+      icon: Users,
+      isActive: true,
+      items: [
+        {
+          title: "Super Administrador",
+          url: `/usuarios/super-administrador`,
+        },
+        {
+          title: "Administradores",
+          url: `/usuarios/administradores`,
+        },
+        {
+          title: "Docentes",
+          url: `/usuarios/docentes`,
+        },
+        {
+          title: "Auditor",
+          url: `/usuarios/auditores`,
+        },
+        {
+          title: "Tutores",
+          url: `/usuarios/tutores`,
+        },
+        {
+          title: "Alumnos",
+          url: `/usuarios/alumnos`,
+        },
+      ],
+    },
+    
   ],
   navSecondary: [
     {
@@ -145,7 +196,27 @@ const data = {
   ],
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ user, school, ...props }: AppSidebarProps) {
+  const [imageError, setImageError] = React.useState(false);
+  
+  // Usar datos del usuario pasados como props o valores por defecto
+  const userData = user || {
+    name: "Usuario",
+    email: "usuario@ejemplo.com",
+    avatar: "/avatars/default-user.jpg",
+  };
+
+  // Usar datos de la escuela pasados como props o valores por defecto
+  const schoolData = school || {
+    name: "Sistema Escolar",
+    shortName: "Sistema",
+    logo: "/avatars/default-school.jpg",
+  };
+
+  // Reset error when school changes
+  React.useEffect(() => {
+    setImageError(false);
+  }, [schoolData.logo]);
   return (
     <Sidebar
       className="top-(--header-height) h-[calc(100svh-var(--header-height))]!"
@@ -156,12 +227,28 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <a href="#">
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Command className="size-4" />
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg overflow-hidden">
+                  {schoolData.logo && !imageError ? (
+                    <img 
+                      src={schoolData.logo} 
+                      alt={schoolData.name}
+                      className="size-8 object-cover rounded-lg"
+                      onError={() => setImageError(true)}
+                      onLoad={() => setImageError(false)}
+                    />
+                  ) : (
+                    <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                      <Command className="size-4" />
+                    </div>
+                  )}
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Acme Inc</span>
-                  <span className="truncate text-xs">Enterprise</span>
+                  <span className="truncate font-medium" title={schoolData.name}>
+                    {schoolData.name}
+                  </span>
+                  <span className="truncate text-xs" title={schoolData.shortName}>
+                    {schoolData.shortName}
+                  </span>
                 </div>
               </a>
             </SidebarMenuButton>
@@ -169,11 +256,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavMain items={defaultNavData.navMain} />
+        <NavSecondary items={defaultNavData.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={userData} />
       </SidebarFooter>
     </Sidebar>
   )
