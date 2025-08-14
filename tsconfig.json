@@ -3,7 +3,8 @@
     "baseUrl": ".",
     "paths": {
       "@repo/convex": ["packages/convex"],
-      "@/convex/*": ["packages/convex/convex/*"]
+      "@/convex/*": ["packages/convex/convex/*"],
+      "@repo/zod-config": ["packages/zod-config/index.ts"]
     },
     "incremental": false,  // Desactiva compilación incremental
     "tsBuildInfoFile": null // Evita archivos de build info
