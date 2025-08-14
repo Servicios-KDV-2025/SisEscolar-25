@@ -152,6 +152,16 @@ const applicationTable = defineSchema({
 
   //FK
 
+  //Relación entre estudiantes y clases
+  studentClass: defineTable({
+    classCatalogId: v.id("classCatalog"),
+    studentId: v.id("student"),
+    enrollmentDate: v.number(),
+    status: v.union(v.literal("active"), v.literal("inactive")),
+  })
+    .index("by_class_catalog", ["classCatalogId"])
+    .index("by_student", ["studentId"]),
+
   //Periodos
   term: defineTable({
     classCatalogId: v.id("classCatalog"),
@@ -159,15 +169,13 @@ const applicationTable = defineSchema({
     key: v.string(),
     startDate: v.number(),
     endDate: v.number(),
-    parentTermId: v.optional(v.union(v.id("term"), v.null())),
     status: v.union(
       v.literal("active"),
       v.literal("inactive"),
-      v.literal("closed")
+      v.literal("closed"),
     ),
     updatedAt: v.optional(v.number()),
   })
-    .index("by_parent_term", ["parentTermId"])
     .index("by_class_catalog", ["classCatalogId"]),
 
   //Rúbrica de Calificación
@@ -181,23 +189,32 @@ const applicationTable = defineSchema({
     updatedAt: v.optional(v.number()),
   }).index("by_class_term", ["classCatalogId", "termId"]),
 
+  // Tareas, exámenes o proyectos individuales
+  assignment: defineTable({
+    classCatalogId: v.id("classCatalog"),
+    termId: v.id("term"),
+    gradeRubricId: v.id("gradeRubric"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    dueDate: v.number(),
+    maxScore: v.number(),
+    createdBy: v.id("user"),
+    updatedAt: v.optional(v.number()),
+  }).index("by_rubric", ["gradeRubricId"]),
+
   //Calificaciones Individuales
   grade: defineTable({
     studentClassId: v.id("studentClass"),
-    gradeRubricId: v.id("gradeRubric"), // Referencia al criterio de evaluación
-    score: v.number(), // Calificación obtenida por el estudiante
+    assignmentId: v.id("assignment"), // Referencia a la tarea, examen o proyecto
+    score: v.number(),
     comments: v.optional(v.string()),
     registeredById: v.id("user"),
-    // registrationDate: v.number(), //no tiene caso se puede usar _creationTime de convex
     createdBy: v.id("user"),
     updatedBy: v.optional(v.id("user")),
     updatedAt: v.optional(v.number()),
   })
-    .index("by_student_class", ["studentClassId"])
-    .index("by_registered_by", ["registeredById"])
-    .index("by_rubric", ["gradeRubricId"])
-    ,
-
+    .index("by_student_assignment", ["studentClassId", "assignmentId"])
+    .index("by_assignment", ["assignmentId"]),
   //Promedios Calculados
   termAverage: defineTable({
     studentClassId: v.id("studentClass"),
@@ -210,27 +227,23 @@ const applicationTable = defineSchema({
   }).index("by_student_term", ["studentClassId", "termId"]),
   //Fk
 
-    //Clases
-    classCatalog: defineTable({
-        schoolCycleId: v.id("schoolCycle"),
-        subjectId: v.id("subject"),
-        classroomId: v.id("classroom"),
-        teacherId: v.id("user"),
-        groupId: v.optional(v.id("group")),
-        // scheduleId: v.id("schedule"),
-        name: v.string(),
-        status: v.union(
-            v.literal('active'),
-            v.literal('inactive')
-        ),
-        createdBy: v.optional(v.id("user")),
-        updatedAt: v.number(),
-    })
-        .index("by_cycle", ["schoolCycleId"])
-        .index("by_subject", ["subjectId"])
-        .index("by_classroom", ["classroomId"])
-        .index("by_teacher", ["teacherId"]),
- 
+  //Clases
+  classCatalog: defineTable({
+    schoolCycleId: v.id("schoolCycle"),
+    subjectId: v.id("subject"),
+    classroomId: v.id("classroom"),
+    teacherId: v.id("user"),
+    groupId: v.optional(v.id("group")),
+    // scheduleId: v.id("schedule"),
+    name: v.string(),
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    createdBy: v.optional(v.id("user")),
+    updatedAt: v.number(),
+  })
+    .index("by_cycle", ["schoolCycleId"])
+    .index("by_subject", ["subjectId"])
+    .index("by_classroom", ["classroomId"])
+    .index("by_teacher", ["teacherId"]),
 
   //Relación entre clases y horarios
   classSchedule: defineTable({
@@ -242,15 +255,6 @@ const applicationTable = defineSchema({
     .index("by_class_catalog", ["classCatalogId"])
     .index("by_schedule", ["scheduleId"]),
 
-  //Relación entre estudiantes y clases
-  studentClass: defineTable({
-    classCatalogId: v.id("classCatalog"),
-    studentId: v.id("student"),
-    enrollmentDate: v.number(),
-    status: v.union(v.literal("active"), v.literal("inactive")),
-  })
-    .index("by_class_catalog", ["classCatalogId"])
-    .index("by_student", ["studentId"]),
   //Asistencia
   attendance: defineTable({
     studentClassId: v.id("studentClass"),
