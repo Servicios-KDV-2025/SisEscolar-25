@@ -118,7 +118,7 @@ export default function EscuelaHome() {
       title: "Horarios",
       description: "Programar clases y eventos",
       icon: Calendar,
-      href: "/horarios",
+      href: "/schedule",
       color: "bg-purple-500"
     },
     {
