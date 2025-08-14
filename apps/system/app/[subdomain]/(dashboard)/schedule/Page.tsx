@@ -3,7 +3,7 @@
 import React from "react";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { toast } from "sonner";
-import { useUserSchoolsStore } from "stores/userSchoolsStore"; 
+import { useCurrentSchool } from "stores/userSchoolsStore"; 
 import { useSchdule } from "stores/schedule";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
@@ -16,7 +16,7 @@ import { z } from "zod";
 import { UseFormReturn } from "react-hook-form";
 
 // Schema de validación para periodos
-const periodoSchema = z.object({
+const scheduleSchema = z.object({
   nombre: z.string().min(1, "Nombre requerido"),
   horaInicio: z.string().regex(/^\d{2}:\d{2}$/, "Formato HH:MM"),
   horaFin: z.string().regex(/^\d{2}:\d{2}$/, "Formato HH:MM"),
@@ -28,7 +28,7 @@ const ampmOptions = ["AM", "PM"];
 
 // Helper para convertir a 24h
 function to24h(hour: string, ampm: string) {
-  if (!/^\d{1,2}:\d{2}$/.test(hora)) {
+  if (!/^\d{1,2}:\d{2}$/.test(hour)) {
     return hour;
   }
 
@@ -84,11 +84,11 @@ function validateHour12(hour: string) {
 
 export default function SchedulePage() {
   const {
-    userSchools, //escuela
+    currentSchool, //escuela
+    subdomain,
     isLoading,
-    error,
-    clearError // clearErros
-  } = useUserSchoolsStore();
+    error // clearErros
+  } = useCurrentSchool();
 
   // Usar el store de horarios
   const {
@@ -103,7 +103,7 @@ export default function SchedulePage() {
     updateSchedule,
     deleteSchedule,
     clearErrors: clearStoreErrors,
-  } = useSchdule(userSchools[0]?.userSchoolId);
+  } = useSchdule(currentSchool?.school._id);
 
   // Hook del CrudDialog
   const {
@@ -123,7 +123,7 @@ export default function SchedulePage() {
   });
 
   const handleSubmit = async (values: Record<string, unknown>) => {
-    if (!userSchools[0]?.userSchoolId) {
+    if (!currentSchool?.school._id) {
       toast.error('Error: Escuela no seleccionada');
       return;
     }
@@ -131,7 +131,7 @@ export default function SchedulePage() {
     try {
       if (operation === 'create') {
         await createSchedule({
-          schoolId: userSchools[0]?.userSchoolId,
+          schoolId: currentSchool?.school._id,
           name: values.name as string,
           startTime: values.startTime as string,
           endTime: values.endTime as string,
@@ -142,7 +142,7 @@ export default function SchedulePage() {
       } else if (operation === 'edit' && data?._id) {
         await updateSchedule({
           id: data._id,
-          schoolId: userSchools[0]?.userSchoolId,
+          schoolId: currentSchool?.school._id,
           name: values.name as string,
           startTime: values.startTime as string,
           endTime: values.endTime as string,
@@ -158,13 +158,13 @@ export default function SchedulePage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!userSchools[0]?.userSchoolId) {
+    if (!currentSchool?.school._id) {
       toast.error('Error: Escuela no seleccionada');
       return;
     }
 
     try {
-      await deleteSchedule(id, userSchools[0]?.userSchoolId);
+      await deleteSchedule(id, currentSchool?.school._id);
       toast.success('Eliminado correctamente')
     } catch (error) {
       console.error('Error al eliminar horario:', error);
@@ -172,10 +172,10 @@ export default function SchedulePage() {
     }
   };
 
-  const handleRetry = () => {
-    if (clearError) clearError();
-    clearStoreErrors();
-  };
+  // const handleRetry = () => {
+  //   if (clearError) clearError();
+  //   clearStoreErrors();
+  // };
 
   // Estados de carga y error
   if (isLoading) {
@@ -188,7 +188,7 @@ export default function SchedulePage() {
         Error: {error}
         <br />
         <button
-          onClick={handleRetry}
+          // onClick={handleRetry}
           className="text-xs text-blue-500 underline mt-2"
         >
           Reintentar
@@ -197,7 +197,7 @@ export default function SchedulePage() {
     );
   }
 
-  if (!userSchools) {
+  if (!currentSchool) {
     return <div className="text-center py-10">No se encontró la escuela.</div>;
   }
 
@@ -282,7 +282,7 @@ export default function SchedulePage() {
           operation === 'edit' ? 'Editar Horario' : 'Ver Horiario'}
         description={operation === 'create' ? 'Completa la información del nuevo horario' :
           operation === 'edit' ? 'Modifica la información del horario' : 'Información del horario'}
-        schema={periodoSchema}
+        schema={scheduleSchema}
         defaultValues={{
           name: "",
           startTime: "07:00",

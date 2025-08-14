@@ -1,5 +1,4 @@
 import { create } from "zustand";
-// import { api } from "@/convex/_generated/api";
 import { api } from "@repo/convex/convex/_generated/api";
 import { useQuery, useMutation } from "convex/react";
 import { useCallback, useEffect } from "react";
@@ -106,7 +105,8 @@ type ScheduleQueryData = {
   updatedAt: number;
 };
 
-export const useSchdule = (schoolId?: string) => {
+// export const useSchdule = (schoolId?: string) => {
+export const useSchdule = (schoolId?: Id<'school'>) => {
   const {
     schedule,
     selectedSchedule,
@@ -132,7 +132,8 @@ export const useSchdule = (schoolId?: string) => {
   // Query para obtener los horario de la escuela
   const scheduleQuery = useQuery(
     api.functions.schedule.getSchedulesBySchools,
-    schoolId ? { schoolId: schoolId as Id<"school"> } : "skip"
+    // schoolId ? { schoolId: schoolId as Id<"school"> } : "skip"
+    schoolId ? { schoolId } : "skip"
   );
 
   // Mutations
@@ -170,7 +171,7 @@ export const useSchdule = (schoolId?: string) => {
         startTime: data.startTime,
         endTime: data.endTime,
         status: data.status,
-        updatedAt: data.updatedAt,
+        updatedAt: data.updatedAt ?? Date.now(),
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error al actualizar horario';
