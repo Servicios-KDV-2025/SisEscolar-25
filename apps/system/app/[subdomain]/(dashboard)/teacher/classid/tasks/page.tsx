@@ -327,14 +327,8 @@ export default function TaskManagement() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <Link href="/teacher">
-                <Button variant="ghost" size="sm" className="mr-4">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Volver a Clases
-                </Button>
-              </Link>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-4xl font-bold text-gray-900">
                   Gestión de Tareas
                 </h1>
                 <p className="text-gray-600">
@@ -534,10 +528,10 @@ export default function TaskManagement() {
           <TabsContent value="submissions" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Entregas de Estudiantes</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-4xl">Asignación</CardTitle>
+                {/* <CardDescription>
                   Revisa y califica las entregas de tus estudiantes
-                </CardDescription>
+                </CardDescription> */}
               </CardHeader>
               <CardContent>
                 <div className="mb-4">
@@ -556,7 +550,7 @@ export default function TaskManagement() {
                 </div>
 
                 <Table>
-                  <TableHeader>
+                  {/* <TableHeader>
                     <TableRow>
                       <TableHead>Estudiante</TableHead>
                       <TableHead>ID</TableHead>
@@ -565,7 +559,7 @@ export default function TaskManagement() {
                       <TableHead>Calificación</TableHead>
                       <TableHead></TableHead>
                     </TableRow>
-                  </TableHeader>
+                  </TableHeader> */}
                   <TableBody>
                     {taskSubmissions.map((submission) => (
                       <TableRow key={submission.id}>
@@ -615,9 +609,13 @@ export default function TaskManagement() {
                             </Button>
                           )}
                           {submission.status === "pending" && (
-                            <span className="text-sm text-gray-500">
-                              Sin entregar
-                            </span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleGradeSubmission(submission)}
+                            >
+                              Revisar
+                            </Button>
                           )}
                         </TableCell>
                       </TableRow>

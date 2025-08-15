@@ -77,7 +77,7 @@ export default function ClassGrades() {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">
+                <h1 className="text-4xl font-bold text-gray-900">
                   {classInfo.name}
                 </h1>
                 <p className="text-gray-600">
@@ -95,10 +95,7 @@ export default function ClassGrades() {
             {/* Rubric Table */}
             <Card className="mb-8">
               <CardHeader>
-                <CardTitle>Rúbrica de Evaluación</CardTitle>
-                <CardDescription>
-                  Criterios y pesos para la {classInfo.term}
-                </CardDescription>
+                <CardTitle className="text-2xl">Criterios de Evaluación</CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>

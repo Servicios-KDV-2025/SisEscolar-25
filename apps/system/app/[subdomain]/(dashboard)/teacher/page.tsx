@@ -44,7 +44,7 @@ const teacherClasses = [
 
 export default function TeacherDashboard() {
   return (
-    <div className="min-h-screen bg-gray-50 sticky top-0 z-10 bg-amber-300">
+    <div className="min-h-screen bg-gray-50 sticky top-0 z-10">
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ">
           <div className="flex justify-between items-center py-6">
@@ -77,13 +77,15 @@ export default function TeacherDashboard() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {teacherClasses.map((classItem) => (
             <Card key={classItem.id} className="hover:shadow-lg transition-shadow cursor-pointer">
-              <Link href={`/teacher/classid/`}>
+              
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className={`w-3 h-3 rounded-full ${classItem.color}`}></div>
                   <Badge variant="outline">{classItem.term}</Badge>
                 </div>
+<Link href={`/teacher/classid/`}>
                 <CardTitle className="text-lg">{classItem.name}</CardTitle>
+                </Link>
                 <CardDescription className="flex items-center gap-4">
                   <span className="flex items-center">
                     <BookOpen className="w-4 h-4 mr-1" />
@@ -97,19 +99,18 @@ export default function TeacherDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-2 mt-2">
-                  <Link href={`/teacher/class/${classItem.id}`}>
+                  <Link href={`/teacher/class/grade`}>
                     <Button className="w-full" size="sm">
                       Calificaciones
                     </Button>
                   </Link>
-                  <Link href={`/teacher/classid/`}>
+                  <Link href={`/teacher/classid/tasks`}>
                     <Button className="w-full" variant="outline" size="sm">
                       Tareas
                     </Button>
                   </Link>
                 </div>
               </CardContent>
-            </Link>
             </Card>
           ))}
         </div>
