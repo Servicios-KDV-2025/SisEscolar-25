@@ -106,7 +106,7 @@ type ScheduleQueryData = {
 };
 
 // export const useSchdule = (schoolId?: string) => {
-export const useSchdule = (schoolId?: Id<'school'>) => {
+export const useSchedule = (schoolId?: Id<'school'>) => {
   const {
     schedule,
     selectedSchedule,
