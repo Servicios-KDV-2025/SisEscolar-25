@@ -2,20 +2,28 @@
 import React from 'react'
 import { defineStepper } from '@/components/ui/stepper'
 import { Button } from '@/components/ui/button'
-import { Home } from 'lucide-react'
+import { School, User, CopySlash } from 'lucide-react'
+import { useAuth } from '@clerk/nextjs'
+import { SignUp } from './SignUp'
 
 const { Stepper: StepperUi } = defineStepper(
   {
     id: 'step-1',
-    title: 'Step 1',
+    title: 'Paso 1',
+    description: 'Iniciar sesión para continuar',
+    icon: <User />,
   },
   {
     id: 'step-2',
-    title: 'Step 2',
+    title: 'Paso 2',
+    description: 'Ingresar datos de la escuela',
+    icon: <School />,
   },
   {
     id: 'step-3',
-    title: 'Step 3',
+    title: 'Paso 3',
+    description: 'Realizar pagos',
+    icon: <CopySlash />,
   },
 )
 
@@ -26,13 +34,14 @@ export const Stepper: React.FC = () => {
         <>
           <StepperUi.Navigation>
             {methods.all.map((step, index) => (
-              <StepperUi.Step of={step.id} key={index} icon={<Home />}>
+              <StepperUi.Step of={step.id} key={index} icon={step.icon}>
                 <StepperUi.Title>{step.title}</StepperUi.Title>
+                <StepperUi.Description>{step.description}</StepperUi.Description>
               </StepperUi.Step>
             ))}
           </StepperUi.Navigation>
           {methods.switch({
-            'step-1': (step) => <Content id={step.id} />,
+            'step-1': (step) => <ClerkComponent />,
             'step-2': (step) => <Content id={step.id} />,
             'step-3': (step) => <Content id={step.id} />,
           })}
@@ -58,4 +67,10 @@ const Content = ({ id }: { id: string }) => {
       <p className="text-xl font-normal">Content for {id}</p>
     </StepperUi.Panel>
   )
+}
+
+const ClerkComponent: React.FC = () => {
+  const { isSignedIn } = useAuth()
+
+  return <div className="container full-width">{!isSignedIn && <SignUp />}</div>
 }
