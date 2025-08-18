@@ -3,8 +3,9 @@ import React from 'react'
 import { defineStepper } from '@/components/ui/stepper'
 import { Button } from '@/components/ui/button'
 import { School, User, CopySlash } from 'lucide-react'
-import { useAuth } from '@clerk/nextjs'
+import { SignOutButton, useAuth } from '@clerk/nextjs'
 import { SignUp } from './SignUp'
+import { SignIn } from './SignIn'
 
 const { Stepper: StepperUi } = defineStepper(
   {
@@ -71,6 +72,24 @@ const Content = ({ id }: { id: string }) => {
 
 const ClerkComponent: React.FC = () => {
   const { isSignedIn } = useAuth()
+  const [showSignIn, setShowSignIn] = React.useState(false)
 
-  return <div className="container full-width">{!isSignedIn && <SignUp />}</div>
+  if (isSignedIn) {
+    return (
+      <>
+        <p className='text-center text-lg font-bold'>Bienvenido  </p>
+        <SignOutButton redirectUrl='#'>
+          <Button>
+            Cerrar sesión
+          </Button>
+        </SignOutButton>
+      </>
+    )
+  }
+
+  return showSignIn ? (
+    <SignIn onBackToSignUp={() => setShowSignIn(false)} />
+  ) : (
+    <SignUp onSwitchToSignIn={() => setShowSignIn(true)} />
+  )
 }
