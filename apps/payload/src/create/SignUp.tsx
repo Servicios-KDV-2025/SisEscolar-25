@@ -39,7 +39,7 @@ const registerSchema = z.object({
 
 type RegisterFormData = z.infer<typeof registerSchema>
 
-export function SignUp() {
+export function SignUp({ onSwitchToSignIn }: { onSwitchToSignIn?: () => void }) {
   const { isLoaded, signUp, setActive } = useSignUp()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -61,6 +61,7 @@ export function SignUp() {
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true)
     setSubmitError(null)
+    console.log('data', data)
 
     if (!isLoaded) {
       return
@@ -70,16 +71,17 @@ export function SignUp() {
       await signUp.create({
         emailAddress: data.email,
         password: data.password,
-        firstName: data.name,
+        // firstName: data.name,
       })
 
       await signUp.prepareEmailAddressVerification({
         strategy: 'email_code',
       })
+      
       setPendingVerification(true)
       reset()
     } catch (error: any) {
-      setSubmitError('Ocurrió un error al crear la cuenta. Por favor intenta nuevamente.')
+      setSubmitError(error.errors[0].message)
       setError(error.errors[0].message)
     } finally {
       setIsLoading(false)
@@ -205,6 +207,9 @@ export function SignUp() {
           </div>
         </CardContent>
 
+        {/* CAPTCHA Widget */}
+        <div id="clerk-captcha" className="mb-4" />
+
         <CardFooter className="flex flex-col space-y-4">
           <Button type="submit" className="w-full" disabled={!isValid || isLoading}>
             {isLoading ? (
@@ -219,9 +224,14 @@ export function SignUp() {
 
           <div className="text-center text-sm text-gray-600">
             ¿Ya tienes una cuenta?{' '}
-            <Link href="/login" className="font-medium text-primary hover:underline">
+            <button
+              type="button"
+              className="font-medium text-primary hover:underline bg-transparent border-0 p-0 m-0 outline-none"
+              style={{ background: 'none' }}
+              onClick={onSwitchToSignIn}
+            >
               Inicia sesión aquí
-            </Link>
+            </button>
           </div>
         </CardFooter>
       </form>

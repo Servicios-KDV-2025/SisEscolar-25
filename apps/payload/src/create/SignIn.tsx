@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
-export const SignIn = () => {
+export const SignIn = ({ onBackToSignUp }: { onBackToSignUp?: () => void }) => {
   const { isLoaded, signIn, setActive } = useSignIn()
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
@@ -33,7 +33,7 @@ export const SignIn = () => {
       // y redirigir al usuario
       if (signInAttempt.status === 'complete') {
         await setActive({ session: signInAttempt.createdSessionId })
-        router.push('/')
+        // router.push('/')
         // toast.success('Inicio de sesión exitoso')
       } else {
         // Si el estado no está completo, verificar por qué. El usuario puede necesitar
@@ -107,6 +107,19 @@ export const SignIn = () => {
             >
               {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
             </Button>
+            {onBackToSignUp && (
+              <div className="text-center text-sm text-gray-600 mt-4">
+                ¿No tienes una cuenta?{' '}
+                <button
+                  type="button"
+                  className="font-medium text-primary hover:underline bg-transparent border-0 p-0 m-0 outline-none"
+                  style={{ background: 'none' }}
+                  onClick={onBackToSignUp}
+                >
+                  Regístrate aquí
+                </button>
+              </div>
+            )}
           </form>
         </CardContent>
       </Card>
