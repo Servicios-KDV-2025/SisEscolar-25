@@ -3,7 +3,8 @@
   "compilerOptions": {
     "baseUrl": ".", // esto ya suele estar
     "paths": {
-      "@repo/convex/*": ["../../packages/convex/*"]
+      "@repo/convex/*": ["../../packages/convex/*"],
+      "@/types/*": ["./types/*"]
     },
     "plugins": [
       {
