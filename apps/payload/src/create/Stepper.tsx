@@ -1,13 +1,14 @@
 'use client'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { defineStepper } from '@/components/ui/stepper'
 import { Button } from '@/components/ui/button'
 import { School, User, CopySlash } from 'lucide-react'
 import { SignOutButton, useAuth } from '@clerk/nextjs'
 import { SignUp } from './SignUp'
 import { SignIn } from './SignIn'
+import { number } from '@repo/zod-config/index'
 
-const { Stepper: StepperUi } = defineStepper(
+const { Stepper: StepperUi, useStepper } = defineStepper(
   {
     id: 'step-1',
     title: 'Paso 1',
@@ -29,8 +30,28 @@ const { Stepper: StepperUi } = defineStepper(
 )
 
 export const Stepper: React.FC = () => {
+  const { isSignedIn } = useAuth()
+
+  const methods = useStepper({
+    initialMetadata: {
+      'step-1': {
+        isCompleted: false,
+      },
+      'step-2': {
+        isCompleted: false,
+      },
+      'step-3': {
+        isCompleted: false,
+      },
+    },
+  })
+
   return (
-    <StepperUi.Provider className="space-y-4" labelOrientation="vertical">
+    <StepperUi.Provider
+      className="space-y-4"
+      labelOrientation="vertical"
+      // initialStep={isSignedIn ? 'step-2' : 'step-1'}
+    >
       {({ methods }) => (
         <>
           <StepperUi.Navigation>
@@ -47,13 +68,26 @@ export const Stepper: React.FC = () => {
             'step-3': (step) => <Content id={step.id} />,
           })}
           <StepperUi.Controls>
-            {!methods.isLast && (
+            {!methods.isLast && !methods.isFirst && (
               <Button variant="secondary" onClick={methods.prev} disabled={methods.isFirst}>
                 Previous
               </Button>
             )}
-            <Button onClick={methods.isLast ? methods.reset : methods.next}>
-              {methods.isLast ? 'Reset' : 'Next'}
+            <Button
+              onClick={
+                methods.isLast
+                  ? methods.reset
+                  : () => {
+                      if (methods.isLast) {
+                        return methods.reset()
+                      }
+                      methods.beforeNext(async () => {
+                        return methods.getMetadata(methods.current.id)?.isCompleted ?? false
+                      })
+                    }
+              }
+            >
+              {methods.isLast ? 'Finalizar' : 'Siguiente'}
             </Button>
           </StepperUi.Controls>
         </>
@@ -71,25 +105,26 @@ const Content = ({ id }: { id: string }) => {
 }
 
 const ClerkComponent: React.FC = () => {
-  const { isSignedIn } = useAuth()
   const [showSignIn, setShowSignIn] = React.useState(false)
-
-  if (isSignedIn) {
-    return (
-      <>
-        <p className='text-center text-lg font-bold'>Bienvenido  </p>
-        <SignOutButton redirectUrl='#'>
-          <Button>
-            Cerrar sesión
-          </Button>
-        </SignOutButton>
-      </>
-    )
-  }
+  const methods = useStepper()
 
   return showSignIn ? (
-    <SignIn onBackToSignUp={() => setShowSignIn(false)} />
+    <SignIn
+      onBackToSignUp={() => setShowSignIn(false)}
+      onSetCompleted={(isCompleted) => {
+        methods.setMetadata('step-1', {
+          isCompleted: isCompleted,
+        })
+      }}
+    />
   ) : (
-    <SignUp onSwitchToSignIn={() => setShowSignIn(true)} />
+    <SignUp
+      onSwitchToSignIn={() => setShowSignIn(true)}
+      onSetCompleted={(isCompleted) => {
+        methods.setMetadata('step-1', {
+          isCompleted: isCompleted,
+        })
+      }}
+    />
   )
 }
