@@ -6,13 +6,12 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
-export const SignIn = ({
-  onBackToSignUp,
-  onSetCompleted,
-}: {
+interface SignInProps {
   onBackToSignUp?: () => void
-  onSetCompleted: (isCompleted: boolean) => void
-}) => {
+  onClick: () => void
+}
+
+export const SignIn: React.FC<SignInProps> = ({ onBackToSignUp, onClick }) => {
   const { isLoaded, signIn, setActive } = useSignIn()
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
@@ -38,20 +37,20 @@ export const SignIn = ({
       // y redirigir al usuario
       if (signInAttempt.status === 'complete') {
         await setActive({ session: signInAttempt.createdSessionId })
-        onSetCompleted(true)
+        onClick()
+        // router.push('/')
+        // toast.success('Inicio de sesión exitoso')
       } else {
         // Si el estado no está completo, verificar por qué. El usuario puede necesitar
         // completar pasos adicionales.
         console.error(JSON.stringify(signInAttempt, null, 2))
         setError('Error en el proceso de inicio de sesión')
-        onSetCompleted(false)
       }
     } catch (err) {
       // Ver https://clerk.com/docs/custom-flows/error-handling
       // para más información sobre el manejo de errores
       console.error(JSON.stringify(err, null, 2))
       setError('Credenciales inválidas. Por favor, intenta de nuevo.')
-      onSetCompleted(false)
     } finally {
       setIsLoading(false)
     }

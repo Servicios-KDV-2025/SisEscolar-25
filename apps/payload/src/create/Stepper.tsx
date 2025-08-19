@@ -6,7 +6,9 @@ import { School, User, CopySlash } from 'lucide-react'
 import { SignOutButton, useAuth } from '@clerk/nextjs'
 import { SignUp } from './SignUp'
 import { SignIn } from './SignIn'
-import { number } from '@repo/zod-config/index'
+import { z } from '@repo/zod-config/index'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 
 const { Stepper: StepperUi, useStepper } = defineStepper(
   {
@@ -32,25 +34,11 @@ const { Stepper: StepperUi, useStepper } = defineStepper(
 export const Stepper: React.FC = () => {
   const { isSignedIn } = useAuth()
 
-  const methods = useStepper({
-    initialMetadata: {
-      'step-1': {
-        isCompleted: false,
-      },
-      'step-2': {
-        isCompleted: false,
-      },
-      'step-3': {
-        isCompleted: false,
-      },
-    },
-  })
-
   return (
     <StepperUi.Provider
       className="space-y-4"
       labelOrientation="vertical"
-      // initialStep={isSignedIn ? 'step-2' : 'step-1'}
+      initialStep={isSignedIn ? 'step-2' : 'step-1'}
     >
       {({ methods }) => (
         <>
@@ -73,22 +61,12 @@ export const Stepper: React.FC = () => {
                 Previous
               </Button>
             )}
-            <Button
-              onClick={
-                methods.isLast
-                  ? methods.reset
-                  : () => {
-                      if (methods.isLast) {
-                        return methods.reset()
-                      }
-                      methods.beforeNext(async () => {
-                        return methods.getMetadata(methods.current.id)?.isCompleted ?? false
-                      })
-                    }
-              }
-            >
-              {methods.isLast ? 'Finalizar' : 'Siguiente'}
-            </Button>
+
+            {!methods.isFirst && (
+              <Button onClick={methods.isLast ? () => {} : methods.next}>
+                {methods.isLast ? 'Finalizar' : 'Siguiente'}
+              </Button>
+            )}
           </StepperUi.Controls>
         </>
       )}
@@ -109,22 +87,8 @@ const ClerkComponent: React.FC = () => {
   const methods = useStepper()
 
   return showSignIn ? (
-    <SignIn
-      onBackToSignUp={() => setShowSignIn(false)}
-      onSetCompleted={(isCompleted) => {
-        methods.setMetadata('step-1', {
-          isCompleted: isCompleted,
-        })
-      }}
-    />
+    <SignIn onBackToSignUp={() => setShowSignIn(false)} onClick={() => methods.next()} />
   ) : (
-    <SignUp
-      onSwitchToSignIn={() => setShowSignIn(true)}
-      onSetCompleted={(isCompleted) => {
-        methods.setMetadata('step-1', {
-          isCompleted: isCompleted,
-        })
-      }}
-    />
+    <SignUp onSwitchToSignIn={() => setShowSignIn(true)} onClick={() => methods.next()} />
   )
 }
