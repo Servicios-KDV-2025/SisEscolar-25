@@ -6,9 +6,7 @@ import { School, User, CopySlash } from 'lucide-react'
 import { SignOutButton, useAuth } from '@clerk/nextjs'
 import { SignUp } from './SignUp'
 import { SignIn } from './SignIn'
-import { z } from '@repo/zod-config/index'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+
 
 const { Stepper: StepperUi, useStepper } = defineStepper(
   {
@@ -32,44 +30,57 @@ const { Stepper: StepperUi, useStepper } = defineStepper(
 )
 
 export const Stepper: React.FC = () => {
-  const { isSignedIn } = useAuth()
+  const { isSignedIn, isLoaded } = useAuth();
+  const [ready, setReady] = React.useState(false);
 
   return (
     <StepperUi.Provider
       className="space-y-4"
       labelOrientation="vertical"
-      initialStep={isSignedIn ? 'step-2' : 'step-1'}
     >
-      {({ methods }) => (
-        <>
-          <StepperUi.Navigation>
-            {methods.all.map((step, index) => (
-              <StepperUi.Step of={step.id} key={index} icon={step.icon}>
-                <StepperUi.Title>{step.title}</StepperUi.Title>
-                <StepperUi.Description>{step.description}</StepperUi.Description>
-              </StepperUi.Step>
-            ))}
-          </StepperUi.Navigation>
-          {methods.switch({
-            'step-1': (step) => <ClerkComponent />,
-            'step-2': (step) => <Content id={step.id} />,
-            'step-3': (step) => <Content id={step.id} />,
-          })}
-          <StepperUi.Controls>
-            {!methods.isLast && !methods.isFirst && (
-              <Button variant="secondary" onClick={methods.prev} disabled={methods.isFirst}>
-                Previous
-              </Button>
-            )}
+      {({ methods }) => {
+        React.useEffect(() => {
+          if (isLoaded) {
+            if (isSignedIn && methods.current.id === 'step-1') {
+              methods.next();
+            }
+            setReady(true);
+          }
+        }, [isSignedIn, isLoaded, methods]);
 
-            {!methods.isFirst && (
-              <Button onClick={methods.isLast ? () => {} : methods.next}>
-                {methods.isLast ? 'Finalizar' : 'Siguiente'}
-              </Button>
-            )}
-          </StepperUi.Controls>
-        </>
-      )}
+        if (!ready) return null;
+
+        return (
+          <>
+            <StepperUi.Navigation>
+              {methods.all.map((step, index) => (
+                <StepperUi.Step of={step.id} key={index} icon={step.icon}>
+                  <StepperUi.Title>{step.title}</StepperUi.Title>
+                  <StepperUi.Description>{step.description}</StepperUi.Description>
+                </StepperUi.Step>
+              ))}
+            </StepperUi.Navigation>
+            {methods.switch({
+              'step-1': (step) => <ClerkComponent />,
+              'step-2': (step) => <Content id={step.id} />,
+              'step-3': (step) => <Content id={step.id} />,
+            })}
+            <StepperUi.Controls>
+              {!methods.isLast && !methods.isFirst && (
+                <Button variant="secondary" onClick={methods.prev} disabled={methods.isFirst}>
+                  Previous
+                </Button>
+              )}
+
+              {!methods.isFirst && (
+                <Button onClick={methods.isLast ? () => {} : methods.next}>
+                  {methods.isLast ? 'Finalizar' : 'Siguiente'}
+                </Button>
+              )}
+            </StepperUi.Controls>
+          </>
+        );
+      }}
     </StepperUi.Provider>
   )
 }
