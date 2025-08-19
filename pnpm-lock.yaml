@@ -274,6 +274,9 @@ importers:
       '@clerk/nextjs':
         specifier: ^6.25.5
         version: 6.25.5(next@15.3.0(@playwright/test@1.50.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(sass@1.77.4))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@hookform/resolvers':
+        specifier: ^5.1.1
+        version: 5.1.1(react-hook-form@7.62.0(react@19.1.0))
       '@repo/convex':
         specifier: workspace:*
         version: link:../../packages/convex
@@ -8313,6 +8316,11 @@ snapshots:
     dependencies:
       '@standard-schema/utils': 0.3.0
       react-hook-form: 7.60.0(react@19.1.0)
+
+  '@hookform/resolvers@5.1.1(react-hook-form@7.62.0(react@19.1.0))':
+    dependencies:
+      '@standard-schema/utils': 0.3.0
+      react-hook-form: 7.62.0(react@19.1.0)
 
   '@humanfs/core@0.19.1': {}
 

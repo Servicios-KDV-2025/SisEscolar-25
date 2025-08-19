@@ -13,25 +13,11 @@ import { Input } from "@repo/ui/components/shadcn/input";
 import { toast } from "sonner";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@repo/ui/components/shadcn/select";
 import { ScheduleFormData, scheduleSchema } from "schema/scheduleSchema"; 
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card";
-import { useState, useMemo } from "react"
-
-type FilterType = 'all' | 'active' | 'inactive'
 
 export default function SchedulePage() {
   const { user: clerkUser } = useUser()
   const { currentUser } = useUserWithConvex(clerkUser?.id)
   const {currentSchool, isLoading} = useCurrentSchool(currentUser?._id)
-  // Estado para el filtro
-  const [filter, setFilter] = useState<FilterType>('all')
-
-  // const formatDate = (timestamp: number) => {
-  //       return new Date(timestamp).toLocaleDateString("es-ES", {
-  //           year: "numeric",
-  //           month: "short",
-  //           day: "numeric",
-  //       });
-  //   }
 
   const {
     schedule,
@@ -71,13 +57,13 @@ export default function SchedulePage() {
     close
   } = useCrudDialog(scheduleSchema, {
     name: '',
-    day: '',
-    week: '',
-    // scheduleDate: '',
+    scheduleDate: '',
     startTime: '',
     endTime: '',
     status: 'active'
   })
+
+  
 
   // Ejemplo: crear un horario rapido
   const handleSubmit = async (values: Record<string, unknown>) => {
@@ -88,14 +74,14 @@ export default function SchedulePage() {
 
     const value = values as ScheduleFormData;
 
+    const value = values as ScheduleFormData;
+
     try {
       if(operation === 'create') {
         await createSchedule({
           schoolId: currentSchool.school._id,
           name: value.name as string,
-          day: value.day as string,
-          week: value.week as string,
-          // scheduleDate: new Date(value.scheduleDate).getTime().toString(),
+          scheduleDate: new Date(value.scheduleDate as string).toISOString(),
           startTime: value.startTime as string,
           endTime: value.endTime as string,
           status: value.status as 'active' | 'inactive',
@@ -107,9 +93,7 @@ export default function SchedulePage() {
           id: data._id,
           schoolId: currentSchool.school._id,
           name: value.name as string,
-          day: value.day as string,
-          week: value.week as string,
-          // scheduleDate: new Date(value.scheduleDate).getTime().toString(),
+          scheduleDate: new Date(value.scheduleDate as string).toISOString(),
           startTime: value.startTime as string,
           endTime: value.endTime as string,
           status: value.status as 'active' | 'inactive',
@@ -201,74 +185,72 @@ export default function SchedulePage() {
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {schedule.length === 0 ? (
-          <Card className="col-span-full">
-            <CardContent className="p-6 text-center text-muted-foreground">
-              {schedule.length === 0 
-                ? 'No hay horarios registrados para esta escuela.'
-                : `No hay horarios ${filter === 'active' ? 'activos' : 'inactivos'} para mostrar.`
-              }
-            </CardContent>
-          </Card>
-        ) : (
-          filteredSchedules.map(schedule => (
-            <Card key={schedule._id} className="shadow-sm rounded-2xl">
-              <CardHeader className="">
-                <CardTitle className="flex items-center justify-between">
-                  <span className="font-medium">{schedule.name}</span>
-                  <span
-                    className={`text-xs px-3 py-1 rounded-full 
-                      ${schedule.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
-                  >
-                    {schedule.status === 'active' ? 'Activo' : 'Inactivo'}
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <p className="flex space-x-2">
-                  <CalendarDays /><span className="font-semibold flex">Día:</span>
-                  {/* {formatDate(+schedule.scheduleDate)} */}
-                  {schedule.day}
-                </p>
-                <p className="flex space-x-2">
-                  <CalendarMinus2 /><span className="font-semibold flex">Semana:</span>{schedule.week}
-                </p>
-                <p className="flex space-x-2">
-                  <Clock3 /><span className="font-semibold flex">Inicio:</span>{schedule.startTime}
-                </p>
-                <p className="flex space-x-2">
-                  <Clock3 /><span className="font-semibold flex">Fin:</span>{schedule.endTime}
-                </p>
-              </CardContent>
-              <CardFooter className="flex justify-center gap-2">
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={() => openView({...schedule, _id: schedule._id})}
-                >
-                  <Eye className="h-4 w-4"/>
-                </Button>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={() => openEdit({...schedule, _id: schedule._id})}
-                  disabled={isUpdating}
-                >
-                  <Pencil className="h-4 w-4"/>
-                </Button>
-                <Button
-                  variant='destructive'
-                  size='sm'
-                  onClick={() => openDelete({...schedule, _id: schedule._id})}
-                  disabled={isDeleting}
-                >
-                  <Trash2 className="h-4 w-4"/>
-                </Button>
-              </CardFooter>
-            </Card>
-          ))
-        )}
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[120px]">Nombre</TableHead>
+              <TableHead>Fecha del horario</TableHead>
+              <TableHead>Hora de inico</TableHead>
+              <TableHead>Hora de fin</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {schedule?.length === 0
+              ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center text-muted-foreground">
+                    No hay horarios registrados para esta escuela.
+                  </TableCell>
+                </TableRow>
+              )
+              : (
+                schedule?.map(schedule => (
+                  <TableRow key={schedule._id}>
+                    <TableCell className="font-medium">{schedule.name}</TableCell>
+                    <TableCell>
+                      {new Date().toLocaleDateString('es-MX', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                      })}
+                    </TableCell>
+                    <TableCell>{schedule.startTime}</TableCell>
+                    <TableCell>{schedule.endTime}</TableCell>
+                    <TableCell>
+                      <span className={`${schedule.status === 'active' ? 'bg-green-600' : 'bg-red-600'} text-white rounded-2xl p-2`}>
+                        {schedule.status === 'active' ? 'Activa' : 'Inactiva'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="flex justify-end gap-2">
+                      <Button variant='outline' size='sm' onClick={() => openView({...schedule, _id: schedule._id})}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant='outline' 
+                        size='sm' 
+                        onClick={() => openEdit({...schedule,_id: schedule._id})} 
+                        disabled={isUpdating}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant='destructive' 
+                        size='sm' 
+                        onClick={() => openDelete({...schedule, _id: schedule._id})} 
+                        disabled={isDeleting}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )
+            }
+          </TableBody>
+        </Table>
       </div>
 
       <CrudDialog
@@ -280,9 +262,7 @@ export default function SchedulePage() {
         schema={scheduleSchema}
         defaultValues={{
           name: "",
-          day: '',
-          week: '',
-          // scheduleDate: new Date().toISOString().split('T')[0],
+          scheduleDate: new Date().toISOString().split('T')[0],
           startTime: "07:00",
           endTime: "08:00",
           status: 'active'
@@ -312,57 +292,23 @@ export default function SchedulePage() {
                       disabled={operation === 'view'}
                     />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <p className="text-green-300 text-center text-[14px] font-medium">El día y la semana no pueden coincidir con un registro previo</p>
-            <FormField
-              control={form.control}
-              name="day"
-              render={({field}) => (
-                <FormItem>
-                  <FormLabel>Dia de la semana</FormLabel>
-                  <FormControl>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value as string}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un día" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="lunes">Lunes</SelectItem>
-                        <SelectItem value="martes">Martes</SelectItem>
-                        <SelectItem value="miercoles">Miercoles</SelectItem>
-                        <SelectItem value="jueves">Jueves</SelectItem>
-                        <SelectItem value="viernes">Viernes</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
             <FormField
               control={form.control}
-              name="week"
+              name="scheduleDate"
               render={({field}) => (
                 <FormItem>
-                  <FormLabel>Semana del año</FormLabel>
+                  <FormLabel>Fecha del horario</FormLabel>
                   <FormControl>
                     <Input
-                      type='text'
-                      maxLength={2}
+                      type="date"
                       {...field}
                       value={field.value as string}
-                      placeholder='Semanas en el año (1 - 52)'
                       disabled={operation === 'view'}
                     />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -412,7 +358,6 @@ export default function SchedulePage() {
                     <Select
                       onValueChange={field.onChange}
                       value={field.value as 'active' | 'inactive'}
-                      disabled={operation === 'view'}
                     >
                       <FormControl>
                         <SelectTrigger>

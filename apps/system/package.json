@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.25.5",
+    "@hookform/resolvers": "^5.1.1",
     "@repo/convex": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/zod-config": "workspace:*",
