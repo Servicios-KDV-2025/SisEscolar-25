@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -39,13 +39,12 @@ const registerSchema = z.object({
 
 type RegisterFormData = z.infer<typeof registerSchema>
 
-export function SignUp({
-  onSwitchToSignIn,
-  onSetCompleted,
-}: {
+interface SignUpProps {
   onSwitchToSignIn?: () => void
-  onSetCompleted: (isCompleted: boolean) => void
-}) {
+  onClick: () => void
+}
+
+export const SignUp: React.FC<SignUpProps> = ({ onSwitchToSignIn, onClick }) => {
   const { isLoaded, signUp, setActive } = useSignUp()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -89,7 +88,6 @@ export function SignUp({
     } catch (error: any) {
       setSubmitError(error.errors[0].message)
       setError(error.errors[0].message)
-      onSetCompleted(false)
     } finally {
       setIsLoading(false)
     }
@@ -107,13 +105,12 @@ export function SignUp({
       })
       if (completeSignUp.status !== 'complete') {
         console.log(JSON.stringify(completeSignUp, null, 2))
-        onSetCompleted(false)
       }
 
       if (completeSignUp.status === 'complete') {
         await setActive({ session: completeSignUp.createdSessionId })
         toast.success('Cuenta creada exitosamente')
-        onSetCompleted(true)
+        onClick()
       }
     } catch (err: any) {
       console.error(JSON.stringify(err, null, 2))
