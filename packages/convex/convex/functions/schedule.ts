@@ -39,6 +39,7 @@ export const createSchedule = mutation({
   args: {
     schoolId: v.id("school"),
     name: v.string(),
+    scheduleDate: v.string(),
     startTime: v.string(),
     endTime: v.string(),
     status: v.union(
@@ -52,6 +53,23 @@ export const createSchedule = mutation({
     if (!schoolExists) {
       throw new Error("No se puede crear el horario: La escuela especificada no existe.");
     }
+
+    // Verificar si ya existe un horario con la misma fecha
+    const existingSchedule = await ctx.db
+      .query('schedule')
+      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+      .filter((q) => q.eq(q.field('scheduleDate'), args.scheduleDate))
+      .first()
+
+    if(existingSchedule) {
+      throw new Error(`Ya existe un horario para la fecha ${args.scheduleDate}`)
+    }
+
+    // Verificar que la hora de inicio y fin sean iguuales
+    if(args.startTime === args.endTime) {
+      throw new Error('La hora de inicio y fin no pueden ser iguales.')
+    }
+
     return await ctx.db.insert("schedule", args);
   },
 });
@@ -62,6 +80,7 @@ export const updateSchedule = mutation({
     id: v.id("schedule"),
     schoolId: v.id("school"),
     name: v.optional(v.string()),
+    scheduleDate: v.optional(v.string()),
     startTime: v.optional(v.string()),
     endTime: v.optional(v.string()),
     status: v.optional(v.union(

@@ -143,6 +143,7 @@ const applicationTable = defineSchema({
     schedule: defineTable({
         schoolId: v.id("school"),
         name: v.string(),
+        scheduleDate: v.string(),
         startTime: v.string(),
         endTime: v.string(),
         status: v.union(

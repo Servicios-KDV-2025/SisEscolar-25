@@ -9,6 +9,7 @@ export type Schedule = {
   _id: string;
   schoolId: string;
   name: string;
+  scheduleDate: string
   startTime: string;
   endTime: string;
   status: 'active' | 'inactive';
@@ -19,6 +20,7 @@ export type Schedule = {
 export type CreateScheduleData = {
   schoolId: string;
   name: string;
+  scheduleDate: string
   startTime: string;
   endTime: string;
   status: 'active' | 'inactive';
@@ -29,6 +31,7 @@ export type UpdateScheduleData = {
   id: string;
   schoolId: string;
   name?: string;
+  scheduleDate?: string
   startTime?: string;
   endTime?: string;
   status?: 'active' | 'inactive';
@@ -99,6 +102,7 @@ type ScheduleQueryData = {
   _id: string;
   schoolId: string;
   name: string;
+  scheduleDate: string
   startTime: string;
   endTime: string;
   status: 'active' | 'inactive';
@@ -168,6 +172,7 @@ export const useSchedule = (schoolId?: Id<'school'>) => {
         id: data.id as Id<"schedule">,
         schoolId: data.schoolId as Id<"school">,
         name: data.name,
+        scheduleDate: data.scheduleDate,
         startTime: data.startTime,
         endTime: data.endTime,
         status: data.status,
@@ -208,6 +213,7 @@ export const useSchedule = (schoolId?: Id<'school'>) => {
           _id: p._id,
           schoolId: p.schoolId,
           name: p.name,
+          scheduleDate: p.scheduleDate,
           startTime: p.startTime,
           endTime: p.endTime,
           status: p.status,

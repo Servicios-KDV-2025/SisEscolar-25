@@ -8,23 +8,17 @@ import { Eye, Pencil, Plus, Trash2 } from "@repo/ui/icons";
 import { useSchedule } from "stores/schedule";
 import { useCurrentSchool } from "stores/userSchoolsStore";
 import { useUserWithConvex } from "stores/userStore";
-import { z } from '@repo/zod-config/index'
 import { useCrudDialog, CrudDialog } from "@repo/ui/components/dialog/crud-dialog";
 import { FormControl, FormField, FormItem, FormLabel } from "@repo/ui/components/shadcn/form";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { toast } from "sonner";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@repo/ui/components/shadcn/select";
+import { ScheduleFormData, scheduleSchema } from "schema/scheduleSchema"; 
 
 export default function SchedulePage() {
   const { user: clerkUser } = useUser()
   const { currentUser } = useUserWithConvex(clerkUser?.id)
-  const {currentSchool, isLoading, error} = useCurrentSchool(currentUser?._id)
-
-  const scheduleSchema = z.object({
-    name: z.string().min(1, 'El nombre es obligatorio'),
-    startTime: z.string().min(1, 'La hora de inicio es obligatoria'),
-    endTime: z.string().min(1, 'La hora de fin es obligatoria'),
-    status: z.enum(['active', 'inactive'], 'El estado es obligatorio')
-  })
+  const {currentSchool, isLoading} = useCurrentSchool(currentUser?._id)
 
   const {
     schedule,
@@ -51,10 +45,13 @@ export default function SchedulePage() {
     close
   } = useCrudDialog(scheduleSchema, {
     name: '',
+    scheduleDate: '',
     startTime: '',
     endTime: '',
     status: 'active'
   })
+
+  
 
   // Ejemplo: crear un horario rapido
   const handleSubmit = async (values: Record<string, unknown>) => {
@@ -63,14 +60,17 @@ export default function SchedulePage() {
       return 
     } 
 
+    const value = values as ScheduleFormData;
+
     try {
       if(operation === 'create') {
         await createSchedule({
           schoolId: currentSchool.school._id,
-          name: values.name as string,
-          startTime: values.startTime as string,
-          endTime: values.endTime as string,
-          status: values.status as 'active' | 'inactive',
+          name: value.name as string,
+          scheduleDate: new Date(value.scheduleDate as string).toISOString(),
+          startTime: value.startTime as string,
+          endTime: value.endTime as string,
+          status: value.status as 'active' | 'inactive',
           updatedAt: Date.now()
         })
         toast.success('Horario creado exitosamente')
@@ -78,10 +78,11 @@ export default function SchedulePage() {
         await updateSchedule({
           id: data._id,
           schoolId: currentSchool.school._id,
-          name: values.name as string,
-          startTime: values.startTime as string,
-          endTime: values.endTime as string,
-          status: values.status as 'active' | 'inactive',
+          name: value.name as string,
+          scheduleDate: new Date(value.scheduleDate as string).toISOString(),
+          startTime: value.startTime as string,
+          endTime: value.endTime as string,
+          status: value.status as 'active' | 'inactive',
           updatedAt: Date.now()
         })
         toast.success('Horario actualizado exitosamente')
@@ -172,6 +173,7 @@ export default function SchedulePage() {
           <TableHeader>
             <TableRow>
               <TableHead className="w-[120px]">Nombre</TableHead>
+              <TableHead>Fecha del horario</TableHead>
               <TableHead>Hora de inico</TableHead>
               <TableHead>Hora de fin</TableHead>
               <TableHead>Estado</TableHead>
@@ -191,6 +193,13 @@ export default function SchedulePage() {
                 schedule?.map(schedule => (
                   <TableRow key={schedule._id}>
                     <TableCell className="font-medium">{schedule.name}</TableCell>
+                    <TableCell>
+                      {new Date().toLocaleDateString('es-MX', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                      })}
+                    </TableCell>
                     <TableCell>{schedule.startTime}</TableCell>
                     <TableCell>{schedule.endTime}</TableCell>
                     <TableCell>
@@ -236,6 +245,7 @@ export default function SchedulePage() {
         schema={scheduleSchema}
         defaultValues={{
           name: "",
+          scheduleDate: new Date().toISOString().split('T')[0],
           startTime: "07:00",
           endTime: "08:00",
           status: 'active'
@@ -269,6 +279,23 @@ export default function SchedulePage() {
             />
             <FormField
               control={form.control}
+              name="scheduleDate"
+              render={({field}) => (
+                <FormItem>
+                  <FormLabel>Fecha del horario</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="date"
+                      {...field}
+                      value={field.value as string}
+                      disabled={operation === 'view'}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="startTime"
               render={({field}) => (
                 <FormItem>
@@ -278,7 +305,6 @@ export default function SchedulePage() {
                       type="time"
                       {...field}
                       value={field.value as string}
-                      placeholder='Nombre del horario'
                       disabled={operation === 'view'}
                     />
                   </FormControl>
@@ -296,7 +322,6 @@ export default function SchedulePage() {
                       type="time"
                       {...field}
                       value={field.value as string}
-                      placeholder='Nombre del horario'
                       disabled={operation === 'view'}
                     />
                   </FormControl>
@@ -310,12 +335,20 @@ export default function SchedulePage() {
                 <FormItem>
                   <FormLabel>Estado</FormLabel>
                   <FormControl>
-                    <Input
-                      {...field}
-                      value={field.value as string}
-                      placeholder='Nombre del horario'
-                      disabled={operation === 'view'}
-                    />
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value as 'active' | 'inactive'}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona un estado" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="active">Activo</SelectItem>
+                        <SelectItem value="inactive">Inactivo</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </FormControl>
                 </FormItem>
               )}
