@@ -39,7 +39,13 @@ const registerSchema = z.object({
 
 type RegisterFormData = z.infer<typeof registerSchema>
 
-export function SignUp({ onSwitchToSignIn }: { onSwitchToSignIn?: () => void }) {
+export function SignUp({
+  onSwitchToSignIn,
+  onSetCompleted,
+}: {
+  onSwitchToSignIn?: () => void
+  onSetCompleted: (isCompleted: boolean) => void
+}) {
   const { isLoaded, signUp, setActive } = useSignUp()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -77,12 +83,13 @@ export function SignUp({ onSwitchToSignIn }: { onSwitchToSignIn?: () => void }) 
       await signUp.prepareEmailAddressVerification({
         strategy: 'email_code',
       })
-      
+
       setPendingVerification(true)
       reset()
     } catch (error: any) {
       setSubmitError(error.errors[0].message)
       setError(error.errors[0].message)
+      onSetCompleted(false)
     } finally {
       setIsLoading(false)
     }
@@ -100,11 +107,13 @@ export function SignUp({ onSwitchToSignIn }: { onSwitchToSignIn?: () => void }) 
       })
       if (completeSignUp.status !== 'complete') {
         console.log(JSON.stringify(completeSignUp, null, 2))
+        onSetCompleted(false)
       }
 
       if (completeSignUp.status === 'complete') {
         await setActive({ session: completeSignUp.createdSessionId })
         toast.success('Cuenta creada exitosamente')
+        onSetCompleted(true)
       }
     } catch (err: any) {
       console.error(JSON.stringify(err, null, 2))
