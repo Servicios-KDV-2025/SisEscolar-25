@@ -15,6 +15,7 @@ import type {
 } from "convex/server";
 import type * as functions_classCatalog from "../functions/classCatalog.js";
 import type * as functions_schools from "../functions/schools.js";
+import type * as functions_subjet from "../functions/subjet.js";
 import type * as functions_users from "../functions/users.js";
 import type * as gradeRubrics from "../gradeRubrics.js";
 import type * as grades from "../grades.js";
@@ -34,6 +35,7 @@ import type * as terms from "../terms.js";
 declare const fullApi: ApiFromModules<{
   "functions/classCatalog": typeof functions_classCatalog;
   "functions/schools": typeof functions_schools;
+  "functions/subjet": typeof functions_subjet;
   "functions/users": typeof functions_users;
   gradeRubrics: typeof gradeRubrics;
   grades: typeof grades;
