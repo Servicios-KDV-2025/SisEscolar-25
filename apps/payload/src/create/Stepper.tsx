@@ -3,12 +3,10 @@ import React, { useEffect } from 'react'
 import { defineStepper } from '@/components/ui/stepper'
 import { Button } from '@/components/ui/button'
 import { School, User, CopySlash } from 'lucide-react'
-import { useAuth } from '@clerk/nextjs'
-import { SignUp } from './Auth/SignUp'
-import { SignIn } from './Auth/SignIn'
-import { useMutation } from 'convex/react'
-import { api } from '@repo/convex/convex/_generated/api'
-import { CheckoutButtonBlock } from '@/blocks/CheckoutButton/Component'
+import { SignOutButton, useAuth } from '@clerk/nextjs'
+import { SignUp } from './SignUp'
+import { SignIn } from './SignIn'
+import SchoolForm from './SchoolForm'
 
 
 const { Stepper: StepperUi, useStepper } = defineStepper(
@@ -63,19 +61,15 @@ export const Stepper: React.FC = () => {
             </StepperUi.Navigation>
             {methods.switch({
               'step-1': (step) => <ClerkComponent />,
-              'step-2': (step) => <Content id={step.id} />,
-              'step-3': (step) => ( <>
-                                    {/* paso 3: pago */}
-                       
-    </>
-  ),
+              'step-2': (step) => <SchoolForm />,
+              'step-3': (step) => <Content id={step.id} />,
             })}
             <StepperUi.Controls>
-              {!methods.isLast && !methods.isFirst && (
+              {/* {!methods.isLast && !methods.isFirst && (
                 <Button variant="secondary" onClick={methods.prev} disabled={methods.isFirst}>
                   Previous
                 </Button>
-              )}
+              )} */}
 
               {!methods.isFirst && (
                 <Button onClick={methods.isLast ? () => {} : methods.next}>
