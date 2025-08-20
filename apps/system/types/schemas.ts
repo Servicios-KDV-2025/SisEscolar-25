@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@repo/zod-config/index";
 
 // =====================================================
 // SCHEMAS DE USUARIOS
