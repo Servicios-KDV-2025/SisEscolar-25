@@ -85,7 +85,9 @@ const applicationTable = defineSchema({
     status: v.union(v.literal("active"), v.literal("inactive")),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  }).index("by_groupId", ["groupId"])
+  .index("by_schoolId",["schoolId"])
+   .index("by_schoolId_and_enrollment", ["schoolId", "enrollment"]),
 
   //Ciclos escolares
   schoolCycle: defineTable({
@@ -153,11 +155,14 @@ const applicationTable = defineSchema({
   //FK
 
   //Relación entre estudiantes y clases
-  studentClass: defineTable({
+  studentClass: defineTable({ 
     classCatalogId: v.id("classCatalog"),
     studentId: v.id("student"),
     enrollmentDate: v.number(),
     status: v.union(v.literal("active"), v.literal("inactive")),
+    // Nuevos campos para el promedio acumulado del ciclo escolar
+    averageScore: v.optional(v.number()), // Promedio acumulado de la materia
+    lastCalculatedTermId: v.optional(v.id("term")), // Referencia al último periodo calculado
   })
     .index("by_class_catalog", ["classCatalogId"])
     .index("by_student", ["studentId"]),
@@ -172,11 +177,12 @@ const applicationTable = defineSchema({
     status: v.union(
       v.literal("active"),
       v.literal("inactive"),
-      v.literal("closed"),
+      v.literal("closed")
     ),
     updatedAt: v.optional(v.number()),
   })
-    .index("by_class_catalog", ["classCatalogId"]),
+  .index("by_status",["status"])
+  .index("by_class_catalog", ["classCatalogId"]),
 
   //Rúbrica de Calificación
   gradeRubric: defineTable({
@@ -200,7 +206,11 @@ const applicationTable = defineSchema({
     maxScore: v.number(),
     createdBy: v.id("user"),
     updatedAt: v.optional(v.number()),
-  }).index("by_rubric", ["gradeRubricId"]),
+  })
+    .index("by_classCatalogId", ["classCatalogId"])
+    .index("by_term", ["termId"]) // ✨ Para el tutor y el admin
+    .index("by_createdBy", ["createdBy"]) // ✨ Para el maestro
+    .index("by_rubric", ["gradeRubricId"]),
 
   //Calificaciones Individuales
   grade: defineTable({
@@ -213,6 +223,7 @@ const applicationTable = defineSchema({
     updatedBy: v.optional(v.id("user")),
     updatedAt: v.optional(v.number()),
   })
+    .index("by_student_class", ["studentClassId"])
     .index("by_student_assignment", ["studentClassId", "assignmentId"])
     .index("by_assignment", ["assignmentId"]),
   //Promedios Calculados
@@ -227,28 +238,25 @@ const applicationTable = defineSchema({
   }).index("by_student_term", ["studentClassId", "termId"]),
   //Fk
 
-    //Clases
-    classCatalog: defineTable({
-        schoolId: v.id("school"),
-        schoolCycleId: v.id("schoolCycle"),
-        subjectId: v.id("subject"),
-        classroomId: v.id("classroom"),
-        teacherId: v.id("user"),
-        groupId: v.optional(v.id("group")),
-        // scheduleId: v.id("schedule"),
-        name: v.string(),
-        status: v.union(
-            v.literal('active'),
-            v.literal('inactive')
-        ),
-        createdBy: v.optional(v.id("user")),
-        updatedAt: v.number(),
-    })
-        .index("by_cycle", ["schoolCycleId"])
-        .index("by_subject", ["subjectId"])
-        .index("by_classroom", ["classroomId"])
-        .index("by_teacher", ["teacherId"]),
- 
+  //Clases
+  classCatalog: defineTable({
+    schoolId: v.id("school"),
+    schoolCycleId: v.id("schoolCycle"),
+    subjectId: v.id("subject"),
+    classroomId: v.id("classroom"),
+    teacherId: v.id("user"),
+    groupId: v.optional(v.id("group")),
+    // scheduleId: v.id("schedule"),
+    name: v.string(),
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    createdBy: v.optional(v.id("user")),
+    updatedAt: v.number(),
+  })
+    .index("by_school", ["schoolId"])
+    .index("by_cycle", ["schoolCycleId"])
+    .index("by_subject", ["subjectId"])
+    .index("by_classroom", ["classroomId"])
+    .index("by_teacher", ["teacherId"]),
 
   //Relación entre clases y horarios
   classSchedule: defineTable({

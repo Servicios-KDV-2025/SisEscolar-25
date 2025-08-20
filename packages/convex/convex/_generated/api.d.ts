@@ -13,14 +13,16 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
-import type * as assignment from "../assignment.js";
+import type * as functions_assignment from "../functions/assignment.js";
 import type * as functions_classCatalog from "../functions/classCatalog.js";
+import type * as functions_gradeRubrics from "../functions/gradeRubrics.js";
+import type * as functions_grades from "../functions/grades.js";
+import type * as functions_group from "../functions/group.js";
 import type * as functions_schools from "../functions/schools.js";
+import type * as functions_student from "../functions/student.js";
 import type * as functions_users from "../functions/users.js";
-import type * as gradeRubrics from "../gradeRubrics.js";
-import type * as grades from "../grades.js";
-import type * as group from "../group.js";
 import type * as http from "../http.js";
+import type * as studentClass from "../studentClass.js";
 import type * as termAverages from "../termAverages.js";
 import type * as terms from "../terms.js";
 
@@ -33,14 +35,16 @@ import type * as terms from "../terms.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  assignment: typeof assignment;
+  "functions/assignment": typeof functions_assignment;
   "functions/classCatalog": typeof functions_classCatalog;
+  "functions/gradeRubrics": typeof functions_gradeRubrics;
+  "functions/grades": typeof functions_grades;
+  "functions/group": typeof functions_group;
   "functions/schools": typeof functions_schools;
+  "functions/student": typeof functions_student;
   "functions/users": typeof functions_users;
-  gradeRubrics: typeof gradeRubrics;
-  grades: typeof grades;
-  group: typeof group;
   http: typeof http;
+  studentClass: typeof studentClass;
   termAverages: typeof termAverages;
   terms: typeof terms;
 }>;

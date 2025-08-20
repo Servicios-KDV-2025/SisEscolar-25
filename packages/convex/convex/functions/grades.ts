@@ -1,18 +1,18 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
 
 // C: Crear una Nueva Calificación
 export const createGrade = mutation({
   args: {
     studentClassId: v.id("studentClass"),
-    gradeRubricId: v.id("gradeRubric"),
+    assignmentId: v.id("assignment"),
     score: v.number(),
     comments: v.optional(v.string()),
     registeredById: v.id("user"),
   },
   handler: async (ctx, args) => {
     // 1. Validar que el score no supere el maxScore del criterio de rúbrica
-    const rubric = await ctx.db.get(args.gradeRubricId);
+    const rubric = await ctx.db.get(args.assignmentId);
     if (!rubric) {
       throw new Error("Criterio de rúbrica no encontrado");
     }
@@ -22,9 +22,9 @@ export const createGrade = mutation({
 
     // 2. Insertar la nueva calificación
     const now = Date.now();
-    const id = await ctx.db.insert("grade", {
+    const grade = await ctx.db.insert("grade", {
       studentClassId: args.studentClassId,
-      gradeRubricId: args.gradeRubricId,
+      assignmentId: args.assignmentId,
       score: args.score,
       comments: args.comments,
       registeredById: args.registeredById,
@@ -32,7 +32,7 @@ export const createGrade = mutation({
       updatedBy: undefined,
       updatedAt: undefined,
     });
-    return id;
+    return grade;
   },
 });
 
@@ -47,16 +47,17 @@ export const getGradesByStudentClass = query({
   },
 });
 
-// R: Leer calificaciones por criterio de rúbrica
-export const getGradesByRubric = query({
-  args: { gradeRubricId: v.id("gradeRubric") },
+// R: Leer calificaciones por tarea
+export const getGradesByAssignment = query({
+  args: { assignmentId: v.id("assignment") },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("grade")
-      .withIndex("by_rubric", (q) => q.eq("gradeRubricId", args.gradeRubricId))
+      .withIndex("by_assignment", (q) => q.eq("assignmentId", args.assignmentId))
       .collect();
   },
 });
+
 
 // U: Actualizar una calificación
 export const updateGrade = mutation({
@@ -73,7 +74,7 @@ export const updateGrade = mutation({
     if (args.data.score !== undefined) {
       const grade = await ctx.db.get(args.gradeId);
       if (!grade) throw new Error("Calificación no encontrada");
-      const rubric = await ctx.db.get(grade.gradeRubricId);
+      const rubric = await ctx.db.get(grade.assignmentId);
       if (!rubric) throw new Error("Criterio de rúbrica no encontrado");
       if (args.data.score > rubric.maxScore) {
         throw new Error("La calificación no puede ser mayor que el puntaje máximo permitido");
