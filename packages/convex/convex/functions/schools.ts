@@ -421,3 +421,246 @@ export const activateUserInSchool = mutation({
         return args.userSchoolId;
     }
 }); 
+
+// Crear una nueva escuela y asignar al usuario como superadmin
+export const createSchoolWithUser = mutation({
+    args: {
+        name: v.string(),
+        subdomain: v.string(),
+        shortName: v.string(),
+        cctCode: v.string(),
+        address: v.string(),
+        description: v.string(),
+        imgUrl: v.string(),
+        phone: v.string(),
+        email: v.string(),
+        userId: v.string(), // ID del usuario de Clerk
+    },
+    handler: async (ctx, args) => {
+        const currentTime = Date.now();
+        
+        // Verificar que el subdominio no exista
+        const existingSubdomain = await ctx.db
+            .query("school")
+            .filter((q) => q.eq(q.field("subdomain"), args.subdomain))
+            .first();
+        
+        if (existingSubdomain) {
+            throw new Error("Ya existe una escuela con ese subdominio");
+        }
+
+        // Verificar que el código CCT no exista
+        const existingCCT = await ctx.db
+            .query("school")
+            .filter((q) => q.eq(q.field("cctCode"), args.cctCode))
+            .first();
+        
+        if (existingCCT) {
+            throw new Error("Ya existe una escuela con ese código CCT");
+        }
+
+        // Verificar que el nombre corto no exista
+        const existingShortName = await ctx.db
+            .query("school")
+            .filter((q) => q.eq(q.field("shortName"), args.shortName))
+            .first();
+        
+        if (existingShortName) {
+            throw new Error("Ya existe una escuela con ese nombre corto");
+        }
+
+        // Crear la escuela
+        const schoolId = await ctx.db.insert("school", {
+            name: args.name,
+            subdomain: args.subdomain.toLowerCase(),
+            shortName: args.shortName,
+            cctCode: args.cctCode,
+            address: args.address,
+            description: args.description,
+            imgUrl: args.imgUrl || '/default-school.jpg',
+            phone: args.phone,
+            email: args.email,
+            status: 'active',
+            createdAt: currentTime,
+            updatedAt: currentTime,
+        });
+
+        // Buscar si el usuario ya existe en Convex por clerkId
+        let user = await ctx.db
+            .query("user")
+            .filter((q) => q.eq(q.field("clerkId"), args.userId))
+            .unique();
+
+        // Si el usuario no existe, crearlo
+        if (!user) {
+            const userId = await ctx.db.insert("user", {
+                name: "Usuario", // Nombre temporal, se puede actualizar después
+                email: args.email, // Usar el email de la escuela como referencia
+                clerkId: args.userId,
+                status: "active",
+                createdAt: currentTime,
+                updatedAt: currentTime,
+            });
+            user = await ctx.db.get(userId);
+        }
+
+        if (!user) {
+            throw new Error("Error al crear o obtener el usuario");
+        }
+
+        // Crear la relación usuario-escuela con rol superadmin
+        const userSchoolId = await ctx.db.insert("userSchool", {
+            userId: user._id,
+            schoolId: schoolId,
+            role: ['superadmin'],
+            status: 'active',
+            createdAt: currentTime,
+            updatedAt: currentTime,
+        });
+
+        return {
+            schoolId,
+            userSchoolId,
+            message: "Escuela creada exitosamente y usuario asignado como superadmin"
+        };
+    }
+});
+
+// Función auxiliar para crear solo la escuela (sin asignar usuario)
+export const createSchool = mutation({
+    args: {
+        name: v.string(),
+        subdomain: v.string(),
+        shortName: v.string(),
+        cctCode: v.string(),
+        address: v.string(),
+        description: v.string(),
+        imgUrl: v.string(),
+        phone: v.string(),
+        email: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const currentTime = Date.now();
+        
+        // Verificar que el subdominio no exista
+        const existingSubdomain = await ctx.db
+            .query("school")
+            .filter((q) => q.eq(q.field("subdomain"), args.subdomain))
+            .first();
+        
+        if (existingSubdomain) {
+            throw new Error("Ya existe una escuela con ese subdominio");
+        }
+
+        // Verificar que el código CCT no exista
+        const existingCCT = await ctx.db
+            .query("school")
+            .filter((q) => q.eq(q.field("cctCode"), args.cctCode))
+            .first();
+        
+        if (existingCCT) {
+            throw new Error("Ya existe una escuela con ese código CCT");
+        }
+
+        // Verificar que el nombre corto no exista
+        const existingShortName = await ctx.db
+            .query("school")
+            .filter((q) => q.eq(q.field("shortName"), args.shortName))
+            .first();
+        
+        if (existingShortName) {
+            throw new Error("Ya existe una escuela con ese nombre corto");
+        }
+
+        // Crear la escuela
+        const schoolId = await ctx.db.insert("school", {
+            name: args.name,
+            subdomain: args.subdomain.toLowerCase(),
+            shortName: args.shortName,
+            cctCode: args.cctCode,
+            address: args.address,
+            description: args.description,
+            imgUrl: args.imgUrl || '/default-school.jpg',
+            phone: args.phone,
+            email: args.email,
+            status: 'active',
+            createdAt: currentTime,
+            updatedAt: currentTime,
+        });
+
+        return schoolId;
+    }
+});
+
+// Función auxiliar para crear la relación usuario-escuela
+export const createUserSchool = mutation({
+    args: {
+        clerkId: v.string(), // ID del usuario de Clerk
+        schoolId: v.id("school"),
+        role: v.array(
+            v.union(
+                v.literal("superadmin"),
+                v.literal("admin"),
+                v.literal("auditor"),
+                v.literal("teacher"),
+                v.literal("tutor")
+            )
+        ),
+        status: v.union(v.literal("active"), v.literal("inactive")),
+        department: v.optional(
+            v.union(
+                v.literal("secretary"),
+                v.literal("direction"),
+                v.literal("schoolControl"),
+                v.literal("technology")
+            )
+        ),
+    },
+    handler: async (ctx, args) => {
+        const currentTime = Date.now();
+        
+        // Verificar que la escuela existe
+        const school = await ctx.db.get(args.schoolId);
+        if (!school) {
+            throw new Error("Escuela no encontrada");
+        }
+
+        // Buscar el usuario por clerkId
+        const user = await ctx.db
+            .query("user")
+            .filter((q) => q.eq(q.field("clerkId"), args.clerkId))
+            .unique();
+
+        if (!user) {
+            throw new Error("Usuario no encontrado. Debe crear el usuario primero.");
+        }
+
+        // Verificar que el usuario no esté ya asignado a esta escuela
+        const existingUserSchool = await ctx.db
+            .query("userSchool")
+            .filter((q) => 
+                q.and(
+                    q.eq(q.field("userId"), user._id),
+                    q.eq(q.field("schoolId"), args.schoolId)
+                )
+            )
+            .first();
+        
+        if (existingUserSchool) {
+            throw new Error("El usuario ya está asignado a esta escuela");
+        }
+
+        // Crear la relación usuario-escuela
+        const userSchoolId = await ctx.db.insert("userSchool", {
+            userId: user._id,
+            schoolId: args.schoolId,
+            role: args.role,
+            status: args.status,
+            department: args.department,
+            createdAt: currentTime,
+            updatedAt: currentTime,
+        });
+
+        return userSchoolId;
+    }
+}); 
