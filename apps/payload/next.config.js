@@ -31,6 +31,7 @@ const nextConfig = {
   },
   reactStrictMode: true,
   redirects,
+  // allowedDevOrigins: ['http://localhost:3000', 'http://localhost:3001'],
 }
 
 export default withPayload(nextConfig, { devBundleServerPackages: false })
