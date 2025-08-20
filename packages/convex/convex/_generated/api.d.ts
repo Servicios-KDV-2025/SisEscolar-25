@@ -14,6 +14,7 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as functions_SchoolCicles from "../functions/SchoolCicles.js";
+import type * as functions_attendance from "../functions/attendance.js";
 import type * as functions_classCatalog from "../functions/classCatalog.js";
 import type * as functions_schedule from "../functions/schedule.js";
 import type * as functions_schools from "../functions/schools.js";
