@@ -143,7 +143,9 @@ const applicationTable = defineSchema({
     schedule: defineTable({
         schoolId: v.id("school"),
         name: v.string(),
-        scheduleDate: v.string(),
+        day: v.string(),
+        week: v.string(),
+        // scheduleDate: v.string(),
         startTime: v.string(),
         endTime: v.string(),
         status: v.union(
@@ -152,7 +154,7 @@ const applicationTable = defineSchema({
         ),
         updatedAt: v.number(),
     })
-    .index("by_school", ["schoolId"])
+    .index("by_school_day_week", ["schoolId","day","week"])
     .index("by_status", ["status"]),
 
   //Periodos

@@ -9,7 +9,9 @@ export type Schedule = {
   _id: string;
   schoolId: string;
   name: string;
-  scheduleDate: string
+  day: string
+  week: string
+  // scheduleDate: string
   startTime: string;
   endTime: string;
   status: 'active' | 'inactive';
@@ -20,7 +22,9 @@ export type Schedule = {
 export type CreateScheduleData = {
   schoolId: string;
   name: string;
-  scheduleDate: string
+  day: string
+  week: string
+  // scheduleDate: string
   startTime: string;
   endTime: string;
   status: 'active' | 'inactive';
@@ -31,7 +35,9 @@ export type UpdateScheduleData = {
   id: string;
   schoolId: string;
   name?: string;
-  scheduleDate?: string
+  day?: string
+  week?: string
+  // scheduleDate?: string
   startTime?: string;
   endTime?: string;
   status?: 'active' | 'inactive';
@@ -102,7 +108,9 @@ type ScheduleQueryData = {
   _id: string;
   schoolId: string;
   name: string;
-  scheduleDate: string
+  day: string
+  week: string
+  // scheduleDate: string
   startTime: string;
   endTime: string;
   status: 'active' | 'inactive';
@@ -155,6 +163,9 @@ export const useSchedule = (schoolId?: Id<'school'>) => {
         schoolId: data.schoolId as Id<"school">,
       });
     } catch (error) {
+      if (error instanceof Error && error.message.includes("Ya existe un horario para este día y semana")) {
+          throw new Error("DUPLICATE_SCHEDULE");
+      }
       const errorMessage = error instanceof Error ? error.message : 'Error al crear periodo';
       setCreateError(errorMessage);
       throw new Error(errorMessage);
@@ -172,7 +183,9 @@ export const useSchedule = (schoolId?: Id<'school'>) => {
         id: data.id as Id<"schedule">,
         schoolId: data.schoolId as Id<"school">,
         name: data.name,
-        scheduleDate: data.scheduleDate,
+        day: data.day,
+        week: data.week,
+        // scheduleDate: data.scheduleDate,
         startTime: data.startTime,
         endTime: data.endTime,
         status: data.status,
@@ -213,7 +226,9 @@ export const useSchedule = (schoolId?: Id<'school'>) => {
           _id: p._id,
           schoolId: p.schoolId,
           name: p.name,
-          scheduleDate: p.scheduleDate,
+          day: p.day,
+          week: p.week,
+          // scheduleDate: p.scheduleDate,
           startTime: p.startTime,
           endTime: p.endTime,
           status: p.status,
