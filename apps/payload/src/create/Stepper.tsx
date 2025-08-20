@@ -63,7 +63,7 @@ export const Stepper: React.FC = () => {
             {methods.switch({
               'step-1': (step) => <ClerkComponent />,
               'step-2': (step) => <Content id={step.id} />,
-              'step-3': (step) => <Content id={step.id} />,
+              'step-3': (step) => <Content id={step.id} />, // paso 3 pago de stripe 
             })}
             <StepperUi.Controls>
               {!methods.isLast && !methods.isFirst && (
