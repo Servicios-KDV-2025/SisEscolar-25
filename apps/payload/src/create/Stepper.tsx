@@ -8,6 +8,7 @@ import { SignUp } from './Auth/SignUp'
 import { SignIn } from './Auth/SignIn'
 import { useMutation } from 'convex/react'
 import { api } from '@repo/convex/convex/_generated/api'
+import SchoolForm from './SchoolForm'
 
 const { Stepper: StepperUi, useStepper } = defineStepper(
   {
