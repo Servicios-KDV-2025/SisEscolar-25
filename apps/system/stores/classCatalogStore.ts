@@ -4,7 +4,6 @@ import { useCallback, useEffect } from "react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 
-// Types based on the new schema
 export type ClassCatalog = {
   _id: string;
   schoolId: string;
@@ -18,6 +17,40 @@ export type ClassCatalog = {
   createdBy?: string;
   updatedAt: number;
 };
+
+export type ClassCatalogWithDetails = ClassCatalog & {
+  schoolCycle?: {
+    _id: string;
+    name: string;
+    startDate: number;
+    endDate: number;
+    status: string;
+  } | null;
+  subject?: {
+    _id: string;
+    name: string;
+    description?: string;
+    status: string;
+  } | null;
+  classroom?: {
+    _id: string;
+    name: string;
+    capacity: number;
+    status: string;
+  } | null;
+  teacher?: {
+    _id: string;
+    name: string;
+    email: string;
+  } | null;
+  group?: {
+    _id: string;
+    name: string;
+    grade: string;
+    status: string;
+  } | null;
+};
+
 
 export type CreateClassCatalogData = {
   schoolId: string;
@@ -49,6 +82,7 @@ export type UpdateClassCatalogData = {
 type ClassCatalogStoreState = {
   classCatalogs: ClassCatalog[];
   selectedClassCatalog: ClassCatalog | null;
+  classCatalogsWithDetails: ClassCatalogWithDetails[];
   isLoading: boolean;
   isCreating: boolean;
   isUpdating: boolean;
@@ -77,6 +111,7 @@ type ClassCatalogStoreActions = {
 
 const initialState: ClassCatalogStoreState = {
   classCatalogs: [],
+  classCatalogsWithDetails: [],
   selectedClassCatalog: null,
   isLoading: false,
   isCreating: false,
@@ -134,12 +169,7 @@ export const useClassCatalog = (schoolId?: string) => {
 
   // Queries
   const classCatalogsQuery = useQuery(
-    api.functions.classCatalog.getAllClassCatalogs,
-    schoolId ? { schoolId: schoolId as Id<"school"> } : "skip"
-  );
-
-  const classCatalogsWithDetailsQuery = useQuery(
-    api.functions.classCatalog.getClassCatalogsWithDetails,
+    api.functions.classCatalog.getAllClassCatalog,
     schoolId ? { schoolId: schoolId as Id<"school"> } : "skip"
   );
 
@@ -219,13 +249,13 @@ export const useClassCatalog = (schoolId?: string) => {
   // Update store when query results change
   useEffect(() => {
     if (classCatalogsQuery) {
-      setClassCatalogs(classCatalogsQuery as ClassCatalog[]);
+      setClassCatalogs(classCatalogsQuery as ClassCatalogWithDetails[]);
     }
   }, [classCatalogsQuery, setClassCatalogs]);
 
   return {
     classCatalogs,
-    classCatalogsWithDetails: classCatalogsWithDetailsQuery || [],
+    classCatalogsWithDetails: classCatalogsQuery || [],
     selectedClassCatalog,
     isLoading,
     isCreating,
