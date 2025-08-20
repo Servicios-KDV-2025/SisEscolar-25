@@ -8,6 +8,8 @@ import { SignUp } from './Auth/SignUp'
 import { SignIn } from './Auth/SignIn'
 import { useMutation } from 'convex/react'
 import { api } from '@repo/convex/convex/_generated/api'
+import { CheckoutButtonBlock } from '@/blocks/CheckoutButton/Component'
+
 
 const { Stepper: StepperUi, useStepper } = defineStepper(
   {
@@ -62,7 +64,11 @@ export const Stepper: React.FC = () => {
             {methods.switch({
               'step-1': (step) => <ClerkComponent />,
               'step-2': (step) => <Content id={step.id} />,
-              'step-3': (step) => <Content id={step.id} />, // paso 3 pago de stripe 
+              'step-3': (step) => ( <>
+                                    {/* paso 3: pago */}
+                       
+    </>
+  ),
             })}
             <StepperUi.Controls>
               {!methods.isLast && !methods.isFirst && (
@@ -87,7 +93,9 @@ export const Stepper: React.FC = () => {
 const Content = ({ id }: { id: string }) => {
   return (
     <StepperUi.Panel className="h-[200px] content-center rounded border bg-secondary text-secondary-foreground p-8">
-      <p className="text-xl font-normal">Content for {id}</p>
+    
+      <p className="text-xl font-normal"> "Estás a punto de salir a una página externa para pagar. No cierres esta ventana."</p>
+      
     </StepperUi.Panel>
   )
 }
