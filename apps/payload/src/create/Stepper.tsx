@@ -3,10 +3,11 @@ import React, { useEffect } from 'react'
 import { defineStepper } from '@/components/ui/stepper'
 import { Button } from '@/components/ui/button'
 import { School, User, CopySlash } from 'lucide-react'
-import { SignOutButton, useAuth } from '@clerk/nextjs'
-import { SignUp } from './SignUp'
-import { SignIn } from './SignIn'
-
+import { useAuth } from '@clerk/nextjs'
+import { SignUp } from './Auth/SignUp'
+import { SignIn } from './Auth/SignIn'
+import { useMutation } from 'convex/react'
+import { api } from '@repo/convex/convex/_generated/api'
 
 const { Stepper: StepperUi, useStepper } = defineStepper(
   {
@@ -30,25 +31,23 @@ const { Stepper: StepperUi, useStepper } = defineStepper(
 )
 
 export const Stepper: React.FC = () => {
-  const { isSignedIn, isLoaded } = useAuth();
-  const [ready, setReady] = React.useState(false);
+  const addSchool = useMutation(api.functions.users.updateUser)
+  const { isSignedIn, isLoaded } = useAuth()
+  const [ready, setReady] = React.useState(false)
 
   return (
-    <StepperUi.Provider
-      className="space-y-4"
-      labelOrientation="vertical"
-    >
+    <StepperUi.Provider className="space-y-4" labelOrientation="vertical">
       {({ methods }) => {
         React.useEffect(() => {
           if (isLoaded) {
             if (isSignedIn && methods.current.id === 'step-1') {
-              methods.next();
+              methods.next()
             }
-            setReady(true);
+            setReady(true)
           }
-        }, [isSignedIn, isLoaded, methods]);
+        }, [isSignedIn, isLoaded, methods])
 
-        if (!ready) return null;
+        if (!ready) return null
 
         return (
           <>
@@ -79,7 +78,7 @@ export const Stepper: React.FC = () => {
               )}
             </StepperUi.Controls>
           </>
-        );
+        )
       }}
     </StepperUi.Provider>
   )
