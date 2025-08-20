@@ -144,6 +144,12 @@ importers:
       '@radix-ui/react-slot':
         specifier: ^1.2.3
         version: 1.2.3(@types/react@19.1.0)(react@19.1.0)
+      '@repo/convex':
+        specifier: workspace:*
+        version: link:../../packages/convex
+      '@repo/zod-config':
+        specifier: workspace:*
+        version: link:../../packages/zod-config
       '@stepperize/react':
         specifier: ^5.1.6
         version: 5.1.6(react@19.1.0)(typescript@5.7.3)
@@ -156,6 +162,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      convex:
+        specifier: ^1.25.4
+        version: 1.25.4(@clerk/clerk-react@5.35.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3

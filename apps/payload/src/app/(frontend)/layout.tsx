@@ -14,6 +14,8 @@ import { draftMode } from 'next/headers'
 import './globals.css'
 import { getServerSideURL } from '@/utilities/getURL'
 
+import { ConvexClientProvider } from '@/components/ConvexProvider'
+
 // Importamos Header y Footer
 import { Header } from '@/Header/Component'
 import { Footer } from '@/Footer/Component'
@@ -29,6 +31,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link href="/favicon.svg" rel="icon" type="image/svg+xml" />
       </head>
       <body>
+        <ConvexClientProvider>
         <Providers>
           <AdminBar adminBarProps={{ preview: isEnabled }} />
 
@@ -41,6 +44,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {/*  Agregamos Footer */}
           <Footer />
         </Providers>
+        </ConvexClientProvider>
       </body>
     </html>
   )
