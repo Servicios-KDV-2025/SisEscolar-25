@@ -13,6 +13,7 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as functions_ciclosEscolares from "../functions/ciclosEscolares.js";
 import type * as functions_classCatalog from "../functions/classCatalog.js";
 import type * as functions_schools from "../functions/schools.js";
 import type * as functions_users from "../functions/users.js";
@@ -32,6 +33,7 @@ import type * as terms from "../terms.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  "functions/ciclosEscolares": typeof functions_ciclosEscolares;
   "functions/classCatalog": typeof functions_classCatalog;
   "functions/schools": typeof functions_schools;
   "functions/users": typeof functions_users;
