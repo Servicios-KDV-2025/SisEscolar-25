@@ -27,8 +27,8 @@ export const HeaderNav: React.FC<{ data: HeaderType }> = ({ data }) => {
       <NavigationMenu>
         <NavigationMenuList>
           {navItems.map((navItem, i) => {
-            const { link, submenu, isButton, buttonStyle } = navItem;
-            
+            const { link, submenu, isButton, buttonStyle } = navItem
+
             // Si tiene submenú, renderizar con dropdown
             if (submenu && submenu.length > 0) {
               return (
@@ -53,7 +53,7 @@ export const HeaderNav: React.FC<{ data: HeaderType }> = ({ data }) => {
                 </NavigationMenuItem>
               )
             }
-            
+
             // Si no tiene submenú, renderizar link normal o botón
             return (
               <NavigationMenuItem key={i}>
@@ -68,8 +68,8 @@ export const HeaderNav: React.FC<{ data: HeaderType }> = ({ data }) => {
                   </Button>
                 ) : (
                   <NavigationMenuLink className={navigationMenuTriggerStyle()} asChild>
-                    <CMSLink 
-                      {...link} 
+                    <CMSLink
+                      {...link}
                       className="bg-transparent hover:bg-accent hover:text-accent-foreground text-foreground transition-colors data-[active]:bg-accent data-[active]:text-accent-foreground !rounded-xl px-4 py-2"
                     />
                   </NavigationMenuLink>
@@ -79,10 +79,10 @@ export const HeaderNav: React.FC<{ data: HeaderType }> = ({ data }) => {
           })}
         </NavigationMenuList>
       </NavigationMenu>
-      <Link href="/search" className="ml-2 p-2 !rounded-xl hover:bg-accent hover:text-accent-foreground transition-colors">
+      {/* <Link href="/search" className="ml-2 p-2 !rounded-xl hover:bg-accent hover:text-accent-foreground transition-colors">
         <span className="sr-only">Search</span>
         <SearchIcon className="w-5 text-foreground" />
-      </Link>
+      </Link> */}
     </nav>
   )
 }

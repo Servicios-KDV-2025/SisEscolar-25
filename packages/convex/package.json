@@ -5,9 +5,22 @@
   "main": "index.js",
   "types": "index.ts",
   "exports": {
-    "./_generated/api": "./_generated/api.js",
-    "./_generated/dataModel": "./_generated/dataModel.d.ts",
-    "./schema": "./schema.ts"
+    ".": {
+      "import": "./_generated/server.js",
+      "types": "./_generated/server.d.ts"
+    },
+    "./_generated/api": {
+      "import": "./_generated/api.js",
+      "types": "./_generated/api.d.ts"
+    },
+    "./_generated/dataModel": {
+      "import": "./_generated/dataModel.js",
+      "types": "./_generated/dataModel.d.ts"
+    },
+    "./schema": {
+      "import": "./schema.ts",
+      "types": "./schema.ts"
+    }
   },
   "scripts": {
     "dev": "convex dev"
