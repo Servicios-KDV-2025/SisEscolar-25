@@ -47,16 +47,25 @@ export const getAllClassCatalog = query({
                 ]);
 
                 return {
+                    // Propiedades base de ClassCatalog
                     _id: clase._id,
+                    schoolId: clase.schoolId, // ← Añadir esta
+                    schoolCycleId: clase.schoolCycleId, // ← Añadir esta
+                    subjectId: clase.subjectId, // ← Añadir esta
+                    classroomId: clase.classroomId, // ← Añadir esta
+                    teacherId: clase.teacherId, // ← Añadir esta
+                    groupId: clase.groupId,
                     name: clase.name,
                     status: clase.status,
                     createdBy: clase.createdBy,
                     updatedAt: clase.updatedAt,
+
+                    // Propiedades extendidas con objetos completos
                     schoolCycle: cycle,
-                    subject,
-                    classroom,
-                    teacher,
-                    group,
+                    subject: subject,
+                    classroom: classroom,
+                    teacher: teacher,
+                    group: group,
                 }
             }),
         );
@@ -72,7 +81,7 @@ export const getClassCatalog = query({
     },
     handler: async (ctx, args) => {
         const catalog = await ctx.db.get(args._id);
-        
+
         if (!catalog || catalog.schoolId !== args.schoolId) return null;
         return catalog;
     }
