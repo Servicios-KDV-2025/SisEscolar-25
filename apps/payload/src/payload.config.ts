@@ -37,6 +37,7 @@ import Payments from './collections/Payments'
 import { stripeCheckout } from './endpoints/stripeCheckout'
 import { paymentSession } from './endpoints/paymentSession'
 import { stripeWebhook } from './endpoints/stripeWebhook'
+import CheckoutButton from './blocks/CheckoutButton/config'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -115,7 +116,7 @@ export default buildConfig({
     Row,
     Section,
     Carousel,
-    CarouselAvatar,
+    CarouselAvatar,CheckoutButton,
   ],
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer],

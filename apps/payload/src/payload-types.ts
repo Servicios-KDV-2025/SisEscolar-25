@@ -82,6 +82,7 @@ export interface Config {
     section: SectionBlock;
     carousel: CarouselBlock;
     carouselAvatar: CarouselAvatarBlock;
+    checkoutButton: CheckoutButton;
   };
   collections: {
     pages: Page;
@@ -988,6 +989,20 @@ export interface CarouselBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'carousel';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "checkoutButton".
+ */
+export interface CheckoutButton {
+  buttonText?: string | null;
+  /**
+   * ID de precio de Stripe (modo test: price_*)
+   */
+  priceId: string;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'checkoutButton';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

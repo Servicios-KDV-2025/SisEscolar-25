@@ -4,8 +4,9 @@ import { defineStepper } from '@/components/ui/stepper'
 import { Button } from '@/components/ui/button'
 import { School, User, CopySlash } from 'lucide-react'
 import { SignOutButton, useAuth } from '@clerk/nextjs'
-import { SignUp } from './SignUp'
-import { SignIn } from './SignIn'
+
+import { SignUp } from './Auth/SignUp'
+import { SignIn } from './Auth/SignIn'
 import SchoolForm from './SchoolForm'
 
 
@@ -31,7 +32,7 @@ const { Stepper: StepperUi, useStepper } = defineStepper(
 )
 
 export const Stepper: React.FC = () => {
-  const addSchool = useMutation(api.functions.users.updateUser)
+
   const { isSignedIn, isLoaded } = useAuth()
   const [ready, setReady] = React.useState(false)
 
