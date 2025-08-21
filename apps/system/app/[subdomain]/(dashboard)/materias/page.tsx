@@ -10,7 +10,6 @@ import { subjectSchema } from "types/form/subjectSchema";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Plus } from "@repo/ui/icons";
-// import { Card, CardContent } from "@repo/ui/components/shadcn/card";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Textarea } from "@repo/ui/components/shadcn/textarea";
@@ -44,9 +43,6 @@ export default function SubjectPage() {
         clearErrors: clearSubjectErrors,
     } = useSubject(currentSchool?.school._id);
 
-    // const activeSubjects = subjects.filter((s) => s.status === 'active');
-    // const inactiveSubjects = subjects.filter((s) => s.status === 'inactive');
-
     const {
         isOpen,
         operation,
@@ -57,10 +53,10 @@ export default function SubjectPage() {
         openDelete,
         close,
     } = useCrudDialog(subjectSchema, {
-        nombre: "",
-        descripcion: "",
-        creditos: 0,
-        activa: true,
+        name: "",
+        description: "",
+        credits: 0,
+        status: "",
     });
 
     const filteredSubjects = subjects.filter((subject) => {
@@ -80,9 +76,7 @@ export default function SubjectPage() {
             name: values.name as string,
             description: values.description as string | undefined,
             credits: values.credits as number | undefined,
-            status: values.status as "active" | "inactive",
-            updatedAt: new Date().getTime(),
-            updatedBy: currentUser._id
+            status: values.status as "active" | "inactive"
         };
 
         if (operation === "create") {
@@ -90,7 +84,9 @@ export default function SubjectPage() {
         } else if (operation === "edit" && data?._id) {
             await updateSubject({
                 ...baseData,
-                _id: data._id as Id<"subject">
+                _id: data._id as Id<"subject">,
+                updatedAt: new Date().getTime(),
+                updatedBy: currentUser._id
             });
         }
     };
@@ -122,8 +118,8 @@ export default function SubjectPage() {
         <div className="w-[90%] mx-auto">
             <h1 className="text-3xl font-bold mb-6">Materias</h1>
             <p className="text-muted-foreground">
-                Esta tabla muestra el listado de materias académicas registradas en{" "}
-                {currentSchool?.school?.name}. Cada fila representa una materia con su nombre, descripción, número de
+                Esta página muestra el listado de materias académicas registradas en{" "}
+                {currentSchool?.school?.name}. Cada tarjeta representa una materia con su nombre, descripción, número de
                 créditos y estado actual (activa o inactiva). Desde aquí puedes
                 visualizar, editar o eliminar materias existentes, así como agregar
                 nuevas según sea necesario para el plan de estudios.
@@ -206,34 +202,6 @@ export default function SubjectPage() {
                 )
                 : <p></p>
             }
-
-            {/* <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-9">
-                    <Card className="border shadow-md">
-                        <CardContent className="p-4 justify-center">
-                            <p className="text-2xl text-center text-muted-foreground">Materias activas</p>
-                            <h3 className="text-4xl font-bold text-center text-black-600">
-                                {activeSubjects.length}
-                            </h3>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border shadow-md">
-                        <CardContent className="p-4">
-                            <p className="text-2xl text-center text-muted-foreground">Materias inactivas</p>
-                            <h3 className="text-4xl font-bold text-center text-black-600">
-                                {inactiveSubjects.length}
-                            </h3>
-                        </CardContent>
-                    </Card>
-                    <Card className="border justify-center shadow-md">
-                        <CardContent className="p-4">
-                            <p className="text-2xl text-center text-muted-foreground">Total</p>
-                            <h3 className="text-4xl font-bold text-center text-black-600">
-                                {subjects.length}
-                            </h3>
-                        </CardContent>
-                    </Card>
-                </div> */}
 
             <CrudDialog
                 operation={operation}
