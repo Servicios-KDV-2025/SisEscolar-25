@@ -22,7 +22,7 @@ import { Badge } from "@repo/ui/components/shadcn/badge"
 // Mock student data
 const initialStudents = [
   {
-    id: 1,
+    id: '1',
     name: "John Doe",
     rollNumber: "2024001",
     class: "10A",
@@ -33,7 +33,7 @@ const initialStudents = [
     status: "active",
   },
   {
-    id: 2,
+    id: '2',
     name: "Jane Smith",
     rollNumber: "2024002",
     class: "10A",
@@ -44,7 +44,7 @@ const initialStudents = [
     status: "active",
   },
   {
-    id: 3,
+    id: '3',
     name: "Mike Johnson",
     rollNumber: "2024003",
     class: "10A",
@@ -55,7 +55,7 @@ const initialStudents = [
     status: "active",
   },
   {
-    id: 4,
+    id: '4',
     name: "Sarah Wilson",
     rollNumber: "2024004",
     class: "10A",
@@ -68,7 +68,7 @@ const initialStudents = [
 ]
 
 interface StudentClass {
-  id: number
+  id: string
   student: {
     name: string
     rollNumber: string
@@ -109,7 +109,7 @@ export default function StudentManagement({ studentClasses }: StudentManagementP
 
   const handleAddStudent = () => {
     const newStudent = {
-      id: Date.now(),
+      id: Date.now().toString(),
       ...formData,
       avatar: "/placeholder.svg?height=40&width=40",
       attendanceRate: 100,
@@ -126,7 +126,7 @@ export default function StudentManagement({ studentClasses }: StudentManagementP
     setFormData({ name: "", rollNumber: "", class: "", email: "", phone: "" })
   }
 
-  const handleDeleteStudent = (studentId: number) => {
+  const handleDeleteStudent = (studentId: string) => {
     if (confirm("Are you sure you want to delete this student?")) {
       setStudents(students.filter((student) => student.id !== studentId))
     }
