@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
 
 export const createGroup = mutation({
@@ -9,12 +9,24 @@ export const createGroup = mutation({
     status: v.union(v.literal("active"), v.literal("inactive")),
   },
   handler: async (ctx, args) => {
+    const existingGroup = await ctx.db
+      .query("group")
+      .withIndex("by_school_name_grade", q =>
+        q.eq("schoolId", args.schoolId)
+          .eq("name", args.name)
+          .eq("grade", args.grade)
+      )
+      .first();
+
+    if (existingGroup) {
+      throw new Error("Ya existe un grupo con el mismo nombre y grado en esta escuela");
+    }
+
     const newGroupId = await ctx.db.insert("group", {
       schoolId: args.schoolId,
       name: args.name,
       grade: args.grade,
       status: args.status,
-      updatedAt: Date.now(),
     });
     return newGroupId;
   },
@@ -52,11 +64,33 @@ export const updateGroup = mutation({
     name: v.optional(v.string()),
     grade: v.optional(v.string()),
     status: v.optional(v.union(v.literal("active"), v.literal("inactive"))),
+    updatedAt: v.optional(v.number()),
+    updatedBy: v.optional(v.id("user")),
   },
   handler: async (ctx, args) => {
     const group = await ctx.db.get(args._id);
     if (!group || group.schoolId !== args.schoolId) {
       throw new Error("Acceso denegado o grupo no encontrado");
+    }
+
+    if (args.name || args.grade) {
+      const newName = args.name ?? group.name;
+      const newGrade = args.grade ?? group.grade;
+
+      // Buscar grupos con el mismo nombre y grado, excluyendo el actual
+      const duplicateGroup = await ctx.db
+        .query("group")
+        .withIndex("by_school_name_grade", q =>
+          q.eq("schoolId", args.schoolId)
+            .eq("name", newName)
+            .eq("grade", newGrade)
+        )
+        .filter(q => q.neq(q.field("_id"), args._id))
+        .first();
+
+      if (duplicateGroup) {
+        throw new Error("Ya existe otro grupo con el mismo nombre y grado en esta escuela");
+      }
     }
 
     const { _id, ...data } = args;
