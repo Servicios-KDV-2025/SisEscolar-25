@@ -995,11 +995,11 @@ export interface CarouselBlock {
  * via the `definition` "checkoutButton".
  */
 export interface CheckoutButton {
-  buttonText?: string | null;
   /**
-   * ID de precio de Stripe (modo test: price_*)
+   * ID de precio Stripe (empieza con "price_")
    */
   priceId: string;
+  buttonText?: string | null;
   id?: string | null;
   blockName?: string | null;
   blockType: 'checkoutButton';

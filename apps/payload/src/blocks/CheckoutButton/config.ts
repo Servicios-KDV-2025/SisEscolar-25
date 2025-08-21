@@ -1,24 +1,26 @@
 // src/blocks/CheckoutButton/config.ts
-import { Block } from 'payload';
+import type { Block } from 'payload';
 
 export const CheckoutButton: Block = {
   slug: 'checkoutButton',
-  interfaceName: 'checkoutButton',
   labels: { singular: 'Botón de Checkout', plural: 'Botones de Checkout' },
   fields: [
     {
-      name: 'buttonText',
-      type: 'text',
-      label: 'Texto del botón',
-      required: false,
-      defaultValue: 'Finalizar y pagar',
-    },
-    {
       name: 'priceId',
       type: 'text',
-      label: 'Stripe Price ID (price_...)',
+      label: 'Stripe Price ID',
       required: true,
-      admin: { description: 'ID de precio de Stripe (modo test: price_*)' },
+      admin: {
+        description: 'ID de precio Stripe (empieza con "price_")',
+        placeholder: 'price_123...',
+      },
+    },
+    {
+      name: 'buttonText',
+      type: 'text',
+      label: 'Texto del botón (opcional)',
+      required: false,
+      defaultValue: 'Pagar ahora',
     },
   ],
 };

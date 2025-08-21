@@ -1,14 +1,20 @@
 'use client'
-import React, { useEffect } from 'react'
+import React from 'react'
 import { defineStepper } from '@/components/ui/stepper'
 import { Button } from '@/components/ui/button'
 import { School, User, CopySlash } from 'lucide-react'
-import { SignOutButton, useAuth } from '@clerk/nextjs'
+import { useAuth } from '@clerk/nextjs'
 
 import { SignUp } from './Auth/SignUp'
 import { SignIn } from './Auth/SignIn'
 import SchoolForm from './SchoolForm'
+import { CheckoutButtonBlock } from '@/blocks/CheckoutButton/Component'
 
+type CheckoutFromCMS = {
+  priceId?: string
+  buttonText?: string
+  schoolName?: string
+}
 
 const { Stepper: StepperUi, useStepper } = defineStepper(
   {
@@ -31,8 +37,10 @@ const { Stepper: StepperUi, useStepper } = defineStepper(
   },
 )
 
-export const Stepper: React.FC = () => {
+type StepperProps = { checkoutFromCMS?: CheckoutFromCMS | null }
 
+// cambio: aceptar la prop con el bloque del CMS
+export const Stepper: React.FC<StepperProps> = ({ checkoutFromCMS }) => {
   const { isSignedIn, isLoaded } = useAuth()
   const [ready, setReady] = React.useState(false)
 
@@ -41,9 +49,7 @@ export const Stepper: React.FC = () => {
       {({ methods }) => {
         React.useEffect(() => {
           if (isLoaded) {
-            if (isSignedIn && methods.current.id === 'step-1') {
-              methods.next()
-            }
+            if (isSignedIn && methods.current.id === 'step-1') methods.next()
             setReady(true)
           }
         }, [isSignedIn, isLoaded, methods])
@@ -60,18 +66,15 @@ export const Stepper: React.FC = () => {
                 </StepperUi.Step>
               ))}
             </StepperUi.Navigation>
-            {methods.switch({
-              'step-1': (step) => <ClerkComponent />,
-              'step-2': (step) => <SchoolForm />,
-              'step-3': (step) => <Content id={step.id} />,
-            })}
-            <StepperUi.Controls>
-              {/* {!methods.isLast && !methods.isFirst && (
-                <Button variant="secondary" onClick={methods.prev} disabled={methods.isFirst}>
-                  Previous
-                </Button>
-              )} */}
 
+            {methods.switch({
+              'step-1': () => <ClerkComponent />,
+              'step-2': () => <SchoolForm />,
+              //   pasar checkoutFromCMS al contenido del paso 3
+              'step-3': (step) => <Content id={step.id} checkoutFromCMS={checkoutFromCMS} />,
+            })}
+
+            <StepperUi.Controls>
               {!methods.isFirst && (
                 <Button onClick={methods.isLast ? () => {} : methods.next}>
                   {methods.isLast ? 'Finalizar' : 'Siguiente'}
@@ -85,12 +88,30 @@ export const Stepper: React.FC = () => {
   )
 }
 
-const Content = ({ id }: { id: string }) => {
+// recibir la prop y usar priceId del CMS
+const Content = ({
+  id,
+  checkoutFromCMS,
+}: {
+  id: string
+  checkoutFromCMS?: CheckoutFromCMS | null
+}) => {
   return (
     <StepperUi.Panel className="h-[200px] content-center rounded border bg-secondary text-secondary-foreground p-8">
-    
-      <p className="text-xl font-normal"> "Estás a punto de salir a una página externa para pagar. No cierres esta ventana."</p>
-      
+      <p className="text-xl font-normal mb-4">
+        Estás a punto de salir a una página externa para pagar. No cierres esta ventana.
+      </p>
+
+      {!checkoutFromCMS?.priceId ? (
+        <p className="text-sm text-muted-foreground">
+          Configura el <b>priceId</b> en el CMS (bloque “Botón de Checkout”).
+        </p>
+      ) : (
+        <CheckoutButtonBlock
+          priceId={checkoutFromCMS.priceId}
+          // endpoint="/api/checkout"  // usa esto si tu backend es /api/checkout
+        />
+      )}
     </StepperUi.Panel>
   )
 }
