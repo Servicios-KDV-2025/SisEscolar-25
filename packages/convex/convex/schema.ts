@@ -164,7 +164,6 @@ const applicationTable = defineSchema({
     key: v.string(),
     startDate: v.number(),
     endDate: v.number(),
-    parentTermId: v.optional(v.union(v.id("term"), v.null())),
     status: v.union(
       v.literal("active"),
       v.literal("inactive"),
@@ -172,8 +171,8 @@ const applicationTable = defineSchema({
     ),
     updatedAt: v.optional(v.number()),
   })
-    .index("by_parent_term", ["parentTermId"])
-    .index("by_class_catalog", ["classCatalogId"]),
+  .index("by_status",["status"])
+  .index("by_class_catalog", ["classCatalogId"]),
 
   //Rúbrica de Calificación
   gradeRubric: defineTable({
