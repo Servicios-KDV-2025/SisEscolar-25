@@ -54,7 +54,7 @@ const defaultNavData = {
       items: [
         {
           title: "Ciclos Escolares",
-          url: `#`,
+          url: `/ciclosEscolares`,
         },
         {
           title: "Calendario Escolar",

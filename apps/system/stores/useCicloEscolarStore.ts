@@ -3,6 +3,8 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../packages/convex/convex/_generated/api';
 import { Id } from '../../../packages/convex/convex/_generated/dataModel';
 import React from 'react';
+import { useCurrentSchool } from './userSchoolsStore';
+import { useUser } from '@clerk/nextjs';
 
 // Tipos para el ciclo escolar (ajustados para coincidir con tu schema de Convex)
 export interface CicloEscolar {
@@ -48,13 +50,6 @@ interface CicloEscolarState {
   setError: (error: string | null) => void;
   clearError: () => void;
   
-  // Acciones asíncronas
-  fetchCiclosEscolares: (escuelaID: Id<"school">) => Promise<CicloEscolar[]>;
-  fetchCicloEscolarById: (cicloEscolarID: Id<"schoolCycle">) => Promise<CicloEscolar | null>;
-  createCicloEscolar: (data: CreateCicloEscolarData) => Promise<boolean>;
-  updateCicloEscolar: (cicloEscolarID: Id<"schoolCycle">, escuelaID: Id<"school">, data: UpdateCicloEscolarData) => Promise<boolean>;
-  deleteCicloEscolar: (cicloEscolarID: Id<"schoolCycle">) => Promise<boolean>;
-  
   // Reset del store
   reset: () => void;
 }
@@ -74,86 +69,6 @@ export const useCicloEscolarStore = create<CicloEscolarState>((set, get) => ({
   setError: (error) => set({ error }),
   clearError: () => set({ error: null }),
 
-  // Obtener ciclos escolares por escuela
-  fetchCiclosEscolares: async (escuelaID: Id<"school">) => {
-    set({ isLoading: true, error: null });
-    
-    try {
-      // Esta función se implementará usando el hook de Convex
-      // Por ahora retornamos array vacío, se implementará en el componente
-      set({ isLoading: false });
-      return [];
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      set({ error: errorMessage, isLoading: false });
-      return [];
-    }
-  },
-
-  // Obtener ciclo escolar por ID
-  fetchCicloEscolarById: async (cicloEscolarID: Id<"schoolCycle">) => {
-    set({ isLoading: true, error: null });
-    
-    try {
-      // Esta función se implementará usando el hook de Convex
-      // Por ahora retornamos null, se implementará en el componente
-      set({ isLoading: false });
-      return null;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      set({ error: errorMessage, isLoading: false });
-      return null;
-    }
-  },
-
-  // Crear ciclo escolar
-  createCicloEscolar: async (data: CreateCicloEscolarData) => {
-    set({ isLoading: true, error: null });
-    
-    try {
-      // Esta función se implementará usando el hook de Convex
-      // Por ahora retornamos false, se implementará en el componente
-      set({ isLoading: false });
-      return false;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      set({ error: errorMessage, isLoading: false });
-      return false;
-    }
-  },
-
-  // Actualizar ciclo escolar
-  updateCicloEscolar: async (cicloEscolarID: Id<"schoolCycle">, escuelaID: Id<"school">, data: UpdateCicloEscolarData) => {
-    set({ isLoading: true, error: null });
-    
-    try {
-      // Esta función se implementará usando el hook de Convex
-      // Por ahora retornamos false, se implementará en el componente
-      set({ isLoading: false });
-      return false;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      set({ error: errorMessage, isLoading: false });
-      return false;
-    }
-  },
-
-  // Eliminar ciclo escolar
-  deleteCicloEscolar: async (cicloEscolarID: Id<"schoolCycle">) => {
-    set({ isLoading: true, error: null });
-    
-    try {
-      // Esta función se implementará usando el hook de Convex
-      // Por ahora retornamos false, se implementará en el componente
-      set({ isLoading: false });
-      return false;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      set({ error: errorMessage, isLoading: false });
-      return false;
-    }
-  },
-
   // Reset del store
   reset: () => set({
     ciclosEscolares: [],
@@ -163,11 +78,23 @@ export const useCicloEscolarStore = create<CicloEscolarState>((set, get) => ({
   }),
 }));
 
+// Función auxiliar para comparar arrays
+function areArraysEqual(arr1: any[], arr2: any[]) {
+  if (arr1.length !== arr2.length) return false;
+  return arr1.every((item, index) => JSON.stringify(item) === JSON.stringify(arr2[index]));
+}
+
 // Hook personalizado que combina Zustand con Convex
-export const useCicloEscolarWithConvex = (escuelaID?: Id<"school">) => {
+export const useCicloEscolarWithConvex = () => {
   const store = useCicloEscolarStore();
   
-  // Queries para obtener ciclos escolares
+  // CAMBIO PRINCIPAL: Obtener userId y schoolId correctamente
+  const { user } = useUser();
+  const userId = user?.publicMetadata?.userId as Id<"user">;
+  const { currentSchool, isLoading: isSchoolLoading } = useCurrentSchool(userId);
+  const escuelaID = currentSchool?.school._id;
+
+  // Queries para obtener ciclos escolares - SOLO si tenemos escuelaID
   const ciclosEscolares = useQuery(
     api.functions.ciclosEscolares.ObtenerCiclosEscolares,
     escuelaID ? { escuelaID } : 'skip'
@@ -180,78 +107,86 @@ export const useCicloEscolarWithConvex = (escuelaID?: Id<"school">) => {
 
   // Actualizar el store cuando cambien los ciclos escolares
   React.useEffect(() => {
-    if (ciclosEscolares) {
-      // Mapear los datos de Convex al formato esperado por el store
-      const mappedCiclos: CicloEscolar[] = ciclosEscolares.map((ciclo: any) => ({
+    if (ciclosEscolares !== undefined) {
+      const mappedCiclos: CicloEscolar[] = ciclosEscolares.map(ciclo => ({
         _id: ciclo._id,
         schoolId: ciclo.schoolId,
         name: ciclo.name,
         startDate: ciclo.startDate,
         endDate: ciclo.endDate,
         status: ciclo.status,
-        createdAt: ciclo.createdAt,
+        createdAt: ciclo._creationTime || ciclo.createdAt,
         updatedAt: ciclo.updatedAt,
       }));
-      store.setCiclosEscolares(mappedCiclos);
-    } else if (escuelaID) {
-      store.setCiclosEscolares([]);
+      
+      // Solo actualizar si los ciclos han cambiado
+      if (!areArraysEqual(store.ciclosEscolares, mappedCiclos)) {
+        store.setCiclosEscolares(mappedCiclos);
+      }
+      
+      // Siempre establecer loading como false cuando tenemos datos
+      if (store.isLoading) {
+        store.setLoading(false);
+      }
+    } else if (escuelaID && !isSchoolLoading) {
+      // Solo establecer loading como true si tenemos una escuelaID pero no datos
+      if (!store.isLoading) {
+        store.setLoading(true);
+      }
     }
-  }, [ciclosEscolares, escuelaID, store]);
+  }, [ciclosEscolares, escuelaID, isSchoolLoading, store.ciclosEscolares.length]);
 
   // Funciones que usan las mutations de Convex
   const fetchCiclosEscolares = React.useCallback(async (escuelaID: Id<"school">) => {
     try {
-      store.setLoading(true);
-      store.clearError();
-      
       // Los datos se actualizarán automáticamente a través del useEffect
-      // que escucha cambios en la query ciclosEscolares
-      store.setLoading(false);
       return useCicloEscolarStore.getState().ciclosEscolares;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error al obtener ciclos escolares';
       store.setError(errorMessage);
-      store.setLoading(false);
       return [];
     }
   }, [store]);
 
   const fetchCicloEscolarById = React.useCallback(async (cicloEscolarID: Id<"schoolCycle">) => {
     try {
-      store.setLoading(true);
-      store.clearError();
-      
       // Para obtener un ciclo específico, podemos buscarlo en el store actual
-      // o crear una query específica si es necesario
       const ciclos = useCicloEscolarStore.getState().ciclosEscolares;
       const cicloEncontrado = ciclos.find(ciclo => ciclo._id === cicloEscolarID);
       
-      store.setLoading(false);
       return cicloEncontrado || null;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error al obtener ciclo escolar';
       store.setError(errorMessage);
-      store.setLoading(false);
       return null;
     }
   }, [store]);
 
   const createCicloEscolar = React.useCallback(async (data: CreateCicloEscolarData) => {
+    if (!escuelaID) {
+      store.setError('No hay escuela seleccionada');
+      return false;
+    }
+
     try {
       store.setLoading(true);
       store.clearError();
       
-      await crearCicloEscolarMutation(data);
+      console.log('Enviando datos a Convex:', data); // Debug
+      
+      const result = await crearCicloEscolarMutation(data);
+      console.log('Respuesta de Convex:', result); // Debug
       
       store.setLoading(false);
       return true;
     } catch (error) {
+      console.error('Error en createCicloEscolar:', error); // Debug
       const errorMessage = error instanceof Error ? error.message : 'Error al crear ciclo escolar';
       store.setError(errorMessage);
       store.setLoading(false);
       return false;
     }
-  }, [crearCicloEscolarMutation, store]);
+  }, [crearCicloEscolarMutation, store, escuelaID]);
 
   const updateCicloEscolar = React.useCallback(async (
     cicloEscolarID: Id<"schoolCycle">, 
@@ -300,12 +235,17 @@ export const useCicloEscolarWithConvex = (escuelaID?: Id<"school">) => {
     }
   }, [eliminarCicloEscolarMutation, store]);
 
-  return React.useMemo(() => ({
+  return {
     // Estado del store
     ciclosEscolares: store.ciclosEscolares,
     selectedCiclo: store.selectedCiclo,
-    isLoading: store.isLoading,
+    isLoading: store.isLoading || isSchoolLoading,
     error: store.error,
+    
+    // Información adicional
+    userId,
+    escuelaID,
+    currentSchool,
     
     // Acciones
     fetchCiclosEscolares,
@@ -316,20 +256,7 @@ export const useCicloEscolarWithConvex = (escuelaID?: Id<"school">) => {
     setSelectedCiclo: store.setSelectedCiclo,
     clearError: store.clearError,
     reset: store.reset,
-  }), [
-    store.ciclosEscolares,
-    store.selectedCiclo,
-    store.isLoading,
-    store.error,
-    fetchCiclosEscolares,
-    fetchCicloEscolarById,
-    createCicloEscolar,
-    updateCicloEscolar,
-    deleteCicloEscolar,
-    store.setSelectedCiclo,
-    store.clearError,
-    store.reset,
-  ]);
+  };
 };
 
 // Hook para usar solo el store sin Convex (para casos simples)
