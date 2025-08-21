@@ -136,21 +136,26 @@ const applicationTable = defineSchema({
     updatedAt: v.number(),
   })
     .index("by_school", ["schoolId"])
+    .index("by_status", ["status"])
+    ,
+ 
+    //Horarios
+    schedule: defineTable({
+        schoolId: v.id("school"),
+        name: v.string(),
+        day: v.string(),
+        week: v.string(),
+        // scheduleDate: v.string(),
+        startTime: v.string(),
+        endTime: v.string(),
+        status: v.union(
+            v.literal('active'),
+            v.literal('inactive')
+        ),
+        updatedAt: v.number(),
+    })
+    .index("by_school_day_week", ["schoolId","day","week"])
     .index("by_status", ["status"]),
-  //Horarios
-  schedule: defineTable({
-    schoolId: v.id("school"),
-    name: v.string(),
-    startTime: v.string(),
-    endTime: v.string(),
-    status: v.union(v.literal("active"), v.literal("inactive")),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_school", ["schoolId"])
-    .index("by_status", ["status"]),
-
-  //FK
 
   //Periodos
   term: defineTable({
