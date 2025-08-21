@@ -153,12 +153,12 @@ export default function AttendanceDashboard() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 justify-between">
+          <TabsList className="grid w-full grid-cols-5 justify-between">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="marking">Marcar Asistencia</TabsTrigger>
             <TabsTrigger value="justification">Justificar Ausencias</TabsTrigger>
             <TabsTrigger value="history">Historial</TabsTrigger>
-            {/* <TabsTrigger value="students">Estudiantes</TabsTrigger> */}
+            <TabsTrigger value="students">Estudiantes</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
