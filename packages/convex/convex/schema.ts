@@ -133,10 +133,12 @@ const applicationTable = defineSchema({
     name: v.string(),
     grade: v.string(),
     status: v.union(v.literal("active"), v.literal("inactive")),
-    updatedAt: v.number(),
+    updatedAt: v.optional(v.number()),
+    updatedBy: v.optional(v.id("user")),
   })
     .index("by_school", ["schoolId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_school_name_grade", ["schoolId", "name", "grade"]),
   //Horarios
   schedule: defineTable({
     schoolId: v.id("school"),
@@ -196,7 +198,7 @@ const applicationTable = defineSchema({
     .index("by_student_class", ["studentClassId"])
     .index("by_registered_by", ["registeredById"])
     .index("by_rubric", ["gradeRubricId"])
-    ,
+  ,
 
   //Promedios Calculados
   termAverage: defineTable({
@@ -210,28 +212,28 @@ const applicationTable = defineSchema({
   }).index("by_student_term", ["studentClassId", "termId"]),
   //Fk
 
-    //Clases
-    classCatalog: defineTable({
-        schoolId: v.id("school"),
-        schoolCycleId: v.id("schoolCycle"),
-        subjectId: v.id("subject"),
-        classroomId: v.id("classroom"),
-        teacherId: v.id("user"),
-        groupId: v.optional(v.id("group")),
-        // scheduleId: v.id("schedule"),
-        name: v.string(),
-        status: v.union(
-            v.literal('active'),
-            v.literal('inactive')
-        ),
-        createdBy: v.optional(v.id("user")),
-        updatedAt: v.number(),
-    })
-        .index("by_cycle", ["schoolCycleId"])
-        .index("by_subject", ["subjectId"])
-        .index("by_classroom", ["classroomId"])
-        .index("by_teacher", ["teacherId"]),
- 
+  //Clases
+  classCatalog: defineTable({
+    schoolId: v.id("school"),
+    schoolCycleId: v.id("schoolCycle"),
+    subjectId: v.id("subject"),
+    classroomId: v.id("classroom"),
+    teacherId: v.id("user"),
+    groupId: v.optional(v.id("group")),
+    // scheduleId: v.id("schedule"),
+    name: v.string(),
+    status: v.union(
+      v.literal('active'),
+      v.literal('inactive')
+    ),
+    createdBy: v.optional(v.id("user")),
+    updatedAt: v.number(),
+  })
+    .index("by_cycle", ["schoolCycleId"])
+    .index("by_subject", ["subjectId"])
+    .index("by_classroom", ["classroomId"])
+    .index("by_teacher", ["teacherId"]),
+
 
   //Relación entre clases y horarios
   classSchedule: defineTable({

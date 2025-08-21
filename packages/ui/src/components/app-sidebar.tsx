@@ -66,7 +66,7 @@ const defaultNavData = {
         },
         {
           title: "Grupos",
-          url: `#`,
+          url: `/grupos`,
         },
         {
           title: "Catalogo de Clases",
