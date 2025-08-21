@@ -71,6 +71,7 @@ const applicationTable = defineSchema({
     .index("by_phone", ["phone"])
     .index("by_email", ["email"])
     .index("by_status", ["status"]),
+
   //estudiantes
   student: defineTable({
     schoolId: v.id("school"),
@@ -85,7 +86,10 @@ const applicationTable = defineSchema({
     status: v.union(v.literal("active"), v.literal("inactive")),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  })
+    .index("by_groupId", ["groupId"])
+    .index("by_schoolId", ["schoolId"])
+    .index("by_schoolId_and_enrollment", ["schoolId", "enrollment"]),
 
   //Ciclos escolares
   schoolCycle: defineTable({
