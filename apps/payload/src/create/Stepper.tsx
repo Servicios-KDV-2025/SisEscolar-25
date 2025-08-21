@@ -102,16 +102,17 @@ const Content = ({
         Estás a punto de salir a una página externa para pagar. No cierres esta ventana.
       </p>
 
-      {!checkoutFromCMS?.priceId ? (
-        <p className="text-sm text-muted-foreground">
-          Configura el <b>priceId</b> en el CMS (bloque “Botón de Checkout”).
-        </p>
-      ) : (
-        <CheckoutButtonBlock
-          priceId={checkoutFromCMS.priceId}
-          // endpoint="/api/checkout"  // usa esto si tu backend es /api/checkout
-        />
-      )}
+     {!checkoutFromCMS?.priceId ? (
+  <p className="text-sm text-muted-foreground">
+    Selecciona un <b>Botón de Checkout</b> en Admin → Pages → esta página.
+  </p>
+) : (
+  <CheckoutButtonBlock
+    priceId={checkoutFromCMS.priceId}
+    // endpoint="/api/checkout" // si tu ruta es /api/checkout
+  />
+)}
+
     </StepperUi.Panel>
   )
 }

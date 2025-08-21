@@ -38,6 +38,7 @@ import { stripeCheckout } from './endpoints/stripeCheckout'
 import { paymentSession } from './endpoints/paymentSession'
 import { stripeWebhook } from './endpoints/stripeWebhook'
 import CheckoutButton from './blocks/CheckoutButton/config'
+import CheckoutButtons from './collections/CheckoutButtons/CheckoutButtons'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -86,7 +87,7 @@ export default buildConfig({
       connectionString: process.env.POSTGRES_URL || '',
     },
   }),
-  collections: [Pages, Posts, Media, Categories, Users, Prices, Payments],
+  collections: [Pages, Posts, Media, Categories, Users, Prices, Payments,CheckoutButtons],
   endpoints:[
 {
       path: '/checkout',

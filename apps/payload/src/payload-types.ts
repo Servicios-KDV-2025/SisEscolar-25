@@ -92,6 +92,7 @@ export interface Config {
     users: User;
     prices: Price;
     payments: Payment;
+    checkoutButtons: CheckoutButton1;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -110,6 +111,7 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     prices: PricesSelect<false> | PricesSelect<true>;
     payments: PaymentsSelect<false> | PaymentsSelect<true>;
+    checkoutButtons: CheckoutButtonsSelect<false> | CheckoutButtonsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -1041,6 +1043,21 @@ export interface Payment {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "checkoutButtons".
+ */
+export interface CheckoutButton1 {
+  id: number;
+  label: string;
+  /**
+   * Pega el ID de precio (price_*)
+   */
+  priceId: string;
+  buttonText?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "redirects".
  */
 export interface Redirect {
@@ -1239,6 +1256,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'payments';
         value: number | Payment;
+      } | null)
+    | ({
+        relationTo: 'checkoutButtons';
+        value: number | CheckoutButton1;
       } | null)
     | ({
         relationTo: 'redirects';
@@ -1544,6 +1565,17 @@ export interface PaymentsSelect<T extends boolean = true> {
   status?: T;
   metadata?: T;
   raw?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "checkoutButtons_select".
+ */
+export interface CheckoutButtonsSelect<T extends boolean = true> {
+  label?: T;
+  priceId?: T;
+  buttonText?: T;
   updatedAt?: T;
   createdAt?: T;
 }

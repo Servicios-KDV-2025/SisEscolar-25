@@ -135,7 +135,9 @@ export const Pages: CollectionConfig<'pages'> = {
       },
     },
     ...slugField(),
+    
   ],
+  
   hooks: {
     afterChange: [revalidatePage],
     beforeChange: [populatePublishedAt],

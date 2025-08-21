@@ -11,8 +11,10 @@ import { RenderBlocks } from '@/blocks/RenderBlocks'
 import { RenderHero } from '@/heros/RenderHero'
 import { generateMeta } from '@/utilities/generateMeta'
 import { homeStatic } from '@/endpoints/seed/home-static'
-import { Stepper } from '@/create/Stepper'
 
+// Si tu Stepper es export nombrado:
+import { Stepper } from '@/create/Stepper'
+// Si fuera default, usa: import Stepper from '@/create/Stepper'
 
 export async function generateStaticParams() {
   const payload = await getPayload({ config: configPromise })
@@ -26,16 +28,12 @@ export async function generateStaticParams() {
   })
 
   const params =
-    pages.docs
-      ?.filter((doc) => doc.slug !== 'home')
-      .map(({ slug }) => ({ slug })) ?? []
+    pages.docs?.filter(doc => doc.slug !== 'home').map(({ slug }) => ({ slug })) ?? []
 
   return params
 }
 
-type Args = {
-  params: Promise<{ slug?: string }>
-}
+type Args = { params: Promise<{ slug?: string }> }
 
 export default async function Page({ params: paramsPromise }: Args) {
   const { isEnabled: draft } = await draftMode()
@@ -50,40 +48,30 @@ export default async function Page({ params: paramsPromise }: Args) {
   }
 
   if (!page) {
-    // si no existe la página, deja que PayloadRedirects maneje 404/redirects
     return <PayloadRedirects url={url} />
   }
 
-  const { hero, layout } = page
-
-  // 1) saca el bloque checkoutButton del layout (trae priceId, buttonText, etc.)
-  const checkoutFromCMS =
-    (layout as any)?.find?.((b: any) => b?.blockType === 'checkoutButton') ?? null
-
-  // 2) evita que RenderBlocks lo duplique
-  const layoutWithoutCheckout =
-    (layout as any)?.filter?.((b: any) => b?.blockType !== 'checkoutButton') ?? layout
+  // De la página obtenemos hero, layout y checkout (relación)
+  const hero = (page as any)?.hero
+  const layout = (page as any)?.layout ?? []
+  const checkoutFromCMS = (page as any)?.checkout ?? null // 👈 viene de la relación, no del layout
 
   return (
     <article className="pt-16 pb-24">
-      {/* Client-only helpers */}
-      {/* Si usas algo en el cliente para live preview */}
       <LivePreviewListener />
-      {/* Redirects válidos también */}
       <PayloadRedirects disableNotFound url={url} />
 
-      {/* Hero de la página */}
       <RenderHero {...hero} />
 
-      {/* Stepper con el bloque del CMS (si existe) */}
-      {checkoutFromCMS ? (
+      {/* Stepper leyendo el priceId desde la relación 'checkout' */}
+      {checkoutFromCMS && (
         <div className="my-8">
           <Stepper checkoutFromCMS={checkoutFromCMS} />
         </div>
-      ) : null}
+      )}
 
-      {/* Resto de bloques (sin el checkoutButton para no duplicar) */}
-      <RenderBlocks blocks={layoutWithoutCheckout} />
+      {/* Renderiza el resto de bloques tal cual */}
+      <RenderBlocks blocks={layout} />
     </article>
   )
 }
@@ -105,6 +93,7 @@ const queryPageBySlug = cache(async ({ slug }: { slug: string }) => {
     limit: 1,
     pagination: false,
     overrideAccess: draft,
+    depth: 1, 
     where: { slug: { equals: slug } },
   })
 
