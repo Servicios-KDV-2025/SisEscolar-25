@@ -49,6 +49,7 @@ const applicationTable = defineSchema({
     .index("by_role", ["role"])
     .index("by_status", ["status"])
     .index("by_department", ["department"]),
+  
   //Escuelas
   school: defineTable({
     name: v.string(),
@@ -71,6 +72,7 @@ const applicationTable = defineSchema({
     .index("by_phone", ["phone"])
     .index("by_email", ["email"])
     .index("by_status", ["status"]),
+  
   //estudiantes
   student: defineTable({
     schoolId: v.id("school"),
@@ -103,6 +105,7 @@ const applicationTable = defineSchema({
   })
     .index("by_school", ["schoolId"])
     .index("by_status", ["status"]),
+  
   //Materias
   subject: defineTable({
     schoolId: v.id("school"),
@@ -115,6 +118,7 @@ const applicationTable = defineSchema({
   })
     .index("by_school", ["schoolId"])
     .index("by_status", ["status"]),
+  
   //Aulas
   classroom: defineTable({
     schoolId: v.id("school"),
@@ -127,6 +131,7 @@ const applicationTable = defineSchema({
   })
     .index("by_school", ["schoolId"])
     .index("by_status", ["status"]),
+  
   //Grupos
   group: defineTable({
     schoolId: v.id("school"),
@@ -139,20 +144,24 @@ const applicationTable = defineSchema({
     .index("by_school", ["schoolId"])
     .index("by_status", ["status"])
     .index("by_school_name_grade", ["schoolId", "name", "grade"]),
-  //Horarios
-  schedule: defineTable({
-    schoolId: v.id("school"),
-    name: v.string(),
-    startTime: v.string(),
-    endTime: v.string(),
-    status: v.union(v.literal("active"), v.literal("inactive")),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_school", ["schoolId"])
+ 
+    //Horarios
+    schedule: defineTable({
+        schoolId: v.id("school"),
+        name: v.string(),
+        day: v.string(),
+        week: v.string(),
+        // scheduleDate: v.string(),
+        startTime: v.string(),
+        endTime: v.string(),
+        status: v.union(
+            v.literal('active'),
+            v.literal('inactive')
+        ),
+        updatedAt: v.number(),
+    })
+    .index("by_school_day_week", ["schoolId","day","week"])
     .index("by_status", ["status"]),
-
-  //FK
 
   //Periodos
   term: defineTable({
@@ -254,6 +263,7 @@ const applicationTable = defineSchema({
   })
     .index("by_class_catalog", ["classCatalogId"])
     .index("by_student", ["studentId"]),
+  
   //Asistencia
   attendance: defineTable({
     studentClassId: v.id("studentClass"),
