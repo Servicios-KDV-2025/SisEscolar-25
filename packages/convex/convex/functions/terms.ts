@@ -4,36 +4,34 @@ import { v } from "convex/values";
 // C: Crear un nuevo Periodo
 export const createTerm = mutation({
   args: {
-    classCatalogId: v.id("classCatalog"),
     name: v.string(),
     key: v.string(),
     startDate: v.number(),
     endDate: v.number(),
-    parentTermId: v.optional(v.id("term")),
+    schoolCycleId: v.id("schoolCycle")
   },
   handler: async (ctx, args) => {
     const now = Date.now();
     const id = await ctx.db.insert("term", {
-      classCatalogId: args.classCatalogId,
       name: args.name,
       key: args.key,
       startDate: args.startDate,
       endDate: args.endDate,
-      parentTermId: args.parentTermId,
       status: "active",
       updatedAt: undefined,
+      schoolCycleId: args.schoolCycleId,
     });
     return id;
   },
 });
 
-// R: Leer todos los periodos de una clase
-export const getTermsByClass = query({
-  args: { classCatalogId: v.id("classCatalog") },
+// R: Leer todos los periodos de un ciclo
+export const getTermsByCycleId = query({
+  args: { schoolCycleId: v.id("schoolCycle") },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("term")
-      .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", args.classCatalogId))
+      .withIndex("by_schoolCycleId", (q) => q.eq("schoolCycleId", args.schoolCycleId))
       .collect();
   },
 });
@@ -43,17 +41,6 @@ export const getTermById = query({
   args: { termId: v.id("term") },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.termId);
-  },
-});
-
-// R: Leer los periodos hijos de un periodo padre
-export const getChildTerms = query({
-  args: { parentTermId: v.id("term") },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("term")
-      .withIndex("by_parent_term", (q) => q.eq("parentTermId", args.parentTermId))
-      .collect();
   },
 });
 
