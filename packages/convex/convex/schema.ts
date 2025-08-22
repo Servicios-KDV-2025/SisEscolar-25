@@ -49,6 +49,7 @@ const applicationTable = defineSchema({
     .index("by_role", ["role"])
     .index("by_status", ["status"])
     .index("by_department", ["department"]),
+  
   //Escuelas
   school: defineTable({
     name: v.string(),
@@ -71,6 +72,7 @@ const applicationTable = defineSchema({
     .index("by_phone", ["phone"])
     .index("by_email", ["email"])
     .index("by_status", ["status"]),
+  
   //estudiantes
   student: defineTable({
     schoolId: v.id("school"),
@@ -103,6 +105,7 @@ const applicationTable = defineSchema({
   })
     .index("by_school", ["schoolId"])
     .index("by_status", ["status"]),
+  
   //Materias
   subject: defineTable({
     schoolId: v.id("school"),
@@ -115,6 +118,7 @@ const applicationTable = defineSchema({
   })
     .index("by_school", ["schoolId"])
     .index("by_status", ["status"]),
+  
   //Aulas
   classroom: defineTable({
     schoolId: v.id("school"),
@@ -127,17 +131,19 @@ const applicationTable = defineSchema({
   })
     .index("by_school", ["schoolId"])
     .index("by_status", ["status"]),
+  
   //Grupos
   group: defineTable({
     schoolId: v.id("school"),
     name: v.string(),
     grade: v.string(),
     status: v.union(v.literal("active"), v.literal("inactive")),
-    updatedAt: v.number(),
+    updatedAt: v.optional(v.number()),
+    updatedBy: v.optional(v.id("user")),
   })
     .index("by_school", ["schoolId"])
     .index("by_status", ["status"])
-    ,
+    .index("by_school_name_grade", ["schoolId", "name", "grade"]),
  
     //Horarios
     schedule: defineTable({
@@ -205,7 +211,7 @@ const applicationTable = defineSchema({
     .index("by_student_class", ["studentClassId"])
     .index("by_registered_by", ["registeredById"])
     .index("by_rubric", ["gradeRubricId"])
-    ,
+  ,
 
   //Promedios Calculados
   termAverage: defineTable({
@@ -260,6 +266,7 @@ const applicationTable = defineSchema({
   })
     .index("by_class_catalog", ["classCatalogId"])
     .index("by_student", ["studentId"]),
+  
   //Asistencia
   attendance: defineTable({
     studentClassId: v.id("studentClass"),
