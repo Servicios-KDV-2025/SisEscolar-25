@@ -3,6 +3,9 @@ import { useQuery, useMutation } from "convex/react";
 import { useCallback, useEffect } from "react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
+import { ClassroomType, SchoolCycleType, TeacherType } from "@/types/temporalSchema";
+import { Subject } from "./subjectStore";
+import { Group } from "./groupStore";
 
 export type ClassCatalog = {
   _id: string;
@@ -20,36 +23,11 @@ export type ClassCatalog = {
 };
 
 export type ClassCatalogWithDetails = ClassCatalog & {
-  schoolCycle?: {
-    _id: string;
-    name: string;
-    startDate: number;
-    endDate: number;
-    status: string;
-  } | null;
-  subject?: {
-    _id: string;
-    name: string;
-    description?: string;
-    status: string;
-  } | null;
-  classroom?: {
-    _id: string;
-    name: string;
-    capacity: number;
-    status: string;
-  } | null;
-  teacher?: {
-    _id: string;
-    name: string;
-    email: string;
-  } | null;
-  group?: {
-    _id: string;
-    name: string;
-    grade: string;
-    status: string;
-  } | null;
+  schoolCycle?: SchoolCycleType | null;
+  subject?: Subject | null;
+  classroom?: ClassroomType | null;
+  teacher?: TeacherType | null;
+  group?: Group | null;
 };
 
 
@@ -63,8 +41,7 @@ export type CreateClassCatalogData = {
   groupId?: string;
   name: string;
   status: 'active' | 'inactive';
-  createdBy?: string;
-  updatedAt: number;
+  createdBy: string;
 };
 
 export type UpdateClassCatalogData = {
@@ -195,8 +172,7 @@ export const useClassCatalog = (schoolId?: string) => {
         classroomId: data.classroomId as Id<"classroom">,
         teacherId: data.teacherId as Id<"user">,
         groupId: data.groupId as Id<"group"> | undefined,
-        createdBy: data.createdBy as Id<"user"> | undefined,
-        updatedAt: Date.now(),
+        createdBy: data.createdBy as Id<"user"> | undefined
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create class catalog';
@@ -222,7 +198,7 @@ export const useClassCatalog = (schoolId?: string) => {
         classroomId: data.classroomId as Id<"classroom">,
         teacherId: data.teacherId as Id<"user">,
         groupId: data.groupId as Id<"group"> | undefined,
-        updatedAt: Date.now(),
+        updatedAt: data.updatedAt,
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update class catalog';
@@ -234,7 +210,7 @@ export const useClassCatalog = (schoolId?: string) => {
   }, [updateClassCatalogMutation, setUpdating, setUpdateError]);
 
   // DELETE
-  const deleteClassCatalog = useCallback(async (id: string, schoolId: string) => {
+  const deleteClassCatalog = useCallback(async (id: string, schoolId: string | undefined) => {
     setDeleting(true);
     setDeleteError(null);
     try {

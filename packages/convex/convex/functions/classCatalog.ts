@@ -11,14 +11,12 @@ export const createClassCatalog = mutation({
         teacherId: v.id("user"),
         termId: v.id("term"),
         groupId: v.optional(v.id("group")),
-        // scheduleId: v.id("schedule"),
         name: v.string(),
         status: v.union(
             v.literal('active'),
             v.literal('inactive')
         ),
-        createdBy: v.optional(v.id("user")),
-        updatedAt: v.number(),
+        createdBy: v.optional(v.id("user"))
     },
     handler: async (ctx, args) => {
         await ctx.db.insert("classCatalog", args);
@@ -51,12 +49,11 @@ export const getAllClassCatalog = query({
                 return {
                     // Propiedades base de ClassCatalog
                     _id: clase._id,
-                    schoolId: clase.schoolId, // ← Añadir esta
-                    schoolCycleId: clase.schoolCycleId, // ← Añadir esta
-                    subjectId: clase.subjectId, // ← Añadir esta
-                    termId: clase.termId, // ← Añadir esta
-                    classroomId: clase.classroomId, // ← Añadir esta
-                    teacherId: clase.teacherId, // ← Añadir esta
+                    schoolId: clase.schoolId,
+                    schoolCycleId: clase.schoolCycleId,
+                    subjectId: clase.subjectId,
+                    classroomId: clase.classroomId,
+                    teacherId: clase.teacherId,
                     groupId: clase.groupId,
                     name: clase.name,
                     status: clase.status,
@@ -102,14 +99,13 @@ export const updateClassCatalog = mutation({
         teacherId: v.id("user"),
         termId: v.id("term"),
         groupId: v.optional(v.id("group")),
-        // scheduleId: v.id("schedule"),
         name: v.string(),
         status: v.union(
             v.literal('active'),
             v.literal('inactive')
         ),
         createdBy: v.optional(v.id("user")),
-        updatedAt: v.number(),
+        updatedAt: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
         const catalog = await ctx.db.get(args._id);
