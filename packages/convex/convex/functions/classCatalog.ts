@@ -39,9 +39,10 @@ export const getAllClassCatalog = query({
 
         const res = await Promise.all(
             catalog.map(async (clase) => {
-                const [cycle, subject, classroom, teacher, group] = await Promise.all([
+                const [cycle, subject, term, classroom, teacher, group] = await Promise.all([
                     clase.schoolCycleId ? ctx.db.get(clase.schoolCycleId) : null,
                     clase.subjectId ? ctx.db.get(clase.subjectId) : null,
+                    clase.termId ? ctx.db.get(clase.termId) :null,
                     clase.classroomId ? ctx.db.get(clase.classroomId) : null,
                     clase.teacherId ? ctx.db.get(clase.teacherId) : null,
                     clase.groupId ? ctx.db.get(clase.groupId) : null,
@@ -53,6 +54,7 @@ export const getAllClassCatalog = query({
                     schoolId: clase.schoolId, // ← Añadir esta
                     schoolCycleId: clase.schoolCycleId, // ← Añadir esta
                     subjectId: clase.subjectId, // ← Añadir esta
+                    termId: clase.termId, // ← Añadir esta
                     classroomId: clase.classroomId, // ← Añadir esta
                     teacherId: clase.teacherId, // ← Añadir esta
                     groupId: clase.groupId,
@@ -64,6 +66,7 @@ export const getAllClassCatalog = query({
                     // Propiedades extendidas con objetos completos
                     schoolCycle: cycle,
                     subject: subject,
+                    term: term,
                     classroom: classroom,
                     teacher: teacher,
                     group: group,
