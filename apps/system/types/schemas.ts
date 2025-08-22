@@ -27,6 +27,67 @@ export const userSchema = z.object({
  */
 export const superAdminSchema = userSchema;
 
+/**
+ * Schema para administradores
+ * Los administradores tienen acceso administrativo con restricciones departamentales
+ */
+export const adminSchema = userSchema;
+
+/**
+ * Schema para auditores
+ * Los auditores tienen acceso de solo lectura para verificar y auditar
+ */
+export const auditorSchema = userSchema;
+
+/**
+ * Schema para docentes
+ * Los docentes tienen acceso a funcionalidades relacionadas con la enseñanza
+ */
+export const teacherSchema = userSchema;
+
+/**
+ * Schema para tutores
+ * Los tutores tienen acceso a información de sus alumnos asignados
+ */
+export const tutorSchema = userSchema;
+
+// =====================================================
+// SCHEMAS DE RELACIONES USUARIO-ESCUELA
+// =====================================================
+
+/**
+ * Schema para la relación usuario-escuela
+ * Define los roles y departamentos de un usuario en una escuela específica
+ */
+export const userSchoolSchema = z.object({
+  userId: z.string(),
+  schoolId: z.string(),
+  role: z.array(z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"])),
+  status: z.enum(["active", "inactive"]),
+  department: z.enum(["secretary", "direction", "schoolControl", "technology"]).optional(),
+});
+
+// =====================================================
+// SCHEMAS DE ALUMNOS (TABLA SEPARADA)
+// =====================================================
+
+/**
+ * Schema para alumnos
+ * Los alumnos son una entidad separada que no extiende de user
+ */
+export const studentSchema = z.object({
+  schoolId: z.string(),
+  groupId: z.string(),
+  tutorId: z.string(),
+  enrollment: z.string(),
+  name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
+  lastName: z.string().optional(),
+  birthDate: z.number().optional(),
+  admissionDate: z.number().optional(),
+  imgUrl: z.string().optional(),
+  status: z.enum(["active", "inactive"]).default("active"),
+});
+
 // -----------------------------------------------------
 // TIPOS DERIVADOS
 // -----------------------------------------------------
@@ -51,7 +112,40 @@ export type WithClerkId = {
 // Tipos derivados de los schemas
 export type User = z.infer<typeof userSchema>;
 export type SuperAdmin = z.infer<typeof superAdminSchema>;
+export type Admin = z.infer<typeof adminSchema>;
+export type Auditor = z.infer<typeof auditorSchema>;
+export type Teacher = z.infer<typeof teacherSchema>;
+export type Tutor = z.infer<typeof tutorSchema>;
+export type Student = z.infer<typeof studentSchema>;
+export type UserSchool = z.infer<typeof userSchoolSchema>;
 
 // Tipos completos con metadata del sistema
 export type UserWithMetadata = User & WithSystemMetadata & WithClerkId;
 export type SuperAdminWithMetadata = SuperAdmin & WithSystemMetadata & WithClerkId;
+export type AdminWithMetadata = Admin & WithSystemMetadata & WithClerkId;
+export type AuditorWithMetadata = Auditor & WithSystemMetadata & WithClerkId;
+export type TeacherWithMetadata = Teacher & WithSystemMetadata & WithClerkId;
+export type TutorWithMetadata = Tutor & WithSystemMetadata & WithClerkId;
+export type StudentWithMetadata = Student & WithSystemMetadata;
+
+// Tipo para usuarios con información de escuela
+export type UserWithSchoolInfo = UserWithMetadata & {
+  userSchool?: UserSchool & WithSystemMetadata;
+};
+
+// Tipos específicos para cada rol con información de escuela
+export type AdminWithSchoolInfo = AdminWithMetadata & {
+  userSchool?: UserSchool & WithSystemMetadata;
+};
+
+export type AuditorWithSchoolInfo = AuditorWithMetadata & {
+  userSchool?: UserSchool & WithSystemMetadata;
+};
+
+export type TeacherWithSchoolInfo = TeacherWithMetadata & {
+  userSchool?: UserSchool & WithSystemMetadata;
+};
+
+export type TutorWithSchoolInfo = TutorWithMetadata & {
+  userSchool?: UserSchool & WithSystemMetadata;
+};
