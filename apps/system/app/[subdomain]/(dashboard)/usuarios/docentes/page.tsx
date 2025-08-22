@@ -14,7 +14,7 @@ import {
   Shield, Users, Search, Plus, Eye, Edit, Trash2, Filter, 
   Mail, Phone, MapPin, Calendar, UserCheck, UserX, BookOpen
 } from "@repo/ui/icons";
-import { teacherSchema, type TeacherWithSchoolInfo } from "@/types/schemas";
+import { teacherSchema, type TeacherWithSchoolInfo } from "@/types/form/userSchemas";
 
 type Teacher = TeacherWithSchoolInfo;
 

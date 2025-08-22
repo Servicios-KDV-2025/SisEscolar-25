@@ -14,7 +14,7 @@ import {
   Shield, Users, Search, Plus, Eye, Edit, Trash2, Filter, 
   Mail, Phone, MapPin, Calendar, UserCheck, UserX, Search as SearchIcon
 } from "@repo/ui/icons";
-import { auditorSchema, type AuditorWithSchoolInfo } from "@/types/schemas";
+import { auditorSchema, type AuditorWithSchoolInfo } from "@/types/form/userSchemas";
 
 type Auditor = AuditorWithSchoolInfo;
 
