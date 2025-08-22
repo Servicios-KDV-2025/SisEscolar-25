@@ -8,7 +8,9 @@ import { useAuth } from '@clerk/nextjs'
 import { SignUp } from './Auth/SignUp'
 import { SignIn } from './Auth/SignIn'
 import SchoolForm from './SchoolForm'
-import { CheckoutButtonBlock } from '@/blocks/CheckoutButton/Component'
+
+// ⬇️ usa el componente genérico (no el de blocks)
+import PayNowButton from '@/components/PayNowButton'
 
 type CheckoutFromCMS = {
   priceId?: string
@@ -17,29 +19,13 @@ type CheckoutFromCMS = {
 }
 
 const { Stepper: StepperUi, useStepper } = defineStepper(
-  {
-    id: 'step-1',
-    title: 'Paso 1',
-    description: 'Iniciar sesión para continuar',
-    icon: <User />,
-  },
-  {
-    id: 'step-2',
-    title: 'Paso 2',
-    description: 'Ingresar datos de la escuela',
-    icon: <School />,
-  },
-  {
-    id: 'step-3',
-    title: 'Paso 3',
-    description: 'Realizar pagos',
-    icon: <CopySlash />,
-  },
+  { id: 'step-1', title: 'Paso 1', description: 'Iniciar sesión para continuar', icon: <User /> },
+  { id: 'step-2', title: 'Paso 2', description: 'Ingresar datos de la escuela', icon: <School /> },
+  { id: 'step-3', title: 'Paso 3', description: 'Realizar pagos', icon: <CopySlash /> },
 )
 
 type StepperProps = { checkoutFromCMS?: CheckoutFromCMS | null }
 
-// cambio: aceptar la prop con el bloque del CMS
 export const Stepper: React.FC<StepperProps> = ({ checkoutFromCMS }) => {
   const { isSignedIn, isLoaded } = useAuth()
   const [ready, setReady] = React.useState(false)
@@ -70,8 +56,9 @@ export const Stepper: React.FC<StepperProps> = ({ checkoutFromCMS }) => {
             {methods.switch({
               'step-1': () => <ClerkComponent />,
               'step-2': () => <SchoolForm />,
-              //   pasar checkoutFromCMS al contenido del paso 3
-              'step-3': (step) => <Content id={step.id} checkoutFromCMS={checkoutFromCMS} />,
+              'step-3': (step) => (
+                <Content id={step.id} checkoutFromCMS={checkoutFromCMS} />
+              ),
             })}
 
             <StepperUi.Controls>
@@ -88,7 +75,6 @@ export const Stepper: React.FC<StepperProps> = ({ checkoutFromCMS }) => {
   )
 }
 
-// recibir la prop y usar priceId del CMS
 const Content = ({
   id,
   checkoutFromCMS,
@@ -96,23 +82,21 @@ const Content = ({
   id: string
   checkoutFromCMS?: CheckoutFromCMS | null
 }) => {
+  const priceId = checkoutFromCMS?.priceId
+
   return (
     <StepperUi.Panel className="h-[200px] content-center rounded border bg-secondary text-secondary-foreground p-8">
       <p className="text-xl font-normal mb-4">
         Estás a punto de salir a una página externa para pagar. No cierres esta ventana.
       </p>
 
-     {!checkoutFromCMS?.priceId ? (
-  <p className="text-sm text-muted-foreground">
-    Selecciona un <b>Botón de Checkout</b> en Admin → Pages → esta página.
-  </p>
-) : (
-  <CheckoutButtonBlock
-    priceId={checkoutFromCMS.priceId}
-    // endpoint="/api/checkout" // si tu ruta es /api/checkout
-  />
-)}
-
+      {!priceId ? (
+        <p className="text-sm text-muted-foreground">
+          Selecciona un <b>Botón de Checkout</b> en Admin → Pages → esta página.
+        </p>
+      ) : (
+        <PayNowButton priceId={priceId} endpoint="/api/checkout" />
+      )}
     </StepperUi.Panel>
   )
 }

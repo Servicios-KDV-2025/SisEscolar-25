@@ -82,7 +82,6 @@ export interface Config {
     section: SectionBlock;
     carousel: CarouselBlock;
     carouselAvatar: CarouselAvatarBlock;
-    checkoutButton: CheckoutButton;
   };
   collections: {
     pages: Page;
@@ -92,7 +91,7 @@ export interface Config {
     users: User;
     prices: Price;
     payments: Payment;
-    checkoutButtons: CheckoutButton1;
+    checkoutButtons: CheckoutButton;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -511,6 +510,7 @@ export interface Page {
     description?: string | null;
   };
   publishedAt?: string | null;
+  checkout?: (number | null) | CheckoutButton;
   slug?: string | null;
   slugLock?: boolean | null;
   updatedAt: string;
@@ -994,17 +994,15 @@ export interface CarouselBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "checkoutButton".
+ * via the `definition` "checkoutButtons".
  */
 export interface CheckoutButton {
-  /**
-   * ID de precio Stripe (empieza con "price_")
-   */
+  id: number;
+  label: string;
   priceId: string;
   buttonText?: string | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'checkoutButton';
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1038,21 +1036,6 @@ export interface Payment {
     | number
     | boolean
     | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "checkoutButtons".
- */
-export interface CheckoutButton1 {
-  id: number;
-  label: string;
-  /**
-   * Pega el ID de precio (price_*)
-   */
-  priceId: string;
-  buttonText?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1259,7 +1242,7 @@ export interface PayloadLockedDocument {
       } | null)
     | ({
         relationTo: 'checkoutButtons';
-        value: number | CheckoutButton1;
+        value: number | CheckoutButton;
       } | null)
     | ({
         relationTo: 'redirects';
@@ -1360,6 +1343,7 @@ export interface PagesSelect<T extends boolean = true> {
         description?: T;
       };
   publishedAt?: T;
+  checkout?: T;
   slug?: T;
   slugLock?: T;
   updatedAt?: T;

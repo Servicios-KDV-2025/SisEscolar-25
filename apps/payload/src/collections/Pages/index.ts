@@ -54,6 +54,7 @@ export const Pages: CollectionConfig<'pages'> = {
     useAsTitle: 'title',
   },
   fields: [
+  
     {
       name: 'title',
       type: 'text',
@@ -134,8 +135,19 @@ export const Pages: CollectionConfig<'pages'> = {
         position: 'sidebar',
       },
     },
+      {
+  name: 'checkout',
+  type: 'relationship',
+  relationTo: 'checkoutButtons',
+  label: 'Botón de Checkout',
+  required: false,
+  admin: {
+    position: 'sidebar', // opcional
+  },
+},
     ...slugField(),
-    
+   
+
   ],
   
   hooks: {
