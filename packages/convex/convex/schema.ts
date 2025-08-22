@@ -168,11 +168,11 @@ const applicationTable = defineSchema({
 
   //Periodos
   term: defineTable({
+    schoolCycleId: v.id("schoolCycle"),
     name: v.string(),
     key: v.string(),
     startDate: v.number(),
     endDate: v.number(),
-    parentTermId: v.optional(v.union(v.id("term"), v.null())),
     status: v.union(
       v.literal("active"),
       v.literal("inactive"),
@@ -180,7 +180,8 @@ const applicationTable = defineSchema({
     ),
     updatedAt: v.optional(v.number()),
   })
-    .index("by_parent_term", ["parentTermId"]),
+  .index("by_schoolCycleId",["schoolCycleId"])
+  .index("by_status",["status"]),
 
   //Rúbrica de Calificación
   gradeRubric: defineTable({
