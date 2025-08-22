@@ -119,12 +119,12 @@ export const getTermAverage = query({
 export const getAnnualAverages = query({
   args: {
     studentClassId: v.id("studentClass"),
-    parentTermId: v.id("term"),
+    schoolCycleId: v.id("schoolCycle"),
   },
   handler: async (ctx, args) => {
     const terms = await ctx.db
       .query("term")
-      .withIndex("by_parent_term", (q) => q.eq("parentTermId", args.parentTermId))
+      .withIndex("by_schoolCycleId", (q) => q.eq("schoolCycleId", args.schoolCycleId))
       .collect();
 
     const results = [];
