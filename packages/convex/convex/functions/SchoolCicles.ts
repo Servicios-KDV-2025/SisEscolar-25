@@ -45,13 +45,15 @@ export const ActualizarCicloEscolar = mutation({
   args: {
     cicloEscolarID: v.id("schoolCycle"),
     escuelaID: v.id("school"),
-    nombre: v.string(),
-    fechaInicio: v.number(),
-    fechaFin: v.number(),
-    status: v.union(
-      v.literal("active"),
-      v.literal("archived"),
-      v.literal("inactive")
+    nombre: v.optional(v.string()),
+    fechaInicio: v.optional(v.number()),
+    fechaFin: v.optional(v.number()),
+    status: v.optional(
+      v.union(
+        v.literal("active"),
+        v.literal("archived"),
+        v.literal("inactive")
+      )
     ),
   },
   handler: async (ctx, args) => {
