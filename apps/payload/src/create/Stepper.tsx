@@ -9,7 +9,7 @@ import { SignUp } from './Auth/SignUp'
 import { SignIn } from './Auth/SignIn'
 import SchoolForm from './SchoolForm'
 
-// ⬇️ usa el componente genérico (no el de blocks)
+// usa el componente genérico (no el de blocks)
 import PayNowButton from '@/components/PayNowButton'
 
 type CheckoutFromCMS = {
@@ -91,12 +91,10 @@ const Content = ({
       </p>
 
       {!priceId ? (
-        <p className="text-sm text-muted-foreground">
-          Selecciona un <b>Botón de Checkout</b> en Admin → Pages → esta página.
-        </p>
-      ) : (
-        <PayNowButton priceId={priceId} endpoint="/api/checkout" />
-      )}
+  <p>Selecciona un id de price…</p>
+) : (
+  <PayNowButton priceId={priceId}  />
+)}
     </StepperUi.Panel>
   )
 }
