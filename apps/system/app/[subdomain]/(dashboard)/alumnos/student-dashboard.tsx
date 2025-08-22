@@ -191,11 +191,11 @@ export function StudentDashboard({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Enrollment</TableHead>
-                  <TableHead>Group</TableHead>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Matricula</TableHead>
+                  <TableHead>Grupo</TableHead>
                   <TableHead>Tutor</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Estado</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -203,7 +203,7 @@ export function StudentDashboard({
                 {filteredStudents.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      No students found matching your criteria.
+                      No hay estudiantes
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -238,7 +238,7 @@ export function StudentDashboard({
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => onEditStudent(student)}>
                               <Edit className="mr-2 h-4 w-4" />
-                              Edit
+                              Editar
                             </DropdownMenuItem>
                             {student.status === "active" && (
                               <DropdownMenuItem
@@ -246,7 +246,7 @@ export function StudentDashboard({
                                 className="text-destructive focus:text-destructive"
                               >
                                 <UserX className="mr-2 h-4 w-4" />
-                                Deactivate
+                                Desactivar
                               </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>
