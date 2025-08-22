@@ -40,8 +40,8 @@ export const createAttendance = mutation({
     comments: v.optional(v.string()),
     registrationDate: v.number(),
     createdBy: v.id('user'),
-    updatedBy: v.optional(v.id('user')),
-    updatedAt: v.optional(v.number())
+    updatedBy: v.id('user'),
+    updatedAt: v.number()
   },
   handler: async (ctx, args) => {
     const studentClassExists = await ctx.db.get(args.studentClassId)
@@ -52,7 +52,7 @@ export const createAttendance = mutation({
   }
 })
 // Actualizar una asistencia existente
-export const updateAttendace = mutation({
+export const updateAttendance = mutation({
   args: {
     id: v.id('attendance'),
     studentClassId: v.id('studentClass'),
@@ -62,8 +62,8 @@ export const updateAttendace = mutation({
     comments: v.optional(v.string()),
     registrationDate: v.number(),
     createdBy: v.id('user'),
-    updatedBy: v.optional(v.id('user')),
-    updatedAt: v.optional(v.number())
+    updatedBy: v.id('user'),
+    updatedAt: v.number()
   },
   handler: async (ctx, args) => {
     const {id, studentClassId, ...data} = args

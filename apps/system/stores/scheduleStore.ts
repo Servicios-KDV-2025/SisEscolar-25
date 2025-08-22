@@ -8,10 +8,8 @@ import { Id } from "@repo/convex/convex/_generated/dataModel";
 export type Schedule = {
   _id: string;
   schoolId: string;
-  name: string;
-  day: string
-  week: string
-  // scheduleDate: string
+  name: Id<'classCatalog'>;
+  day: 'MON' | 'TUE' | 'WEN' | 'THU' | 'FRI';
   startTime: string;
   endTime: string;
   status: 'active' | 'inactive';
@@ -21,10 +19,8 @@ export type Schedule = {
 // Tipos para crear y actualizar horarios
 export type CreateScheduleData = {
   schoolId: string;
-  name: string;
-  day: string
-  week: string
-  // scheduleDate: string
+  name: Id<'classCatalog'>;
+  day: 'MON' | 'TUE' | 'WEN' | 'THU' | 'FRI'
   startTime: string;
   endTime: string;
   status: 'active' | 'inactive';
@@ -34,10 +30,8 @@ export type CreateScheduleData = {
 export type UpdateScheduleData = {
   id: string;
   schoolId: string;
-  name?: string;
-  day?: string
-  week?: string
-  // scheduleDate?: string
+  name?: Id<'classCatalog'>;
+  day?: 'MON' | 'TUE' | 'WEN' | 'THU' | 'FRI'
   startTime?: string;
   endTime?: string;
   status?: 'active' | 'inactive';
@@ -107,17 +101,14 @@ export const useScheduleStore = create<ScheduleStore>((set) => ({
 type ScheduleQueryData = {
   _id: string;
   schoolId: string;
-  name: string;
-  day: string
-  week: string
-  // scheduleDate: string
+  name: Id<'classCatalog'>;
+  day: 'MON' | 'TUE' | 'WEN' | 'THU' | 'FRI'
   startTime: string;
   endTime: string;
   status: 'active' | 'inactive';
   updatedAt: number;
 };
 
-// export const useSchdule = (schoolId?: string) => {
 export const useSchedule = (schoolId?: Id<'school'>) => {
   const {
     schedule,
@@ -184,8 +175,6 @@ export const useSchedule = (schoolId?: Id<'school'>) => {
         schoolId: data.schoolId as Id<"school">,
         name: data.name,
         day: data.day,
-        week: data.week,
-        // scheduleDate: data.scheduleDate,
         startTime: data.startTime,
         endTime: data.endTime,
         status: data.status,
@@ -227,8 +216,6 @@ export const useSchedule = (schoolId?: Id<'school'>) => {
           schoolId: p.schoolId,
           name: p.name,
           day: p.day,
-          week: p.week,
-          // scheduleDate: p.scheduleDate,
           startTime: p.startTime,
           endTime: p.endTime,
           status: p.status,

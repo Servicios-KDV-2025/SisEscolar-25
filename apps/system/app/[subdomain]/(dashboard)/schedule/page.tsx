@@ -72,8 +72,6 @@ export default function SchedulePage() {
   } = useCrudDialog(scheduleSchema, {
     name: '',
     day: '',
-    week: '',
-    // scheduleDate: '',
     startTime: '',
     endTime: '',
     status: 'active'
@@ -92,9 +90,8 @@ export default function SchedulePage() {
       if(operation === 'create') {
         await createSchedule({
           schoolId: currentSchool.school._id,
-          name: value.name as string,
-          day: value.day as string,
-          week: value.week as string,
+          name: value.name as Id<'classCatalog'>,
+          day: value.day as 'MON' | 'TUE' | 'WEN' | 'THU' | 'FRI',
           // scheduleDate: new Date(value.scheduleDate).getTime().toString(),
           startTime: value.startTime as string,
           endTime: value.endTime as string,
@@ -106,9 +103,8 @@ export default function SchedulePage() {
         await updateSchedule({
           id: data._id,
           schoolId: currentSchool.school._id,
-          name: value.name as string,
-          day: value.day as string,
-          week: value.week as string,
+          name: value.name as Id<'classCatalog'>,
+          day: value.day as 'MON' | 'TUE' | 'WEN' | 'THU' | 'FRI',
           // scheduleDate: new Date(value.scheduleDate).getTime().toString(),
           startTime: value.startTime as string,
           endTime: value.endTime as string,
@@ -232,16 +228,13 @@ export default function SchedulePage() {
                   {schedule.day}
                 </p>
                 <p className="flex space-x-2">
-                  <CalendarMinus2 /><span className="font-semibold flex">Semana:</span>{schedule.week}
-                </p>
-                <p className="flex space-x-2">
                   <Clock3 /><span className="font-semibold flex">Inicio:</span>{schedule.startTime}
                 </p>
                 <p className="flex space-x-2">
                   <Clock3 /><span className="font-semibold flex">Fin:</span>{schedule.endTime}
                 </p>
               </CardContent>
-              <CardFooter className="flex justify-center gap-2">
+              <CardFooter className="flex justify-end gap-2">
                 <Button
                   variant='outline'
                   size='sm'
@@ -326,7 +319,8 @@ export default function SchedulePage() {
                   <FormControl>
                     <Select
                       onValueChange={field.onChange}
-                      value={field.value as string}
+                      value={field.value as 'MON' | 'TUE' | 'WEN' | 'THU' | 'FRI'}
+                      disabled={operation === 'view'}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -334,11 +328,11 @@ export default function SchedulePage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="lunes">Lunes</SelectItem>
-                        <SelectItem value="martes">Martes</SelectItem>
-                        <SelectItem value="miercoles">Miercoles</SelectItem>
-                        <SelectItem value="jueves">Jueves</SelectItem>
-                        <SelectItem value="viernes">Viernes</SelectItem>
+                        <SelectItem value="MON">Lunes</SelectItem>
+                        <SelectItem value="TUE">Martes</SelectItem>
+                        <SelectItem value="WEN">Miercoles</SelectItem>
+                        <SelectItem value="THU">Jueves</SelectItem>
+                        <SelectItem value="FRI">Viernes</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormControl>

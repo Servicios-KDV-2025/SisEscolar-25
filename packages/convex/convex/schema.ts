@@ -142,10 +142,14 @@ const applicationTable = defineSchema({
     //Horarios
     schedule: defineTable({
         schoolId: v.id("school"),
-        name: v.string(),
-        day: v.string(),
-        week: v.string(),
-        // scheduleDate: v.string(),
+        name: v.id('classCatalog'),
+        day: v.union(
+          v.literal('MON'),
+          v.literal('TUE'),
+          v.literal('WEN'),
+          v.literal('THU'),
+          v.literal('FRI'),
+        ),
         startTime: v.string(),
         endTime: v.string(),
         status: v.union(
@@ -154,7 +158,7 @@ const applicationTable = defineSchema({
         ),
         updatedAt: v.number(),
     })
-    .index("by_school_day_week", ["schoolId","day","week"])
+    .index("by_school_day", ["schoolId","day",])
     .index("by_status", ["status"]),
 
   //Periodos
@@ -223,7 +227,6 @@ const applicationTable = defineSchema({
         classroomId: v.id("classroom"),
         teacherId: v.id("user"),
         groupId: v.optional(v.id("group")),
-        // scheduleId: v.id("schedule"),
         name: v.string(),
         status: v.union(
             v.literal('active'),
@@ -266,8 +269,8 @@ const applicationTable = defineSchema({
     comments: v.optional(v.string()),
     registrationDate: v.number(),
     createdBy: v.id("user"),
-    updatedBy: v.optional(v.id("user")),
-    updatedAt: v.optional(v.number()),
+    updatedBy: v.id("user"),
+    updatedAt: v.number(),
   })
     .index("by_student_class", ["studentClassId"])
     .index("by_date", ["date"]),

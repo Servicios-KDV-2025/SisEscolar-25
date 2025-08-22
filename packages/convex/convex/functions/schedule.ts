@@ -13,7 +13,7 @@ export const getSchedulesBySchools = query({
     }
     return await ctx.db
       .query("schedule")
-      .withIndex("by_school_day_week", (q) => q.eq("schoolId", args.schoolId))
+      .withIndex("by_school_day", (q) => q.eq("schoolId", args.schoolId))
       .collect();
   },
 });
@@ -38,10 +38,14 @@ export const getScheduleById = query({
 export const createSchedule = mutation({
   args: {
     schoolId: v.id("school"),
-    name: v.string(),
-    day: v.string(),
-    week: v.string(),
-    // scheduleDate: v.string(),
+    name: v.id('classCatalog'),
+    day: v.union(
+      v.literal('MON'),
+      v.literal('TUE'),
+      v.literal('WEN'),
+      v.literal('THU'),
+      v.literal('FRI'),
+    ),
     startTime: v.string(),
     endTime: v.string(),
     status: v.union(
@@ -56,20 +60,6 @@ export const createSchedule = mutation({
       throw new Error("No se puede crear el horario: La escuela especificada no existe.");
     }
 
-    // Verificar si ya existe un horario para este día y semana
-    const existingSchedule = await ctx.db
-      .query("schedule")
-      .withIndex("by_school_day_week", (q) => 
-        q.eq("schoolId", args.schoolId)
-         .eq("day", args.day)
-         .eq("week", args.week)
-      )
-      .first();
-
-    if (existingSchedule) {
-      throw new Error("Ya existe un horario para este día y semana");
-    }
-
     return await ctx.db.insert("schedule", args);
   },
 });
@@ -79,10 +69,14 @@ export const updateSchedule = mutation({
   args: {
     id: v.id("schedule"),
     schoolId: v.id("school"),
-    name: v.optional(v.string()),
-    day: v.optional(v.string()),
-    week: v.optional(v.string()),
-    // scheduleDate: v.optional(v.string()),
+    name: v.optional(v.id('classCatalog')),
+    day: v.optional(v.union(
+      v.literal('MON'),
+      v.literal('TUE'),
+      v.literal('WEN'),
+      v.literal('THU'),
+      v.literal('FRI'),
+    )),
     startTime: v.optional(v.string()),
     endTime: v.optional(v.string()),
     status: v.optional(v.union(

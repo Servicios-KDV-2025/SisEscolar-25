@@ -2,9 +2,7 @@ import { z } from '@repo/zod-config/index'
 
 export const scheduleSchema =  z.object({
   name: z.string().min(1, 'Limite de caracteres alcanzado'),
-  day: z.string().min(1, 'El día es obligatorio'),
-  week: z.string().min(1, 'La semana es obligatoria')
-    .regex(/^[0-9]+$/, { message: 'Solo se permiten números del 0 al 9' }),
+  day: z.enum(['MON', 'TUE', 'WEN', 'THU', 'FRI'], 'El día es obligatorio'),
   startTime: z.string().min(1, 'La hora de inicio es obligatoria'),
   endTime: z.string().min(1, 'La hora de fin es obligatoria'),
   status: z.enum(['active', 'inactive'], 'El estado es obligatorio')
