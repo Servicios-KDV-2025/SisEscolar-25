@@ -1,6 +1,6 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
+import { Id } from "../_generated/dataModel";
 /**
  * M: Cierra un periodo y calcula el promedio final para cada estudiante en una clase.
  * Este promedio es un cálculo ponderado basado en los criterios de la rúbrica.
@@ -119,12 +119,12 @@ export const getTermAverage = query({
 export const getAnnualAverages = query({
   args: {
     studentClassId: v.id("studentClass"),
-    parentTermId: v.id("term"),
+    schoolCycleId: v.id("schoolCycle"),
   },
   handler: async (ctx, args) => {
     const terms = await ctx.db
       .query("term")
-      .withIndex("by_parent_term", (q) => q.eq("parentTermId", args.parentTermId))
+      .withIndex("by_schoolCycleId", (q) => q.eq("schoolCycleId", args.schoolCycleId))
       .collect();
 
     const results = [];
