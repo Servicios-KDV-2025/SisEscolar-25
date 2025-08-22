@@ -14,7 +14,7 @@ import {
   Shield, Users, Search, Plus, Eye, Edit, Trash2, Filter, 
   Mail, Phone, MapPin, Calendar, UserCheck, UserX, Building2
 } from "@repo/ui/icons";
-import { adminSchema, type AdminWithSchoolInfo } from "@/types/schemas";
+import { adminSchema, type AdminWithSchoolInfo } from "@/types/form/userSchemas";
 
 type Admin = AdminWithSchoolInfo;
 

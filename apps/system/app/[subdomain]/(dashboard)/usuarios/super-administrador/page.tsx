@@ -15,7 +15,7 @@ import {
   Shield, Users, Search, Plus, Eye, Edit, Trash2, Filter, 
   Mail, Phone, MapPin, Calendar, UserCheck, UserX 
 } from "@repo/ui/icons";
-import { superAdminSchema, type SuperAdminWithMetadata } from "@/types/schemas";
+import { superAdminSchema, type SuperAdminWithMetadata } from "@/types/form/userSchemas";
 
 type SuperAdmin = SuperAdminWithMetadata;
 

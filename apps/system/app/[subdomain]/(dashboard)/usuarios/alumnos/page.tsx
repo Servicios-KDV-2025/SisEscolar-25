@@ -14,7 +14,7 @@ import {
   Shield, Users, Search, Plus, Eye, Edit, Trash2, Filter, 
   Mail, Phone, MapPin, Calendar, UserCheck, UserX, GraduationCap, BookOpen
 } from "@repo/ui/icons";
-import { studentSchema, type StudentWithMetadata } from "@/types/schemas";
+import { studentSchema, type StudentWithMetadata } from "@/types/form/userSchemas";
 
 type Student = StudentWithMetadata;
 
