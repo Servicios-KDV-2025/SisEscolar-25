@@ -1,6 +1,6 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
+import { Id } from "../_generated/dataModel";
 /**
  * M: Cierra un periodo y calcula el promedio final para cada estudiante en una clase.
  * Este promedio es un cálculo ponderado basado en los criterios de la rúbrica.
