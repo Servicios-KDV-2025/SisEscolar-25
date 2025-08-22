@@ -9,6 +9,7 @@ export type ClassCatalog = {
   schoolId: string;
   schoolCycleId: string;
   subjectId: string;
+  termId: string;
   classroomId: string;
   teacherId: string;
   groupId?: string;
@@ -56,6 +57,7 @@ export type CreateClassCatalogData = {
   schoolId: string;
   schoolCycleId: string;
   subjectId: string;
+  termId: string;
   classroomId: string;
   teacherId: string;
   groupId?: string;
@@ -70,6 +72,7 @@ export type UpdateClassCatalogData = {
   schoolId: string;
   schoolCycleId: string;
   subjectId: string;
+  termId: string;
   classroomId: string;
   teacherId: string;
   groupId?: string;
@@ -188,6 +191,7 @@ export const useClassCatalog = (schoolId?: string) => {
         schoolId: data.schoolId as Id<"school">,
         schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
         subjectId: data.subjectId as Id<"subject">,
+        termId: data.termId as Id<"term">,
         classroomId: data.classroomId as Id<"classroom">,
         teacherId: data.teacherId as Id<"user">,
         groupId: data.groupId as Id<"group"> | undefined,
@@ -214,6 +218,7 @@ export const useClassCatalog = (schoolId?: string) => {
         schoolId: data.schoolId as Id<"school">,
         schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
         subjectId: data.subjectId as Id<"subject">,
+        termId: data.termId as Id<"term">,
         classroomId: data.classroomId as Id<"classroom">,
         teacherId: data.teacherId as Id<"user">,
         groupId: data.groupId as Id<"group"> | undefined,
