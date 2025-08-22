@@ -109,7 +109,7 @@ export function StudentDashboard({
             <CardTitle className="text-sm font-medium">Activos </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-muted-foreground">{activeStudents}</div>
+            <div className="text-2xl font-bold text-primary">{activeStudents}</div>
           </CardContent>
         </Card>
         <Card>
@@ -117,7 +117,7 @@ export function StudentDashboard({
             <CardTitle className="text-sm font-medium">Inactivos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-muted-foreground">{inactiveStudents}</div>
+            <div className="text-2xl font-bold text-primary">{inactiveStudents}</div>
           </CardContent>
         </Card>
       </div>
