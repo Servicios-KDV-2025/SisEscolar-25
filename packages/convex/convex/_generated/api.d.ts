@@ -16,8 +16,10 @@ import type {
 import type * as functions_SchoolCicles from "../functions/SchoolCicles.js";
 import type * as functions_classCatalog from "../functions/classCatalog.js";
 import type * as functions_group from "../functions/group.js";
+import type * as functions_schoolSubscriptions from "../functions/schoolSubscriptions.js";
 import type * as functions_schools from "../functions/schools.js";
 import type * as functions_student from "../functions/student.js";
+import type * as functions_userSchool from "../functions/userSchool.js";
 import type * as functions_users from "../functions/users.js";
 import type * as gradeRubrics from "../gradeRubrics.js";
 import type * as grades from "../grades.js";
@@ -37,8 +39,10 @@ declare const fullApi: ApiFromModules<{
   "functions/SchoolCicles": typeof functions_SchoolCicles;
   "functions/classCatalog": typeof functions_classCatalog;
   "functions/group": typeof functions_group;
+  "functions/schoolSubscriptions": typeof functions_schoolSubscriptions;
   "functions/schools": typeof functions_schools;
   "functions/student": typeof functions_student;
+  "functions/userSchool": typeof functions_userSchool;
   "functions/users": typeof functions_users;
   gradeRubrics: typeof gradeRubrics;
   grades: typeof grades;
