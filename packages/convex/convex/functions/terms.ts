@@ -8,10 +8,9 @@ export const createTerm = mutation({
     key: v.string(),
     startDate: v.number(),
     endDate: v.number(),
-<<<<<<< HEAD
-    schoolCycleId: v.id("schoolCycle")
-=======
->>>>>>> a9dc088 (terms)
+    schoolCycleId: v.id("schoolCycle"),
+    status: v.optional(v.union(v.literal("active"), v.literal("inactive"), v.literal("closed"))),
+  
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -28,11 +27,6 @@ export const createTerm = mutation({
   },
 });
 
-<<<<<<< HEAD
-// R: Leer todos los periodos de un ciclo
-export const getTermsByCycleId = query({
-  args: { schoolCycleId: v.id("schoolCycle") },
-=======
 // R: Leer todos los periodos de un ciclo escolar
 export const getTermsBySchoolCycle = query({
   args: { schoolCycleId: v.id("schoolCycle") },
@@ -61,7 +55,6 @@ export const getTermsBySchoolCycle = query({
 // R: Leer todos los periodos de una clase
 export const getTermsByClass = query({
   args: { classCatalogId: v.id("classCatalog") },
->>>>>>> a9dc088 (terms)
   handler: async (ctx, args) => {
     return await ctx.db
       .query("term")
@@ -78,8 +71,6 @@ export const getTermById = query({
   },
 });
 
-<<<<<<< HEAD
-=======
 // R: Leer periodos por estado
 export const getTermsByStatus = query({
   args: { status: v.union(v.literal("active"), v.literal("inactive"), v.literal("closed")) },
@@ -101,7 +92,6 @@ export const getAllTerms = query({
 //R: Leer todos los periodos de un cliclo
 
 
->>>>>>> a9dc088 (terms)
 // U: Actualizar un Periodo
 export const updateTerm = mutation({
   args: {
