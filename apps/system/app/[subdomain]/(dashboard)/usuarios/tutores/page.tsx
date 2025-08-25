@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/shadcn/
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@repo/ui/components/shadcn/form";
 import { 
-  Shield, Users, Search, Plus, Eye, Edit, Trash2, Filter, 
+   Users, Search, Plus, Eye, Edit, Trash2, Filter, 
   Mail, Phone, MapPin, Calendar, UserCheck, UserX, Heart
 } from "@repo/ui/icons";
 import { tutorSchema, type TutorWithSchoolInfo } from "@/types/form/userSchemas";
