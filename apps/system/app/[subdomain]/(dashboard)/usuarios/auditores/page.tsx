@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -12,75 +11,120 @@ import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/shadcn/
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@repo/ui/components/shadcn/form";
 import { 
-  Shield, Users, Search, Plus, Eye, Edit, Trash2, Filter, 
-  Mail, Phone, MapPin, Calendar, UserCheck, UserX 
+   Users, Search, Plus, Eye, Edit, Trash2, Filter, 
+  Mail, Phone, MapPin, Calendar, UserCheck, UserX, Search as SearchIcon
 } from "@repo/ui/icons";
-import { superAdminSchema, type SuperAdminWithMetadata } from "@/types/form/userSchemas";
+import { auditorSchema, type AuditorWithSchoolInfo } from "@/types/form/userSchemas";
 
-type SuperAdmin = SuperAdminWithMetadata;
+type Auditor = AuditorWithSchoolInfo;
 
 // Datos de ejemplo (mock data)
-const mockSuperAdmins: SuperAdmin[] = [
+const mockAuditors: Auditor[] = [
   {
     _id: "1",
-    name: "María",
-    lastName: "González Pérez",
-    email: "maria.gonzalez@escuela.edu.mx",
+    name: "Patricia",
+    lastName: "Ramírez Vega",
+    email: "patricia.ramirez@escuela.edu.mx",
     phone: "+52 555 1234567",
     address: "Av. Educación 123, CDMX",
     status: "active",
-    _creationTime: Date.now() - 86400000 * 30, // 30 días atrás
-    createdAt: Date.now() - 86400000 * 30, // 30 días atrás
-    updatedAt: Date.now() - 86400000 * 5,  // 5 días atrás
-    clerkId: "clerk_maria123",
-    admissionDate: Date.now() - 86400000 * 365, // 1 año atrás
+    _creationTime: Date.now() - 86400000 * 30,
+    createdAt: Date.now() - 86400000 * 30,
+    updatedAt: Date.now() - 86400000 * 5,
+    clerkId: "clerk_patricia123",
+    admissionDate: Date.now() - 86400000 * 365,
+    userSchool: {
+      _id: "us1",
+      userId: "1",
+      schoolId: "school1",
+      role: ["auditor"],
+      status: "active",
+      department: "secretary",
+      _creationTime: Date.now() - 86400000 * 30,
+      createdAt: Date.now() - 86400000 * 30,
+      updatedAt: Date.now() - 86400000 * 5,
+    }
   },
   {
     _id: "2", 
-    name: "Carlos",
-    lastName: "Rodríguez Martín",
-    email: "carlos.rodriguez@escuela.edu.mx",
+    name: "Fernando",
+    lastName: "Castro Morales",
+    email: "fernando.castro@escuela.edu.mx",
     phone: "+52 555 2345678",
     address: "Calle Principal 456, CDMX",
     status: "active",
     _creationTime: Date.now() - 86400000 * 60,
     createdAt: Date.now() - 86400000 * 60,
     updatedAt: Date.now() - 86400000 * 2,
-    clerkId: "clerk_carlos456",
+    clerkId: "clerk_fernando456",
     admissionDate: Date.now() - 86400000 * 500,
+    userSchool: {
+      _id: "us2",
+      userId: "2",
+      schoolId: "school1",
+      role: ["auditor"],
+      status: "active",
+      department: "direction",
+      _creationTime: Date.now() - 86400000 * 60,
+      createdAt: Date.now() - 86400000 * 60,
+      updatedAt: Date.now() - 86400000 * 2,
+    }
   },
   {
     _id: "3",
-    name: "Ana",
-    lastName: "López Silva",
-    email: "ana.lopez@escuela.edu.mx", 
+    name: "Sofía",
+    lastName: "Herrera Jiménez",
+    email: "sofia.herrera@escuela.edu.mx", 
     phone: "+52 555 3456789",
     status: "inactive",
     _creationTime: Date.now() - 86400000 * 90,
     createdAt: Date.now() - 86400000 * 90,
     updatedAt: Date.now() - 86400000 * 10,
-    clerkId: "clerk_ana789",
+    clerkId: "clerk_sofia789",
     admissionDate: Date.now() - 86400000 * 200,
+    userSchool: {
+      _id: "us3",
+      userId: "3",
+      schoolId: "school1",
+      role: ["auditor"],
+      status: "inactive",
+      department: "technology",
+      _creationTime: Date.now() - 86400000 * 90,
+      createdAt: Date.now() - 86400000 * 90,
+      updatedAt: Date.now() - 86400000 * 10,
+    }
   },
   {
     _id: "4",
-    name: "Roberto",
-    lastName: "Hernández Castro",
-    email: "roberto.hernandez@escuela.edu.mx",
+    name: "Ricardo",
+    lastName: "Mendoza Silva",
+    email: "ricardo.mendoza@escuela.edu.mx",
     phone: "+52 555 4567890",
     address: "Zona Escolar 789, CDMX",
     status: "active",
     _creationTime: Date.now() - 86400000 * 15,
     createdAt: Date.now() - 86400000 * 15,
     updatedAt: Date.now() - 86400000 * 1,
-    clerkId: "clerk_roberto012",
+    clerkId: "clerk_ricardo012",
     admissionDate: Date.now() - 86400000 * 180,
+    userSchool: {
+      _id: "us4",
+      userId: "4",
+      schoolId: "school1",
+      role: ["auditor"],
+      status: "active",
+      department: "schoolControl",
+      _creationTime: Date.now() - 86400000 * 15,
+      createdAt: Date.now() - 86400000 * 15,
+      updatedAt: Date.now() - 86400000 * 1,
+    }
   },
 ];
 
-export default function SuperadminPage() {
+export default function AuditoresPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [departmentFilter, setDepartmentFilter] = useState<string>("all");
 
   // Hook del CRUD Dialog
   const {
@@ -92,38 +136,39 @@ export default function SuperadminPage() {
     openView,
     openDelete,
     close,
-  } = useCrudDialog(superAdminSchema, {
+  } = useCrudDialog(auditorSchema, {
     status: "active",
     admissionDate: Date.now(),
   });
 
   // Filtrado de datos
-  const filteredSuperAdmins = useMemo(() => {
-    return mockSuperAdmins.filter((admin) => {
+  const filteredAuditors = useMemo(() => {
+    return mockAuditors.filter((auditor) => {
       const searchMatch = 
-        admin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        admin.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        admin.email.toLowerCase().includes(searchTerm.toLowerCase());
+        auditor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        auditor.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        auditor.email.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const statusMatch = statusFilter === "all" || admin.status === statusFilter;
+      const statusMatch = statusFilter === "all" || auditor.status === statusFilter;
+      const departmentMatch = departmentFilter === "all" || auditor.userSchool?.department === departmentFilter;
       
-      return searchMatch && statusMatch;
+      return searchMatch && statusMatch && departmentMatch;
     });
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter, departmentFilter]);
 
   // Funciones CRUD (mock)
   const handleCreate = async (data: Record<string, unknown>) => {
-    console.log("Crear super-administrador:", data);
+    console.log("Crear auditor:", data);
     // Aquí iría la integración con Convex
   };
 
   const handleUpdate = async (data: Record<string, unknown>) => {
-    console.log("Actualizar super-administrador:", data);
+    console.log("Actualizar auditor:", data);
     // Aquí iría la integración con Convex
   };
 
   const handleDelete = async (id: string) => {
-    console.log("Eliminar super-administrador:", id);
+    console.log("Eliminar auditor:", id);
     // Aquí iría la integración con Convex
   };
 
@@ -143,53 +188,70 @@ export default function SuperadminPage() {
     return first + last;
   };
 
+  const getDepartmentLabel = (department?: string) => {
+    const labels = {
+      secretary: "Secretaría",
+      direction: "Dirección",
+      schoolControl: "Control Escolar",
+      technology: "Tecnología"
+    };
+    return department ? labels[department as keyof typeof labels] : "No asignado";
+  };
 
+  const getDepartmentColor = (department?: string) => {
+    const colors = {
+      secretary: "bg-blue-100 text-blue-800",
+      direction: "bg-purple-100 text-purple-800",
+      schoolControl: "bg-green-100 text-green-800",
+      technology: "bg-orange-100 text-orange-800"
+    };
+    return department ? colors[department as keyof typeof colors] : "bg-gray-100 text-gray-800";
+  };
 
   const stats = [
     {
-      title: "Total Super Administradores",
-      value: mockSuperAdmins.length.toString(),
+      title: "Total Auditores",
+      value: mockAuditors.length.toString(),
       icon: Users,
       trend: "Usuarios registrados"
     },
     {
       title: "Activos",
-      value: mockSuperAdmins.filter(admin => admin.status === "active").length.toString(),
+      value: mockAuditors.filter(auditor => auditor.status === "active").length.toString(),
       icon: UserCheck,
       trend: "Estado activo"
     },
     {
       title: "Inactivos", 
-      value: mockSuperAdmins.filter(admin => admin.status === "inactive").length.toString(),
+      value: mockAuditors.filter(auditor => auditor.status === "inactive").length.toString(),
       icon: UserX,
       trend: "Estado inactivo"
     },
-
   ];
 
   return (
     <div className="space-y-8 p-6">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500/10 via-green-500/5 to-background border">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
         <div className="relative p-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-primary/10 rounded-xl">
-                  <Shield className="h-8 w-8 text-primary" />
+                <div className="p-3 bg-green-500/10 rounded-xl">
+                  <SearchIcon className="h-8 w-8 text-green-600" />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-bold tracking-tight">Super-Administradores</h1>
+                  <h1 className="text-4xl font-bold tracking-tight">Auditores</h1>
                   <p className="text-lg text-muted-foreground">
-                    Gestión de usuarios con permisos administrativos completos
+                    Gestión de usuarios con permisos de auditoría y verificación
                   </p>
                 </div>
               </div>
             </div>
             <Button size="lg" className="gap-2" onClick={openCreate}>
               <Plus className="w-4 h-4" />
-              Agregar Super-Admin
+              Agregar Auditor
             </Button>
           </div>
         </div>
@@ -203,8 +265,8 @@ export default function SuperadminPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 {stat.title}
               </CardTitle>
-              <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                <stat.icon className="h-4 w-4 text-primary" />
+              <div className="p-2 bg-green-500/10 rounded-lg group-hover:bg-green-500/20 transition-colors">
+                <stat.icon className="h-4 w-4 text-green-600" />
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -225,7 +287,7 @@ export default function SuperadminPage() {
                 Filtros y Búsqueda
               </CardTitle>
               <CardDescription>
-                Encuentra super-administradores por nombre, email o estado
+                Encuentra auditores por nombre, email, estado o departamento
               </CardDescription>
             </div>
           </div>
@@ -253,16 +315,28 @@ export default function SuperadminPage() {
                 <SelectItem value="inactive">Inactivos</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Departamento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los departamentos</SelectItem>
+                <SelectItem value="secretary">Secretaría</SelectItem>
+                <SelectItem value="direction">Dirección</SelectItem>
+                <SelectItem value="schoolControl">Control Escolar</SelectItem>
+                <SelectItem value="technology">Tecnología</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Tabla de Super-Administradores */}
+      {/* Tabla de Auditores */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Lista de Super-Administradores</span>
-            <Badge variant="outline">{filteredSuperAdmins.length} usuarios</Badge>
+            <span>Lista de Auditores</span>
+            <Badge variant="outline">{filteredAuditors.length} usuarios</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -271,6 +345,7 @@ export default function SuperadminPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Usuario</TableHead>
+                  <TableHead>Departamento</TableHead>
                   <TableHead>Contacto</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Fecha de Ingreso</TableHead>
@@ -278,55 +353,63 @@ export default function SuperadminPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSuperAdmins.map((admin) => (
-                  <TableRow key={admin._id}>
+                {filteredAuditors.map((auditor) => (
+                  <TableRow key={auditor._id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={admin.imgUrl} alt={admin.name} />
-                          <AvatarFallback className="bg-primary/10">
-                            {getInitials(admin.name, admin.lastName)}
+                          <AvatarImage src={auditor.imgUrl} alt={auditor.name} />
+                          <AvatarFallback className="bg-green-500/10">
+                            {getInitials(auditor.name, auditor.lastName)}
                           </AvatarFallback>
                         </Avatar>
                         <div>
                           <div className="font-medium">
-                            {admin.name} {admin.lastName}
+                            {auditor.name} {auditor.lastName}
                           </div>
                           <div className="text-sm text-muted-foreground flex items-center gap-1">
                             <Mail className="h-3 w-3" />
-                            {admin.email}
+                            {auditor.email}
                           </div>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
+                      <Badge 
+                        variant="outline" 
+                        className={getDepartmentColor(auditor.userSchool?.department)}
+                      >
+                        {getDepartmentLabel(auditor.userSchool?.department)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       <div className="space-y-1">
-                        {admin.phone && (
+                        {auditor.phone && (
                           <div className="text-sm flex items-center gap-1">
                             <Phone className="h-3 w-3 text-muted-foreground" />
-                            {admin.phone}
+                            {auditor.phone}
                           </div>
                         )}
-                        {admin.address && (
+                        {auditor.address && (
                           <div className="text-sm text-muted-foreground flex items-center gap-1">
                             <MapPin className="h-3 w-3" />
-                            {admin.address}
+                            {auditor.address}
                           </div>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
                       <Badge 
-                        variant={admin.status === "active" ? "default" : "secondary"}
-                        className={admin.status === "active" ? "bg-green-500 hover:bg-green-600" : ""}
+                        variant={auditor.status === "active" ? "default" : "secondary"}
+                        className={auditor.status === "active" ? "bg-green-500 hover:bg-green-600" : ""}
                       >
-                        {admin.status === "active" ? "Activo" : "Inactivo"}
+                        {auditor.status === "active" ? "Activo" : "Inactivo"}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 text-sm">
                         <Calendar className="h-3 w-3 text-muted-foreground" />
-                        {formatDate(admin.admissionDate)}
+                        {formatDate(auditor.admissionDate)}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -334,7 +417,7 @@ export default function SuperadminPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openView(admin)}
+                          onClick={() => openView(auditor)}
                           className="h-8 w-8 p-0"
                         >
                           <Eye className="h-4 w-4" />
@@ -342,7 +425,7 @@ export default function SuperadminPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openEdit(admin)}
+                          onClick={() => openEdit(auditor)}
                           className="h-8 w-8 p-0"
                         >
                           <Edit className="h-4 w-4" />
@@ -350,7 +433,7 @@ export default function SuperadminPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openDelete(admin)}
+                          onClick={() => openDelete(auditor)}
                           className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -363,16 +446,16 @@ export default function SuperadminPage() {
             </Table>
           </div>
           
-          {filteredSuperAdmins.length === 0 && (
+          {filteredAuditors.length === 0 && (
             <div className="text-center py-12">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No se encontraron super-administradores</h3>
+              <h3 className="text-lg font-medium mb-2">No se encontraron auditores</h3>
               <p className="text-muted-foreground mb-4">
-                Intenta ajustar los filtros o agregar un nuevo super-administrador.
+                Intenta ajustar los filtros o agregar un nuevo auditor.
               </p>
               <Button onClick={openCreate} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Agregar Super-Admin
+                <Plus className="w-4 h-4" />
+                Agregar Auditor
               </Button>
             </div>
           )}
@@ -384,30 +467,30 @@ export default function SuperadminPage() {
         operation={operation}
         title={
           operation === "create" 
-            ? "Agregar Super-Administrador"
+            ? "Agregar Auditor"
             : operation === "edit"
-            ? "Editar Super-Administrador"
+            ? "Editar Auditor"
             : operation === "view"
-            ? "Ver Super-Administrador"
-            : "Eliminar Super-Administrador"
+            ? "Ver Auditor"
+            : "Eliminar Auditor"
         }
         description={
           operation === "create"
-            ? "Completa la información para agregar un nuevo super-administrador"
+            ? "Completa la información para agregar un nuevo auditor"
             : operation === "edit"
-            ? "Modifica la información del super-administrador"
+            ? "Modifica la información del auditor"
             : operation === "view"
-            ? "Información detallada del super-administrador"
+            ? "Información detallada del auditor"
             : undefined
         }
-        schema={superAdminSchema}
+        schema={auditorSchema}
         data={data}
         isOpen={isOpen}
         onOpenChange={close}
         onSubmit={operation === "create" ? handleCreate : handleUpdate}
         onDelete={handleDelete}
-        deleteConfirmationTitle="¿Eliminar super-administrador?"
-        deleteConfirmationDescription="Esta acción eliminará permanentemente al super-administrador del sistema. Esta acción no se puede deshacer."
+        deleteConfirmationTitle="¿Eliminar auditor?"
+        deleteConfirmationDescription="Esta acción eliminará permanentemente al auditor del sistema. Esta acción no se puede deshacer."
       >
         {(form, currentOperation) => (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -421,7 +504,7 @@ export default function SuperadminPage() {
                     <Input 
                       {...field} 
                       value={field.value as string || ""}
-                      placeholder="Nombre del super-administrador"
+                      placeholder="Nombre del auditor"
                       disabled={currentOperation === "view"}
                     />
                   </FormControl>
