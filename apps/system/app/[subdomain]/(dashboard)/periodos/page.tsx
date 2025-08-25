@@ -1,174 +1,369 @@
-// src/components/TermsDashboard.tsx
-import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@repo/convex/convex/_generated/api";
+"use client"
 
-// Definimos un tipo para el estado del formulario
-const initialFormState = {
-  name: "",
-  key: "",
-  startDate: "",
-  endDate: "",
-  classCatalogId: "YOUR_CLASS_CATALOG_ID_HERE", // ⚠️ ¡Importante! Reemplaza con un ID real o un selector
-}; 
+import { useState } from "react"
+import { Button } from "@repo/ui/components/shadcn/button"
+import { Input } from "@repo/ui/components/shadcn/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@repo/ui/components/shadcn/dialog"
+import { Label } from "@repo/ui/components/shadcn/label"
+import { Badge } from "@repo/ui/components/shadcn/badge"
+import { Search, Plus, Edit, Trash2, Calendar} from "@repo/ui/icons"
 
-export default function TermsDashboard() {
-    
-  // Estado para el formulario (datos del periodo)
-  const [formData, setFormData] = useState(initialFormState);
-  // Estado para manejar la edición
-  const [editingTerm, setEditingTerm] = useState(null);
+// Tipos de datos
+interface Period {
+  id: string
+  name: string
+  key: string
+  startDate: string
+  endDate: string
+  status: "Activo" | "Inactivo" | "Cerrado"
+  schoolCycleId: string
+}
 
-  // Convex: Hooks de mutación y consulta
-  const allTerms = useQuery(api.functions.terms.getTermsBySchoolCycle, {schoolCycleId}) || [];
-  const createTerm = useMutation(api.functions.terms.createTerm);
-  const updateTerm = useMutation(api.functions.terms.updateTerm);
-  const deleteTerm = useMutation(api.functions.terms.deleteTerm);
+interface SchoolCycle {
+  id: string
+  name: string
+}
 
-  // Manejadores de eventos
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+// Datos de ejemplo
+const mockPeriods: Period[] = [
+  {
+    id: "1",
+    name: "Primer Bimestre",
+    key: "BIM1-2024",
+    startDate: "2024-01-15",
+    endDate: "2024-03-15",
+    status: "Activo",
+    schoolCycleId: "cycle1",
+  },
+  {
+    id: "2",
+    name: "Segundo Bimestre",
+    key: "BIM2-2024",
+    startDate: "2024-03-16",
+    endDate: "2024-05-15",
+    status: "Inactivo",
+    schoolCycleId: "cycle1",
+  },
+  {
+    id: "3",
+    name: "Tercer Bimestre",
+    key: "BIM3-2024",
+    startDate: "2024-05-16",
+    endDate: "2024-07-15",
+    status: "Cerrado",
+    schoolCycleId: "cycle1",
+  },
+]
 
-  const handleEdit = (term: ) => {
-    setEditingTerm(term);
-    setFormData({
-      name: term.name,
-      key: term.key,
-      startDate: new Date(term.startDate).toISOString().substring(0, 10),
-      endDate: new Date(term.endDate).toISOString().substring(0, 10),
-      status: term.status,
-      classCatalogId: term.classCatalogId,
-    });
-  };
+const mockSchoolCycles: SchoolCycle[] = [
+  { id: "cycle1", name: "Ciclo Escolar 2024-2025" },
+  { id: "cycle2", name: "Ciclo Escolar 2023-2024" },
+]
 
-  const handleClearForm = () => {
-    setEditingTerm(null);
-    setFormData(initialFormState);
-  };
+export default function PeriodsManagement() {
+  const [periods, setPeriods] = useState<Period[]>(mockPeriods)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [schoolCycleFilter, setSchoolCycleFilter] = useState<string>("all")
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingPeriod, setEditingPeriod] = useState<Period | null>(null)
+  const [formData, setFormData] = useState({
+    name: "",
+    key: "",
+    startDate: "",
+    endDate: "",
+    status: "Activo" as Period["status"],
+    schoolCycleId: "",
+  })
 
-  const handleDelete = async (termId) => {
-    if (window.confirm("¿Estás seguro de que quieres eliminar este periodo?")) {
-      await deleteTerm({ termId });
-      alert("Periodo eliminado con éxito.");
+  // Filtrar periodos
+  const filteredPeriods = periods.filter((period) => {
+    const matchesSearch =
+      period.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      period.key.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = statusFilter === "all" || period.status === statusFilter
+    const matchesSchoolCycle = schoolCycleFilter === "all" || period.schoolCycleId === schoolCycleFilter
+    return matchesSearch && matchesStatus && matchesSchoolCycle
+  })
+
+  // Abrir modal para crear/editar
+  const openModal = (period?: Period) => {
+    if (period) {
+      setEditingPeriod(period)
+      setFormData({
+        name: period.name,
+        key: period.key,
+        startDate: period.startDate,
+        endDate: period.endDate,
+        status: period.status,
+        schoolCycleId: period.schoolCycleId,
+      })
+    } else {
+      setEditingPeriod(null)
+      setFormData({
+        name: "",
+        key: "",
+        startDate: "",
+        endDate: "",
+        status: "Activo",
+        schoolCycleId: "",
+      })
     }
-  };
+    setIsModalOpen(true)
+  }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const dataToSend = {
-      ...formData,
-      startDate: new Date(formData.startDate).getTime(),
-      endDate: new Date(formData.endDate).getTime(),
-    };
-    
-    try {
-      if (editingTerm) {
-        // Actualizar periodo existente
-        await updateTerm({
-          termId: editingTerm._id,
-          data: dataToSend,
-        });
-        alert("Periodo actualizado con éxito.");
-      } else {
-        // Crear nuevo periodo
-        await createTerm(dataToSend);
-        alert("Periodo creado con éxito.");
+  // Guardar periodo
+  const savePeriod = () => {
+    if (editingPeriod) {
+      // Editar periodo existente
+      setPeriods(periods.map((p) => (p.id === editingPeriod.id ? { ...editingPeriod, ...formData } : p)))
+    } else {
+      // Crear nuevo periodo
+      const newPeriod: Period = {
+        id: Date.now().toString(),
+        ...formData,
       }
-      handleClearForm(); // Limpiar el formulario después de la operación
-    } catch (error) {
-      console.error("Error al guardar el periodo:", error);
-      alert("Ocurrió un error al guardar el periodo.");
+      setPeriods([...periods, newPeriod])
     }
-  };
+    setIsModalOpen(false)
+  }
+
+  // Eliminar periodo
+  const deletePeriod = (id: string) => {
+    if (confirm("¿Estás seguro de que deseas eliminar este periodo?")) {
+      setPeriods(periods.filter((p) => p.id !== id))
+    }
+  }
+
+  // Obtener badge de estado
+  const getStatusBadge = (status: Period["status"]) => {
+    const variants = {
+      Activo: "default",
+      Inactivo: "secondary",
+      Cerrado: "outline",
+    } as const
+
+    return <Badge variant={variants[status]}>{status}</Badge>
+  }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold text-center mb-8">Gestión de Periodos</h1>
-
-      {/* Formulario de Creación/Edición */}
-      <div className="bg-white shadow-md rounded-lg p-6 mb-8">
-        <h2 className="text-2xl font-semibold mb-4">
-          {editingTerm ? "Editar Periodo" : "Crear Nuevo Periodo"}
-        </h2>
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Encabezado */}
+        <div className="flex items-center justify-between">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Nombre</label>
-            <input type="text" name="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" />
+            <h1 className="text-3xl font-bold font-serif text-foreground">Gestión de Periodos</h1>
+            <p className="text-muted-foreground mt-1">Administra los periodos académicos del sistema escolar</p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Clave</label>
-            <input type="text" name="key" value={formData.key} onChange={handleChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Fecha de Inicio</label>
-            <input type="date" name="startDate" value={formData.startDate} onChange={handleChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Fecha de Fin</label>
-            <input type="date" name="endDate" value={formData.endDate} onChange={handleChange} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" />
-          </div>
-          {editingTerm && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Estado</label>
-              <select name="status" value={formData.status} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                <option value="active">Activo</option>
-                <option value="inactive">Inactivo</option>
-                <option value="closed">Cerrado</option>
-              </select>
-            </div>
-          )}
-          <div className="md:col-span-2 flex justify-end space-x-2">
-            <button type="button" onClick={handleClearForm} className="px-4 py-2 rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300">
-              Cancelar
-            </button>
-            <button type="submit" className="px-4 py-2 rounded-lg text-white bg-green-500 hover:bg-green-600">
-              {editingTerm ? "Actualizar" : "Crear"} Periodo
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Tabla de Periodos */}
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Clave</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Inicio</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fin</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                <th className="relative px-6 py-3"><span className="sr-only">Acciones</span></th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {allTerms.map((term) => (
-                <tr key={term._id}>
-                  <td className="px-6 py-4 whitespace-nowrap">{term.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{term.key}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{new Date(term.startDate).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{new Date(term.endDate).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      term.status === 'active' ? 'bg-green-100 text-green-800' :
-                      term.status === 'inactive' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {term.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button onClick={() => handleEdit(term)} className="text-indigo-600 hover:text-indigo-900 mr-4">Editar</button>
-                    <button onClick={() => handleDelete(term._id)} className="text-red-600 hover:text-red-900">Eliminar</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => openModal()} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Crear nuevo periodo
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="font-serif">
+                  {editingPeriod ? "Editar Periodo" : "Crear Nuevo Periodo"}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nombre del periodo</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Ej: Primer Bimestre"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="key">Clave del periodo</Label>
+                  <Input
+                    id="key"
+                    value={formData.key}
+                    onChange={(e) => setFormData({ ...formData, key: e.target.value })}
+                    placeholder="Ej: BIM1-2024"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="startDate">Fecha de inicio</Label>
+                    <Input
+                      id="startDate"
+                      type="date"
+                      value={formData.startDate}
+                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="endDate">Fecha de fin</Label>
+                    <Input
+                      id="endDate"
+                      type="date"
+                      value={formData.endDate}
+                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="schoolCycle">Ciclo escolar</Label>
+                  <Select
+                    value={formData.schoolCycleId}
+                    onValueChange={(value) => setFormData({ ...formData, schoolCycleId: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona un ciclo escolar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mockSchoolCycles.map((cycle) => (
+                        <SelectItem key={cycle.id} value={cycle.id}>
+                          {cycle.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {editingPeriod && (
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Estado</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value: Period["status"]) => setFormData({ ...formData, status: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Activo">Activo</SelectItem>
+                        <SelectItem value="Inactivo">Inactivo</SelectItem>
+                        <SelectItem value="Cerrado">Cerrado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <div className="flex gap-2 pt-4">
+                  <Button onClick={savePeriod} className="flex-1">
+                    Guardar
+                  </Button>
+                  <Button variant="outline" onClick={() => setIsModalOpen(false)} className="flex-1">
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
+
+        {/* Filtros */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Buscar por nombre o clave..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <SelectValue placeholder="Filtrar por estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los estados</SelectItem>
+                  <SelectItem value="Activo">Activo</SelectItem>
+                  <SelectItem value="Inactivo">Inactivo</SelectItem>
+                  <SelectItem value="Cerrado">Cerrado</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={schoolCycleFilter} onValueChange={setSchoolCycleFilter}>
+                <SelectTrigger className="w-full sm:w-56">
+                  <SelectValue placeholder="Filtrar por ciclo escolar" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los ciclos</SelectItem>
+                  {mockSchoolCycles.map((cycle) => (
+                    <SelectItem key={cycle.id} value={cycle.id}>
+                      {cycle.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tabla de periodos */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-serif">Periodos Académicos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nombre</TableHead>
+                    <TableHead>Clave</TableHead>
+                    <TableHead>Fecha de inicio</TableHead>
+                    <TableHead>Fecha de fin</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredPeriods.map((period) => (
+                    <TableRow key={period.id}>
+                      <TableCell className="font-medium">{period.name}</TableCell>
+                      <TableCell className="font-mono text-sm">{period.key}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          {new Date(period.startDate).toLocaleDateString("es-ES")}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          {new Date(period.endDate).toLocaleDateString("es-ES")}
+                        </div>
+                      </TableCell>
+                      <TableCell>{getStatusBadge(period.status)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="sm" onClick={() => openModal(period)} className="h-8 w-8 p-0">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deletePeriod(period.id)}
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {filteredPeriods.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No se encontraron periodos que coincidan con los filtros aplicados.
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
-  );
+  )
 }
