@@ -137,15 +137,15 @@ export const useCicloEscolarWithConvex = () => {
   // Queries para obtener ciclos escolares - SOLO si tenemos schoolId
   const ciclosEscolaresQuery = useQuery(
     // FIX: Usar el nombre de la función de Convex que proporcionaste
-    api.functions.SchoolCicles.ObtenerCiclosEscolares,
+    api.functions.schoolCycles.ObtenerCiclosEscolares,
     // FIX: Usar el nombre de la propiedad de Convex que proporcionaste
     schoolId ? { escuelaID: schoolId } : 'skip'
   );
 
   // Mutations
-  const crearCicloEscolarMutation = useMutation(api.functions.SchoolCicles.CrearCicloEscolar);
-  const actualizarCicloEscolarMutation = useMutation(api.functions.SchoolCicles.ActualizarCicloEscolar);
-  const eliminarCicloEscolarMutation = useMutation(api.functions.SchoolCicles.EliminarCicloEscolar);
+  const crearCicloEscolarMutation = useMutation(api.functions.schoolCycles.CrearCicloEscolar);
+  const actualizarCicloEscolarMutation = useMutation(api.functions.schoolCycles.ActualizarCicloEscolar);
+  const eliminarCicloEscolarMutation = useMutation(api.functions.schoolCycles.EliminarCicloEscolar);
 
   // Actualizar el store cuando cambien los ciclos escolares
   useEffect(() => {
