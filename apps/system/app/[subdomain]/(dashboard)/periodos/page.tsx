@@ -60,6 +60,8 @@ interface Term {
 export default function PeriodsManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [selectedTermId, setSelectedTermId] = useState<Id<"term"> | null>(null);
   const [schoolCycleFilter, setSchoolCycleFilter] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTerm, setEditingTerm] = useState<Term | null>(null);
@@ -247,16 +249,14 @@ export default function PeriodsManagement() {
   };
 
   // Eliminar periodo
-  const handleDeleteTerm = async (id: Id<"term">) => {
-    if (window.confirm("¿Estás seguro de que deseas eliminar este periodo?")) {
-      try {
-        await deleteTermMutation({ termId: id });
-        toast.success("Periodo eliminado con éxito.");
-      } catch (error: unknown) {
-        // CORRECCIÓN: Se añade el tipo 'unknown' al parámetro 'error'
-        console.error("Error al eliminar el periodo:", error);
-        toast.error("Ocurrió un error al eliminar el periodo.");
-      }
+  // 👇 función que realmente elimina
+  const handleDeleteConfirmed = async (id: Id<"term">) => {
+    try {
+      await deleteTermMutation({ termId: id });
+      toast.success("Periodo eliminado con éxito.");
+    } catch (error: unknown) {
+      console.error("Error al eliminar el periodo:", error);
+      toast.error("Ocurrió un error al eliminar el periodo.");
     }
   };
 
@@ -547,7 +547,10 @@ export default function PeriodsManagement() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDeleteTerm(term._id)}
+                              onClick={() => {
+                                setSelectedTermId(term._id); // guardamos el id
+                                setConfirmDialogOpen(true); // abrimos el modal
+                              }}
                               className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -564,6 +567,35 @@ export default function PeriodsManagement() {
         </Card>
       </div>
       <Toaster position="bottom-right" />
+      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>¿Eliminar periodo?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Esta acción no se puede deshacer. ¿Seguro que deseas continuar?
+          </p>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (selectedTermId) {
+                  handleDeleteConfirmed(selectedTermId);
+                }
+                setConfirmDialogOpen(false);
+              }}
+            >
+              Eliminar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
