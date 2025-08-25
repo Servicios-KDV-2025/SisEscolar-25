@@ -1,7 +1,8 @@
+
 import { z } from "@repo/zod-config/index";
 
 export const cicloEscolarSchema = z.object({
-  name: z.string().min(1, "El nombre es requerido").max(50, "El nombre debe tener máximo 50 caracteres"),
+  name: z.string().min(3, "El nombre es requerido y debe tener al menos 3 caracteres").max(50, "El nombre debe tener máximo 50 caracteres"),
   startDate: z.string().min(1, "La fecha de inicio es requerida"),
   endDate: z.string().min(1, "La fecha de fin es requerida"),
   status: z.enum(["active", "inactive", "archived"]),
