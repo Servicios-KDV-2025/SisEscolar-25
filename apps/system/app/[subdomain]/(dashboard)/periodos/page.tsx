@@ -1,152 +1,222 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@repo/ui/components/shadcn/button"
-import { Input } from "@repo/ui/components/shadcn/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@repo/ui/components/shadcn/dialog"
-import { Label } from "@repo/ui/components/shadcn/label"
-import { Badge } from "@repo/ui/components/shadcn/badge"
-import { Search, Plus, Edit, Trash2, Calendar} from "@repo/ui/icons"
-
+import { useState, useEffect } from "react"
+import { Button } from "@repo/ui/components/shadcn/button";
+import { Input } from "@repo/ui/components/shadcn/input";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/shadcn/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@repo/ui/components/shadcn/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@repo/ui/components/shadcn/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@repo/ui/components/shadcn/dialog";
+import { Label } from "@repo/ui/components/shadcn/label";
+import { Badge } from "@repo/ui/components/shadcn/badge";
+import { Search, Plus, Edit, Trash2, Calendar } from "@repo/ui/icons";
+import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
+import { useUser } from "@clerk/nextjs";
+import { useUserWithConvex } from "../../../../stores/userStore";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@repo/convex/convex/_generated/api";
+import { Id } from "@repo/convex/convex/_generated/dataModel"
 // Tipos de datos
-interface Period {
-  id: string
+interface Term {
+  _id: Id<"term">; // El ID de Convex
+  _creationTime: number;
   name: string
   key: string
-  startDate: string
-  endDate: string
-  status: "Activo" | "Inactivo" | "Cerrado"
-  schoolCycleId: string
+  startDate: number // Cambiado a número (timestamp)
+  endDate: number // Cambiado a número (timestamp)
+  status: "active" | "inactive" | "closed" // Cambiado a minúsculas
+  schoolCycleId: Id<"schoolCycle">;
 }
-
-interface SchoolCycle {
-  id: string
-  name: string
-}
-
-// Datos de ejemplo
-const mockPeriods: Period[] = [
-  {
-    id: "1",
-    name: "Primer Bimestre",
-    key: "BIM1-2024",
-    startDate: "2024-01-15",
-    endDate: "2024-03-15",
-    status: "Activo",
-    schoolCycleId: "cycle1",
-  },
-  {
-    id: "2",
-    name: "Segundo Bimestre",
-    key: "BIM2-2024",
-    startDate: "2024-03-16",
-    endDate: "2024-05-15",
-    status: "Inactivo",
-    schoolCycleId: "cycle1",
-  },
-  {
-    id: "3",
-    name: "Tercer Bimestre",
-    key: "BIM3-2024",
-    startDate: "2024-05-16",
-    endDate: "2024-07-15",
-    status: "Cerrado",
-    schoolCycleId: "cycle1",
-  },
-]
-
-const mockSchoolCycles: SchoolCycle[] = [
-  { id: "cycle1", name: "Ciclo Escolar 2024-2025" },
-  { id: "cycle2", name: "Ciclo Escolar 2023-2024" },
-]
 
 export default function PeriodsManagement() {
-  const [periods, setPeriods] = useState<Period[]>(mockPeriods)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [schoolCycleFilter, setSchoolCycleFilter] = useState<string>("all")
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingPeriod, setEditingPeriod] = useState<Period | null>(null)
+  const [editingTerm, setEditingTerm] = useState<Term | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     key: "",
     startDate: "",
     endDate: "",
-    status: "Activo" as Period["status"],
+    status: "active",
     schoolCycleId: "",
   })
 
-  // Filtrar periodos
-  const filteredPeriods = periods.filter((period) => {
+  const { user: clerkUser } = useUser();
+      const { currentUser } = useUserWithConvex(clerkUser?.id);
+      
+      // Get current school information using the subdomain
+      const {
+        currentSchool,
+        isLoading: schoolLoading,
+      } = useCurrentSchool(currentUser?._id);
+
+  // === INTEGRACIÓN CONVEX ===
+
+  // 1. Obtener los ciclos escolares del backend
+  // Asumimos una query para obtener todos los ciclos escolares.
+  const schoolCycles = useQuery(api.functions.schoolCycles.ObtenerCiclosEscolares,
+    currentSchool ? { escuelaID: currentSchool.school._id } : "skip"
+  )
+
+  // 2. Obtener los periodos filtrados por ciclo escolar (luego los filtraremos en el frontend)
+   const allTerms = useQuery(
+    api.functions.terms.getTermsByCycleId,
+    // Pasamos el argumento solo si se selecciona un ciclo escolar
+    schoolCycleFilter === "all" ? "skip" : { schoolCycleId: schoolCycleFilter as Id<"schoolCycle"> }
+  )
+
+  // 3. Crear los mutators para las operaciones de escritura y eliminación
+  const createTerm = useMutation(api.functions.terms.createTerm)
+  const updateTerm = useMutation(api.functions.terms.updateTerm)
+  const deleteTermMutation = useMutation(api.functions.terms.deleteTerm)
+
+
+  // 4. Manejar el estado de carga y el ciclo inicial
+     useEffect(() => {
+    if (schoolCycles && schoolCycles.length > 0 && schoolCycleFilter === "all") {
+      // Se corrigió el error usando una variable temporal, lo que satisface a TypeScript.
+      const lastCycle = schoolCycles[schoolCycles.length - 1];
+      setSchoolCycleFilter(lastCycle!._id as string);
+    }
+  }, [schoolCycles, schoolCycleFilter]);
+
+  if (allTerms === undefined || schoolLoading || schoolCycles === undefined) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Cargando datos...</p>
+      </div>
+    )
+  }
+
+  // === LÓGICA DE FILTRADO EN EL FRONTEND ===
+  // Filtramos los datos después de que se cargan de Convex
+  const filteredTerms = allTerms.filter((term) => {
     const matchesSearch =
-      period.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      period.key.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || period.status === statusFilter
-    const matchesSchoolCycle = schoolCycleFilter === "all" || period.schoolCycleId === schoolCycleFilter
-    return matchesSearch && matchesStatus && matchesSchoolCycle
+      term.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      term.key.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = statusFilter === "all" || term.status === statusFilter
+    
+    return matchesSearch && matchesStatus
   })
 
+  // === LÓGICA DE LA INTERFAZ ===
+
   // Abrir modal para crear/editar
-  const openModal = (period?: Period) => {
-    if (period) {
-      setEditingPeriod(period)
+  const openModal = (term?: Term) => {
+     if (term) {
+      setEditingTerm(term)
+      // Corregir el error de tipo: Se asegura que startDate y endDate son números.
+      const startDateStr = term.startDate ? new Date(term.startDate).toISOString().split('T')[0] : '';
+      const endDateStr = term.endDate ? new Date(term.endDate).toISOString().split('T')[0] : '';
       setFormData({
-        name: period.name,
-        key: period.key,
-        startDate: period.startDate,
-        endDate: period.endDate,
-        status: period.status,
-        schoolCycleId: period.schoolCycleId,
+        name: term.name,
+        key: term.key,
+        startDate: startDateStr!,
+        endDate: endDateStr!,
+        status: term.status,
+        schoolCycleId: term.schoolCycleId as string,
       })
     } else {
-      setEditingPeriod(null)
+      setEditingTerm(null)
       setFormData({
         name: "",
         key: "",
         startDate: "",
         endDate: "",
-        status: "Activo",
+        status: "active",
         schoolCycleId: "",
       })
     }
     setIsModalOpen(true)
   }
 
-  // Guardar periodo
-  const savePeriod = () => {
-    if (editingPeriod) {
-      // Editar periodo existente
-      setPeriods(periods.map((p) => (p.id === editingPeriod.id ? { ...editingPeriod, ...formData } : p)))
-    } else {
-      // Crear nuevo periodo
-      const newPeriod: Period = {
-        id: Date.now().toString(),
-        ...formData,
+  // Guardar periodo (crear o actualizar)
+  const saveTerm = async () => {
+    try {
+      // Se desestructuran todos los campos para evitar la advertencia de ESLint
+      const { name, key, startDate, endDate, status, schoolCycleId } = formData;
+      const startDateTimestamp = new Date(startDate).getTime();
+      const endDateTimestamp = new Date(endDate).getTime();
+
+      if (editingTerm) {
+        // Actualizar un periodo existente
+        await updateTerm({
+          termId: editingTerm._id,
+          data: {
+            name,
+            key,
+            startDate: startDateTimestamp,
+            endDate: endDateTimestamp,
+            status: status as "active" | "inactive" | "closed",
+          }
+        })
+      } else {
+        // Crear un nuevo periodo
+        // Se excluye el campo 'status' ya que el backend lo asigna por defecto
+        await createTerm({
+          name,
+          key,
+          startDate: startDateTimestamp,
+          endDate: endDateTimestamp,
+          schoolCycleId: schoolCycleId as Id<"schoolCycle">,
+        })
       }
-      setPeriods([...periods, newPeriod])
+      setIsModalOpen(false)
+    } catch (error) {
+      console.error("Error al guardar el periodo:", error)
     }
-    setIsModalOpen(false)
   }
 
   // Eliminar periodo
-  const deletePeriod = (id: string) => {
-    if (confirm("¿Estás seguro de que deseas eliminar este periodo?")) {
-      setPeriods(periods.filter((p) => p.id !== id))
+  const handleDeleteTerm = async (id: Id<"term">) => {
+    if (window.confirm("¿Estás seguro de que deseas eliminar este periodo?")) {
+      try {
+        await deleteTermMutation({ termId: id })
+      } catch (error) {
+        console.error("Error al eliminar el periodo:", error)
+      }
     }
   }
 
   // Obtener badge de estado
-  const getStatusBadge = (status: Period["status"]) => {
+  const getStatusBadge = (status: Term["status"]) => {
     const variants = {
-      Activo: "default",
-      Inactivo: "secondary",
-      Cerrado: "outline",
+      active: "default",
+      inactive: "secondary",
+      closed: "outline",
     } as const
-
-    return <Badge variant={variants[status]}>{status}</Badge>
+    const displayText = {
+        active: "Activo",
+        inactive: "Inactivo",
+        closed: "Cerrado",
+    }
+    return <Badge variant={variants[status]}>{displayText[status]}</Badge>
   }
 
   return (
@@ -168,7 +238,7 @@ export default function PeriodsManagement() {
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle className="font-serif">
-                  {editingPeriod ? "Editar Periodo" : "Crear Nuevo Periodo"}
+                  {editingTerm ? "Editar Periodo" : "Crear Nuevo Periodo"}
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
@@ -210,6 +280,7 @@ export default function PeriodsManagement() {
                     />
                   </div>
                 </div>
+                <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="schoolCycle">Ciclo escolar</Label>
                   <Select
@@ -220,34 +291,36 @@ export default function PeriodsManagement() {
                       <SelectValue placeholder="Selecciona un ciclo escolar" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockSchoolCycles.map((cycle) => (
-                        <SelectItem key={cycle.id} value={cycle.id}>
+                      {/* Aquí se usa el array de Convex */}
+                      {schoolCycles.map((cycle) => (
+                        <SelectItem key={cycle._id} value={cycle._id as string}>
                           {cycle.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                {editingPeriod && (
+                {editingTerm && (
                   <div className="space-y-2">
                     <Label htmlFor="status">Estado</Label>
                     <Select
                       value={formData.status}
-                      onValueChange={(value: Period["status"]) => setFormData({ ...formData, status: value })}
+                      onValueChange={(value) => setFormData({ ...formData, status: value })}
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Activo">Activo</SelectItem>
-                        <SelectItem value="Inactivo">Inactivo</SelectItem>
-                        <SelectItem value="Cerrado">Cerrado</SelectItem>
+                        <SelectItem value="active">Activo</SelectItem>
+                        <SelectItem value="inactive">Inactivo</SelectItem>
+                        <SelectItem value="closed">Cerrado</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 )}
+                </div>
                 <div className="flex gap-2 pt-4">
-                  <Button onClick={savePeriod} className="flex-1">
+                  <Button onClick={saveTerm} className="flex-1">
                     Guardar
                   </Button>
                   <Button variant="outline" onClick={() => setIsModalOpen(false)} className="flex-1">
@@ -278,9 +351,9 @@ export default function PeriodsManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los estados</SelectItem>
-                  <SelectItem value="Activo">Activo</SelectItem>
-                  <SelectItem value="Inactivo">Inactivo</SelectItem>
-                  <SelectItem value="Cerrado">Cerrado</SelectItem>
+                  <SelectItem value="active">Activo</SelectItem>
+                  <SelectItem value="inactive">Inactivo</SelectItem>
+                  <SelectItem value="closed">Cerrado</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={schoolCycleFilter} onValueChange={setSchoolCycleFilter}>
@@ -289,8 +362,9 @@ export default function PeriodsManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los ciclos</SelectItem>
-                  {mockSchoolCycles.map((cycle) => (
-                    <SelectItem key={cycle.id} value={cycle.id}>
+                  {/* Aquí se usa el array de Convex */}
+                  {schoolCycles.map((cycle) => (
+                    <SelectItem key={cycle._id} value={cycle._id as string}>
                       {cycle.name}
                     </SelectItem>
                   ))}
@@ -319,47 +393,50 @@ export default function PeriodsManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredPeriods.map((period) => (
-                    <TableRow key={period.id}>
-                      <TableCell className="font-medium">{period.name}</TableCell>
-                      <TableCell className="font-mono text-sm">{period.key}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          {new Date(period.startDate).toLocaleDateString("es-ES")}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          {new Date(period.endDate).toLocaleDateString("es-ES")}
-                        </div>
-                      </TableCell>
-                      <TableCell>{getStatusBadge(period.status)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => openModal(period)} className="h-8 w-8 p-0">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deletePeriod(period.id)}
-                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                  {filteredTerms.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        No se encontraron periodos que coincidan con los filtros aplicados.
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    filteredTerms.map((term) => (
+                      <TableRow key={term._id}>
+                        <TableCell className="font-medium">{term.name}</TableCell>
+                        <TableCell className="font-mono text-sm">{term.key}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            {new Date(term.startDate).toLocaleDateString("es-ES")}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            {new Date(term.endDate).toLocaleDateString("es-ES")}
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(term.status)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="sm" onClick={() => openModal(term)} className="h-8 w-8 p-0">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteTerm(term._id)}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
-              {filteredPeriods.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  No se encontraron periodos que coincidan con los filtros aplicados.
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
