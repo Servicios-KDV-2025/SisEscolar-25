@@ -4,11 +4,9 @@ import { defineStepper } from '@/components/ui/stepper'
 import { Button } from '@/components/ui/button'
 import { School, User, CopySlash } from 'lucide-react'
 import { useAuth } from '@clerk/nextjs'
-
 import { SignUp } from './Auth/SignUp'
 import { SignIn } from './Auth/SignIn'
 import SchoolForm from './SchoolForm'
-
 // usa el componente genérico (no el de blocks)
 import PayNowButton from '@/components/PayNowButton'
 

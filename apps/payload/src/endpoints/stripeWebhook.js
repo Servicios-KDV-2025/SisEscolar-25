@@ -9,7 +9,7 @@ export const stripeWebhook = async (req) => {
   const rawBody = await req.text()
   const sig = req.headers.get('stripe-signature')
   const secret = process.env.STRIPE_WEBHOOK_SECRET
-
+ 
   if (!sig || !secret)
     return new Response('Missing stripe-signature or webhook secret', { status: 400 })
 

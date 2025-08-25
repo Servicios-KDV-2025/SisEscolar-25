@@ -1,4 +1,4 @@
-import type { Metadata } from 'next/types'
+import type { Metadata } from 'next'
 export const dynamic = 'force-dynamic'
 
 import React from 'react'
@@ -7,52 +7,54 @@ import { Stepper } from '@/create/Stepper'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 
-type CheckoutDoc = {
-  id: number
-  label?: string
-  buttonText?: string
-  priceId?: string
-  stripePriceId?: string
-  price?: string
-} | null
+type CheckoutDoc =
+  | {
+      id: number
+      label?: string
+      buttonText?: string
+      priceId?: string
+      stripePriceId?: string
+      price?: string
+    }
+  | null
 
 function normalizeCheckout(doc: CheckoutDoc) {
   if (!doc) return null
-  const priceId =
-    doc.priceId ??
-    doc.stripePriceId ??
-    doc.price ??
-    ''
+  const priceId = doc.priceId ?? doc.stripePriceId ?? doc.price ?? ''
   const buttonText = doc.buttonText ?? doc.label ?? 'Pagar ahora'
   return priceId ? { priceId, buttonText } : null
 }
 
-export default async function Page({
-  searchParams,
-}: {
-  searchParams?: { checkoutId?: string }
-}) {
+type Args = {
+  //  importante: recibir el Promise
+  searchParams: Promise<{ checkoutId?: string }>
+}
+
+export default async function Page({ searchParams: spPromise }: Args) {
+  const sp = await spPromise //esperar searchParams
+
   const payload = await getPayload({ config: configPromise })
 
-  // Si pasas ?checkoutId=1 en la URL, toma ese. Si no, toma el más reciente.
-  const byId =
-    searchParams?.checkoutId && !Number.isNaN(Number(searchParams.checkoutId))
-      ? { id: { equals: Number(searchParams.checkoutId) } }
+  const where =
+    sp?.checkoutId && !Number.isNaN(Number(sp.checkoutId))
+      ? { id: { equals: Number(sp.checkoutId) } }
       : undefined
 
-  const { docs } = await payload.find({
-    collection: 'checkoutButtons',
-    where: byId,
+  // Construimos la query y solo añadimos `where` si existe
+  const base = {
+    collection: 'checkoutButtons' as const,
     depth: 0,
     limit: 1,
     sort: '-updatedAt',
     pagination: false,
-  })
+  }
+
+  const { docs } = await payload.find(where ? { ...base, where } : base)
 
   const checkoutFromCMS = normalizeCheckout((docs?.[0] as any) ?? null)
 
   return (
-    <div className="">
+    <div>
       <PageClient />
       <div className="prose dark:prose-invert max-w-none text-center">
         <h1 className="mb-8 lg:mb-16">Esta es la página para comprar tu servicio</h1>

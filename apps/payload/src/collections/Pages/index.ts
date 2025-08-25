@@ -139,11 +139,7 @@ export const Pages: CollectionConfig<'pages'> = {
   name: 'checkout',
   type: 'relationship',
   relationTo: 'checkoutButtons',
-  label: 'Botón de Checkout',
-  required: false,
-  admin: {
-    position: 'sidebar', // opcional
-  },
+  
 },
     ...slugField(),
    

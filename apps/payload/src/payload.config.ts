@@ -95,11 +95,12 @@ export default buildConfig({
       handler: stripeCheckout,
     },
     {
-      path: '/payment-session',
+      path: '/api/payment-session',
       method: 'post',
       handler: paymentSession,
     },
-    { path: '/api/stripe/webhook', method: 'post', handler: stripeWebhook },
+   { path: '/api/payment-session', method: 'get',  handler: paymentSession }, 
+   
   ],
   blocks: [
     Archive,

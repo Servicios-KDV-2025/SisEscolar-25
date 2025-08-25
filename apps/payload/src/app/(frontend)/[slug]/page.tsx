@@ -13,7 +13,7 @@ import { RenderBlocks } from '@/blocks/RenderBlocks'
 import { RenderHero } from '@/heros/RenderHero'
 import { generateMeta } from '@/utilities/generateMeta'
 import { homeStatic } from '@/endpoints/seed/home-static'
-// Tu stepper (recibe prop checkoutFromCMS)
+
 import { Stepper } from '@/create/Stepper'
 
 export async function generateStaticParams() {
