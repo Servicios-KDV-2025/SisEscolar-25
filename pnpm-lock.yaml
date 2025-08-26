@@ -213,6 +213,9 @@ importers:
       sharp:
         specifier: 0.34.2
         version: 0.34.2
+      stripe:
+        specifier: ^18.4.0
+        version: 18.4.0(@types/node@22.5.4)
       tailwind-merge:
         specifier: ^2.3.0
         version: 2.6.0
@@ -359,6 +362,9 @@ importers:
       convex:
         specifier: ^1.25.4
         version: 1.25.4(@clerk/clerk-react@5.35.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)
+      stripe:
+        specifier: ^18.4.0
+        version: 18.4.0(@types/node@22.15.3)
       svix:
         specifier: ^1.69.0
         version: 1.69.0
@@ -5905,13 +5911,23 @@ packages:
     resolution: {integrity: sha512-D8NAthKSD7SGn748v+GLaaO6k08Mvpoqroa35PqIQC4gtUa8/Pb/k+r0m0NnGBVbHDP1gKZ2nVywqfMisRhV5A==}
     engines: {node: '>=18'}
 
+<<<<<<< HEAD
 <<<<<<< Updated upstream
+=======
+=======
+>>>>>>> 7809ffe865250cc5ca57f3dd0cb5ed1601295ee0
+  qs@6.14.0:
+    resolution: {integrity: sha512-YWWTjgABSKcvs/nWBi9PycY/JiPJqOD4JA6o9Sej2AtvSGarXxKC3OQSk4pAarbdQlKAh5D4FCQkJNkW+GAn3w==}
+    engines: {node: '>=0.6'}
+
+<<<<<<< HEAD
+>>>>>>> Stashed changes
 =======
   qs@6.14.0:
     resolution: {integrity: sha512-YWWTjgABSKcvs/nWBi9PycY/JiPJqOD4JA6o9Sej2AtvSGarXxKC3OQSk4pAarbdQlKAh5D4FCQkJNkW+GAn3w==}
     engines: {node: '>=0.6'}
 
->>>>>>> Stashed changes
+>>>>>>> 7809ffe865250cc5ca57f3dd0cb5ed1601295ee0
   querystringify@2.2.0:
     resolution: {integrity: sha512-FIqgj2EUvTa7R50u0rGsyTftzjYmv/a3hO345bZNrqabNqjtgiDMgmo4mkUjd+nzU5oF3dClKqFIPUKybUyqoQ==}
 
@@ -6376,6 +6392,15 @@ packages:
 
   strip-literal@3.0.0:
     resolution: {integrity: sha512-TcccoMhJOM3OebGhSBEmp3UZ2SfDMZUEBdRA/9ynfLi8yYajyWX3JiXArcJt4Umh4vISpspkQIY8ZZoCqjbviA==}
+
+  stripe@18.4.0:
+    resolution: {integrity: sha512-LKFeDnDYo4U/YzNgx2Lc9PT9XgKN0JNF1iQwZxgkS4lOw5NunWCnzyH5RhTlD3clIZnf54h7nyMWkS8VXPmtTQ==}
+    engines: {node: '>=12.*'}
+    peerDependencies:
+      '@types/node': '>=12.x.x'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
 
   strnum@2.1.1:
     resolution: {integrity: sha512-7ZvoFTiCnGxBtDqJ//Cu6fWtZtc7Y3x+QOirG15wztbdngGSkht27o2pyGWrVy0b4WAy3jbKmnoK6g5VlVNUUw==}
@@ -13537,6 +13562,10 @@ snapshots:
   punycode@2.3.1: {}
 
   qs-esm@7.0.2: {}
+
+  qs@6.14.0:
+    dependencies:
+      side-channel: 1.1.0
 
   querystringify@2.2.0: {}
 

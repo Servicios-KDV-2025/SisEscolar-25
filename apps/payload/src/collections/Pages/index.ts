@@ -15,6 +15,8 @@ import {
   PreviewField,
 } from '@payloadcms/plugin-seo/fields'
 
+
+
 export const Pages: CollectionConfig<'pages'> = {
   slug: 'pages',
   access: {
@@ -52,6 +54,7 @@ export const Pages: CollectionConfig<'pages'> = {
     useAsTitle: 'title',
   },
   fields: [
+  
     {
       name: 'title',
       type: 'text',
@@ -132,8 +135,17 @@ export const Pages: CollectionConfig<'pages'> = {
         position: 'sidebar',
       },
     },
+      {
+  name: 'checkout',
+  type: 'relationship',
+  relationTo: 'checkoutButtons',
+  
+},
     ...slugField(),
+   
+
   ],
+  
   hooks: {
     afterChange: [revalidatePage],
     beforeChange: [populatePublishedAt],

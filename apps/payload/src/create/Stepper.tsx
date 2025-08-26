@@ -6,8 +6,6 @@ import { School, User, CopySlash } from 'lucide-react'
 import { useAuth } from '@clerk/nextjs'
 import { SignUp } from './Auth/SignUp'
 import { SignIn } from './Auth/SignIn'
-import { useMutation } from 'convex/react'
-import { api } from '@repo/convex/convex/_generated/api'
 import SchoolForm from './SchoolForm'
 import { Prices } from './Prices/Prices'
 // usa el componente genérico (no el de blocks)
@@ -19,6 +17,8 @@ const { Stepper: StepperUi, useStepper } = defineStepper(
   { id: 'step-3', title: 'Paso 3', description: 'Selecciona el Precio', icon: <School /> },
   { id: 'step-4', title: 'Paso 4', description: 'Realizar pagos', icon: <CopySlash /> },
 )
+
+type StepperProps = { checkoutFromCMS?: CheckoutFromCMS | null }
 
 export const Stepper: React.FC = () => {
   const { isSignedIn, isLoaded } = useAuth()
@@ -34,9 +34,7 @@ export const Stepper: React.FC = () => {
       {({ methods }) => {
         React.useEffect(() => {
           if (isLoaded) {
-            if (isSignedIn && methods.current.id === 'step-1') {
-              methods.next()
-            }
+            if (isSignedIn && methods.current.id === 'step-1') methods.next()
             setReady(true)
           }
         }, [isSignedIn, isLoaded, methods])
@@ -53,19 +51,15 @@ export const Stepper: React.FC = () => {
                 </StepperUi.Step>
               ))}
             </StepperUi.Navigation>
+
             {methods.switch({
               'step-1': () => <ClerkComponent />,
               'step-2': () => <SchoolForm />,
               'step-3': () => <Prices onSelect={onSelect} />,
               'step-4': (step) => <Content priceId={isSelect!} />,
             })}
-            <StepperUi.Controls>
-              {/* {!methods.isLast && !methods.isFirst && (
-                <Button variant="secondary" onClick={methods.prev} disabled={methods.isFirst}>
-                  Previous
-                </Button>
-              )} */}
 
+            <StepperUi.Controls>
               {!methods.isFirst && (
                 <Button onClick={methods.isLast ? () => {} : methods.next}>
                   {methods.isLast ? 'Finalizar' : 'Siguiente'}

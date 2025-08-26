@@ -239,7 +239,7 @@ function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
                 name="subdomain"
                 value={formData.subdomain}
                 onChange={handleInputChange}
-                placeholder="subdominio.ejemplo.com"
+                placeholder="subdominio.ekardex.io"
                 required
               />
               <p className="text-sm text-muted-foreground">

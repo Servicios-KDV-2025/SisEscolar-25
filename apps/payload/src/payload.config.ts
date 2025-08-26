@@ -31,6 +31,14 @@ import { BloqueInformativo } from './blocks/BloqueInformativo/config'
 import { Section } from './blocks/Section/config'
 import { Acordeon } from './blocks/Acordeon/config'
 import { CarouselAvatar } from './blocks/CarouselAvatar/config'
+import Payments from './collections/Payments'
+
+// LIBRERIAS DE STRIPE
+import { stripeCheckout } from './endpoints/stripeCheckout'
+import { paymentSession } from './endpoints/paymentSession'
+import { stripeWebhook } from './endpoints/stripeWebhook'
+
+import CheckoutButtons from './collections/CheckoutButtons/CheckoutButtons'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -79,7 +87,21 @@ export default buildConfig({
       connectionString: process.env.POSTGRES_URL || '',
     },
   }),
-  collections: [Pages, Posts, Media, Categories, Users, Prices],
+  collections: [Pages, Posts, Media, Categories, Users, Prices, Payments,CheckoutButtons],
+  endpoints:[
+{
+      path: '/checkout',
+      method: 'post',
+      handler: stripeCheckout,
+    },
+    {
+      path: '/api/payment-session',
+      method: 'post',
+      handler: paymentSession,
+    },
+   { path: '/api/payment-session', method: 'get',  handler: paymentSession }, 
+   
+  ],
   blocks: [
     Archive,
     Content,

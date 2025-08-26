@@ -19,6 +19,7 @@ import { Carousel } from './Carousel/Component'
 import { CarouselAvatar } from './CarouselAvatar/Component'
 import { ImagenConTextoComponent } from './ImagenConTexto/Component'
 
+
 const blockComponents = {
   archive: ArchiveBlock,
   content: ContentBlock,
@@ -36,6 +37,7 @@ const blockComponents = {
   row: RowComponent,
   carousel: Carousel,
   carouselAvatar: CarouselAvatar,
+ 
 }
 export const RenderBlocks: React.FC<{
   blocks: Page['layout'][0][]
