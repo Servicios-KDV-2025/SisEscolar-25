@@ -27,34 +27,9 @@ export const createTerm = mutation({
   },
 });
 
-// R: Leer todos los periodos de un ciclo escolar
-export const getTermsBySchoolCycle = query({
+// R: Leer todos los periodos de un ciclo
+export const getTermsByCycleId = query({
   args: { schoolCycleId: v.id("schoolCycle") },
-  handler: async (ctx, args) => {
-    // 1. Encontrar todos los catálogos de clase para el ciclo escolar dado
-    const classCatalogs = await ctx.db
-      .query("classCatalog")
-      .withIndex("by_cycle", (q) => q.eq("schoolCycleId", args.schoolCycleId))
-      .collect();
-
-    // 2. Para cada catálogo, encontrar sus periodos
-    const termPromises = classCatalogs.map(catalog => 
-      ctx.db
-        .query("term")
-        .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", catalog._id))
-        .collect()
-    );
-
-    // 3. Esperar a que todas las consultas se completen y aplanar el resultado
-    const allTermsByCycle = await Promise.all(termPromises);
-    return allTermsByCycle.flat();
-  },
-});
-
-
-// R: Leer todos los periodos de una clase
-export const getTermsByClass = query({
-  args: { classCatalogId: v.id("classCatalog") },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("term")
@@ -70,27 +45,6 @@ export const getTermById = query({
     return await ctx.db.get(args.termId);
   },
 });
-
-// R: Leer periodos por estado
-export const getTermsByStatus = query({
-  args: { status: v.union(v.literal("active"), v.literal("inactive"), v.literal("closed")) },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("term")
-      .withIndex("by_status", (q) => q.eq("status", args.status))
-      .collect();
-  },
-});
-
-// R: Leer todos los periodos
-export const getAllTerms = query({
-  handler: async (ctx) => {
-    return await ctx.db.query("term").collect();
-  },
-});
-
-//R: Leer todos los periodos de un cliclo
-
 
 // U: Actualizar un Periodo
 export const updateTerm = mutation({

@@ -181,14 +181,8 @@ const applicationTable = defineSchema({
     ),
     updatedAt: v.optional(v.number()),
   })
-<<<<<<< HEAD
   .index("by_schoolCycleId",["schoolCycleId"])
   .index("by_status",["status"]),
-  
-=======
-  .index("by_status",["status"])
-  .index("by_class_catalog", ["classCatalogId"]),
->>>>>>> a9dc088 (terms)
 
   //Rúbrica de Calificación
   gradeRubric: defineTable({
