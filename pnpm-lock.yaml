@@ -307,6 +307,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.11
         version: 4.1.11
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
       convex:
         specifier: ^1.25.4
         version: 1.25.4(@clerk/clerk-react@5.35.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)
@@ -331,6 +334,9 @@ importers:
       sonner:
         specifier: ^2.0.6
         version: 2.0.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      tailwind-merge:
+        specifier: ^3.3.1
+        version: 3.3.1
       tailwindcss:
         specifier: ^4.1.11
         version: 4.1.11
@@ -417,7 +423,7 @@ importers:
     dependencies:
       '@hookform/resolvers':
         specifier: ^5.1.1
-        version: 5.1.1(react-hook-form@7.60.0(react@19.1.0))
+        version: 5.1.1(react-hook-form@7.62.0(react@19.1.0))
       '@radix-ui/react-accordion':
         specifier: ^1.2.11
         version: 1.2.11(@types/react-dom@19.1.1(@types/react@19.1.0))(@types/react@19.1.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -536,8 +542,8 @@ importers:
         specifier: ^19.1.0
         version: 19.1.0(react@19.1.0)
       react-hook-form:
-        specifier: ^7.60.0
-        version: 7.60.0(react@19.1.0)
+        specifier: ^7.62.0
+        version: 7.62.0(react@19.1.0)
       react-resizable-panels:
         specifier: ^3.0.3
         version: 3.0.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -5964,12 +5970,6 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17 || ^18
 
-  react-hook-form@7.60.0:
-    resolution: {integrity: sha512-SBrYOvMbDB7cV8ZfNpaiLcgjH/a1c7aK0lK+aNigpf4xWLO8q+o4tcvVurv3c4EOyzn/3dCsYt4GKD42VvJ/+A==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      react: ^16.8.0 || ^17 || ^18 || ^19
-
   react-hook-form@7.62.0:
     resolution: {integrity: sha512-7KWFejc98xqG/F4bAxpL41NB3o1nnvQO1RWZT3TqRZYL8RryQETGfEdVnJN2fy1crCiBLLjkRBVK05j24FxJGA==}
     engines: {node: '>=18.0.0'}
@@ -8308,11 +8308,6 @@ snapshots:
     dependencies:
       '@standard-schema/utils': 0.3.0
       react-hook-form: 7.45.4(react@19.1.0)
-
-  '@hookform/resolvers@5.1.1(react-hook-form@7.60.0(react@19.1.0))':
-    dependencies:
-      '@standard-schema/utils': 0.3.0
-      react-hook-form: 7.60.0(react@19.1.0)
 
   '@hookform/resolvers@5.1.1(react-hook-form@7.62.0(react@19.1.0))':
     dependencies:
@@ -13593,10 +13588,6 @@ snapshots:
       react: 19.1.0
 
   react-hook-form@7.45.4(react@19.1.0):
-    dependencies:
-      react: 19.1.0
-
-  react-hook-form@7.60.0(react@19.1.0):
     dependencies:
       react: 19.1.0
 

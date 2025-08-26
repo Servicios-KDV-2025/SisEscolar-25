@@ -11,7 +11,7 @@ export const getAllSubjetsBySchool = query({
     handler: async (ctx, args) => {
         const school = await ctx.db.get(args.schoolId);
         if (!school) {
-            throw new Error('La escuela no existe');
+            throw new Error('School does not exist');
         }
 
         return await ctx.db
@@ -29,9 +29,9 @@ export const getSubjectByIdAndSchool = query({
     handler: async (ctx, args) => {
         const subject = await ctx.db.get(args._id);
         const school = await ctx.db.get(args.schoolId);
-        // Verificamos que la materia exista y que pertenezca a la escuela correcta
+        // Verify that the subject exists and belongs to the correct school
         if (!subject || !school) {
-            throw new Error("Materia no encontrada o no pertenece a esta escuela.");
+            throw new Error("Subject not found or does not belong to this school.");
         }
         return subject;
     }
@@ -53,7 +53,7 @@ export const createSubjectWithSchoolId = mutation({
         const existSchool = await ctx.db.get(args.schoolId);
         if (!existSchool) {
             throw new Error(
-                "No se puede crear la materia: La escuela especificada no existe."
+                "Cannot create subject: The specified school does not exist."
             );
         }
         return await ctx.db.insert("subject", args);
@@ -77,7 +77,7 @@ export const updateSubjectWithSchoolId = mutation({
         const existSubject = await ctx.db.get(_id);
         if (!existSubject || existSubject.schoolId !== schoolId) {
             throw new Error(
-                "No se puede actualizar: Materia no encontrada o no pertenece a la escuela especificada."
+                "Cannot update: Subject not found or does not belong to the specified school."
             );
         }
 
@@ -97,13 +97,13 @@ export const deleteSubjectWithSchoolId = mutation({
         const existSubject = await ctx.db.get(_id);
         if (!existSubject || existSubject.schoolId !== schoolId) {
             throw new Error(
-                "No se puede eliminar: Materia no encontrada o no pertenece a la escuela especificada."
+                "Cannot delete: Subject not found or does not belong to the specified school."
             );
         }
         await ctx.db.delete(args._id);
         return {
             deleted: true,
-            message: 'Materia eliminada correctamente'
+            message: 'Subject deleted successfully'
         };
     },
 });
