@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -12,75 +11,120 @@ import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/shadcn/
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@repo/ui/components/shadcn/form";
 import { 
-  Shield, Users, Search, Plus, Eye, Edit, Trash2, Filter, 
-  Mail, Phone, MapPin, Calendar, UserCheck, UserX 
+   Users, Search, Plus, Eye, Edit, Trash2, Filter, 
+  Mail, Phone, MapPin, Calendar, UserCheck, UserX, Building2
 } from "@repo/ui/icons";
-import { superAdminSchema, type SuperAdminWithMetadata } from "@/types/form/userSchemas";
+import { adminSchema, type AdminWithSchoolInfo } from "@/types/form/userSchemas";
 
-type SuperAdmin = SuperAdminWithMetadata;
+type Admin = AdminWithSchoolInfo;
 
 // Datos de ejemplo (mock data)
-const mockSuperAdmins: SuperAdmin[] = [
+const mockAdmins: Admin[] = [
   {
     _id: "1",
-    name: "María",
-    lastName: "González Pérez",
-    email: "maria.gonzalez@escuela.edu.mx",
+    name: "Laura",
+    lastName: "Martínez Sánchez",
+    email: "laura.martinez@escuela.edu.mx",
     phone: "+52 555 1234567",
     address: "Av. Educación 123, CDMX",
     status: "active",
-    _creationTime: Date.now() - 86400000 * 30, // 30 días atrás
-    createdAt: Date.now() - 86400000 * 30, // 30 días atrás
-    updatedAt: Date.now() - 86400000 * 5,  // 5 días atrás
-    clerkId: "clerk_maria123",
-    admissionDate: Date.now() - 86400000 * 365, // 1 año atrás
+    _creationTime: Date.now() - 86400000 * 30,
+    createdAt: Date.now() - 86400000 * 30,
+    updatedAt: Date.now() - 86400000 * 5,
+    clerkId: "clerk_laura123",
+    admissionDate: Date.now() - 86400000 * 365,
+    userSchool: {
+      _id: "us1",
+      userId: "1",
+      schoolId: "school1",
+      role: ["admin"],
+      status: "active",
+      department: "secretary",
+      _creationTime: Date.now() - 86400000 * 30,
+      createdAt: Date.now() - 86400000 * 30,
+      updatedAt: Date.now() - 86400000 * 5,
+    }
   },
   {
     _id: "2", 
-    name: "Carlos",
-    lastName: "Rodríguez Martín",
-    email: "carlos.rodriguez@escuela.edu.mx",
+    name: "Miguel",
+    lastName: "Fernández López",
+    email: "miguel.fernandez@escuela.edu.mx",
     phone: "+52 555 2345678",
     address: "Calle Principal 456, CDMX",
     status: "active",
     _creationTime: Date.now() - 86400000 * 60,
     createdAt: Date.now() - 86400000 * 60,
     updatedAt: Date.now() - 86400000 * 2,
-    clerkId: "clerk_carlos456",
+    clerkId: "clerk_miguel456",
     admissionDate: Date.now() - 86400000 * 500,
+    userSchool: {
+      _id: "us2",
+      userId: "2",
+      schoolId: "school1",
+      role: ["admin"],
+      status: "active",
+      department: "direction",
+      _creationTime: Date.now() - 86400000 * 60,
+      createdAt: Date.now() - 86400000 * 60,
+      updatedAt: Date.now() - 86400000 * 2,
+    }
   },
   {
     _id: "3",
-    name: "Ana",
-    lastName: "López Silva",
-    email: "ana.lopez@escuela.edu.mx", 
+    name: "Carmen",
+    lastName: "Vargas Ruiz",
+    email: "carmen.vargas@escuela.edu.mx", 
     phone: "+52 555 3456789",
     status: "inactive",
     _creationTime: Date.now() - 86400000 * 90,
     createdAt: Date.now() - 86400000 * 90,
     updatedAt: Date.now() - 86400000 * 10,
-    clerkId: "clerk_ana789",
+    clerkId: "clerk_carmen789",
     admissionDate: Date.now() - 86400000 * 200,
+    userSchool: {
+      _id: "us3",
+      userId: "3",
+      schoolId: "school1",
+      role: ["admin"],
+      status: "inactive",
+      department: "technology",
+      _creationTime: Date.now() - 86400000 * 90,
+      createdAt: Date.now() - 86400000 * 90,
+      updatedAt: Date.now() - 86400000 * 10,
+    }
   },
   {
     _id: "4",
-    name: "Roberto",
-    lastName: "Hernández Castro",
-    email: "roberto.hernandez@escuela.edu.mx",
+    name: "Diego",
+    lastName: "Torres Mendoza",
+    email: "diego.torres@escuela.edu.mx",
     phone: "+52 555 4567890",
     address: "Zona Escolar 789, CDMX",
     status: "active",
     _creationTime: Date.now() - 86400000 * 15,
     createdAt: Date.now() - 86400000 * 15,
     updatedAt: Date.now() - 86400000 * 1,
-    clerkId: "clerk_roberto012",
+    clerkId: "clerk_diego012",
     admissionDate: Date.now() - 86400000 * 180,
+    userSchool: {
+      _id: "us4",
+      userId: "4",
+      schoolId: "school1",
+      role: ["admin"],
+      status: "active",
+      department: "schoolControl",
+      _creationTime: Date.now() - 86400000 * 15,
+      createdAt: Date.now() - 86400000 * 15,
+      updatedAt: Date.now() - 86400000 * 1,
+    }
   },
 ];
 
-export default function SuperadminPage() {
+export default function AdministradoresPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [departmentFilter, setDepartmentFilter] = useState<string>("all");
 
   // Hook del CRUD Dialog
   const {
@@ -92,38 +136,39 @@ export default function SuperadminPage() {
     openView,
     openDelete,
     close,
-  } = useCrudDialog(superAdminSchema, {
+  } = useCrudDialog(adminSchema, {
     status: "active",
     admissionDate: Date.now(),
   });
 
   // Filtrado de datos
-  const filteredSuperAdmins = useMemo(() => {
-    return mockSuperAdmins.filter((admin) => {
+  const filteredAdmins = useMemo(() => {
+    return mockAdmins.filter((admin) => {
       const searchMatch = 
         admin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         admin.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         admin.email.toLowerCase().includes(searchTerm.toLowerCase());
       
       const statusMatch = statusFilter === "all" || admin.status === statusFilter;
+      const departmentMatch = departmentFilter === "all" || admin.userSchool?.department === departmentFilter;
       
-      return searchMatch && statusMatch;
+      return searchMatch && statusMatch && departmentMatch;
     });
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter, departmentFilter]);
 
   // Funciones CRUD (mock)
   const handleCreate = async (data: Record<string, unknown>) => {
-    console.log("Crear super-administrador:", data);
+    console.log("Crear administrador:", data);
     // Aquí iría la integración con Convex
   };
 
   const handleUpdate = async (data: Record<string, unknown>) => {
-    console.log("Actualizar super-administrador:", data);
+    console.log("Actualizar administrador:", data);
     // Aquí iría la integración con Convex
   };
 
   const handleDelete = async (id: string) => {
-    console.log("Eliminar super-administrador:", id);
+    console.log("Eliminar administrador:", id);
     // Aquí iría la integración con Convex
   };
 
@@ -143,53 +188,70 @@ export default function SuperadminPage() {
     return first + last;
   };
 
+  const getDepartmentLabel = (department?: string) => {
+    const labels = {
+      secretary: "Secretaría",
+      direction: "Dirección",
+      schoolControl: "Control Escolar",
+      technology: "Tecnología"
+    };
+    return department ? labels[department as keyof typeof labels] : "No asignado";
+  };
 
+  const getDepartmentColor = (department?: string) => {
+    const colors = {
+      secretary: "bg-blue-100 text-blue-800",
+      direction: "bg-purple-100 text-purple-800",
+      schoolControl: "bg-green-100 text-green-800",
+      technology: "bg-orange-100 text-orange-800"
+    };
+    return department ? colors[department as keyof typeof colors] : "bg-gray-100 text-gray-800";
+  };
 
   const stats = [
     {
-      title: "Total Super Administradores",
-      value: mockSuperAdmins.length.toString(),
+      title: "Total Administradores",
+      value: mockAdmins.length.toString(),
       icon: Users,
       trend: "Usuarios registrados"
     },
     {
       title: "Activos",
-      value: mockSuperAdmins.filter(admin => admin.status === "active").length.toString(),
+      value: mockAdmins.filter(admin => admin.status === "active").length.toString(),
       icon: UserCheck,
       trend: "Estado activo"
     },
     {
       title: "Inactivos", 
-      value: mockSuperAdmins.filter(admin => admin.status === "inactive").length.toString(),
+      value: mockAdmins.filter(admin => admin.status === "inactive").length.toString(),
       icon: UserX,
       trend: "Estado inactivo"
     },
-
   ];
 
   return (
     <div className="space-y-8 p-6">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-background border">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
         <div className="relative p-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-primary/10 rounded-xl">
-                  <Shield className="h-8 w-8 text-primary" />
+                <div className="p-3 bg-blue-500/10 rounded-xl">
+                  <Building2 className="h-8 w-8 text-blue-600" />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-bold tracking-tight">Super-Administradores</h1>
+                  <h1 className="text-4xl font-bold tracking-tight">Administradores</h1>
                   <p className="text-lg text-muted-foreground">
-                    Gestión de usuarios con permisos administrativos completos
+                    Gestión de usuarios con permisos administrativos departamentales
                   </p>
                 </div>
               </div>
             </div>
             <Button size="lg" className="gap-2" onClick={openCreate}>
               <Plus className="w-4 h-4" />
-              Agregar Super-Admin
+              Agregar Administrador
             </Button>
           </div>
         </div>
@@ -203,8 +265,8 @@ export default function SuperadminPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 {stat.title}
               </CardTitle>
-              <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                <stat.icon className="h-4 w-4 text-primary" />
+              <div className="p-2 bg-blue-500/10 rounded-lg group-hover:bg-blue-500/20 transition-colors">
+                <stat.icon className="h-4 w-4 text-blue-600" />
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -225,7 +287,7 @@ export default function SuperadminPage() {
                 Filtros y Búsqueda
               </CardTitle>
               <CardDescription>
-                Encuentra super-administradores por nombre, email o estado
+                Encuentra administradores por nombre, email, estado o departamento
               </CardDescription>
             </div>
           </div>
@@ -253,16 +315,28 @@ export default function SuperadminPage() {
                 <SelectItem value="inactive">Inactivos</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Departamento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los departamentos</SelectItem>
+                <SelectItem value="secretary">Secretaría</SelectItem>
+                <SelectItem value="direction">Dirección</SelectItem>
+                <SelectItem value="schoolControl">Control Escolar</SelectItem>
+                <SelectItem value="technology">Tecnología</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Tabla de Super-Administradores */}
+      {/* Tabla de Administradores */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Lista de Super-Administradores</span>
-            <Badge variant="outline">{filteredSuperAdmins.length} usuarios</Badge>
+            <span>Lista de Administradores</span>
+            <Badge variant="outline">{filteredAdmins.length} usuarios</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -271,6 +345,7 @@ export default function SuperadminPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Usuario</TableHead>
+                  <TableHead>Departamento</TableHead>
                   <TableHead>Contacto</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Fecha de Ingreso</TableHead>
@@ -278,13 +353,13 @@ export default function SuperadminPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSuperAdmins.map((admin) => (
+                {filteredAdmins.map((admin) => (
                   <TableRow key={admin._id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
                           <AvatarImage src={admin.imgUrl} alt={admin.name} />
-                          <AvatarFallback className="bg-primary/10">
+                          <AvatarFallback className="bg-blue-500/10">
                             {getInitials(admin.name, admin.lastName)}
                           </AvatarFallback>
                         </Avatar>
@@ -298,6 +373,14 @@ export default function SuperadminPage() {
                           </div>
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant="outline" 
+                        className={getDepartmentColor(admin.userSchool?.department)}
+                      >
+                        {getDepartmentLabel(admin.userSchool?.department)}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
@@ -363,16 +446,16 @@ export default function SuperadminPage() {
             </Table>
           </div>
           
-          {filteredSuperAdmins.length === 0 && (
+          {filteredAdmins.length === 0 && (
             <div className="text-center py-12">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No se encontraron super-administradores</h3>
+              <h3 className="text-lg font-medium mb-2">No se encontraron administradores</h3>
               <p className="text-muted-foreground mb-4">
-                Intenta ajustar los filtros o agregar un nuevo super-administrador.
+                Intenta ajustar los filtros o agregar un nuevo administrador.
               </p>
               <Button onClick={openCreate} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Agregar Super-Admin
+                <Plus className="w-4 h-4" />
+                Agregar Administrador
               </Button>
             </div>
           )}
@@ -384,30 +467,30 @@ export default function SuperadminPage() {
         operation={operation}
         title={
           operation === "create" 
-            ? "Agregar Super-Administrador"
+            ? "Agregar Administrador"
             : operation === "edit"
-            ? "Editar Super-Administrador"
+            ? "Editar Administrador"
             : operation === "view"
-            ? "Ver Super-Administrador"
-            : "Eliminar Super-Administrador"
+            ? "Ver Administrador"
+            : "Eliminar Administrador"
         }
         description={
           operation === "create"
-            ? "Completa la información para agregar un nuevo super-administrador"
+            ? "Completa la información para agregar un nuevo administrador"
             : operation === "edit"
-            ? "Modifica la información del super-administrador"
+            ? "Modifica la información del administrador"
             : operation === "view"
-            ? "Información detallada del super-administrador"
+            ? "Información detallada del administrador"
             : undefined
         }
-        schema={superAdminSchema}
+        schema={adminSchema}
         data={data}
         isOpen={isOpen}
         onOpenChange={close}
         onSubmit={operation === "create" ? handleCreate : handleUpdate}
         onDelete={handleDelete}
-        deleteConfirmationTitle="¿Eliminar super-administrador?"
-        deleteConfirmationDescription="Esta acción eliminará permanentemente al super-administrador del sistema. Esta acción no se puede deshacer."
+        deleteConfirmationTitle="¿Eliminar administrador?"
+        deleteConfirmationDescription="Esta acción eliminará permanentemente al administrador del sistema. Esta acción no se puede deshacer."
       >
         {(form, currentOperation) => (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -421,7 +504,7 @@ export default function SuperadminPage() {
                     <Input 
                       {...field} 
                       value={field.value as string || ""}
-                      placeholder="Nombre del super-administrador"
+                      placeholder="Nombre del administrador"
                       disabled={currentOperation === "view"}
                     />
                   </FormControl>
