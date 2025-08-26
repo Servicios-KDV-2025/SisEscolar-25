@@ -1,3 +1,10 @@
+export default function ClassCatalogPage() {
+    return (
+        <div>
+            ClassCatalogPage
+        </div>
+    )
+}
 // "use client";
 
 // import { classCatalogSchema } from "@/types/form/classCatalogSchema";
