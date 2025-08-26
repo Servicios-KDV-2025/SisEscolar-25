@@ -114,7 +114,8 @@ export default function ClassCatalogPage() {
         }
     }
 
-    if (isLoading || (currentUser && !currentSchool && !schoolError)) return (
+    if (isLoading || (currentUser && !currentSchool && !schoolError)) {
+        return (
         <div className="space-y-8 p-6 max-w-7xl mx-auto">
             <div className="flex items-center justify-center min-h-[400px]">
                 <div className="space-y-4 text-center">
@@ -123,7 +124,7 @@ export default function ClassCatalogPage() {
                 </div>
             </div>
         </div>
-    );
+    )};
 
     return (
         <div className="w-[90%] mx-auto">
