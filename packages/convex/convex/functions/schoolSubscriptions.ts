@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalMutation } from "../_generated/server";
+import { internalMutation, internalQuery } from "../_generated/server";
 
 export const saveSubscription = internalMutation({
   args: {
@@ -74,5 +74,19 @@ export const updateSubscription = internalMutation({
     };
 
     await ctx.db.patch(subscription._id, updateData);
+  },
+});
+
+export const getSubscriptionByStripeId = internalQuery({
+  args: {
+    stripeSubscriptionId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const subscription = await ctx.db
+      .query("schoolSubscription")
+      .withIndex("by_stripeSubscriptionId", (q) => q.eq("stripeSubscriptionId", args.stripeSubscriptionId))
+      .first();
+
+    return subscription;
   },
 });

@@ -1,4 +1,4 @@
-import { query, mutation } from "../_generated/server";
+import { query, mutation, internalQuery } from "../_generated/server";
 import { v } from "convex/values";
 
 /*
@@ -662,5 +662,19 @@ export const createUserSchool = mutation({
         });
 
         return userSchoolId;
+    }
+}); 
+
+// Obtener una escuela por ID (internal)
+export const getSchoolById = internalQuery({
+    args: { 
+        schoolId: v.id("school"),
+    },
+    handler: async (ctx, args) => {
+        const school = await ctx.db.get(args.schoolId);
+        if (!school) {
+            throw new Error("Escuela no encontrada");
+        }
+        return school;
     }
 }); 
