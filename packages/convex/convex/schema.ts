@@ -192,7 +192,9 @@ const applicationTable = defineSchema({
     maxScore: v.number(), // Puntuación máxima (ej: 100)
     createdBy: v.id("user"),
     updatedAt: v.optional(v.number()),
-  }).index("by_class_term", ["classCatalogId", "termId"]),
+    status: v.boolean(),
+  }).index("by_status",["status"])
+  .index("by_class_term", ["classCatalogId", "termId"]),
 
   // Tareas, exámenes o proyectos individuales
   assignment: defineTable({

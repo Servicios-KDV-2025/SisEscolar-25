@@ -10,6 +10,7 @@ export const createGradeRubric = mutation({
     weight: v.number(), // Peso en la calificación de la unidad
     maxScore: v.number(), // Puntuación máxima
     createdBy: v.id("user"),
+    staus: v.boolean(),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
