@@ -52,6 +52,7 @@ export const getAllClassCatalog = query({
                     schoolId: clase.schoolId,
                     schoolCycleId: clase.schoolCycleId,
                     subjectId: clase.subjectId,
+                    termId: clase.termId,
                     classroomId: clase.classroomId,
                     teacherId: clase.teacherId,
                     groupId: clase.groupId,

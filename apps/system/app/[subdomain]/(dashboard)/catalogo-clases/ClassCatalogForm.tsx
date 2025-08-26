@@ -16,7 +16,7 @@ interface FormularioCatalogoDeClasesProps {
     operation: "create" | "edit" | "view" | "delete";
     subjects: Subject[] | undefined;
     groups: Group[] | undefined;
-    schoolCycle: SchoolCycleType[] | undefined;
+    schoolCycles: SchoolCycleType[] | undefined;
     salones?: unknown[] | undefined;
     teachers: TeacherType[] | undefined;
     // personal: Personal[] | undefined;
@@ -27,7 +27,7 @@ export function ClassCatalogForm({
     operation,
     subjects,
     groups,
-    schoolCycle,
+    schoolCycles,
     // salones,
     teachers,
     // personal,
@@ -67,7 +67,7 @@ export function ClassCatalogForm({
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                {schoolCycle?.map((c) => (
+                                {schoolCycles?.map((c) => (
                                     <SelectItem key={c._id} value={c._id}>
                                         {c.name}
                                     </SelectItem>
