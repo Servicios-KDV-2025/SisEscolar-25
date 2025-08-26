@@ -51,7 +51,7 @@ export default function CalendarioEscolar() {
   } = useCurrentSchool(currentUser?._id);
 
   const ciclosEscolares = useQuery(
-    api.functions.SchoolCicles.ObtenerCiclosEscolares,
+    api.functions.schoolCycles.ObtenerCiclosEscolares,
     currentSchool ? { escuelaID: currentSchool.school._id} : "skip"
   )
   const tiposDeEventos = useQuery(
@@ -64,6 +64,18 @@ export default function CalendarioEscolar() {
   }, [tiposDeEventos]);
 
   const [filtroCicloEscolarId, setFiltroCicloEscolarId] = useState<string>("")
+
+  const eventos = useQuery(
+    api.functions.calendar.getSchoolCycleCalendar,
+    currentSchool?.school._id && filtroCicloEscolarId
+      ? {
+        schoolId: currentSchool?.school._id as Id<"school">,
+        schoolCycleId: filtroCicloEscolarId as Id<"schoolCycle">
+      }
+      : "skip"
+  )
+
+  
 
   // Calendarios
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -85,17 +97,7 @@ export default function CalendarioEscolar() {
       }
     }
   }, [ciclosEscolares, filtroCicloEscolarId]);
-
-  const eventos = useQuery(
-    api.functions.calendar.getSchoolCycleCalendar,
-    currentSchool?.school._id && filtroCicloEscolarId
-      ? {
-        schoolId: currentSchool?.school._id as Id<"school">,
-        schoolCycleId: filtroCicloEscolarId as Id<"schoolCycle">
-      }
-      : "skip"
-  )
-
+ 
   const convertirColorAClases = useCallback((color: string | undefined) => {
     if (!color) return {
       color: "bg-gray-500 text-white",
@@ -224,16 +226,16 @@ export default function CalendarioEscolar() {
     return classNames;
   }, [tipoEventoMap]);
 
-  // if (!schoolLoading) {
-  //   return (
-  //     <div className="flex items-center justify-center min-h-screen">
-  //       <div className="text-center">
-  //         <School className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-  //         <p className="text-gray-500">Cargando información de la escuela...</p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  if (schoolLoading || (currentUser && !currentSchool)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <School className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500">Cargando información de la escuela...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

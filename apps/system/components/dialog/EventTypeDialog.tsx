@@ -81,13 +81,13 @@ export default function EventTypeDialog({
   useEffect(() => {
     if (isOpen && !tipoEventoEditar && modo === null) {
       form.reset({
-      name: "",
-      key: "",
-      description: "",
-      color: "#3B82F6",
-      icon: "calendar",
-      status: "active"
-    });
+        name: "",
+        key: "",
+        description: "",
+        color: "#3B82F6",
+        icon: "calendar",
+        status: "active"
+      });
     }
     if (tipoEventoEditar && (esEdicion || esSoloLectura)) {
       form.reset({
@@ -344,15 +344,15 @@ export default function EventTypeDialog({
                   <FormLabel>Estado</FormLabel>
                   <FormControl>
                     <Select
-                      onValueChange={value => field.onChange(value === "true")}
-                      value={field.value ? "true" : "false"}
+                      onValueChange={value => field.onChange(value)}
+                      value={field.value || "active"}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecciona el estado" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="true">Activo</SelectItem>
-                        <SelectItem value="false">Inactivo</SelectItem>
+                        <SelectItem value="active">Activo</SelectItem>
+                        <SelectItem value="inactive">Inactivo</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormControl>

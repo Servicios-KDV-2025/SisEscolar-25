@@ -40,6 +40,7 @@ export const getSchoolCycleCalendar = query({
       .query("calendar")
       .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
       .filter((q) => q.eq(q.field("schoolCycleId"), args.schoolCycleId))
+      .filter((q) => q.eq(q.field("status"), "active"))
       .collect();
   },
 });

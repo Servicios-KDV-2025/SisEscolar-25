@@ -49,7 +49,7 @@ export default function EventDialog({
     const [calendarOpen, setCalendarOpen] = useState(false);
 
     const ciclosEscolares = useQuery(
-        api.functions.SchoolCicles.ObtenerCiclosEscolares,
+        api.functions.schoolCycles.ObtenerCiclosEscolares,
         escuelaId ? { escuelaID: escuelaId as Id<"school"> } : "skip")
     const tiposDeEventos = useQuery(
         api.functions.eventType.getEventType,
@@ -355,8 +355,8 @@ export default function EventDialog({
                                     <FormLabel>Estado</FormLabel>
                                     <FormControl>
                                         <Select
-                                            onValueChange={value => field.onChange(value === "active")}
-                                            value={field.value ? "active" : "inactive"}
+                                            onValueChange={value => field.onChange(value)}
+                                            value={field.value || "active"}
                                         >
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Selecciona el estado" />
