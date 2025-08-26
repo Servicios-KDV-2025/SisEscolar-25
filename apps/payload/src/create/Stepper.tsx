@@ -16,7 +16,6 @@ type CheckoutFromCMS = {
   buttonText?: string
   schoolName?: string
 }
-
 const { Stepper: StepperUi, useStepper } = defineStepper(
   { id: 'step-1', title: 'Paso 1', description: 'Iniciar sesión para continuar', icon: <User /> },
   { id: 'step-2', title: 'Paso 2', description: 'Ingresar datos de la escuela', icon: <School /> },
@@ -120,4 +119,4 @@ const ClerkComponent: React.FC = () => {
   ) : (
     <SignUp onSwitchToSignIn={() => setShowSignIn(true)} onClick={() => methods.next()} />
   )
-}
+} 
