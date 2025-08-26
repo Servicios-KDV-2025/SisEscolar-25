@@ -18,8 +18,6 @@ const { Stepper: StepperUi, useStepper } = defineStepper(
   { id: 'step-4', title: 'Paso 4', description: 'Realizar pagos', icon: <CopySlash /> },
 )
 
-type StepperProps = { checkoutFromCMS?: CheckoutFromCMS | null }
-
 export const Stepper: React.FC = () => {
   const { isSignedIn, isLoaded } = useAuth()
   const [ready, setReady] = useState(false)
