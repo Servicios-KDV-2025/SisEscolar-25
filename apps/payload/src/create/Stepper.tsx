@@ -6,10 +6,10 @@ import { School, User, CopySlash } from 'lucide-react'
 import { useAuth } from '@clerk/nextjs'
 import { SignUp } from './Auth/SignUp'
 import { SignIn } from './Auth/SignIn'
-import SchoolForm from './SchoolForm'
 import { Prices } from './Prices/Prices'
 // usa el componente genérico (no el de blocks)
 import PayNowButton from '@/components/PayNowButton'
+import SchoolForm from './School/SchoolForm'
 
 const { Stepper: StepperUi, useStepper } = defineStepper(
   { id: 'step-1', title: 'Paso 1', description: 'Iniciar sesión para continuar', icon: <User /> },
@@ -22,9 +22,15 @@ export const Stepper: React.FC = () => {
   const { isSignedIn, isLoaded } = useAuth()
   const [ready, setReady] = useState(false)
   const [isSelect, setSelected] = useState<string>()
+  const methods = useStepper()
 
-  const onSelect = (idStripe: string) => {
+  const onFihishStep = () => {
+    methods.next()
+  }
+
+  const onSelectPrice = (idStripe: string) => {
     setSelected(idStripe)
+    onFihishStep()
   }
 
   return (
@@ -52,18 +58,10 @@ export const Stepper: React.FC = () => {
 
             {methods.switch({
               'step-1': () => <ClerkComponent />,
-              'step-2': () => <SchoolForm />,
-              'step-3': () => <Prices onSelect={onSelect} />,
+              'step-2': () => <SchoolForm onNext={onFihishStep} />,
+              'step-3': () => <Prices onSelect={onSelectPrice} />,
               'step-4': (step) => <Content priceId={isSelect!} />,
             })}
-
-            <StepperUi.Controls>
-              {!methods.isFirst && (
-                <Button onClick={methods.isLast ? () => {} : methods.next}>
-                  {methods.isLast ? 'Finalizar' : 'Siguiente'}
-                </Button>
-              )}
-            </StepperUi.Controls>
           </>
         )
       }}
@@ -74,6 +72,7 @@ export const Stepper: React.FC = () => {
 interface ContentProps {
   priceId: string
 }
+
 const Content: React.FC<ContentProps> = (props) => {
   return (
     <StepperUi.Panel className="h-[200px] content-center rounded border bg-secondary text-secondary-foreground p-8">
