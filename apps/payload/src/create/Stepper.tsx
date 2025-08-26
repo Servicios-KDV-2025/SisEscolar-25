@@ -12,6 +12,7 @@ import PayNowButton from '@/components/PayNowButton'
 
 type CheckoutFromCMS = {
   priceId?: string
+  
   buttonText?: string
   schoolName?: string
 }
@@ -21,13 +22,12 @@ const { Stepper: StepperUi, useStepper } = defineStepper(
   { id: 'step-2', title: 'Paso 2', description: 'Ingresar datos de la escuela', icon: <School /> },
   { id: 'step-3', title: 'Paso 3', description: 'Realizar pagos', icon: <CopySlash /> },
 )
-
 type StepperProps = { checkoutFromCMS?: CheckoutFromCMS | null }
 
 export const Stepper: React.FC<StepperProps> = ({ checkoutFromCMS }) => {
   const { isSignedIn, isLoaded } = useAuth()
   const [ready, setReady] = React.useState(false)
-
+  const [schoolId, setSchoolId] = React.useState<string>();
   return (
     <StepperUi.Provider className="space-y-4" labelOrientation="vertical">
       {({ methods }) => {
@@ -53,17 +53,30 @@ export const Stepper: React.FC<StepperProps> = ({ checkoutFromCMS }) => {
 
             {methods.switch({
               'step-1': () => <ClerkComponent />,
-              'step-2': () => <SchoolForm />,
-              'step-3': (step) => (
-                <Content id={step.id} checkoutFromCMS={checkoutFromCMS} />
-              ),
+              'step-2': () => (
+    <SchoolForm
+      onSchoolSelected={(id: string) => {     
+        setSchoolId(id);
+      
+      }}
+    />
+  ),
+             'step-3': (step) => (
+    <Content
+      id={step.id}
+      checkoutFromCMS={checkoutFromCMS}
+      schoolId={schoolId}                    //se manda al boton el id
+    />
+  ),
             })}
-
             <StepperUi.Controls>
               {!methods.isFirst && (
-                <Button onClick={methods.isLast ? () => {} : methods.next}>
-                  {methods.isLast ? 'Finalizar' : 'Siguiente'}
-                </Button>
+                 <Button
+      onClick={methods.isLast ? () => {} : methods.next}
+      disabled={methods.current.id === 'step-2' && !schoolId}   // ← clave
+    >
+      {methods.isLast ? 'Finalizar' : 'Siguiente'}
+    </Button>
               )}
             </StepperUi.Controls>
           </>
@@ -76,27 +89,28 @@ export const Stepper: React.FC<StepperProps> = ({ checkoutFromCMS }) => {
 const Content = ({
   id,
   checkoutFromCMS,
+  schoolId,
 }: {
   id: string
   checkoutFromCMS?: CheckoutFromCMS | null
+  schoolId?: string
 }) => {
   const priceId = checkoutFromCMS?.priceId
 
   return (
     <StepperUi.Panel className="h-[200px] content-center rounded border bg-secondary text-secondary-foreground p-8">
       <p className="text-xl font-normal mb-4">
-        Estás a punto de salir a una página externa para pagar. No cierres esta ventana.
+       Casi estas por terminar,da clic en pagar ahora y te redirigira a una pagina segura para el pago...
       </p>
 
       {!priceId ? (
-  <p>Selecciona un id de price…</p>
+  <p> no hay un precio seleciconado...</p>
 ) : (
-  <PayNowButton priceId={priceId}  />
+  <PayNowButton priceId={priceId} schoolId={schoolId}  />
 )}
     </StepperUi.Panel>
   )
 }
-
 const ClerkComponent: React.FC = () => {
   const [showSignIn, setShowSignIn] = React.useState(false)
   const methods = useStepper()

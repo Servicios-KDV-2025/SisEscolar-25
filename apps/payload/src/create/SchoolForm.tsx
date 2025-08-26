@@ -28,11 +28,12 @@ interface SchoolFormData {
 
 interface SchoolFormProps {
   onSuccess?: (schoolData: SchoolFormData) => void;
+  onSchoolSelected?: (id: string) => void
   onNext?: () => void;
 }
 
-function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
-  const { user } = useUser();
+function SchoolForm({ onSuccess, onSchoolSelected, onNext }: SchoolFormProps) { 
+   const { user } = useUser();
   const createSchoolWithUser = useMutation(api.functions.schools.createSchoolWithUser);
   
   const [formData, setFormData] = useState<SchoolFormData>({
@@ -139,12 +140,17 @@ function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
         imgUrl: formData.imgUrl.trim() || '/default-school.jpg',
         phone: formData.phone.trim(),
         email: formData.email.trim(),
-        userId: user.id as Id<"user">,
+        userId: user.id 
       });
       
       console.log('Escuela creada:', result);
       setSuccess(true);
       
+       // envía el id al Stepper
+      onSchoolSelected?.(String(result));
+       // opcional: persistir por si recarga
+      try { localStorage.setItem('schoolId', String(result)); } catch {}
+
       // Llamar a la función de éxito si existe
       if (onSuccess) {
         onSuccess(formData);

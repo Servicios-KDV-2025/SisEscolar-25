@@ -1,38 +1,54 @@
 import Stripe from 'stripe'
+import { auth } from '@clerk/nextjs/server'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', { apiVersion: '2022-08-01' })
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', { apiVersion: '2023-10-16' })
 
 export const stripeCheckout = async (req) => {
   try {
+    const { userId: serverUserId } = auth()
     const body = (await req.json().catch(() => ({}))) || {}
-    const { priceId, schoolName, userName } = body
+    const { priceId, schoolId, schoolName, userName, userId: clientUserId } = body
 
-    if (!priceId || typeof priceId !== 'string' || !priceId.startsWith('price_')) {
-      return new Response(
-        JSON.stringify({ error: 'priceId inválido o vacío (debe empezar con "price_")' }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      )
+    // Fallback solo en desarrollo
+    const userId =
+      serverUserId ?? (process.env.NODE_ENV !== 'production' && typeof clientUserId === 'string' ? clientUserId : undefined)
+
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
     }
 
-    const serverURL =
-      process.env.NEXT_PUBLIC_SERVER_URL || process.env.SERVER_URL || 'http://localhost:3000'
+    if (!priceId || typeof priceId !== 'string' || !priceId.startsWith('price_')) {
+      return new Response(JSON.stringify({ error: 'priceId inválido o vacío (debe empezar con "price_")' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    if (!schoolId) {
+      return new Response(JSON.stringify({ error: 'Falta schoolId' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
 
+    const appURL = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')
     const metadata = {
-      schoolName: String(schoolName ?? ''), // lo guardamos para referencia
+      userId,
+      schoolId: String(schoolId),
+      schoolName: String(schoolName ?? ''),
       userName: String(userName ?? ''),
     }
 
     const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
+      mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${serverURL.replace(/\/$/,'')}/payments/success?sessionId={CHECKOUT_SESSION_ID}`,
-      cancel_url:  `${serverURL.replace(/\/$/,'')}/payments/cancelled`,
-
+      client_reference_id: userId,
+      success_url: `${appURL}/checkout/success?checkoutId={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appURL}/checkout/cancel`,
       metadata,
-      payment_intent_data: { metadata },
+      subscription_data: { metadata }, // guarda metadata también en la Subscription
     })
 
     return new Response(JSON.stringify({ url: session.url }), {
