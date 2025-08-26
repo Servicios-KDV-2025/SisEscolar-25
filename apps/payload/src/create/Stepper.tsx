@@ -60,7 +60,7 @@ export const Stepper: React.FC = () => {
               'step-1': () => <ClerkComponent />,
               'step-2': () => <SchoolForm onNext={onFihishStep} />,
               'step-3': () => <Prices onSelect={onSelectPrice} />,
-              'step-4': (step) => <Content priceId={isSelect!} />,
+              'step-4': () => <Content priceId={isSelect!} />,
             })}
           </>
         )

@@ -171,20 +171,6 @@ function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
     }
   }
 
-  if (success) {
-    return (
-      <Card className="w-full max-w-2xl mx-auto">
-        <CardContent className="pt-6">
-          <div className="text-center">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">¡Escuela creada exitosamente!</h3>
-            <p className="text-muted-foreground mb-4">Puedes continuar con el siguiente paso.</p>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
