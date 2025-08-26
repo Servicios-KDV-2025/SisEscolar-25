@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { useCallback, useEffect } from "react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
-import { ClassroomType, SchoolCycleType, TeacherType } from "@/types/temporalSchema";
+import { ClassroomType, SchoolCycleType, TeacherType, TermType } from "@/types/temporalSchema";
 import { Subject } from "./subjectStore";
 import { Group } from "./groupStore";
 
