@@ -45,8 +45,7 @@ export function SchoolCyclesGrid({ currentSchool, currentUser }: SchoolCyclesGri
     const [filteredCycles, setFilteredCycles] = useState<CicloEscolar[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState<"all" | "active" | "archived" | "inactive">("all");
-
-
+    const [duplicateNameError, setDuplicateNameError] = useState<string | null>(null);
 
     const {
         ciclosEscolares,
@@ -78,6 +77,14 @@ export function SchoolCyclesGrid({ currentSchool, currentUser }: SchoolCyclesGri
         status: "inactive"
     });
 
+    const validateUniqueName = (name: string, currentId?: string) => {
+        const normalizedName = name.trim().toLowerCase();
+        return !ciclosEscolares.some(cycle =>
+            cycle.name.toLowerCase() === normalizedName &&
+            cycle._id !== currentId
+        );
+    };
+
     // Funciones adaptadoras para los tipos
     const handleOpenEdit = (ciclo: CicloEscolar) => {
         openEdit(ciclo as unknown as Record<string, unknown> & Partial<WithId>);
@@ -89,6 +96,18 @@ export function SchoolCyclesGrid({ currentSchool, currentUser }: SchoolCyclesGri
 
     const handleOpenDelete = (ciclo: CicloEscolar) => {
         openDelete(ciclo as unknown as Record<string, unknown> & Partial<WithId>);
+    };
+
+    const handleClose = () => {
+        setDuplicateNameError(null);
+        close();
+    };
+
+    const handleDelayedClose = () => {
+        setDuplicateNameError(null);
+        setTimeout(() => {
+            close();
+        }, 1000);
     };
 
     // Función para formatear el timestamp al formato YYYY-MM-DD
@@ -144,16 +163,20 @@ export function SchoolCyclesGrid({ currentSchool, currentUser }: SchoolCyclesGri
         if (!currentSchool?.school._id) {
             return;
         }
+        if (!validateUniqueName(values.name as string, data?._id as string)) {
+            setDuplicateNameError("Ya existe un ciclo escolar con este nombre");
+            return;
+        }
         try {
             if (operation === "create") {
                 await createCicloEscolar({
-                    schoolId: currentSchool.school._id, // Pasar el schoolId explícitamente
+                    schoolId: currentSchool.school._id,
                     name: values.name as string,
                     startDate: new Date(values.startDate as string).getTime(),
                     endDate: new Date(values.endDate as string).getTime(),
                     status: values.status as "active" | "archived" | "inactive"
                 });
-                close();
+                handleDelayedClose();
             } else if (operation === "edit" && data?._id) {
                 await updateCicloEscolar({
                     cicloEscolarID: data._id as Id<"schoolCycle">,
@@ -163,7 +186,7 @@ export function SchoolCyclesGrid({ currentSchool, currentUser }: SchoolCyclesGri
                     endDate: new Date(values.endDate as string).getTime(),
                     status: values.status as "active" | "archived" | "inactive"
                 });
-                close();
+                handleDelayedClose();
             }
         } catch (error) {
             console.error("Error al enviar datos:", error);
@@ -231,8 +254,7 @@ export function SchoolCyclesGrid({ currentSchool, currentUser }: SchoolCyclesGri
             </div>
 
             {/* Mostrar errores del store de ciclos */}
-            // SchoolCyclesGrid.tsx
-            {(createError || updateError || deleteError) && (
+            {(createError || updateError || deleteError || duplicateNameError) && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
                     <div className="text-sm text-red-600">
                         {createError && (
@@ -244,9 +266,15 @@ export function SchoolCyclesGrid({ currentSchool, currentUser }: SchoolCyclesGri
                         {deleteError && (
                             <div>Error al eliminar el ciclo: {deleteError}</div>
                         )}
+                        {duplicateNameError && (
+                            <div>Error de validación: {duplicateNameError}</div>
+                        )}
                     </div>
                     <button
-                        onClick={clearErrors}
+                        onClick={() => {
+                            clearErrors();
+                            setDuplicateNameError(null);
+                        }}
                         className="text-xs text-blue-500 underline mt-1"
                     >
                         Limpiar errores
@@ -302,7 +330,7 @@ export function SchoolCyclesGrid({ currentSchool, currentUser }: SchoolCyclesGri
                 }}
                 data={dialogData}
                 isOpen={isOpen}
-                onOpenChange={close}
+                onOpenChange={handleClose}
                 onSubmit={handleSubmit}
                 onDelete={handleDelete}
             >
@@ -319,6 +347,13 @@ export function SchoolCyclesGrid({ currentSchool, currentUser }: SchoolCyclesGri
                                             placeholder="Ej: Ciclo Escolar 2024-2025"
                                             value={field.value as string || ""}
                                             onChange={field.onChange}
+                                            onBlur={() => {
+                                                if (field.value && !validateUniqueName(field.value as string, data?._id as string)) {
+                                                    setDuplicateNameError("Ya existe un ciclo escolar con este nombre");
+                                                } else {
+                                                    setDuplicateNameError(null);
+                                                }
+                                            }}
                                             disabled={operation === "view"}
                                         />
                                     </FormControl>
