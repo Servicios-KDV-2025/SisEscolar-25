@@ -8,7 +8,9 @@ export const createTerm = mutation({
     key: v.string(),
     startDate: v.number(),
     endDate: v.number(),
-    schoolCycleId: v.id("schoolCycle")
+    schoolCycleId: v.id("schoolCycle"),
+    status: v.optional(v.union(v.literal("active"), v.literal("inactive"), v.literal("closed"))),
+  
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -70,8 +72,6 @@ export const updateTerm = mutation({
 export const deleteTerm = mutation({
   args: { termId: v.id("term") },
   handler: async (ctx, args) => {
-    // ⚠️ Importante: Agrega aquí la lógica para verificar si existen
-    // rubricas de calificación o promedios vinculados a este periodo antes de borrar.
     await ctx.db.delete(args.termId);
     return args.termId;
   },
