@@ -1,4 +1,4 @@
-import { mutation, query, internalMutation } from "../_generated/server";
+import { mutation, query, internalMutation, internalQuery } from "../_generated/server";
 import { v, Validator } from "convex/values";
 import { UserJSON } from "@clerk/backend";
 
@@ -148,8 +148,8 @@ export const getUsers = query({
   },
 });
 
-// READ - Obtener usuario por ID
-export const getUserById = query({
+// READ - Obtener usuario por ID (internal)
+export const getUserById = internalQuery({
   args: { userId: v.id("user") },
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
