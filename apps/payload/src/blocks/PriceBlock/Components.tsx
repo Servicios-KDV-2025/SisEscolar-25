@@ -1,3 +1,4 @@
+'use client'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -9,9 +10,11 @@ import {
 } from '@/components/ui/card'
 import type { PriceBlock } from '@/payload-types'
 import { Check, School } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import React from 'react'
 
 export const PriceBlockComponent: React.FC<PriceBlock> = (props) => {
+  const router = useRouter()
   const { price } = props
 
   if (typeof price === 'number') {
@@ -39,7 +42,11 @@ export const PriceBlockComponent: React.FC<PriceBlock> = (props) => {
           })}
         </CardContent>
         <CardFooter>
-          <Button className="w-full" variant="outline">
+          <Button
+            className="w-full"
+            variant="outline"
+            onClick={() => router.push(`/create?id=${price.IdStripe}`)}
+          >
             Empezar
           </Button>
         </CardFooter>

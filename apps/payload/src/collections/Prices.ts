@@ -25,6 +25,12 @@ export const Prices: CollectionConfig = {
       required: true,
     },
     {
+      name: 'IdStripe',
+      type: 'text',
+      required: true,
+      label: 'Id Stripe Price',
+    },
+    {
       name: 'descripcion',
       type: 'textarea',
     },

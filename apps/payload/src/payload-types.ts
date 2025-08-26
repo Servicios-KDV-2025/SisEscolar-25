@@ -943,6 +943,7 @@ export interface Price {
   id: number;
   precio: number;
   titulo: string;
+  IdStripe: string;
   descripcion?: string | null;
   funciones?:
     | {
@@ -1463,6 +1464,7 @@ export interface UsersSelect<T extends boolean = true> {
 export interface PricesSelect<T extends boolean = true> {
   precio?: T;
   titulo?: T;
+  IdStripe?: T;
   descripcion?: T;
   funciones?:
     | T
