@@ -3,7 +3,7 @@
 import { useUser } from "@clerk/nextjs";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { Button } from "@repo/ui/components/shadcn/button";
-import { Eye, Pencil, Plus, Trash2, CalendarDays, Clock3, CalendarMinus2 } from "@repo/ui/icons";
+import { Eye, Pencil, Plus, Trash2, CalendarDays, Clock3 } from "@repo/ui/icons";
 import { useSchedule } from "stores/scheduleStore";
 import { useCurrentSchool } from "stores/userSchoolsStore";
 import { useUserWithConvex } from "stores/userStore";

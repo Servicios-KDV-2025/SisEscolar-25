@@ -43,6 +43,41 @@ export type updateAttendance = {
   updatedAt: number
 }
 
+export type AttendanceWithStudent = {
+  _id: string
+  studentClassId: Id<'studentClass'>
+  date: number
+  present: boolean
+  justified: boolean
+  comments: string
+  registrationDate: number
+  createdBy: Id<'user'>
+  updatedBy: Id<'user'>
+  updatedAt: number
+  student: {
+    _id: Id<'student'>
+    name: string
+    enrollment: string
+    imgUrl?: string
+    // otros campos del estudiante
+  } //| null
+  className: string
+}
+
+export type StudentWithClass = {
+  id: Id<'studentClass'>
+  studentId: Id<'student'>
+  classId: Id<'classCatalog'>
+  className: string
+  student: {
+    _id: Id<'student'>
+    name: string
+    enrollment: string
+    imgUrl?: string
+    // otros campos del estudiante
+  } //| null
+}
+
 export type AttendanceStore = {
   attendance: Attendance[]
   selectedAttendance: Attendance | null
@@ -115,7 +150,7 @@ type AttendanceQueryData = {
   updatedAt: number
 }
 
-export const useAttendance = (studentClassId: Id<'studentClass'>) => {
+export const useAttendance = (studentClassId: Id<'studentClass'>, classCatalogId: Id<'classCatalog'>  ) => {
   const {
     attendance,
     selectedAttendance,
@@ -142,6 +177,12 @@ export const useAttendance = (studentClassId: Id<'studentClass'>) => {
   const attendanceQuery = useQuery(
     api.functions.attendance.getAttendance,
     studentClassId ? { studentClassId } : 'skip'
+  )
+  const studentClasses = useQuery(
+    api.functions.student.getStudentWithClasses, classCatalogId ? { classCatalogId } : 'skip'
+  )
+  const attendanceRecords = useQuery(
+    api.functions.attendance.getAttendanceWithStudents, classCatalogId ? { classCatalogId } : 'skip'
   )
 
   // Mutations
