@@ -83,7 +83,7 @@ const Content: React.FC<ContentProps> = (props) => {
         Casi estás por terminar. Da clic en “Pagar ahora” para ir a Stripe.
       </p>
 
-      <PayNowButton priceId={props.priceId} schoolName={props.schoolId} />
+      <PayNowButton priceId={props.priceId} schoolId={props.schoolId} />
     </StepperUi.Panel>
   )
 }

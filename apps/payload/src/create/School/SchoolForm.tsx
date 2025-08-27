@@ -29,7 +29,7 @@ interface SchoolFormData {
 interface SchoolFormProps {
   onSuccess?: (schoolData: SchoolFormData) => void
   onSchoolSelected?: (id: string) => void
-  onNext?: () => void
+  onNext: (data: string) => void
 }
 
 function SchoolForm({ onSuccess, onSchoolSelected, onNext }: SchoolFormProps) {
@@ -163,6 +163,7 @@ function SchoolForm({ onSuccess, onSchoolSelected, onNext }: SchoolFormProps) {
 
       // envía el id al Stepper
       onSchoolSelected?.(schoolId)
+      onNext(result.schoolId)
       try {
         localStorage.setItem('schoolId', schoolId)
       } catch {}
@@ -184,7 +185,6 @@ function SchoolForm({ onSuccess, onSchoolSelected, onNext }: SchoolFormProps) {
         phone: '',
         email: '',
       })
-      onNext(result.schoolId)
     } catch (err: any) {
       console.error('Error creating school:', err)
       setError(err.message || 'Error al crear la escuela. Por favor, inténtalo de nuevo.')
