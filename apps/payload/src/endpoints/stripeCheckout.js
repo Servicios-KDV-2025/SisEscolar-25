@@ -5,14 +5,14 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', { apiVersion: '20
 
 export const stripeCheckout = async (req) => {
   try {
-    // SESIÓN DE CLERK (lado servidor)
+    //  SESIÓN DE CLERK (lado servidor)
     const { userId: serverUserId } = await auth()
 
     // BODY DEL CLIENTE (en dev puedo traer un fallback userId)
     const body = (await req.json().catch(() => ({}))) || {}
     const { priceId, schoolId, schoolName, userName, userId: clientUserId } = body
 
-    // 3) Resolver userId una sola vez (PROD exige sesión; DEV permite fallback)
+    //  Resolver userId una sola vez (PROD exige sesión; DEV permite fallback)
     const userId =
       serverUserId ??
       (process.env.NODE_ENV !== 'production' && typeof clientUserId === 'string' ? clientUserId : undefined)
@@ -23,7 +23,7 @@ export const stripeCheckout = async (req) => {
       })
     }
 
-    // 4) Validaciones básicas
+    // Validaciones básicas
     if (!priceId || typeof priceId !== 'string' || !priceId.startsWith('price_')) {
       return new Response(JSON.stringify({ error: 'priceId inválido (debe empezar con "price_")' }), {
         status: 400, headers: { 'Content-Type': 'application/json' },
@@ -37,12 +37,13 @@ export const stripeCheckout = async (req) => {
 
     const appURL = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')
     const metadata = {
-      userId,                               
+      userId,                                 
       schoolId: String(schoolId),
       schoolName: String(schoolName ?? ''),
       userName: String(userName ?? ''),
     }
 
+    // Detectar si el price es recurrente (suscripción) o de pago único
     // Detectar si el price es recurrente (suscripción) o de pago único
     const price = await stripe.prices.retrieve(priceId)
     

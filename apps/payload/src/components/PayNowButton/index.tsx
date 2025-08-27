@@ -1,12 +1,15 @@
 'use client'
+import { useSession, useUser } from '@clerk/nextjs'
+import { auth } from '@clerk/nextjs/server'
 import React, { useState } from 'react'
 import { useAuth } from '@clerk/nextjs'
 
-type Props = { priceId: string; schoolId?: string; endpoint?: string; id?: string }
+type Props = { priceId: string; schoolId?: string; endpoint?: string; id?: string ; userId : string}
 
 export default function PayNowButton({
   priceId,
   schoolId,
+  userId,
   endpoint = '/api/checkout',
   id = 'pay-now',
 }: Props) {
@@ -14,7 +17,8 @@ export default function PayNowButton({
   const { isSignedIn, userId } = useAuth()   //  AQUÍ nace userId (cliente)
 
   const resolveSchoolId = () =>
-    schoolId ?? (typeof window !== 'undefined' ? localStorage.getItem('schoolId') ?? undefined : undefined)
+    schoolId ??
+    (typeof window !== 'undefined' ? (localStorage.getItem('schoolId') ?? undefined) : undefined)
 
   const handleClick = async () => {
     if (!priceId) return alert('Falta priceId')
