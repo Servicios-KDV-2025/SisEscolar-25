@@ -19,9 +19,10 @@ import {
    Users, Search, Plus, Eye, Edit, Trash2, Filter, Calendar, UserCheck, UserX, GraduationCap, AlertCircle, Loader2, Check, ChevronsUpDown
 } from "@repo/ui/icons";
 import { studentSchema, type StudentWithMetadata } from "@/types/form/userSchemas";
-import { useStudentWithConvex, type CreateStudentData, type UpdateStudentData } from "../../../../../stores/studentStore";
+import { useStudentsWithPermissions, type CreateStudentData, type UpdateStudentData } from "../../../../../stores/studentStore";
 import { useUserWithConvex } from "../../../../../stores/userStore";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
+import { usePermissions } from "../../../../../hooks/usePermissions";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
@@ -33,13 +34,29 @@ export default function AlumnosPage() {
   const { user: clerkUser, isLoaded } = useUser();
   const { currentUser, isLoading: userLoading } = useUserWithConvex(clerkUser?.id);
   const { currentSchool, isLoading: schoolLoading } = useCurrentSchool(currentUser?._id);
+  
+  // Hook de permisos
+  const { 
+    getStudentFilters, 
+    canCreateUsers, 
+    canUpdateUsers, 
+    canDeleteUsers,
+    isSuperAdmin,
+    isAdmin,
+    isAuditor,
+    isTeacher,
+    isTutor,
+    isLoading: permissionsLoading 
+  } = usePermissions(currentSchool?.school._id);
+  
+
 
   // Estados locales para filtros
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [groupFilter, setGroupFilter] = useState<string>("all");
 
-  // Hook del student store
+  // Hook del student store con filtros por rol
   const {
     students,
     filteredStudents,
@@ -55,7 +72,10 @@ export default function AlumnosPage() {
     filterStudents,
     searchStudents,
     clearError,
-  } = useStudentWithConvex(currentSchool?.school._id as Id<"school">);
+  } = useStudentsWithPermissions(
+    currentSchool?.school._id as Id<"school">, 
+    getStudentFilters
+  );
 
   // Queries para obtener grupos y tutores
   const groups = useQuery(
@@ -74,7 +94,7 @@ export default function AlumnosPage() {
   );
 
   // Estado combinado de loading
-  const isLoading = !isLoaded || userLoading || schoolLoading || studentsLoading;
+  const isLoading = !isLoaded || userLoading || schoolLoading || studentsLoading || permissionsLoading;
 
   // Default values para el formulario
   const defaultValues = useMemo(() => ({
@@ -349,6 +369,17 @@ export default function AlumnosPage() {
         </Alert>
       )}
 
+      {/* Información de permisos */}
+      {(isTutor || isTeacher) && !isSuperAdmin && !isAdmin && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {isTutor && "Como tutor, solo puedes ver los estudiantes que tienes asignados."}
+            {isTeacher && "Como maestro, solo puedes ver los estudiantes de las materias que impartes."}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-background border">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
@@ -367,19 +398,21 @@ export default function AlumnosPage() {
                 </div>
               </div>
             </div>
-            <Button 
-              size="lg" 
-              className="gap-2" 
-              onClick={openCreate}
-              disabled={isCreating || !currentSchool}
-            >
-              {isCreating ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Plus className="w-4 h-4" />
-              )}
-              {isCreating ? "Creando..." : "Agregar Alumno"}
-            </Button>
+            {canCreateUsers && (
+              <Button 
+                size="lg" 
+                className="gap-2" 
+                onClick={openCreate}
+                disabled={isCreating || !currentSchool}
+              >
+                {isCreating ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
+                {isCreating ? "Creando..." : "Agregar Alumno"}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -545,32 +578,36 @@ export default function AlumnosPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEdit(student)}
-                          className="h-8 w-8 p-0"
-                          disabled={isUpdating || isDeleting}
-                        >
-                          {isUpdating ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Edit className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openDelete(student)}
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                          disabled={isUpdating || isDeleting}
-                        >
-                          {isDeleting ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
+                        {canUpdateUsers && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEdit(student)}
+                            className="h-8 w-8 p-0"
+                            disabled={isUpdating || isDeleting}
+                          >
+                            {isUpdating ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Edit className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                        {canDeleteUsers && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openDelete(student)}
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            disabled={isUpdating || isDeleting}
+                          >
+                            {isDeleting ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -586,10 +623,12 @@ export default function AlumnosPage() {
               <p className="text-muted-foreground mb-4">
                 Intenta ajustar los filtros o agregar un nuevo alumno.
               </p>
-              <Button onClick={openCreate} className="gap-2">
-                <Plus className="w-4 h-4" />
-                Agregar Alumno
-              </Button>
+              {canCreateUsers && (
+                <Button onClick={openCreate} className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Agregar Alumno
+                </Button>
+              )}
             </div>
           )}
         </CardContent>

@@ -143,6 +143,146 @@ export const updateStudentStatus = mutation({
   },
 });
 
+// READ (Para tutores - solo sus estudiantes asignados)
+export const getStudentsByTutor = query({
+  args: { 
+    schoolId: v.id("school"),
+    tutorId: v.id("user") 
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("student")
+      .withIndex("by_schoolId_and_enrollment", (q) =>
+        q.eq("schoolId", args.schoolId)
+      )
+      .filter((q) => q.eq(q.field("tutorId"), args.tutorId))
+      .collect();
+  },
+});
+
+// READ (Para maestros - solo estudiantes de sus materias)
+export const getStudentsByTeacher = query({
+  args: { 
+    schoolId: v.id("school"),
+    teacherId: v.id("user") 
+  },
+  handler: async (ctx, args) => {
+    // Primero obtenemos las clases del maestro
+    const teacherClasses = await ctx.db
+      .query("classCatalog")
+      .withIndex("by_teacher", (q) => q.eq("teacherId", args.teacherId))
+      .filter((q) => 
+        q.and(
+          q.eq(q.field("schoolId"), args.schoolId),
+          q.eq(q.field("status"), "active")
+        )
+      )
+      .collect();
+
+    // Obtenemos todos los estudiantes matriculados en esas clases
+    const studentClassPromises = teacherClasses.map(async (teacherClass) => {
+      return await ctx.db
+        .query("studentClass")
+        .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", teacherClass._id))
+        .filter((q) => q.eq(q.field("status"), "active"))
+        .collect();
+    });
+
+    const allStudentClasses = (await Promise.all(studentClassPromises)).flat();
+    
+    // Obtenemos IDs únicos de estudiantes
+    const uniqueStudentIds = [...new Set(allStudentClasses.map(sc => sc.studentId))];
+
+    // Obtenemos la información completa de los estudiantes
+    const studentsPromises = uniqueStudentIds.map(async (studentId) => {
+      return await ctx.db.get(studentId);
+    });
+
+    const students = await Promise.all(studentsPromises);
+    
+    // Filtramos los estudiantes nulos y verificamos que pertenezcan a la escuela
+    return students
+      .filter((student) => student !== null && student.schoolId === args.schoolId)
+      .filter((student) => student !== null);
+  },
+});
+
+// READ (Con filtros por rol - función principal)
+export const getStudentsWithRoleFilter = query({
+  args: {
+    schoolId: v.id("school"),
+    canViewAll: v.boolean(),
+    tutorId: v.optional(v.id("user")),
+    teacherId: v.optional(v.id("user")),
+  },
+  handler: async (ctx, args) => {
+    // Si puede ver todos, devolver todos los estudiantes de la escuela
+    if (args.canViewAll) {
+      return await ctx.db
+        .query("student")
+        .withIndex("by_schoolId_and_enrollment", (q) =>
+          q.eq("schoolId", args.schoolId)
+        )
+        .collect();
+    }
+
+    // Si es tutor, devolver solo sus estudiantes
+    if (args.tutorId) {
+      return await ctx.db
+        .query("student")
+        .withIndex("by_schoolId_and_enrollment", (q) =>
+          q.eq("schoolId", args.schoolId)
+        )
+        .filter((q) => q.eq(q.field("tutorId"), args.tutorId))
+        .collect();
+    }
+
+    // Si es maestro, devolver estudiantes de sus materias
+    if (args.teacherId) {
+      // Primero obtenemos las clases del maestro
+      const teacherClasses = await ctx.db
+        .query("classCatalog")
+        .withIndex("by_teacher", (q) => q.eq("teacherId", args.teacherId!))
+        .filter((q) => 
+          q.and(
+            q.eq(q.field("schoolId"), args.schoolId),
+            q.eq(q.field("status"), "active")
+          )
+        )
+        .collect();
+
+      // Obtenemos todos los estudiantes matriculados en esas clases
+      const studentClassPromises = teacherClasses.map(async (teacherClass) => {
+        return await ctx.db
+          .query("studentClass")
+          .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", teacherClass._id))
+          .filter((q) => q.eq(q.field("status"), "active"))
+          .collect();
+      });
+
+      const allStudentClasses = (await Promise.all(studentClassPromises)).flat();
+      
+      // Obtenemos IDs únicos de estudiantes
+      const uniqueStudentIds = [...new Set(allStudentClasses.map(sc => sc.studentId))];
+
+      // Obtenemos la información completa de los estudiantes
+      const studentsPromises = uniqueStudentIds.map(async (studentId) => {
+        return await ctx.db.get(studentId);
+      });
+
+      const students = await Promise.all(studentsPromises);
+      
+      // Filtramos los estudiantes nulos y verificamos que pertenezcan a la escuela
+      return students
+        .filter((student) => student !== null && student.schoolId === args.schoolId)
+        .filter((student) => student !== null);
+    }
+
+    // Si no tiene permisos específicos, devolver array vacío
+    return [];
+  },
+});
+
 // DELETE
 export const deleteStudent = mutation({
   args: { id: v.id("student") },

@@ -277,15 +277,25 @@ export const useStudentStore = create<StudentState>((set, get) => ({
 }));
 
 // Hook que combina Zustand con Convex para operaciones CRUD
-export const useStudentWithConvex = (schoolId?: Id<"school">, groupId?: Id<"group">) => {
+export const useStudentWithConvex = (
+  schoolId?: Id<"school">, 
+  groupId?: Id<"group">,
+  roleFilters?: { canViewAll: boolean; tutorId?: Id<"user">; teacherId?: Id<"user"> }
+) => {
   const store = useStudentStore();
   
-  // Queries de Convex
-  const studentsBySchool = useQuery(
-    api.functions.student.listStudentsBySchool,
-    schoolId ? { schoolId } : 'skip'
+  // Queries de Convex con filtros por rol
+  const studentsWithRoleFilter = useQuery(
+    api.functions.student.getStudentsWithRoleFilter,
+    schoolId && roleFilters ? { 
+      schoolId, 
+      canViewAll: roleFilters.canViewAll,
+      tutorId: roleFilters.tutorId,
+      teacherId: roleFilters.teacherId
+    } : 'skip'
   );
   
+  // Query por grupo (solo si se especifica)
   const studentsByGroup = useQuery(
     api.functions.student.getStudentsByGroup,
     groupId ? { groupId } : 'skip'
@@ -299,10 +309,10 @@ export const useStudentWithConvex = (schoolId?: Id<"school">, groupId?: Id<"grou
 
   // Actualizar el store cuando cambien los datos
   React.useEffect(() => {
-    if (studentsBySchool) {
-      store.setStudents(studentsBySchool);
+    if (studentsWithRoleFilter) {
+      store.setStudents(studentsWithRoleFilter);
     }
-  }, [studentsBySchool]);
+  }, [studentsWithRoleFilter]);
 
   React.useEffect(() => {
     if (studentsByGroup) {
@@ -453,7 +463,7 @@ export const useStudentWithConvex = (schoolId?: Id<"school">, groupId?: Id<"grou
     students: store.students,
     filteredStudents: store.filteredStudents,
     currentStudent: store.currentStudent,
-    isLoading: store.isLoading || (schoolId ? !studentsBySchool : false) || (groupId ? !studentsByGroup : false),
+    isLoading: store.isLoading || (schoolId && roleFilters ? !studentsWithRoleFilter : false) || (groupId ? !studentsByGroup : false),
     isCreating: store.isCreating,
     isUpdating: store.isUpdating,
     isDeleting: store.isDeleting,
@@ -490,7 +500,7 @@ export const useStudentWithConvex = (schoolId?: Id<"school">, groupId?: Id<"grou
     store.isDeleting,
     store.error,
     store.currentFilters,
-    studentsBySchool,
+    studentsWithRoleFilter,
     studentsByGroup,
     createStudent,
     updateStudent,
@@ -533,4 +543,16 @@ export const useStudentById = (studentId?: Id<"student">) => {
     isLoading: !student && studentId,
     setCurrentStudent: store.setCurrentStudent,
   };
+};
+
+// Hook que combina permisos y estudiantes para facilitar el uso en componentes
+export const useStudentsWithPermissions = (
+  schoolId?: Id<"school">, 
+  getStudentFilters?: () => { canViewAll: boolean; tutorId?: Id<"user">; teacherId?: Id<"user"> }
+) => {
+  const studentFilters = React.useMemo(() => {
+    return getStudentFilters?.() || { canViewAll: false };
+  }, [getStudentFilters]);
+
+  return useStudentWithConvex(schoolId, undefined, studentFilters);
 };
