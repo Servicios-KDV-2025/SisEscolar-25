@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -12,75 +11,97 @@ import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/shadcn/
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@repo/ui/components/shadcn/form";
 import { 
-  Shield, Users, Search, Plus, Eye, Edit, Trash2, Filter, 
-  Mail, Phone, MapPin, Calendar, UserCheck, UserX 
+   Users, Search, Plus, Eye, Edit, Trash2, Filter,  Calendar, UserCheck, UserX, GraduationCap,
 } from "@repo/ui/icons";
-import { superAdminSchema, type SuperAdminWithMetadata } from "@/types/form/userSchemas";
+import { studentSchema, type StudentWithMetadata } from "@/types/form/userSchemas";
 
-type SuperAdmin = SuperAdminWithMetadata;
+type Student = StudentWithMetadata;
 
 // Datos de ejemplo (mock data)
-const mockSuperAdmins: SuperAdmin[] = [
+const mockStudents: Student[] = [
   {
     _id: "1",
-    name: "María",
-    lastName: "González Pérez",
-    email: "maria.gonzalez@escuela.edu.mx",
-    phone: "+52 555 1234567",
-    address: "Av. Educación 123, CDMX",
+    schoolId: "school1",
+    groupId: "group1",
+    tutorId: "tutor1",
+    enrollment: "2024-001",
+    name: "Ana Sofía",
+    lastName: "Martínez López",
+    birthDate: Date.now() - 86400000 * 365 * 15, // 15 años
+    admissionDate: Date.now() - 86400000 * 90,
+    imgUrl: "",
     status: "active",
-    _creationTime: Date.now() - 86400000 * 30, // 30 días atrás
-    createdAt: Date.now() - 86400000 * 30, // 30 días atrás
-    updatedAt: Date.now() - 86400000 * 5,  // 5 días atrás
-    clerkId: "clerk_maria123",
-    admissionDate: Date.now() - 86400000 * 365, // 1 año atrás
+    _creationTime: Date.now() - 86400000 * 90,
+    createdAt: Date.now() - 86400000 * 90,
+    updatedAt: Date.now() - 86400000 * 5,
   },
   {
-    _id: "2", 
-    name: "Carlos",
-    lastName: "Rodríguez Martín",
-    email: "carlos.rodriguez@escuela.edu.mx",
-    phone: "+52 555 2345678",
-    address: "Calle Principal 456, CDMX",
+    _id: "2",
+    schoolId: "school1",
+    groupId: "group1",
+    tutorId: "tutor1",
+    enrollment: "2024-002",
+    name: "Carlos Eduardo",
+    lastName: "García Silva",
+    birthDate: Date.now() - 86400000 * 365 * 16, // 16 años
+    admissionDate: Date.now() - 86400000 * 120,
+    imgUrl: "",
     status: "active",
-    _creationTime: Date.now() - 86400000 * 60,
-    createdAt: Date.now() - 86400000 * 60,
-    updatedAt: Date.now() - 86400000 * 2,
-    clerkId: "clerk_carlos456",
-    admissionDate: Date.now() - 86400000 * 500,
+    _creationTime: Date.now() - 86400000 * 120,
+    createdAt: Date.now() - 86400000 * 120,
+    updatedAt: Date.now() - 86400000 * 10,
   },
   {
     _id: "3",
-    name: "Ana",
-    lastName: "López Silva",
-    email: "ana.lopez@escuela.edu.mx", 
-    phone: "+52 555 3456789",
+    schoolId: "school1",
+    groupId: "group2",
+    tutorId: "tutor2",
+    enrollment: "2024-003",
+    name: "María Fernanda",
+    lastName: "Rodríguez Vega",
+    birthDate: Date.now() - 86400000 * 365 * 14, // 14 años
+    admissionDate: Date.now() - 86400000 * 60,
+    imgUrl: "",
     status: "inactive",
-    _creationTime: Date.now() - 86400000 * 90,
-    createdAt: Date.now() - 86400000 * 90,
-    updatedAt: Date.now() - 86400000 * 10,
-    clerkId: "clerk_ana789",
-    admissionDate: Date.now() - 86400000 * 200,
+    _creationTime: Date.now() - 86400000 * 60,
+    createdAt: Date.now() - 86400000 * 60,
+    updatedAt: Date.now() - 86400000 * 15,
   },
   {
     _id: "4",
-    name: "Roberto",
-    lastName: "Hernández Castro",
-    email: "roberto.hernandez@escuela.edu.mx",
-    phone: "+52 555 4567890",
-    address: "Zona Escolar 789, CDMX",
+    schoolId: "school1",
+    groupId: "group2",
+    tutorId: "tutor2",
+    enrollment: "2024-004",
+    name: "Diego Alejandro",
+    lastName: "Hernández Morales",
+    birthDate: Date.now() - 86400000 * 365 * 15, // 15 años
+    admissionDate: Date.now() - 86400000 * 30,
+    imgUrl: "",
     status: "active",
-    _creationTime: Date.now() - 86400000 * 15,
-    createdAt: Date.now() - 86400000 * 15,
-    updatedAt: Date.now() - 86400000 * 1,
-    clerkId: "clerk_roberto012",
-    admissionDate: Date.now() - 86400000 * 180,
+    _creationTime: Date.now() - 86400000 * 30,
+    createdAt: Date.now() - 86400000 * 30,
+    updatedAt: Date.now() - 86400000 * 2,
   },
 ];
 
-export default function SuperadminPage() {
+// Mock data para grupos y tutores
+const mockGroups = [
+  { id: "group1", name: "1°A", grade: "1°" },
+  { id: "group2", name: "1°B", grade: "1°" },
+  { id: "group3", name: "2°A", grade: "2°" },
+  { id: "group4", name: "2°B", grade: "2°" },
+];
+
+const mockTutors = [
+  { id: "tutor1", name: "Isabel García Morales" },
+  { id: "tutor2", name: "Carlos Ruiz Silva" },
+];
+
+export default function AlumnosPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [groupFilter, setGroupFilter] = useState<string>("all");
 
   // Hook del CRUD Dialog
   const {
@@ -92,38 +113,39 @@ export default function SuperadminPage() {
     openView,
     openDelete,
     close,
-  } = useCrudDialog(superAdminSchema, {
+  } = useCrudDialog(studentSchema, {
     status: "active",
     admissionDate: Date.now(),
   });
 
   // Filtrado de datos
-  const filteredSuperAdmins = useMemo(() => {
-    return mockSuperAdmins.filter((admin) => {
+  const filteredStudents = useMemo(() => {
+    return mockStudents.filter((student) => {
       const searchMatch = 
-        admin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        admin.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        admin.email.toLowerCase().includes(searchTerm.toLowerCase());
+        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.enrollment.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const statusMatch = statusFilter === "all" || admin.status === statusFilter;
+      const statusMatch = statusFilter === "all" || student.status === statusFilter;
+      const groupMatch = groupFilter === "all" || student.groupId === groupFilter;
       
-      return searchMatch && statusMatch;
+      return searchMatch && statusMatch && groupMatch;
     });
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter, groupFilter]);
 
   // Funciones CRUD (mock)
   const handleCreate = async (data: Record<string, unknown>) => {
-    console.log("Crear super-administrador:", data);
+    console.log("Crear alumno:", data);
     // Aquí iría la integración con Convex
   };
 
   const handleUpdate = async (data: Record<string, unknown>) => {
-    console.log("Actualizar super-administrador:", data);
+    console.log("Actualizar alumno:", data);
     // Aquí iría la integración con Convex
   };
 
   const handleDelete = async (id: string) => {
-    console.log("Eliminar super-administrador:", id);
+    console.log("Eliminar alumno:", id);
     // Aquí iría la integración con Convex
   };
 
@@ -143,53 +165,72 @@ export default function SuperadminPage() {
     return first + last;
   };
 
+  const getGroupInfo = (groupId: string) => {
+    const group = mockGroups.find(g => g.id === groupId);
+    return group ? `${group.grade} - ${group.name}` : "No asignado";
+  };
 
+  const getTutorInfo = (tutorId: string) => {
+    const tutor = mockTutors.find(t => t.id === tutorId);
+    return tutor ? tutor.name : "No asignado";
+  };
+
+  const calculateAge = (birthDate?: number) => {
+    if (!birthDate) return "No disponible";
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return `${age} años`;
+  };
 
   const stats = [
     {
-      title: "Total Super Administradores",
-      value: mockSuperAdmins.length.toString(),
+      title: "Total Alumnos",
+      value: mockStudents.length.toString(),
       icon: Users,
-      trend: "Usuarios registrados"
+      trend: "Estudiantes registrados"
     },
     {
       title: "Activos",
-      value: mockSuperAdmins.filter(admin => admin.status === "active").length.toString(),
+      value: mockStudents.filter(student => student.status === "active").length.toString(),
       icon: UserCheck,
       trend: "Estado activo"
     },
     {
       title: "Inactivos", 
-      value: mockSuperAdmins.filter(admin => admin.status === "inactive").length.toString(),
+      value: mockStudents.filter(student => student.status === "inactive").length.toString(),
       icon: UserX,
       trend: "Estado inactivo"
     },
-
   ];
 
   return (
     <div className="space-y-8 p-6">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-background border">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
         <div className="relative p-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-primary/10 rounded-xl">
-                  <Shield className="h-8 w-8 text-primary" />
+                <div className="p-3 bg-indigo-500/10 rounded-xl">
+                  <GraduationCap className="h-8 w-8 text-indigo-600" />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-bold tracking-tight">Super-Administradores</h1>
+                  <h1 className="text-4xl font-bold tracking-tight">Alumnos</h1>
                   <p className="text-lg text-muted-foreground">
-                    Gestión de usuarios con permisos administrativos completos
+                    Gestión de estudiantes del sistema escolar
                   </p>
                 </div>
               </div>
             </div>
             <Button size="lg" className="gap-2" onClick={openCreate}>
               <Plus className="w-4 h-4" />
-              Agregar Super-Admin
+              Agregar Alumno
             </Button>
           </div>
         </div>
@@ -203,8 +244,8 @@ export default function SuperadminPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 {stat.title}
               </CardTitle>
-              <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                <stat.icon className="h-4 w-4 text-primary" />
+              <div className="p-2 bg-indigo-500/10 rounded-lg group-hover:bg-indigo-500/20 transition-colors">
+                <stat.icon className="h-4 w-4 text-indigo-600" />
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -225,7 +266,7 @@ export default function SuperadminPage() {
                 Filtros y Búsqueda
               </CardTitle>
               <CardDescription>
-                Encuentra super-administradores por nombre, email o estado
+                Encuentra alumnos por nombre, matrícula, estado o grupo
               </CardDescription>
             </div>
           </div>
@@ -236,7 +277,7 @@ export default function SuperadminPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por nombre, apellido o email..."
+                  placeholder="Buscar por nombre, apellido o matrícula..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -253,16 +294,29 @@ export default function SuperadminPage() {
                 <SelectItem value="inactive">Inactivos</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={groupFilter} onValueChange={setGroupFilter}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Grupo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los grupos</SelectItem>
+                {mockGroups.map(group => (
+                  <SelectItem key={group.id} value={group.id}>
+                    {group.grade} - {group.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Tabla de Super-Administradores */}
+      {/* Tabla de Alumnos */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Lista de Super-Administradores</span>
-            <Badge variant="outline">{filteredSuperAdmins.length} usuarios</Badge>
+            <span>Lista de Alumnos</span>
+            <Badge variant="outline">{filteredStudents.length} estudiantes</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -270,63 +324,63 @@ export default function SuperadminPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Usuario</TableHead>
-                  <TableHead>Contacto</TableHead>
+                  <TableHead>Estudiante</TableHead>
+                  <TableHead>Matrícula</TableHead>
+                  <TableHead>Grupo</TableHead>
+                  <TableHead>Tutor</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Fecha de Ingreso</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSuperAdmins.map((admin) => (
-                  <TableRow key={admin._id}>
+                {filteredStudents.map((student) => (
+                  <TableRow key={student._id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={admin.imgUrl} alt={admin.name} />
-                          <AvatarFallback className="bg-primary/10">
-                            {getInitials(admin.name, admin.lastName)}
+                          <AvatarImage src={student.imgUrl} alt={student.name} />
+                          <AvatarFallback className="bg-indigo-500/10">
+                            {getInitials(student.name, student.lastName)}
                           </AvatarFallback>
                         </Avatar>
                         <div>
                           <div className="font-medium">
-                            {admin.name} {admin.lastName}
+                            {student.name} {student.lastName}
                           </div>
-                          <div className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            {admin.email}
+                          <div className="text-sm text-muted-foreground">
+                            {calculateAge(student.birthDate)}
                           </div>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-1">
-                        {admin.phone && (
-                          <div className="text-sm flex items-center gap-1">
-                            <Phone className="h-3 w-3 text-muted-foreground" />
-                            {admin.phone}
-                          </div>
-                        )}
-                        {admin.address && (
-                          <div className="text-sm text-muted-foreground flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {admin.address}
-                          </div>
-                        )}
+                      <Badge variant="outline" className="font-mono">
+                        {student.enrollment}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">
+                        {getGroupInfo(student.groupId)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {getTutorInfo(student.tutorId)}
                       </div>
                     </TableCell>
                     <TableCell>
                       <Badge 
-                        variant={admin.status === "active" ? "default" : "secondary"}
-                        className={admin.status === "active" ? "bg-green-500 hover:bg-green-600" : ""}
+                        variant={student.status === "active" ? "default" : "secondary"}
+                        className={student.status === "active" ? "bg-green-500 hover:bg-green-600" : ""}
                       >
-                        {admin.status === "active" ? "Activo" : "Inactivo"}
+                        {student.status === "active" ? "Activo" : "Inactivo"}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 text-sm">
                         <Calendar className="h-3 w-3 text-muted-foreground" />
-                        {formatDate(admin.admissionDate)}
+                        {formatDate(student.admissionDate)}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -334,7 +388,7 @@ export default function SuperadminPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openView(admin)}
+                          onClick={() => openView(student)}
                           className="h-8 w-8 p-0"
                         >
                           <Eye className="h-4 w-4" />
@@ -342,7 +396,7 @@ export default function SuperadminPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openEdit(admin)}
+                          onClick={() => openEdit(student)}
                           className="h-8 w-8 p-0"
                         >
                           <Edit className="h-4 w-4" />
@@ -350,7 +404,7 @@ export default function SuperadminPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openDelete(admin)}
+                          onClick={() => openDelete(student)}
                           className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -363,16 +417,16 @@ export default function SuperadminPage() {
             </Table>
           </div>
           
-          {filteredSuperAdmins.length === 0 && (
+          {filteredStudents.length === 0 && (
             <div className="text-center py-12">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No se encontraron super-administradores</h3>
+              <h3 className="text-lg font-medium mb-2">No se encontraron alumnos</h3>
               <p className="text-muted-foreground mb-4">
-                Intenta ajustar los filtros o agregar un nuevo super-administrador.
+                Intenta ajustar los filtros o agregar un nuevo alumno.
               </p>
               <Button onClick={openCreate} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Agregar Super-Admin
+                <Plus className="w-4 h-4" />
+                Agregar Alumno
               </Button>
             </div>
           )}
@@ -384,30 +438,30 @@ export default function SuperadminPage() {
         operation={operation}
         title={
           operation === "create" 
-            ? "Agregar Super-Administrador"
+            ? "Agregar Alumno"
             : operation === "edit"
-            ? "Editar Super-Administrador"
+            ? "Editar Alumno"
             : operation === "view"
-            ? "Ver Super-Administrador"
-            : "Eliminar Super-Administrador"
+            ? "Ver Alumno"
+            : "Eliminar Alumno"
         }
         description={
           operation === "create"
-            ? "Completa la información para agregar un nuevo super-administrador"
+            ? "Completa la información para agregar un nuevo alumno"
             : operation === "edit"
-            ? "Modifica la información del super-administrador"
+            ? "Modifica la información del alumno"
             : operation === "view"
-            ? "Información detallada del super-administrador"
+            ? "Información detallada del alumno"
             : undefined
         }
-        schema={superAdminSchema}
+        schema={studentSchema}
         data={data}
         isOpen={isOpen}
         onOpenChange={close}
         onSubmit={operation === "create" ? handleCreate : handleUpdate}
         onDelete={handleDelete}
-        deleteConfirmationTitle="¿Eliminar super-administrador?"
-        deleteConfirmationDescription="Esta acción eliminará permanentemente al super-administrador del sistema. Esta acción no se puede deshacer."
+        deleteConfirmationTitle="¿Eliminar alumno?"
+        deleteConfirmationDescription="Esta acción eliminará permanentemente al alumno del sistema. Esta acción no se puede deshacer."
       >
         {(form, currentOperation) => (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -421,7 +475,7 @@ export default function SuperadminPage() {
                     <Input 
                       {...field} 
                       value={field.value as string || ""}
-                      placeholder="Nombre del super-administrador"
+                      placeholder="Nombre del alumno"
                       disabled={currentOperation === "view"}
                     />
                   </FormControl>
@@ -451,54 +505,15 @@ export default function SuperadminPage() {
 
             <FormField
               control={form.control}
-              name="email"
+              name="enrollment"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email *</FormLabel>
+                  <FormLabel>Matrícula *</FormLabel>
                   <FormControl>
                     <Input 
                       {...field} 
                       value={field.value as string || ""}
-                      type="email"
-                      placeholder="email@escuela.edu.mx"
-                      disabled={currentOperation === "view"}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Teléfono</FormLabel>
-                  <FormControl>
-                    <Input 
-                      {...field} 
-                      value={field.value as string || ""}
-                      placeholder="+52 555 1234567"
-                      disabled={currentOperation === "view"}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem className="md:col-span-2">
-                  <FormLabel>Dirección</FormLabel>
-                  <FormControl>
-                    <Input 
-                      {...field} 
-                      value={field.value as string || ""}
-                      placeholder="Dirección completa"
+                      placeholder="2024-001"
                       disabled={currentOperation === "view"}
                     />
                   </FormControl>
@@ -533,12 +548,70 @@ export default function SuperadminPage() {
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="groupId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Grupo *</FormLabel>
+                  <FormControl>
+                    <Select 
+                      value={field.value as string} 
+                      onValueChange={field.onChange}
+                      disabled={currentOperation === "view"}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar grupo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mockGroups.map(group => (
+                          <SelectItem key={group.id} value={group.id}>
+                            {group.grade} - {group.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="tutorId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tutor *</FormLabel>
+                  <FormControl>
+                    <Select 
+                      value={field.value as string} 
+                      onValueChange={field.onChange}
+                      disabled={currentOperation === "view"}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar tutor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mockTutors.map(tutor => (
+                          <SelectItem key={tutor.id} value={tutor.id}>
+                            {tutor.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {currentOperation === "view" && data && (
               <div className="md:col-span-2 space-y-4 pt-4 border-t">
                 <h3 className="font-medium text-sm text-muted-foreground">Información adicional</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-muted-foreground">ID de Usuario:</span>
+                    <span className="text-muted-foreground">ID de Estudiante:</span>
                     <p className="font-mono">{data._id as string}</p>
                   </div>
                   <div>
@@ -550,8 +623,8 @@ export default function SuperadminPage() {
                     <p>{formatDate(data.updatedAt as number)}</p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Clerk ID:</span>
-                    <p className="font-mono">{data.clerkId as string}</p>
+                    <span className="text-muted-foreground">ID de Escuela:</span>
+                    <p className="font-mono">{data.schoolId as string}</p>
                   </div>
                 </div>
               </div>
