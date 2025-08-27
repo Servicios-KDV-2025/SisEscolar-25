@@ -35,6 +35,7 @@ http.route({
           console.log(`Successfully deleted user: ${clerkUserId}`);
           break;
         }
+        
         default:
           console.log("Ignored Clerk webhook event", event.type);
       }

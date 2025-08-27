@@ -130,7 +130,7 @@ function SchoolForm({ onSuccess, onSchoolSelected, onNext }: SchoolFormProps) {
 
     try {
       // Crear la escuela y asignar al usuario como superadmin usando Convex
-      const result = await createSchoolWithUser({
+         const result = await createSchoolWithUser({
         name: formData.name.trim(),
         subdomain: formData.subdomain.trim(),
         shortName: formData.shortName.trim(),
@@ -140,16 +140,32 @@ function SchoolForm({ onSuccess, onSchoolSelected, onNext }: SchoolFormProps) {
         imgUrl: formData.imgUrl.trim() || '/default-school.jpg',
         phone: formData.phone.trim(),
         email: formData.email.trim(),
-        userId: user.id 
+        userId: user.id,                           // si tu mutation espera Clerk ID (string)
+        // userId: convexUserId,                  // si espera Id<"user"> de Convex
       });
-      
+
       console.log('Escuela creada:', result);
       setSuccess(true);
+
+      type CreateSchoolResp = { schoolId: string; userSchoolId?: string; message?: string };
+
+      // Extrae el id de forma segura (sea string u objeto)
+      
+const schoolId = String(
+  typeof result === 'string'
+    ? result
+    : (result as CreateSchoolResp).schoolId ?? ''
+);
+
+      if (!schoolId) {
+        console.error('Respuesta de createSchoolWithUser:', result);
+        setError('No se recibió el ID de la escuela desde el servidor');
+        return;
+      }
       
        // envía el id al Stepper
-      onSchoolSelected?.(String(result));
-       // opcional: persistir por si recarga
-      try { localStorage.setItem('schoolId', String(result)); } catch {}
+           onSchoolSelected?.(schoolId);
+      try { localStorage.setItem('schoolId', schoolId); } catch {}
 
       // Llamar a la función de éxito si existe
       if (onSuccess) {

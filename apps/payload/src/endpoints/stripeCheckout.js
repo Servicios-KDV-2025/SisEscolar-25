@@ -5,7 +5,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', { apiVersion: '20
 
 export const stripeCheckout = async (req) => {
   try {
-    const { userId } = auth()
+   
     if (!userId) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { 'Content-Type': 'application/json' },
@@ -28,7 +28,7 @@ export const stripeCheckout = async (req) => {
 
     const appURL = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')
     const metadata = {
-      userId,                       // Clerk userId → lo mapearás a Convex en el webhook
+      userId,                       // Clerk userId → lo mapeará s a Convex en el webhook
       schoolId: String(schoolId),
       schoolName: String(schoolName ?? ''),
       userName: String(userName ?? ''),

@@ -7,15 +7,10 @@ import { useAuth } from '@clerk/nextjs'
 import { SignUp } from './Auth/SignUp'
 import { SignIn } from './Auth/SignIn'
 import SchoolForm from './SchoolForm'
-// usa el componente genérico (no el de blocks)
 import PayNowButton from '@/components/PayNowButton'
 
-type CheckoutFromCMS = {
-  priceId?: string
-  
-  buttonText?: string
-  schoolName?: string
-}
+type CheckoutFromCMS = { priceId?: string; buttonText?: string; schoolName?: string }
+
 const { Stepper: StepperUi, useStepper } = defineStepper(
   { id: 'step-1', title: 'Paso 1', description: 'Iniciar sesión para continuar', icon: <User /> },
   { id: 'step-2', title: 'Paso 2', description: 'Ingresar datos de la escuela', icon: <School /> },
@@ -26,7 +21,8 @@ type StepperProps = { checkoutFromCMS?: CheckoutFromCMS | null }
 export const Stepper: React.FC<StepperProps> = ({ checkoutFromCMS }) => {
   const { isSignedIn, isLoaded } = useAuth()
   const [ready, setReady] = React.useState(false)
-  const [schoolId, setSchoolId] = React.useState<string>();
+  const [schoolId, setSchoolId] = React.useState<string | undefined>()
+
   return (
     <StepperUi.Provider className="space-y-4" labelOrientation="vertical">
       {({ methods }) => {
@@ -53,29 +49,30 @@ export const Stepper: React.FC<StepperProps> = ({ checkoutFromCMS }) => {
             {methods.switch({
               'step-1': () => <ClerkComponent />,
               'step-2': () => (
-    <SchoolForm
-      onSchoolSelected={(id: string) => {     
-        setSchoolId(id);
-      
-      }}
-    />
-  ),
-             'step-3': (step) => (
-    <Content
-      id={step.id}
-      checkoutFromCMS={checkoutFromCMS}
-      schoolId={schoolId}                    //se manda al boton el id
-    />
-  ),
+                <SchoolForm
+                  onSchoolSelected={(id: string) => {
+                    setSchoolId(id)
+                    try { localStorage.setItem('schoolId', String(id)) } catch {}
+                  }}
+                />
+              ),
+              'step-3': (step) => (
+                <Content
+                  id={step.id}
+                  checkoutFromCMS={checkoutFromCMS}
+                  schoolId={schoolId}
+                />
+              ),
             })}
+
             <StepperUi.Controls>
               {!methods.isFirst && (
-                 <Button
-      onClick={methods.isLast ? () => {} : methods.next}
-      disabled={methods.current.id === 'step-2' && !schoolId}   // ← clave
-    >
-      {methods.isLast ? 'Finalizar' : 'Siguiente'}
-    </Button>
+                <Button
+                  onClick={methods.isLast ? () => {} : methods.next}
+                  disabled={methods.current.id === 'step-2' && !schoolId}  // no avanzar sin escuela
+                >
+                  {methods.isLast ? 'Finalizar' : 'Siguiente'}
+                </Button>
               )}
             </StepperUi.Controls>
           </>
@@ -95,28 +92,27 @@ const Content = ({
   schoolId?: string
 }) => {
   const priceId = checkoutFromCMS?.priceId
-
   return (
     <StepperUi.Panel className="h-[200px] content-center rounded border bg-secondary text-secondary-foreground p-8">
       <p className="text-xl font-normal mb-4">
-       Casi estas por terminar,da clic en pagar ahora y te redirigira a una pagina segura para el pago...
+        Casi estás por terminar. Da clic en “Pagar ahora” para ir a Stripe.
       </p>
 
       {!priceId ? (
-  <p> no hay un precio seleciconado...</p>
-) : (
-  <PayNowButton priceId={priceId} schoolId={schoolId}  />
-)}
+        <p>Selecciona un id de price…</p>
+      ) : (
+        <PayNowButton priceId={priceId} schoolId={schoolId} />
+      )}
     </StepperUi.Panel>
   )
 }
+
 const ClerkComponent: React.FC = () => {
   const [showSignIn, setShowSignIn] = React.useState(false)
   const methods = useStepper()
-
   return showSignIn ? (
     <SignIn onBackToSignUp={() => setShowSignIn(false)} onClick={() => methods.next()} />
   ) : (
     <SignUp onSwitchToSignIn={() => setShowSignIn(true)} onClick={() => methods.next()} />
   )
-} 
+}

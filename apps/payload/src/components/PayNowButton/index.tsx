@@ -28,14 +28,15 @@ export default function PayNowButton({
 
       const res = await fetch(endpoint, {
         method: 'POST',
-        credentials: 'include',                     //  envía cookies de Clerk
+        credentials: 'include',                       // 🔑 envía cookies (Clerk)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
       const data = await res.json()
       if (res.ok && data?.url) window.location.href = data.url
       else alert(data?.error || 'Unauthorized')
-    } catch {
+    } catch (e) {
+      console.error('Checkout failed', e)
       alert('Error al iniciar el checkout')
     } finally {
       setLoading(false)
