@@ -1,11 +1,7 @@
 'use client'
-
 import { useSession, useUser } from '@clerk/nextjs'
-
 import { auth } from '@clerk/nextjs/server'
-
 import React, { useState } from 'react'
-
 import { useAuth } from '@clerk/nextjs'
  
 type Props = { priceId: string; schoolId?: string; endpoint?: string; id?: string ; userId : string}

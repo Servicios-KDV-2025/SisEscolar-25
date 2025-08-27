@@ -43,7 +43,7 @@ export const stripeCheckout = async (req) => {
       userName: String(userName ?? ''),
     }
 
-    // Detectar si el price es recurrente (suscripción) o de pago único
+   
     // Detectar si el price es recurrente (suscripción) o de pago único
     const price = await stripe.prices.retrieve(priceId)
     
@@ -55,7 +55,7 @@ export const stripeCheckout = async (req) => {
       client_reference_id: userId,
       success_url: `${appURL}/checkout/success?checkoutId={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${appURL}/checkout/cancel`,
-      metadata,
+      metadata: { userId, schoolId, schoolName, userName },
       ...(isRecurring ? { subscription_data: { metadata } } : {}),
     })
 
