@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useUser } from "@clerk/nextjs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Button } from "@repo/ui/components/shadcn/button";
@@ -10,98 +11,84 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/shadcn/avatar";
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@repo/ui/components/shadcn/form";
+import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
+import { Skeleton } from "@repo/ui/components/shadcn/skeleton";
+import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/shadcn/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@repo/ui/components/shadcn/command";
 import { 
-   Users, Search, Plus, Eye, Edit, Trash2, Filter,  Calendar, UserCheck, UserX, GraduationCap,
+   Users, Search, Plus, Eye, Edit, Trash2, Filter, Calendar, UserCheck, UserX, GraduationCap, AlertCircle, Loader2, Check, ChevronsUpDown
 } from "@repo/ui/icons";
 import { studentSchema, type StudentWithMetadata } from "@/types/form/userSchemas";
+import { useStudentWithConvex, type CreateStudentData, type UpdateStudentData } from "../../../../../stores/studentStore";
+import { useUserWithConvex } from "../../../../../stores/userStore";
+import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
+import { Id } from "@repo/convex/convex/_generated/dataModel";
+import { useQuery } from "convex/react";
+import { api } from "@repo/convex/convex/_generated/api";
 
 type Student = StudentWithMetadata;
 
-// Datos de ejemplo (mock data)
-const mockStudents: Student[] = [
-  {
-    _id: "1",
-    schoolId: "school1",
-    groupId: "group1",
-    tutorId: "tutor1",
-    enrollment: "2024-001",
-    name: "Ana Sofía",
-    lastName: "Martínez López",
-    birthDate: Date.now() - 86400000 * 365 * 15, // 15 años
-    admissionDate: Date.now() - 86400000 * 90,
-    imgUrl: "",
-    status: "active",
-    _creationTime: Date.now() - 86400000 * 90,
-    createdAt: Date.now() - 86400000 * 90,
-    updatedAt: Date.now() - 86400000 * 5,
-  },
-  {
-    _id: "2",
-    schoolId: "school1",
-    groupId: "group1",
-    tutorId: "tutor1",
-    enrollment: "2024-002",
-    name: "Carlos Eduardo",
-    lastName: "García Silva",
-    birthDate: Date.now() - 86400000 * 365 * 16, // 16 años
-    admissionDate: Date.now() - 86400000 * 120,
-    imgUrl: "",
-    status: "active",
-    _creationTime: Date.now() - 86400000 * 120,
-    createdAt: Date.now() - 86400000 * 120,
-    updatedAt: Date.now() - 86400000 * 10,
-  },
-  {
-    _id: "3",
-    schoolId: "school1",
-    groupId: "group2",
-    tutorId: "tutor2",
-    enrollment: "2024-003",
-    name: "María Fernanda",
-    lastName: "Rodríguez Vega",
-    birthDate: Date.now() - 86400000 * 365 * 14, // 14 años
-    admissionDate: Date.now() - 86400000 * 60,
-    imgUrl: "",
-    status: "inactive",
-    _creationTime: Date.now() - 86400000 * 60,
-    createdAt: Date.now() - 86400000 * 60,
-    updatedAt: Date.now() - 86400000 * 15,
-  },
-  {
-    _id: "4",
-    schoolId: "school1",
-    groupId: "group2",
-    tutorId: "tutor2",
-    enrollment: "2024-004",
-    name: "Diego Alejandro",
-    lastName: "Hernández Morales",
-    birthDate: Date.now() - 86400000 * 365 * 15, // 15 años
-    admissionDate: Date.now() - 86400000 * 30,
-    imgUrl: "",
-    status: "active",
-    _creationTime: Date.now() - 86400000 * 30,
-    createdAt: Date.now() - 86400000 * 30,
-    updatedAt: Date.now() - 86400000 * 2,
-  },
-];
-
-// Mock data para grupos y tutores
-const mockGroups = [
-  { id: "group1", name: "1°A", grade: "1°" },
-  { id: "group2", name: "1°B", grade: "1°" },
-  { id: "group3", name: "2°A", grade: "2°" },
-  { id: "group4", name: "2°B", grade: "2°" },
-];
-
-const mockTutors = [
-  { id: "tutor1", name: "Isabel García Morales" },
-  { id: "tutor2", name: "Carlos Ruiz Silva" },
-];
-
 export default function AlumnosPage() {
+  // Hooks de autenticación y contexto
+  const { user: clerkUser, isLoaded } = useUser();
+  const { currentUser, isLoading: userLoading } = useUserWithConvex(clerkUser?.id);
+  const { currentSchool, isLoading: schoolLoading } = useCurrentSchool(currentUser?._id);
+
+  // Estados locales para filtros
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [groupFilter, setGroupFilter] = useState<string>("all");
+
+  // Hook del student store
+  const {
+    students,
+    filteredStudents,
+    isLoading: studentsLoading,
+    isCreating,
+    isUpdating,
+    isDeleting,
+    error: studentsError,
+    createStudent,
+    updateStudent,
+    updateStudentStatus,
+    deleteStudent,
+    filterStudents,
+    searchStudents,
+    clearError,
+  } = useStudentWithConvex(currentSchool?.school._id as Id<"school">);
+
+  // Queries para obtener grupos y tutores
+  const groups = useQuery(
+    api.functions.group.getAllGroupsBySchool,
+    currentSchool?.school._id ? { schoolId: currentSchool.school._id as Id<"school"> } : 'skip'
+  );
+
+  // Obtener usuarios con rol de tutor de la escuela actual
+  const tutors = useQuery(
+    api.functions.schools.getUsersBySchoolAndRole,
+    currentSchool?.school._id ? { 
+      schoolId: currentSchool.school._id as Id<"school">,
+      role: "tutor",
+      status: "active"
+    } : 'skip'
+  );
+
+  // Estado combinado de loading
+  const isLoading = !isLoaded || userLoading || schoolLoading || studentsLoading;
+
+  // Default values para el formulario
+  const defaultValues = useMemo(() => ({
+    schoolId: currentSchool?.school._id || "",
+    groupId: groups?.[0]?._id || "",
+    tutorId: tutors?.[0]?._id || "",
+    enrollment: "",
+    name: "",
+    lastName: "",
+    status: "active" as const,
+    admissionDate: Date.now(),
+    birthDate: undefined,
+    imgUrl: "",
+  }), [currentSchool?.school._id, groups, tutors]);
 
   // Hook del CRUD Dialog
   const {
@@ -113,40 +100,104 @@ export default function AlumnosPage() {
     openView,
     openDelete,
     close,
-  } = useCrudDialog(studentSchema, {
-    status: "active",
-    admissionDate: Date.now(),
-  });
+  } = useCrudDialog(studentSchema, defaultValues);
 
-  // Filtrado de datos
-  const filteredStudents = useMemo(() => {
-    return mockStudents.filter((student) => {
-      const searchMatch = 
-        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.enrollment.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const statusMatch = statusFilter === "all" || student.status === statusFilter;
-      const groupMatch = groupFilter === "all" || student.groupId === groupFilter;
-      
-      return searchMatch && statusMatch && groupMatch;
-    });
-  }, [searchTerm, statusFilter, groupFilter]);
+  // Aplicar filtros cuando cambien
+  useEffect(() => {
+    if (students.length > 0) {
+      filterStudents({
+        schoolId: currentSchool?.school._id as Id<"school">,
+        groupId: groupFilter !== "all" ? groupFilter as Id<"group"> : undefined,
+        status: statusFilter !== "all" ? statusFilter as "active" | "inactive" : undefined,
+        searchTerm: searchTerm || undefined,
+      });
+    }
+  }, [searchTerm, statusFilter, groupFilter, students, filterStudents, currentSchool]);
 
-  // Funciones CRUD (mock)
-  const handleCreate = async (data: Record<string, unknown>) => {
-    console.log("Crear alumno:", data);
-    // Aquí iría la integración con Convex
+  // Limpiar errores al cambiar
+  useEffect(() => {
+    if (studentsError) {
+      const timer = setTimeout(() => {
+        clearError();
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [studentsError, clearError]);
+
+  // Funciones CRUD reales
+  const handleCreate = async (formData: Record<string, unknown>) => {
+    if (!currentSchool?.school._id) {
+      console.error("No hay escuela seleccionada");
+      return;
+    }
+
+    try {
+      const studentData: CreateStudentData = {
+        schoolId: currentSchool.school._id as Id<"school">,
+        groupId: formData.groupId as Id<"group">,
+        tutorId: formData.tutorId as Id<"user">,
+        enrollment: formData.enrollment as string,
+        name: formData.name as string,
+        lastName: formData.lastName as string || undefined,
+        birthDate: formData.birthDate as number || undefined,
+        admissionDate: formData.admissionDate as number || Date.now(),
+        imgUrl: formData.imgUrl as string || undefined,
+      };
+
+      const result = await createStudent(studentData);
+      
+      if (result) {
+        close();
+      }
+    } catch (error) {
+      console.error("Error al crear estudiante:", error);
+    }
   };
 
-  const handleUpdate = async (data: Record<string, unknown>) => {
-    console.log("Actualizar alumno:", data);
-    // Aquí iría la integración con Convex
+  const handleUpdate = async (formData: Record<string, unknown>) => {
+    if (!data?._id) {
+      console.error("No hay estudiante seleccionado para actualizar");
+      return;
+    }
+
+    try {
+      const updateData: UpdateStudentData = {
+        name: formData.name as string,
+        lastName: formData.lastName as string || undefined,
+        enrollment: formData.enrollment as string,
+        groupId: formData.groupId as Id<"group">,
+        tutorId: formData.tutorId as Id<"user">,
+        birthDate: formData.birthDate as number || undefined,
+        admissionDate: formData.admissionDate as number || undefined,
+        imgUrl: formData.imgUrl as string || undefined,
+      };
+
+      const result = await updateStudent(data._id as Id<"student">, updateData);
+      if (result) {
+        close();
+      }
+    } catch (error) {
+      console.error("Error al actualizar estudiante:", error);
+    }
   };
 
   const handleDelete = async (id: string) => {
-    console.log("Eliminar alumno:", id);
-    // Aquí iría la integración con Convex
+    try {
+      const success = await deleteStudent(id as Id<"student">);
+      if (success) {
+        close();
+      }
+    } catch (error) {
+      console.error("Error al eliminar estudiante:", error);
+    }
+  };
+
+  const handleStatusChange = async (studentId: string, newStatus: "active" | "inactive") => {
+    try {
+      await updateStudentStatus(studentId as Id<"student">, newStatus);
+    } catch (error) {
+      console.error("Error al cambiar estado del estudiante:", error);
+    }
   };
 
   // Funciones de utilidad
@@ -166,13 +217,15 @@ export default function AlumnosPage() {
   };
 
   const getGroupInfo = (groupId: string) => {
-    const group = mockGroups.find(g => g.id === groupId);
+    if (!groups) return "Cargando...";
+    const group = groups.find((g: any) => g._id === groupId);
     return group ? `${group.grade} - ${group.name}` : "No asignado";
   };
 
   const getTutorInfo = (tutorId: string) => {
-    const tutor = mockTutors.find(t => t.id === tutorId);
-    return tutor ? tutor.name : "No asignado";
+    if (!tutors) return "Cargando...";
+    const tutor = tutors.find((t: any) => t._id === tutorId);
+    return tutor ? `${tutor.name} ${tutor.lastName || ''}`.trim() : "No asignado";
   };
 
   const calculateAge = (birthDate?: number) => {
@@ -190,26 +243,112 @@ export default function AlumnosPage() {
   const stats = [
     {
       title: "Total Alumnos",
-      value: mockStudents.length.toString(),
+      value: students.length.toString(),
       icon: Users,
       trend: "Estudiantes registrados"
     },
     {
       title: "Activos",
-      value: mockStudents.filter(student => student.status === "active").length.toString(),
+      value: students.filter((student: any) => student.status === "active").length.toString(),
       icon: UserCheck,
       trend: "Estado activo"
     },
     {
       title: "Inactivos", 
-      value: mockStudents.filter(student => student.status === "inactive").length.toString(),
+      value: students.filter((student: any) => student.status === "inactive").length.toString(),
       icon: UserX,
       trend: "Estado inactivo"
     },
   ];
 
+  // Mostrar loading screen para carga inicial
+  if (isLoading) {
+    return (
+      <div className="space-y-8 p-6">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-background border">
+          <div className="relative p-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-indigo-500/10 rounded-xl">
+                    <GraduationCap className="h-8 w-8 text-indigo-600" />
+                  </div>
+                  <div>
+                    <Skeleton className="h-10 w-48 mb-2" />
+                    <Skeleton className="h-6 w-80" />
+                  </div>
+                </div>
+              </div>
+              <Skeleton className="h-12 w-40" />
+            </div>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-8 w-8 rounded-lg" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-16 mb-2" />
+                <Skeleton className="h-3 w-32" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex gap-4">
+                <Skeleton className="h-10 flex-1" />
+                <Skeleton className="h-10 w-48" />
+                <Skeleton className="h-10 w-48" />
+              </div>
+              <div className="border rounded-md">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="flex items-center p-4 border-b last:border-b-0">
+                    <Skeleton className="h-10 w-10 rounded-full mr-3" />
+                    <div className="flex-1">
+                      <Skeleton className="h-4 w-48 mb-2" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                    <Skeleton className="h-8 w-20 mr-4" />
+                    <Skeleton className="h-8 w-16 mr-4" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-8 w-8" />
+                      <Skeleton className="h-8 w-8" />
+                      <Skeleton className="h-8 w-8" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 p-6">
+      {/* Mostrar errores */}
+      {studentsError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {studentsError}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-background border">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
@@ -228,9 +367,18 @@ export default function AlumnosPage() {
                 </div>
               </div>
             </div>
-            <Button size="lg" className="gap-2" onClick={openCreate}>
-              <Plus className="w-4 h-4" />
-              Agregar Alumno
+            <Button 
+              size="lg" 
+              className="gap-2" 
+              onClick={openCreate}
+              disabled={isCreating || !currentSchool}
+            >
+              {isCreating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Plus className="w-4 h-4" />
+              )}
+              {isCreating ? "Creando..." : "Agregar Alumno"}
             </Button>
           </div>
         </div>
@@ -298,13 +446,17 @@ export default function AlumnosPage() {
               <SelectTrigger className="w-full md:w-48">
                 <SelectValue placeholder="Grupo" />
               </SelectTrigger>
-              <SelectContent>
+                              <SelectContent>
                 <SelectItem value="all">Todos los grupos</SelectItem>
-                {mockGroups.map(group => (
-                  <SelectItem key={group.id} value={group.id}>
+                {groups?.map((group: any) => (
+                  <SelectItem key={group._id} value={group._id}>
                     {group.grade} - {group.name}
                   </SelectItem>
-                ))}
+                )) || (
+                  <SelectItem value="loading" disabled>
+                    Cargando grupos...
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -334,7 +486,7 @@ export default function AlumnosPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredStudents.map((student) => (
+                {(filteredStudents.length > 0 ? filteredStudents : students).map((student: any) => (
                   <TableRow key={student._id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -398,16 +550,26 @@ export default function AlumnosPage() {
                           size="sm"
                           onClick={() => openEdit(student)}
                           className="h-8 w-8 p-0"
+                          disabled={isUpdating || isDeleting}
                         >
-                          <Edit className="h-4 w-4" />
+                          {isUpdating ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Edit className="h-4 w-4" />
+                          )}
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => openDelete(student)}
                           className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          disabled={isUpdating || isDeleting}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          {isDeleting ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
                     </TableCell>
@@ -417,7 +579,7 @@ export default function AlumnosPage() {
             </Table>
           </div>
           
-          {filteredStudents.length === 0 && (
+          {(filteredStudents.length === 0 && students.length === 0) && (
             <div className="text-center py-12">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">No se encontraron alumnos</h3>
@@ -455,6 +617,7 @@ export default function AlumnosPage() {
             : undefined
         }
         schema={studentSchema}
+        defaultValues={defaultValues}
         data={data}
         isOpen={isOpen}
         onOpenChange={close}
@@ -465,6 +628,18 @@ export default function AlumnosPage() {
       >
         {(form, currentOperation) => (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Campo oculto para schoolId */}
+            <FormField
+              control={form.control}
+              name="schoolId"
+              render={({ field }) => (
+                <input 
+                  {...field} 
+                  type="hidden" 
+                  value={currentSchool?.school._id || ""} 
+                />
+              )}
+            />
             <FormField
               control={form.control}
               name="name"
@@ -564,11 +739,15 @@ export default function AlumnosPage() {
                         <SelectValue placeholder="Seleccionar grupo" />
                       </SelectTrigger>
                       <SelectContent>
-                        {mockGroups.map(group => (
-                          <SelectItem key={group.id} value={group.id}>
+                        {groups?.map((group: any) => (
+                          <SelectItem key={group._id} value={group._id}>
                             {group.grade} - {group.name}
                           </SelectItem>
-                        ))}
+                        )) || (
+                          <SelectItem value="loading" disabled>
+                            Cargando grupos...
+                          </SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </FormControl>
@@ -580,30 +759,75 @@ export default function AlumnosPage() {
             <FormField
               control={form.control}
               name="tutorId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tutor *</FormLabel>
-                  <FormControl>
-                    <Select 
-                      value={field.value as string} 
-                      onValueChange={field.onChange}
-                      disabled={currentOperation === "view"}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar tutor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mockTutors.map(tutor => (
-                          <SelectItem key={tutor.id} value={tutor.id}>
-                            {tutor.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
+              render={({ field }) => {
+                const selectedTutor = tutors?.find((tutor: any) => tutor._id === field.value);
+                const [open, setOpen] = useState(false);
+                
+                return (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Tutor *</FormLabel>
+                    <Popover open={open} onOpenChange={setOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={`w-full justify-between ${!field.value && "text-muted-foreground"}`}
+                            disabled={currentOperation === "view"}
+                          >
+                            {selectedTutor 
+                              ? `${selectedTutor.name} ${selectedTutor.lastName || ''}`
+                              : "Seleccionar tutor"
+                            }
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Buscar tutor..." className="h-9" />
+                        <CommandList>
+                          <CommandEmpty>No se encontró ningún tutor.</CommandEmpty>
+                          <CommandGroup>
+                            {tutors?.map((tutor: any) => (
+                              <CommandItem
+                                value={`${tutor.name} ${tutor.lastName || ''}`}
+                                key={tutor._id}
+                                onSelect={() => {
+                                  field.onChange(tutor._id);
+                                  setOpen(false);
+                                }}
+                              >
+                                <div className="flex flex-col">
+                                  <span className="font-medium">
+                                    {tutor.name} {tutor.lastName || ''}
+                                  </span>
+                                  <span className="text-sm text-muted-foreground">
+                                    {tutor.email}
+                                  </span>
+                                </div>
+                                <Check
+                                  className={`ml-auto h-4 w-4 ${
+                                    tutor._id === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  }`}
+                                />
+                              </CommandItem>
+                            )) || (
+                              <CommandItem disabled>
+                                Cargando tutores...
+                              </CommandItem>
+                            )}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
-              )}
+                );
+              }}
             />
 
             {currentOperation === "view" && data && (
