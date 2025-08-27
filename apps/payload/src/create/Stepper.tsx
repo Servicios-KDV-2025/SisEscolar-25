@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import { defineStepper } from '@/components/ui/stepper'
 import { Button } from '@/components/ui/button'
 import { School, User, CopySlash } from 'lucide-react'
-import { useAuth } from '@clerk/nextjs'
+import { useAuth, useUser } from '@clerk/nextjs'
 import { SignUp } from './Auth/SignUp'
 import { SignIn } from './Auth/SignIn'
 import { Prices } from './Prices/Prices'
@@ -77,13 +77,17 @@ interface ContentProps {
 }
 
 const Content: React.FC<ContentProps> = (props) => {
+  const { user, isLoaded} = useUser() // respaldo solo para DEV
+
+  if(!isLoaded) return null
+
   return (
     <StepperUi.Panel className="h-[200px] content-center rounded border bg-secondary text-secondary-foreground p-8">
       <p className="text-xl font-normal mb-4">
         Casi estás por terminar. Da clic en “Pagar ahora” para ir a Stripe.
       </p>
 
-      <PayNowButton priceId={props.priceId} schoolId={props.schoolId} />
+      <PayNowButton priceId={props.priceId} schoolId={props.schoolId} userId={user?.id}/>
     </StepperUi.Panel>
   )
 }

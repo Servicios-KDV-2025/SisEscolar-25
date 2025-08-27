@@ -4,17 +4,17 @@ import { auth } from '@clerk/nextjs/server'
 import React, { useState } from 'react'
 import { useAuth } from '@clerk/nextjs'
 
-type Props = { priceId: string; schoolId?: string; endpoint?: string; id?: string }
+type Props = { priceId: string; schoolId?: string; endpoint?: string; id?: string ; userId : string}
 
 export default function PayNowButton({
   priceId,
   schoolId,
+  userId,
   endpoint = '/api/checkout',
   id = 'pay-now',
 }: Props) {
   const [loading, setLoading] = useState(false)
-  const { userId } = useAuth() // respaldo solo para DEV
-
+  
   const resolveSchoolId = () =>
     schoolId ??
     (typeof window !== 'undefined' ? (localStorage.getItem('schoolId') ?? undefined) : undefined)
