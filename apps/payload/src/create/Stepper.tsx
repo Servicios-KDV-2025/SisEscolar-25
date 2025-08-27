@@ -22,16 +22,7 @@ export const Stepper: React.FC = () => {
   const { isSignedIn, isLoaded } = useAuth()
   const [ready, setReady] = useState(false)
   const [isSelect, setSelected] = useState<string>()
-  const methods = useStepper()
-
-  const onFihishStep = () => {
-    methods.next()
-  }
-
-  const onSelectPrice = (idStripe: string) => {
-    setSelected(idStripe)
-    onFihishStep()
-  }
+  const [schooldId, setSchoolId] = useState<string>()
 
   return (
     <StepperUi.Provider className="space-y-4" labelOrientation="vertical">
@@ -44,6 +35,16 @@ export const Stepper: React.FC = () => {
         }, [isSignedIn, isLoaded, methods])
 
         if (!ready) return null
+
+        const onFihishStepSchool = (idSchool: string) => {
+          setSchoolId(idSchool)
+          methods.next()
+        }
+
+        const onSelectPrice = (idStripe: string) => {
+          setSelected(idStripe)
+          methods.next()
+        }
 
         return (
           <>
@@ -58,9 +59,9 @@ export const Stepper: React.FC = () => {
 
             {methods.switch({
               'step-1': () => <ClerkComponent />,
-              'step-2': () => <SchoolForm onNext={onFihishStep} />,
+              'step-2': () => <SchoolForm onNext={onFihishStepSchool} />,
               'step-3': () => <Prices onSelect={onSelectPrice} />,
-              'step-4': () => <Content priceId={isSelect!} />,
+              'step-4': () => <Content priceId={isSelect!} schoolId={schooldId!} />,
             })}
           </>
         )
@@ -71,6 +72,7 @@ export const Stepper: React.FC = () => {
 
 interface ContentProps {
   priceId: string
+  schoolId: string
 }
 
 const Content: React.FC<ContentProps> = (props) => {
@@ -80,7 +82,7 @@ const Content: React.FC<ContentProps> = (props) => {
         Estás a punto de salir a una página externa para pagar. No cierres esta ventana.
       </p>
 
-      <PayNowButton priceId={props.priceId} />
+      <PayNowButton priceId={props.priceId} schoolName={props.schoolId} />
     </StepperUi.Panel>
   )
 }

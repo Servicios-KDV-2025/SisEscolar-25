@@ -28,7 +28,7 @@ interface SchoolFormData {
 
 interface SchoolFormProps {
   onSuccess?: (schoolData: SchoolFormData) => void
-  onNext: () => void
+  onNext: (data: string) => void
 }
 
 function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
@@ -148,7 +148,7 @@ function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
       // Llamar a la función de éxito si existe
       if (onSuccess) {
         onSuccess(formData)
-        onNext()
+        onNext(result.schoolId)
       }
 
       // Limpiar el formulario

@@ -1,18 +1,26 @@
 'use client'
+import { useSession, useUser } from '@clerk/nextjs'
+import { auth } from '@clerk/nextjs/server'
 import React, { useState } from 'react'
 
 type Props = {
   priceId: string
-  endpoint?: string   // por defecto /api/checkout
+  schoolName: string
+  endpoint?: string // por defecto /api/checkout
   id?: string
 }
 
 export default function PayNowButton({
   priceId,
+  schoolName,
   endpoint = '/api/checkout',
   id = 'pay-now',
 }: Props) {
   const [loading, setLoading] = useState(false)
+
+  const { user, isLoaded } = useUser()
+
+  if (!isLoaded) return null
 
   const handleClick = async () => {
     if (!priceId) return alert('Falta priceId')
@@ -21,7 +29,7 @@ export default function PayNowButton({
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priceId }),
+        body: JSON.stringify({ priceId, schoolName, userName: user!.id }),
       })
       const data = await res.json()
       if (res.ok && data?.url) window.location.href = data.url
@@ -46,8 +54,18 @@ export default function PayNowButton({
     >
       {loading ? 'Redirigiendo…' : 'Pagar ahora'}
       {!loading && (
-        <svg className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        <svg
+          className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M13 7l5 5m0 0l-5 5m5-5H6"
+          />
         </svg>
       )}
     </button>
