@@ -87,9 +87,9 @@ export default buildConfig({
       connectionString: process.env.POSTGRES_URL || '',
     },
   }),
-  collections: [Pages, Posts, Media, Categories, Users, Prices, Payments,CheckoutButtons],
-  endpoints:[
-{
+  collections: [Pages, Posts, Media, Categories, Users, Prices, Payments, CheckoutButtons],
+  endpoints: [
+    {
       path: '/checkout',
       method: 'post',
       handler: stripeCheckout,
@@ -99,8 +99,7 @@ export default buildConfig({
       method: 'post',
       handler: paymentSession,
     },
-   { path: '/api/payment-session', method: 'get',  handler: paymentSession }, 
-   
+    { path: '/api/payment-session', method: 'get', handler: paymentSession },
   ],
   blocks: [
     Archive,
