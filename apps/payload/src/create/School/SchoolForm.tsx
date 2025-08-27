@@ -28,10 +28,11 @@ interface SchoolFormData {
 
 interface SchoolFormProps {
   onSuccess?: (schoolData: SchoolFormData) => void
-  onNext: (data: string) => void
+  onSchoolSelected?: (id: string) => void
+  onNext?: () => void
 }
 
-function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
+function SchoolForm({ onSuccess, onSchoolSelected, onNext }: SchoolFormProps) {
   const { user } = useUser()
   const createSchoolWithUser = useMutation(api.functions.schools.createSchoolWithUser)
 
@@ -139,11 +140,32 @@ function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
         imgUrl: formData.imgUrl.trim() || '/default-school.jpg',
         phone: formData.phone.trim(),
         email: formData.email.trim(),
-        userId: user.id as Id<'user'>,
+        userId: user.id, // si tu mutation espera Clerk ID (string)
+        // userId: convexUserId,                  // si espera Id<"user"> de Convex
       })
 
       console.log('Escuela creada:', result)
       setSuccess(true)
+
+      type CreateSchoolResp = { schoolId: string; userSchoolId?: string; message?: string }
+
+      // Extrae el id de forma segura (sea string u objeto)
+
+      const schoolId = String(
+        typeof result === 'string' ? result : ((result as CreateSchoolResp).schoolId ?? ''),
+      )
+
+      if (!schoolId) {
+        console.error('Respuesta de createSchoolWithUser:', result)
+        setError('No se recibió el ID de la escuela desde el servidor')
+        return
+      }
+
+      // envía el id al Stepper
+      onSchoolSelected?.(schoolId)
+      try {
+        localStorage.setItem('schoolId', schoolId)
+      } catch {}
 
       // Llamar a la función de éxito si existe
       if (onSuccess) {
@@ -170,20 +192,18 @@ function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
       setIsLoading(false)
     }
   }
-   if (success) {
+  if (success) {
     return (
       <Card className="w-full max-w-2xl mx-auto">
         <CardContent className="pt-6">
           <div className="text-center">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">¡Escuela creada exitosamente!</h3>
-            <p className="text-muted-foreground mb-4">
-              Puedes continuar con el siguiente paso.
-            </p>
+            <p className="text-muted-foreground mb-4">Puedes continuar con el siguiente paso.</p>
           </div>
         </CardContent>
       </Card>
-    );
+    )
   }
 
   return (

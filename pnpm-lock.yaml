@@ -63,6 +63,9 @@ importers:
 
   apps/payload:
     dependencies:
+      '@clerk/backend':
+        specifier: ^2.6.1
+        version: 2.6.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@clerk/nextjs':
         specifier: ^6.25.5
         version: 6.25.5(next@15.3.3(@babel/core@7.28.0)(@playwright/test@1.50.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(sass@1.77.4))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -159,6 +162,9 @@ importers:
       '@stepperize/react':
         specifier: ^5.1.6
         version: 5.1.6(react@19.1.0)(typescript@5.7.3)
+      '@stripe/stripe-js':
+        specifier: ^7.9.0
+        version: 7.9.0
       '@tailwindcss/postcss':
         specifier: ^4.1.11
         version: 4.1.11
@@ -216,6 +222,9 @@ importers:
       stripe:
         specifier: ^18.4.0
         version: 18.4.0(@types/node@22.5.4)
+      svix:
+        specifier: ^1.69.0
+        version: 1.69.0
       tailwind-merge:
         specifier: ^2.3.0
         version: 2.6.0
@@ -3145,6 +3154,10 @@ packages:
     peerDependencies:
       react: ^17.0.0 || ^18.0.0 || ^19.0.0
 
+  '@stripe/stripe-js@7.9.0':
+    resolution: {integrity: sha512-ggs5k+/0FUJcIgNY08aZTqpBTtbExkJMYMLSMwyucrhtWexVOEY1KJmhBsxf+E/Q15f5rbwBpj+t0t2AW2oCsQ==}
+    engines: {node: '>=12.16'}
+
   '@swc/counter@0.1.3':
     resolution: {integrity: sha512-e2BR4lsJkkRlKZ/qCHPw9ZaSxc0MVUd7gtbtaB7aMvHeJVYe8sOB8DBZkP2DtISHGSku9sCK6T6cnY0CtXrOCQ==}
 
@@ -5921,6 +5934,7 @@ packages:
     engines: {node: '>=0.6'}
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> Stashed changes
 =======
   qs@6.14.0:
@@ -5928,6 +5942,8 @@ packages:
     engines: {node: '>=0.6'}
 
 >>>>>>> 7809ffe865250cc5ca57f3dd0cb5ed1601295ee0
+=======
+>>>>>>> f1287fcc2fef433da7f3f9594fd028ec69140c71
   querystringify@2.2.0:
     resolution: {integrity: sha512-FIqgj2EUvTa7R50u0rGsyTftzjYmv/a3hO345bZNrqabNqjtgiDMgmo4mkUjd+nzU5oF3dClKqFIPUKybUyqoQ==}
 
@@ -10473,6 +10489,8 @@ snapshots:
       react: 19.1.0
     transitivePeerDependencies:
       - typescript
+
+  '@stripe/stripe-js@7.9.0': {}
 
   '@swc/counter@0.1.3': {}
 

@@ -1,4 +1,3 @@
-// src/collections/CheckoutButtons.ts
 import type { CollectionConfig } from 'payload'
 
 const CheckoutButtons: CollectionConfig = {

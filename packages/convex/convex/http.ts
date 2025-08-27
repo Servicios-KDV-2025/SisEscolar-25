@@ -4,6 +4,7 @@ import { internal } from "./_generated/api";
 import type { WebhookEvent } from "@clerk/backend";
 import { Webhook } from "svix";
 import Stripe from "stripe";
+import type { Id } from "./_generated/dataModel";
 
 const http = httpRouter();
 
@@ -34,6 +35,7 @@ http.route({
           console.log(`Successfully deleted user: ${clerkUserId}`);
           break;
         }
+        
         default:
           console.log("Ignored Clerk webhook event", event.type);
       }
@@ -129,23 +131,37 @@ async function handleCheckoutSessionCompleted(ctx: any, session: Stripe.Checkout
     throw new Error("Faltan datos necesarios en checkout session");
   }
 
-  const subscriptionDetails = await stripe.subscriptions.retrieve(subscription as string);
-  const plan = subscriptionDetails.items.data[0]?.price;
-  console.log(session)
+  // 1) Mapear Clerk ID -> Convex ID
+  const userDoc = await ctx.db
+    .query("user")
+    .filter((q: any) => q.eq(q.field("clerkId"), metadata.userId)) // Clerk ID que mandaste en metadata
+    .unique();
+
+  if (!userDoc?._id) {
+    throw new Error("Usuario de Convex no encontrado para ese Clerk ID");
+  }
+
+  // 2) Datos de la suscripción en Stripe
+  const sub = (await stripe.subscriptions.retrieve(subscription as string)) as Stripe.Subscription;
+  const plan = sub.items.data[0]?.price;
+
+  const currentPeriodStart: number = (sub as any).current_period_start ?? 0; // epoch (s)
+  const currentPeriodEnd: number   = (sub as any).current_period_end   ?? 0; // epoch (s)
   
+
+  // 3) Guardar suscripción usando IDs de Convex (NO Clerk IDs)
   await ctx.runMutation(internal.functions.schoolSubscriptions.saveSubscription, {
-    schoolId: metadata.schoolId,
-    userId: metadata.userId,
+    schoolId: metadata.schoolId as Id<"school">,
+    userId: userDoc._id as Id<"user">,
     stripeCustomerId: customer as string,
     stripeSubscriptionId: subscription as string,
     currency: plan?.currency || "usd",
     plan: plan?.id || "unknown",
-    status: "trialing",
-    currentPeriodStart: subscriptionDetails.created,
-    currentPeriodEnd: session.expires_at,
+    status: sub.status ?? "trialing",
+    currentPeriodStart,
+    currentPeriodEnd
   });
 }
-
 async function handleInvoicePaymentSucceeded(ctx: any, invoice: Stripe.Invoice) {
   console.log("✅ invoice.payment_succeeded");
   console.log(invoice)

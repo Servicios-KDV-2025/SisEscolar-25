@@ -2,38 +2,42 @@
 import { useSession, useUser } from '@clerk/nextjs'
 import { auth } from '@clerk/nextjs/server'
 import React, { useState } from 'react'
+import { useAuth } from '@clerk/nextjs'
 
-type Props = {
-  priceId: string
-  schoolName: string
-  endpoint?: string // por defecto /api/checkout
-  id?: string
-}
+type Props = { priceId: string; schoolId?: string; endpoint?: string; id?: string }
 
 export default function PayNowButton({
   priceId,
-  schoolName,
+  schoolId,
   endpoint = '/api/checkout',
   id = 'pay-now',
 }: Props) {
   const [loading, setLoading] = useState(false)
+  const { userId } = useAuth() // respaldo solo para DEV
 
-  const { user, isLoaded } = useUser()
-
-  if (!isLoaded) return null
+  const resolveSchoolId = () =>
+    schoolId ??
+    (typeof window !== 'undefined' ? (localStorage.getItem('schoolId') ?? undefined) : undefined)
 
   const handleClick = async () => {
     if (!priceId) return alert('Falta priceId')
+    const finalSchoolId = resolveSchoolId()
+    if (!finalSchoolId) return alert('Selecciona una escuela antes de pagar')
+
     try {
       setLoading(true)
+      const body: any = { priceId, schoolId: finalSchoolId }
+      if (process.env.NODE_ENV !== 'production' && userId) body.userId = userId // fallback dev
+
       const res = await fetch(endpoint, {
         method: 'POST',
+        credentials: 'include', // 🔑 envía cookies (Clerk)
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priceId, schoolName, userName: user!.id }),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
       if (res.ok && data?.url) window.location.href = data.url
-      else alert(data?.error || 'No se pudo iniciar el pago')
+      else alert(data?.error || 'Unauthorized')
     } catch (e) {
       console.error('Checkout failed', e)
       alert('Error al iniciar el checkout')
@@ -43,31 +47,8 @@ export default function PayNowButton({
   }
 
   return (
-    <button
-      id={id}
-      onClick={handleClick}
-      disabled={loading || !priceId}
-      className="group inline-flex items-center justify-center px-6 py-3 text-base font-semibold text-white
-                 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg hover:shadow-xl
-                 transition-all duration-300 ease-in-out hover:from-indigo-700 hover:to-purple-700
-                 focus:outline-none focus:ring-4 focus:ring-indigo-300 disabled:opacity-60 disabled:cursor-not-allowed"
-    >
+    <button id={id} onClick={handleClick} disabled={loading || !priceId}>
       {loading ? 'Redirigiendo…' : 'Pagar ahora'}
-      {!loading && (
-        <svg
-          className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M13 7l5 5m0 0l-5 5m5-5H6"
-          />
-        </svg>
-      )}
     </button>
   )
 }

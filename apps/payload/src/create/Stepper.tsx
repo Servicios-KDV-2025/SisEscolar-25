@@ -80,7 +80,7 @@ const Content: React.FC<ContentProps> = (props) => {
   return (
     <StepperUi.Panel className="h-[200px] content-center rounded border bg-secondary text-secondary-foreground p-8">
       <p className="text-xl font-normal mb-4">
-        Estás a punto de salir a una página externa para pagar. No cierres esta ventana.
+        Casi estás por terminar. Da clic en “Pagar ahora” para ir a Stripe.
       </p>
 
       <PayNowButton priceId={props.priceId} schoolName={props.schoolId} />
@@ -91,7 +91,6 @@ const Content: React.FC<ContentProps> = (props) => {
 const ClerkComponent: React.FC = () => {
   const [showSignIn, setShowSignIn] = React.useState(false)
   const methods = useStepper()
-
   return showSignIn ? (
     <SignIn onBackToSignUp={() => setShowSignIn(false)} onClick={() => methods.next()} />
   ) : (
