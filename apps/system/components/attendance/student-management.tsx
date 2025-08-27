@@ -1,12 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Search, Edit, Trash2, Mail, Phone } from "@repo/ui/icons"
+import { Search, Mail, Phone } from "@repo/ui/icons"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
-import { Button } from "@repo/ui/components/shadcn/button"
 import { Input } from "@repo/ui/components/shadcn/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/shadcn/avatar"
-import { Label } from "@repo/ui/components/shadcn/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select"
 import { Badge } from "@repo/ui/components/shadcn/badge"
 import { StudentClass } from "@/types/attendance"
