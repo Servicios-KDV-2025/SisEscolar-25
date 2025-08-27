@@ -126,14 +126,14 @@ export const useSubject = (schoolId?: string) => {
 
     // Query para obtener las materias de la escuela
     const subjectsQuery = useQuery(
-        api.functions.subjet.getAllSubjetsBySchool,
+        api.functions.subject.getAllSubjectsBySchool,
         schoolId ? { schoolId: schoolId as Id<"school"> } : "skip"
     );
 
     // Mutations
-    const createSubjectMutation = useMutation(api.functions.subjet.createSubjectWithSchoolId);
-    const updateSubjectMutation = useMutation(api.functions.subjet.updateSubjectWithSchoolId);
-    const deleteSubjectMutation = useMutation(api.functions.subjet.deleteSubjectWithSchoolId);
+    const createSubjectMutation = useMutation(api.functions.subject.createSubjectWithSchoolId);
+    const updateSubjectMutation = useMutation(api.functions.subject.updateSubjectWithSchoolId);
+    const deleteSubjectMutation = useMutation(api.functions.subject.deleteSubjectWithSchoolId);
 
     // CREATE
     const createSubject = useCallback(async (data: CreateSubjectData) => {
@@ -208,7 +208,7 @@ export const useSubject = (schoolId?: string) => {
                     credits: m.credits ?? undefined,
                     status: m.status,
                     updatedAt: m.updatedAt ?? Date.now(),
-                    updatedBy: m.updatedBy ?? "unknown"
+                    updatedBy: m.updatedBy
                 }))
             );
         }
