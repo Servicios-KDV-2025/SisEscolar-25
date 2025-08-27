@@ -37,6 +37,7 @@ export const Stepper: React.FC = () => {
         if (!ready) return null
 
         const onFihishStepSchool = (idSchool: string) => {
+          alert(idSchool)
           setSchoolId(idSchool)
           methods.next()
         }

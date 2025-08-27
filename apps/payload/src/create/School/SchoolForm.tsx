@@ -148,7 +148,6 @@ function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
       // Llamar a la función de éxito si existe
       if (onSuccess) {
         onSuccess(formData)
-        onNext(result.schoolId)
       }
 
       // Limpiar el formulario
@@ -163,6 +162,7 @@ function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
         phone: '',
         email: '',
       })
+      onNext(result.schoolId)
     } catch (err: any) {
       console.error('Error creating school:', err)
       setError(err.message || 'Error al crear la escuela. Por favor, inténtalo de nuevo.')

@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import React from 'react'
 import PageClient from './page.client'
 import { Stepper } from '@/create/Stepper'
-import { Badge, Star } from 'lucide-react'
+import { Badge, Shield, Star, Users, Zap } from 'lucide-react'
 
 export default function Page() {
   return (
@@ -25,6 +25,33 @@ export default function Page() {
             Automatiza procesos, mejora la productividad y escala tu negocio con nuestra solución
             integral diseñada para empresas modernas.
           </p>
+        </div>
+      </section>
+      <section className="py-8 px-4 border-y bg-muted/30">
+        <div className="container mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+            <div className="flex items-center justify-center space-x-3">
+              <Shield className="h-8 w-8 text-primary" />
+              <div>
+                <div className="font-semibold">Seguridad Enterprise</div>
+                <div className="text-sm text-muted-foreground">Certificación SOC 2 Type II</div>
+              </div>
+            </div>
+            <div className="flex items-center justify-center space-x-3">
+              <Users className="h-8 w-8 text-primary" />
+              <div>
+                <div className="font-semibold">99.9% Uptime</div>
+                <div className="text-sm text-muted-foreground">SLA garantizado</div>
+              </div>
+            </div>
+            <div className="flex items-center justify-center space-x-3">
+              <Zap className="h-8 w-8 text-primary" />
+              <div>
+                <div className="font-semibold">Soporte 24/7</div>
+                <div className="text-sm text-muted-foreground">Respuesta en &lt; 2 horas</div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
