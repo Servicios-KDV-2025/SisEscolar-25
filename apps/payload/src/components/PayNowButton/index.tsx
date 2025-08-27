@@ -25,7 +25,7 @@ export default function PayNowButton({
 
     try {
       setLoading(true)
-      const body: any = { priceId, schoolId: finalSchoolId}
+      const body: any = { priceId, schoolId: finalSchoolId  ,userName: userId }
       if (process.env.NODE_ENV !== 'production' && userId) body.userId = userId // fallback dev
 
       const res = await fetch(endpoint, {
