@@ -246,25 +246,24 @@ const applicationTable = defineSchema({
 
     //Clases
     classCatalog: defineTable({
-        schoolId: v.id("school"),
-        schoolCycleId: v.id("schoolCycle"),
-        subjectId: v.id("subject"),
-        classroomId: v.id("classroom"),
-        teacherId: v.id("user"),
-        groupId: v.optional(v.id("group")),
-        name: v.string(),
-        status: v.union(
-            v.literal('active'),
-            v.literal('inactive')
-        ),
-        createdBy: v.optional(v.id("user")),
-        updatedAt: v.number(),
-    })
-        .index("by_cycle", ["schoolCycleId"])
-        .index("by_subject", ["subjectId"])
-        .index("by_classroom", ["classroomId"])
-        .index("by_teacher", ["teacherId"]),
- 
+    termId: v.id("term"),
+    schoolId: v.id("school"),
+    schoolCycleId: v.id("schoolCycle"),
+    subjectId: v.id("subject"),
+    classroomId: v.id("classroom"),
+    teacherId: v.id("user"),
+    groupId: v.optional(v.id("group")),
+    // scheduleId: v.id("schedule"),
+    name: v.string(),
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    createdBy: v.optional(v.id("user")),
+    updatedAt: v.optional(v.number()),
+  }).index("by_term", ["termId"])
+    .index("by_school", ["schoolId"])
+    .index("by_cycle", ["schoolCycleId"])
+    .index("by_subject", ["subjectId"])
+    .index("by_classroom", ["classroomId"])
+    .index("by_teacher", ["teacherId"]),
 
   //Relación entre clases y horarios
   classSchedule: defineTable({
@@ -307,13 +306,15 @@ const applicationTable = defineSchema({
   //Eventos del calendario escolar
   calendar: defineTable({
     schoolCycleId: v.id("schoolCycle"),
+    schoolId: v.id("school"),
     date: v.number(),
     eventTypeId: v.id("eventType"),
     description: v.optional(v.string()),
-    active: v.boolean(),
+    status: v.union(v.literal("active"), v.literal("inactive")),
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
   })
+    .index("by_school", ["schoolId"])
     .index("by_cycle", ["schoolCycleId"])
     .index("by_date", ["date"]),
 
@@ -325,7 +326,7 @@ const applicationTable = defineSchema({
     description: v.optional(v.string()),
     color: v.optional(v.string()),
     icon: v.optional(v.string()),
-    active: v.boolean(),
+    status: v.union(v.literal("active"), v.literal("inactive")),
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
   }).index("by_school", ["schoolId"]),

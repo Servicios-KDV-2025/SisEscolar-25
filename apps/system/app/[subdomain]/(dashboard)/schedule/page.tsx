@@ -10,7 +10,7 @@ import { useUserWithConvex } from "stores/userStore";
 import { useCrudDialog, CrudDialog } from "@repo/ui/components/dialog/crud-dialog";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
 import { Input } from "@repo/ui/components/shadcn/input";
-import { toast } from "sonner";
+// import { toast } from "sonner";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@repo/ui/components/shadcn/select";
 import { ScheduleFormData, scheduleSchema } from "schema/scheduleSchema"; 
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card";
@@ -80,7 +80,7 @@ export default function SchedulePage() {
   // Ejemplo: crear un horario rapido
   const handleSubmit = async (values: Record<string, unknown>) => {
     if(!currentSchool?.school._id){
-      toast.error('Error: Escuela no seleccionada')
+      // toast.error('Error: Escuela no seleccionada')
       return 
     } 
 
@@ -98,7 +98,7 @@ export default function SchedulePage() {
           status: value.status as 'active' | 'inactive',
           updatedAt: Date.now()
         })
-        toast.success('Horario creado exitosamente')
+        // toast.success('Horario creado exitosamente')
       } else if(operation === 'edit' && data?._id) {
         await updateSchedule({
           id: data._id,
@@ -111,7 +111,7 @@ export default function SchedulePage() {
           status: value.status as 'active' | 'inactive',
           updatedAt: Date.now()
         })
-        toast.success('Horario actualizado exitosamente')
+        // toast.success('Horario actualizado exitosamente')
       }
     } catch (error) {
       console.error('Error en operación CRUD:', error);
@@ -122,13 +122,13 @@ export default function SchedulePage() {
 
   const handleDelete = async (id: string) => {
     if (!currentSchool?.school._id) {
-      toast.error('Error: Escuela no seleccionada');
+      // toast.error('Error: Escuela no seleccionada');
       return
     }
 
     try {
       await deleteSchedule(id, currentSchool.school._id);
-      toast.success('Eliminado correctamente')
+      // toast.success('Eliminado correctamente')
     } catch (error) {
       console.error('Error al eliminar horario:', error);
       throw error;
