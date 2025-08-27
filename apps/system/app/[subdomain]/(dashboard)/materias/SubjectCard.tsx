@@ -36,9 +36,12 @@ export function SubjectCard({ subject, openEdit, openView, openDelete, isUpdatin
         });
     }
 
-    const user = useQuery(api.functions.users.getUserById, {
-        userId: subject.updatedBy as Id<"user">
-    });
+    const user = useQuery(
+        api.functions.users.getUserById,
+        subject.updatedBy
+            ? { userId: subject.updatedBy as Id<"user"> }
+            : 'skip'
+    );
 
     return (
         <Card className="w-full max-w-md hover:shadow-lg transition-shadow duration-200 flex flex-col h-full">

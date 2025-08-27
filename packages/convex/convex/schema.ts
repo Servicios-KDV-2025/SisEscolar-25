@@ -253,7 +253,7 @@ const applicationTable = defineSchema({
     name: v.string(),
     status: v.union(v.literal("active"), v.literal("inactive")),
     createdBy: v.optional(v.id("user")),
-    updatedAt: v.number(),
+    updatedAt: v.optional(v.number()),
   }).index("by_term", ["termId"])
     .index("by_school", ["schoolId"])
     .index("by_cycle", ["schoolCycleId"])

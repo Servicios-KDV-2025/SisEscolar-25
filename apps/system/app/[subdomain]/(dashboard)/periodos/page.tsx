@@ -40,7 +40,7 @@ import { useUserWithConvex } from "../../../../stores/userStore";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
-import { toast } from "sonner"; // Importación de Sonner
+// import { toast } from "sonner"; // Importación de Sonner
 import { Toaster } from "@repo/ui/components/shadcn/sonner"; // Componente Toaster de shadcn/ui
 import { z } from "zod";
 import { termFormSchema } from "app/shemas/term";
@@ -190,7 +190,7 @@ export default function PeriodsManagement() {
 
     if (isKeyDuplicate) {
       setValidationErrors({ key: "La clave del periodo ya existe." });
-      toast.error("La clave del periodo ya existe.");
+      // toast.error("La clave del periodo ya existe.");
       return;
     }
 
@@ -227,11 +227,11 @@ export default function PeriodsManagement() {
         });
       }
       setIsModalOpen(false);
-      toast.success(
-        editingTerm
-          ? "Periodo actualizado con éxito"
-          : "Periodo creado con éxito"
-      );
+      // toast.success(
+      //   editingTerm
+      //     ? "Periodo actualizado con éxito"
+      //     : "Periodo creado con éxito"
+      // );
     } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {};
@@ -240,10 +240,10 @@ export default function PeriodsManagement() {
           fieldErrors[path] = err.message;
         });
         setValidationErrors(fieldErrors);
-        toast.error("Por favor, corrige los errores en el formulario.");
+        // toast.error("Por favor, corrige los errores en el formulario.");
       } else {
         console.error("Error al guardar el periodo:", error);
-        toast.error("Ocurrió un error al guardar el periodo.");
+        // toast.error("Ocurrió un error al guardar el periodo.");
       }
     }
   };
@@ -253,10 +253,10 @@ export default function PeriodsManagement() {
   const handleDeleteConfirmed = async (id: Id<"term">) => {
     try {
       await deleteTermMutation({ termId: id });
-      toast.success("Periodo eliminado con éxito.");
+      // toast.success("Periodo eliminado con éxito.");
     } catch (error: unknown) {
       console.error("Error al eliminar el periodo:", error);
-      toast.error("Ocurrió un error al eliminar el periodo.");
+      // toast.error("Ocurrió un error al eliminar el periodo.");
     }
   };
 
