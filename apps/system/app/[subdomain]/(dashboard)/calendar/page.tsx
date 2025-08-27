@@ -209,6 +209,7 @@ export default function CalendarioEscolar() {
       purple: 'after:bg-purple-500 after:border-purple-600 hover:ring-purple-300/50',
       cyan: 'after:bg-cyan-500 after:border-cyan-600 hover:ring-cyan-300/50',
       orange: 'after:bg-orange-500 after:border-orange-600 hover:ring-orange-300/50',
+      red: 'after:bg-red-500 after:border-red-600 hover:ring-red-300/50',
     };
 
     for (const tipoClave in tipoEventoMap) {
