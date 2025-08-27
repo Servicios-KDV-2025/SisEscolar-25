@@ -45,6 +45,7 @@ export const stripeCheckout = async (req) => {
 
     // Detectar si el price es recurrente (suscripción) o de pago único
     const price = await stripe.prices.retrieve(priceId)
+    
     const isRecurring = Boolean(price.recurring)
 
     const session = await stripe.checkout.sessions.create({
