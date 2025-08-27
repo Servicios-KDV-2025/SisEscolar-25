@@ -21,8 +21,8 @@ const { Stepper: StepperUi, useStepper } = defineStepper(
 export const Stepper: React.FC = () => {
   const { isSignedIn, isLoaded } = useAuth()
   const [ready, setReady] = useState(false)
-  const [isSelect, setSelected] = useState<string>()
-  const [schooldId, setSchoolId] = useState<string>()
+  const [isSelect, setSelected] = useState<string>('')
+  const [schooldId, setSchoolId] = useState<string>('')
 
   return (
     <StepperUi.Provider className="space-y-4" labelOrientation="vertical">
@@ -61,7 +61,7 @@ export const Stepper: React.FC = () => {
               'step-1': () => <ClerkComponent />,
               'step-2': () => <SchoolForm onNext={onFihishStepSchool} />,
               'step-3': () => <Prices onSelect={onSelectPrice} />,
-              'step-4': () => <Content priceId={isSelect!} schoolId={schooldId!} />,
+              'step-4': () => <Content priceId={isSelect} schoolId={schooldId} />,
             })}
           </>
         )
