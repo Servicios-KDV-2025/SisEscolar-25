@@ -4,7 +4,7 @@ import { mutation, query } from "../_generated/server";
 /**
  * Queries
  */
-export const getAllSubjetsBySchool = query({
+export const getAllSubjectsBySchool = query({
     args: {
         schoolId: v.id('school')
     },
@@ -37,7 +37,7 @@ export const getSubjectByIdAndSchool = query({
     }
 });
 /**
- * Mutations
+ * *Mutations
  */
 export const createSubjectWithSchoolId = mutation({
     args: {
