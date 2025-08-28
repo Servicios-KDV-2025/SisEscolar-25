@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import React from 'react'
 import PageClient from './page.client'
 import { Stepper } from '@/create/Stepper'
-import { Badge, Shield, Star, Users, Zap } from 'lucide-react'
+import {  Shield, Users, Zap } from 'lucide-react'
 
 export default function Page() {
   return (

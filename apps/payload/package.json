@@ -24,7 +24,8 @@
   },
   "dependencies": {
     "@clerk/backend": "^2.6.1",
-    "@clerk/nextjs": "^6.25.5",
+    "@clerk/nextjs": "^6.31.6",
+    "@clerk/shared": "^3.23.0",
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
     "@fortawesome/free-brands-svg-icons": "^6.7.2",
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
@@ -52,6 +53,7 @@
     "@radix-ui/react-navigation-menu": "^1.2.13",
     "@radix-ui/react-popover": "^1.1.14",
     "@radix-ui/react-select": "^2.0.0",
+    "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@repo/convex": "workspace:*",
     "@repo/zod-config": "workspace:*",
@@ -77,7 +79,7 @@
     "sharp": "0.34.2",
     "stripe": "^18.4.0",
     "svix": "^1.69.0",
-    "tailwind-merge": "^2.3.0",
+    "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {

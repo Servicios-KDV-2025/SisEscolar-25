@@ -1,6 +1,6 @@
 import type { BloqueInformativo } from '@/payload-types'
 import React from 'react'
-
+import Image from 'next/Image'
 // Definición de los props que se recibirán en el componente
 type Props = BloqueInformativo & {
   titulo: string
@@ -32,8 +32,13 @@ export const BloqueInformativoComponet: React.FC<Props> = ({
     >
       <div className="flex items-start space-x-4">
         {icono?.url && (
-          // Si hay una URL de ícono, se muestra
-          <img src={icono.url} alt={icono.alt || 'Ícono'} className="w-8 h-8 mt-1" />
+          <Image
+          src={icono.url}
+          alt={icono.alt ?? "Ícono"}
+          width={32}
+          height={32}
+          className="mt-1"
+          />
         )}
         <div>
           {/* Título con color adaptado al modo oscuro */}
