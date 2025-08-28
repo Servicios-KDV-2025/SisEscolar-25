@@ -11,7 +11,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react'
-import { Id } from '@repo/convex/convex/_generated/dataModel'
 
 // Interface basada en el schema de Convex
 interface SchoolFormData {

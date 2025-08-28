@@ -82,6 +82,7 @@ export interface Config {
     section: SectionBlock;
     carousel: CarouselBlock;
     carouselAvatar: CarouselAvatarBlock;
+    stepper: StepperBlock;
   };
   collections: {
     pages: Page;
@@ -500,6 +501,7 @@ export interface Page {
     | RowBlock
     | CarouselBlock
     | CarouselAvatarBlock
+    | StepperBlock
   )[];
   meta?: {
     title?: string | null;
@@ -992,6 +994,32 @@ export interface CarouselBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'carousel';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "StepperBlock".
+ */
+export interface StepperBlock {
+  step1: {
+    titulo: string;
+    subtitulo: string;
+    lucidIcon: string;
+  };
+  step2: {
+    titulo: string;
+    subtitulo: string;
+  };
+  step3: {
+    titulo: string;
+    subtitulo: string;
+  };
+  step4: {
+    titulo: string;
+    subtitulo: string;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'stepper';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

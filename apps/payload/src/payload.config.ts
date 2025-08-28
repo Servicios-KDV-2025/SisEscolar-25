@@ -39,6 +39,7 @@ import { paymentSession } from './endpoints/paymentSession'
 import { stripeWebhook } from './endpoints/stripeWebhook'
 
 import CheckoutButtons from './collections/CheckoutButtons/CheckoutButtons'
+import { Stepper } from './blocks/Stepper/config'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -118,7 +119,9 @@ export default buildConfig({
     Section,
     Carousel,
     CarouselAvatar,
+    Stepper,
   ],
+
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer],
   plugins: [
