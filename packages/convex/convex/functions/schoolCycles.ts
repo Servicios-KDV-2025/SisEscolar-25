@@ -1,7 +1,8 @@
 import { mutation, query } from "../_generated/server"; 
 import { v } from "convex/values";
 
-export const ObtenerCiclosEscolares = query({args: {escuelaID: v.id("school")}, 
+export const ObtenerCiclosEscolares = query({
+  args: {escuelaID: v.id("school")}, 
   handler: async (ctx, args) => {
     return await ctx.db
       .query("schoolCycle")
@@ -28,6 +29,39 @@ export const CrearCicloEscolar = mutation({
       v.literal("inactive"))
   },
   handler: async (ctx, args) => {
+    // Verificar si ya existe un ciclo con el mismo nombre en la misma escuela
+    const existingCycle = await ctx.db
+      .query("schoolCycle")
+      .withIndex("by_school", (q) => q.eq("schoolId", args.escuelaID))
+      .filter((q) => q.eq(q.field("name"), args.nombre))
+      .first();
+
+    if (existingCycle) {
+      throw new Error("Ya existe un ciclo escolar con el mismo nombre en esta escuela.");
+    }
+
+    // Validar que las fechas sean lógicas
+    if (args.fechaInicio >= args.fechaFin) {
+      throw new Error("La fecha de inicio debe ser anterior a la fecha de fin.");
+    }
+
+    // Si se intenta crear un ciclo activo, desactivar todos los demás
+    if (args.status === "active") {
+      const activeCycles = await ctx.db
+        .query("schoolCycle")
+        .withIndex("by_school", (q) => q.eq("schoolId", args.escuelaID))
+        .filter((q) => q.eq(q.field("status"), "active"))
+        .collect();
+
+      // Cambiar todos los ciclos activos a inactivos
+      for (const cycle of activeCycles) {
+        await ctx.db.patch(cycle._id, {
+          status: "inactive",
+          updatedAt: Date.now()
+        });
+      }
+    }
+
     const nuevoCiclo = {
       schoolId: args.escuelaID,
       name: args.nombre,
@@ -45,29 +79,78 @@ export const ActualizarCicloEscolar = mutation({
   args: {
     cicloEscolarID: v.id("schoolCycle"),
     escuelaID: v.id("school"),
-    nombre: v.string(),
-    fechaInicio: v.number(),
-    fechaFin: v.number(),
-    status: v.union(
-      v.literal("active"),
-      v.literal("archived"),
-      v.literal("inactive")
+    nombre: v.optional(v.string()),
+    fechaInicio: v.optional(v.number()),
+    fechaFin: v.optional(v.number()),
+    status: v.optional(
+      v.union(
+        v.literal("active"),
+        v.literal("archived"),
+        v.literal("inactive")
+      )
     ),
   },
   handler: async (ctx, args) => {
-    // Verificar si el ciclo existe
     const ciclo = await ctx.db.get(args.cicloEscolarID);
     if (!ciclo) {
       throw new Error("Ciclo escolar no encontrado");
     }
 
+    // Si se está actualizando el nombre, verificar duplicados
+    if (args.nombre && args.nombre !== ciclo.name) {
+      const existingCycle = await ctx.db
+        .query("schoolCycle")
+        .withIndex("by_school", (q) => q.eq("schoolId", args.escuelaID))
+        .filter((q) => 
+          q.and(
+            q.eq(q.field("name"), args.nombre),
+            q.neq(q.field("_id"), args.cicloEscolarID)
+          )
+        )
+        .first();
+
+      if (existingCycle) {
+        throw new Error("Ya existe un ciclo escolar con el mismo nombre en esta escuela.");
+      }
+    }
+
+    // Validar que las fechas sean lógicas si se están actualizando
+    const fechaInicio = args.fechaInicio || ciclo.startDate;
+    const fechaFin = args.fechaFin || ciclo.endDate;
+    
+    if (fechaInicio >= fechaFin) {
+      throw new Error("La fecha de inicio debe ser anterior a la fecha de fin.");
+    }
+
+    // Si se cambia a estado activo, desactivar todos los demás ciclos
+    if (args.status === "active" && ciclo.status !== "active") {
+      const activeCycles = await ctx.db
+        .query("schoolCycle")
+        .withIndex("by_school", (q) => q.eq("schoolId", args.escuelaID))
+        .filter((q) => 
+          q.and(
+            q.eq(q.field("status"), "active"),
+            q.neq(q.field("_id"), args.cicloEscolarID)
+          )
+        )
+        .collect();
+
+      // Cambiar todos los otros ciclos activos a inactivos
+      for (const cycle of activeCycles) {
+        await ctx.db.patch(cycle._id, {
+          status: "inactive",
+          updatedAt: Date.now()
+        });
+      }
+    }
+
     // Actualizar con patch
     await ctx.db.patch(args.cicloEscolarID, {
       schoolId: args.escuelaID,
-      name: args.nombre,
-      startDate: args.fechaInicio,
-      endDate: args.fechaFin,
-      status: args.status,
+      ...(args.nombre && { name: args.nombre }),
+      ...(args.fechaInicio && { startDate: args.fechaInicio }),
+      ...(args.fechaFin && { endDate: args.fechaFin }),
+      ...(args.status && { status: args.status }),
       updatedAt: Date.now(),
     });
 
@@ -76,10 +159,21 @@ export const ActualizarCicloEscolar = mutation({
   },
 });
 
-
 export const EliminarCicloEscolar = mutation({
   args: { cicloEscolarID: v.id("schoolCycle") },
   handler: async (ctx, args) => {
     return await ctx.db.delete(args.cicloEscolarID);
+  },
+});
+
+// Función adicional para obtener el ciclo activo
+export const ObtenerCicloActivo = query({
+  args: { escuelaID: v.id("school") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("schoolCycle")
+      .withIndex("by_school", (q) => q.eq("schoolId", args.escuelaID))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .first();
   },
 });

@@ -106,7 +106,9 @@ const applicationTable = defineSchema({
     updatedAt: v.number(),
   })
     .index("by_school", ["schoolId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_school_and_name", ["schoolId", "name"]), // Índice único compuesto
+
   
   //Materias
   subject: defineTable({
@@ -185,7 +187,6 @@ const applicationTable = defineSchema({
   })
   .index("by_schoolCycleId",["schoolCycleId"])
   .index("by_status",["status"]),
-  
 
   //Rúbrica de Calificación
   gradeRubric: defineTable({
