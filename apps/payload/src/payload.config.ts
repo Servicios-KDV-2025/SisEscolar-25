@@ -10,6 +10,7 @@ import { Pages } from './collections/Pages'
 import { Posts } from './collections/Posts'
 import { Users } from './collections/Users'
 import { Prices } from './collections/Prices'
+import Payments from './collections/Payments'
 import { Footer } from './Footer/config'
 import { Header } from './Header/config'
 import { plugins } from './plugins'
@@ -31,7 +32,7 @@ import { BloqueInformativo } from './blocks/BloqueInformativo/config'
 import { Section } from './blocks/Section/config'
 import { Acordeon } from './blocks/Acordeon/config'
 import { CarouselAvatar } from './blocks/CarouselAvatar/config'
-import Payments from './collections/Payments'
+import { Stepper } from './blocks/Stepper/config'
 
 // LIBRERIAS DE STRIPE
 import { stripeCheckout } from './endpoints/stripeCheckout'
@@ -39,13 +40,21 @@ import { paymentSession } from './endpoints/paymentSession'
 import { stripeWebhook } from './endpoints/stripeWebhook'
 
 import CheckoutButtons from './collections/CheckoutButtons/CheckoutButtons'
-import { Stepper } from './blocks/Stepper/config'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 export default buildConfig({
   admin: {
+    meta: {
+      icons: [
+        {
+          rel: 'icon',
+          type: 'image/jpeg',
+          url: '/logo.jpeg',
+        },
+      ],
+    },
     components: {
       // The `BeforeLogin` component renders a message that you see while logging into your admin panel.
       // Feel free to delete this at any time. Simply remove the line below.
@@ -53,6 +62,10 @@ export default buildConfig({
       // The `BeforeDashboard` component renders the 'welcome' block that you see after logging into your admin panel.
       // Feel free to delete this at any time. Simply remove the line below.
       beforeDashboard: ['@/components/BeforeDashboard'],
+      graphics: {
+        Logo: '@/components/Logo/Logo',
+        Icon: '@/components/Logo/Logo',
+      },
     },
     importMap: {
       baseDir: path.resolve(dirname),

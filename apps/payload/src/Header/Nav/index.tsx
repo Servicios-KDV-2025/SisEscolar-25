@@ -79,10 +79,13 @@ export const HeaderNav: React.FC<{ data: HeaderType }> = ({ data }) => {
           })}
         </NavigationMenuList>
       </NavigationMenu>
-      {/* <Link href="/search" className="ml-2 p-2 !rounded-xl hover:bg-accent hover:text-accent-foreground transition-colors">
+      <Link
+        href="/search"
+        className="ml-2 p-2 !rounded-xl hover:bg-accent hover:text-accent-foreground transition-colors"
+      >
         <span className="sr-only">Search</span>
         <SearchIcon className="w-5 text-foreground" />
-      </Link> */}
+      </Link>
     </nav>
   )
 }

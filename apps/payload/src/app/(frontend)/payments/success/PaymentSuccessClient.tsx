@@ -26,12 +26,7 @@ type Data = {
   cardLast4?: string
 }
 
-
-export default function PaymentSuccessClient({
-  sessionId: sessionIdProp,
-}: {
-  sessionId?: string
-}) {
+export default function PaymentSuccessClient({ sessionId: sessionIdProp }: { sessionId?: string }) {
   const params = useSearchParams()
 
   //
@@ -47,7 +42,6 @@ export default function PaymentSuccessClient({
   useEffect(() => {
     if (!sessionId) return
     setLoading(true)
-
     ;(async () => {
       try {
         // --- Llamada principal: POST /payment-session ---
@@ -71,8 +65,18 @@ export default function PaymentSuccessClient({
 
         setData(json as Data)
         setError(null)
-      } catch (e: any) {
-        setError(e?.message || 'Error cargando la sesión')
+      } catch (e: unknown) {
+        if (e instanceof Error) {
+          // 'e' is now known to be an instance of Error, so you can access its properties
+          setError(e?.message || 'Error cargando la sesión')
+        } else if (typeof e === 'string') {
+          // Handle cases where a string was thrown
+          setError(e)
+        } else {
+          // Handle other unexpected types of thrown values
+          setError('Error cargando la sesión')
+        }
+
         setData(null)
       } finally {
         setLoading(false)
@@ -110,9 +114,7 @@ export default function PaymentSuccessClient({
         Session: <code>{data.sessionId}</code>
       </p>
 
-      <h2 className="mt-2 text-xl font-semibold">
-        Estado: {data.status ?? '—'}
-      </h2>
+      <h2 className="mt-2 text-xl font-semibold">Estado: {data.status ?? '—'}</h2>
 
       {data.amount != null && (
         <p className="mt-1">

@@ -7,7 +7,7 @@ interface Props {
   priority?: 'auto' | 'high' | 'low'
 }
 
-export const Logo = (props: Props) => {
+const Logo = (props: Props) => {
   const { loading: loadingFromProps, priority: priorityFromProps, className } = props
 
   const loading = loadingFromProps || 'lazy'
@@ -27,3 +27,5 @@ export const Logo = (props: Props) => {
     />
   )
 }
+
+export default Logo
