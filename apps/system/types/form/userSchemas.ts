@@ -21,11 +21,28 @@ export const userSchema = z.object({
 });
 
 /**
- * Schema para super-administradores
+ * Schema para super-administradores (para creación)
  * Los super-administradores tienen acceso completo sin restricciones departamentales
- * Extiende del schema base de usuarios sin campos adicionales
+ * Incluye password requerido para creación
  */
-export const superAdminSchema = userSchema;
+export const superAdminCreateSchema = userSchema.extend({
+  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+});
+
+/**
+ * Schema para super-administradores (para edición)
+ * Los super-administradores tienen acceso completo sin restricciones departamentales
+ * Sin password para edición
+ */
+export const superAdminEditSchema = userSchema;
+
+/**
+ * Schema combinado para super-administradores (retrocompatibilidad)
+ * Hace el password opcional para que funcione tanto para crear como editar
+ */
+export const superAdminSchema = userSchema.extend({
+  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").optional(),
+});
 
 /**
  * Schema para administradores
@@ -112,6 +129,8 @@ export type WithClerkId = {
 // Tipos derivados de los schemas
 export type User = z.infer<typeof userSchema>;
 export type SuperAdmin = z.infer<typeof superAdminSchema>;
+export type SuperAdminCreate = z.infer<typeof superAdminCreateSchema>;
+export type SuperAdminEdit = z.infer<typeof superAdminEditSchema>;
 export type Admin = z.infer<typeof adminSchema>;
 export type Auditor = z.infer<typeof auditorSchema>;
 export type Teacher = z.infer<typeof teacherSchema>;

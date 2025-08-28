@@ -46,7 +46,7 @@ export const createUser = action(
             catch (error) {
                 console.error("Error creating user:", error);
                 return {
-                    error: "Error creating user",
+                    error: error,
                     success: false,
                 }
             }
