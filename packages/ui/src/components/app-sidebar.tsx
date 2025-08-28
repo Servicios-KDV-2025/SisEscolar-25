@@ -58,7 +58,7 @@ const defaultNavData = {
         },
         {
           title: "Calendario Escolar",
-          url: `#`,
+          url: `/calendar`,
         },
         {
           title: "Clases por Alumno",
