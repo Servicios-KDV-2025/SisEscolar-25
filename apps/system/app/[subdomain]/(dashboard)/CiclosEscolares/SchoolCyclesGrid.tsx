@@ -2,18 +2,15 @@ import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select";
 import { useState, useEffect, useMemo } from "react";
-import { UseFormReturn } from "react-hook-form";
-import { CrudOperation } from "@repo/ui/components/dialog/crud-dialog";
 import { SchoolCycleCard } from "./SchoolCycleCard";
 import { Button } from "@repo/ui/components/shadcn/button";
-import { Plus, AlertTriangle } from "@repo/ui/icons";
+import { Plus } from "@repo/ui/icons";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { User } from "stores/userStore";
 import { CicloEscolar, useCicloEscolarWithConvex } from "stores/useSchoolCiclesStore";
 import { CrudDialog, useCrudDialog, WithId } from "@repo/ui/components/dialog/crud-dialog";
 import { cicloEscolarSchema } from "@/types/shoolCycles";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
-import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 
 type SchoolCyclesGridProps = {
     currentSchool: {
@@ -43,48 +40,12 @@ type SchoolCyclesGridProps = {
     currentUser: User | null;
 };
 
-// Componente para observar cambios en el formulario
-function FormWatcher({ 
-    form, 
-    operation, 
-    data, 
-    activeCycle, 
-    setShowActiveWarning 
-}: {
-    form: UseFormReturn<Record<string, unknown>>;
-    operation: CrudOperation;
-    data: (Record<string, unknown> & Partial<WithId>) | undefined;
-    activeCycle: CicloEscolar | undefined;
-    setShowActiveWarning: (show: boolean) => void;
-}) {
-    useEffect(() => {
-        const subscription = form.watch((value: any, { name }: { name?: string }) => {
-            if (name === "status" && value.status === "active") {
-                // Solo mostrar advertencia si hay un ciclo activo y no es el mismo que se está editando
-                const isEditingActiveCycle = operation === "edit" && data?._id === activeCycle?._id;
-                if (activeCycle && !isEditingActiveCycle) {
-                    setShowActiveWarning(true);
-                } else {
-                    setShowActiveWarning(false);
-                }
-            } else {
-                setShowActiveWarning(false);
-            }
-        });
-        
-        return () => subscription.unsubscribe();
-    }, [form, operation, data, activeCycle, setShowActiveWarning]);
-
-    return null;
-}
-
 export function SchoolCyclesGrid({ currentSchool, currentUser }: SchoolCyclesGridProps) {
     const [cycles, setCycles] = useState<CicloEscolar[]>([]);
     const [filteredCycles, setFilteredCycles] = useState<CicloEscolar[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState<"all" | "active" | "archived" | "inactive">("all");
     const [duplicateNameError, setDuplicateNameError] = useState<string | null>(null);
-    const [showActiveWarning, setShowActiveWarning] = useState(false);
 
     const {
         ciclosEscolares,
@@ -116,11 +77,6 @@ export function SchoolCyclesGrid({ currentSchool, currentUser }: SchoolCyclesGri
         status: "inactive"
     });
 
-    // Encuentra el ciclo activo actual
-    const activeCycle = useMemo(() => {
-        return ciclosEscolares.find(cycle => cycle.status === "active");
-    }, [ciclosEscolares]);
-
     const validateUniqueName = (name: string, currentId?: string) => {
         const normalizedName = name.trim().toLowerCase();
         return !ciclosEscolares.some(cycle =>
@@ -144,13 +100,11 @@ export function SchoolCyclesGrid({ currentSchool, currentUser }: SchoolCyclesGri
 
     const handleClose = () => {
         setDuplicateNameError(null);
-        setShowActiveWarning(false);
         close();
     };
 
     const handleDelayedClose = () => {
         setDuplicateNameError(null);
-        setShowActiveWarning(false);
         setTimeout(() => {
             close();
         }, 1000);
@@ -205,7 +159,6 @@ export function SchoolCyclesGrid({ currentSchool, currentUser }: SchoolCyclesGri
         setFilteredCycles(filtered);
     }, [cycles, searchTerm, statusFilter]);
 
-    
     const handleSubmit = async (values: Record<string, unknown>) => {
         if (!currentSchool?.school._id) {
             return;
@@ -383,13 +336,6 @@ export function SchoolCyclesGrid({ currentSchool, currentUser }: SchoolCyclesGri
             >
                 {(form, operation) => (
                     <div className="grid gap-4">
-                        <FormWatcher 
-                            form={form}
-                            operation={operation}
-                            data={data}
-                            activeCycle={activeCycle}
-                            setShowActiveWarning={setShowActiveWarning}
-                        />
                         <FormField
                             control={form.control}
                             name="name"
@@ -477,18 +423,6 @@ export function SchoolCyclesGrid({ currentSchool, currentUser }: SchoolCyclesGri
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
-                                    
-                                    {/* Advertencia sobre el ciclo activo */}
-                                    {showActiveWarning && activeCycle && (
-                                        <Alert className="mt-2 border-orange-200 bg-orange-50">
-                                            <AlertTriangle className="h-4 w-4 text-orange-600" />
-                                            <AlertDescription className="text-orange-800">
-                                                <strong>Advertencia:</strong> Al activar este ciclo, el ciclo 
-                                                "<strong>{activeCycle.name}</strong>" se cambiará automáticamente 
-                                                a estado inactivo. Solo puede haber un ciclo activo a la vez.
-                                            </AlertDescription>
-                                        </Alert>
-                                    )}
                                 </FormItem>
                             )}
                         />
