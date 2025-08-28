@@ -58,7 +58,7 @@ const defaultNavData = {
         },
         {
           title: "Calendario Escolar",
-          url: `#`,
+          url: `/calendar`,
         },
         {
           title: "Clases por Alumno",
@@ -66,7 +66,7 @@ const defaultNavData = {
         },
         {
           title: "Grupos",
-          url: `#`,
+          url: `/grupos`,
         },
         {
           title: "Catalogo de Clases",
@@ -85,6 +85,12 @@ const defaultNavData = {
     {
       title: "Salones",
       url: `#`,
+      icon: SquareTerminal,
+      isActive: true,
+    },
+    {
+      title: "Asistencia",
+      url: `/attendance`,
       icon: SquareTerminal,
       isActive: true,
     },
@@ -114,7 +120,7 @@ const defaultNavData = {
     },
     {
       title: "Horarios",
-      url: `/horarios`,
+      url: `/schedule`,
       icon: SquareTerminal,
       isActive: true,
     },
