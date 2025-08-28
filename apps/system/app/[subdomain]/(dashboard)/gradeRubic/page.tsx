@@ -249,17 +249,6 @@ export default function RubricDashboard() {
       <div className="mx-auto max-w-7xl space-y-6">
         {/* Header */}
 
-        {totalWeight != 100 && (
-          <div>
-            <Card className="py-3">
-              <CardContent className="text-red-400 text-sm font-semibold flex flex-row gap-2 justify-center ">
-                <AlertCircle className="h-5" />
-                <p>El total no es 100%. Adjusta las rubricas</p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
         <h1 className="text-3xl font-bold text-foreground">Rubricas</h1>
         {/* Search and Filters */}
         <Card>
@@ -341,6 +330,17 @@ export default function RubricDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {totalWeight != 100 && (
+          <div>
+            <Card className="py-3">
+              <CardContent className="text-red-400 text-sm font-semibold flex flex-row gap-2 justify-center ">
+                <AlertCircle className="h-5" />
+                <p>El total no es 100%. Adjusta las rubricas</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Rubrics Table */}
         <Card>
