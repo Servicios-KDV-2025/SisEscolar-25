@@ -40,7 +40,7 @@ type SchoolCyclesGridProps = {
     currentUser: User | null;
 };
 
-export function SchoolCyclesGrid({ currentSchool, currentUser }: SchoolCyclesGridProps) {
+export function SchoolCyclesGrid({ currentSchool }: SchoolCyclesGridProps) {
     const [cycles, setCycles] = useState<CicloEscolar[]>([]);
     const [filteredCycles, setFilteredCycles] = useState<CicloEscolar[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
@@ -119,8 +119,8 @@ export function SchoolCyclesGrid({ currentSchool, currentUser }: SchoolCyclesGri
             const offset = date.getTimezoneOffset();
             const adjustedDate = new Date(date.getTime() - (offset * 60 * 1000));
             return adjustedDate.toISOString().split('T')[0];
-        } catch (error) {
-            return "";
+        } catch (_error) {
+            return _error;
         }
     };
 
