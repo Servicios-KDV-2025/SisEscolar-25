@@ -4,21 +4,118 @@ import { useState } from "react"
 import { Download } from "@repo/ui/icons"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
 import { Button } from "@repo/ui/components/shadcn/button"
-import { Badge } from "@repo/ui/components/shadcn/badge"
+// import { Badge } from "@repo/ui/components/shadcn/badge"
 import { Input } from "@repo/ui/components/shadcn/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table"
-import { AttendanceWithStudent, StudentWithClass } from "stores/attendanceStore"
 
-interface AttendanceHistoryProps {
-  studentClasses: StudentWithClass[]
-  attendanceRecords: AttendanceWithStudent[]
-}
-export default function AttendanceHistory({}) {
+// interface AttendanceHistoryProps {
+//   studentClasses: StudentWithClass[]
+//   attendanceRecords: AttendanceWithStudent[]
+// }
+
+export default function AttendanceHistory() {
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedClass, setSelectedClass] = useState("all")
+  const [selectedStatus, setSelectedStatus] = useState("all")
+  const [dateFilter, setDateFilter] = useState("")
+
   return (
-    <div>
-      Historial se asistencia
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Historial de asistencia</CardTitle>
+            <CardDescription>Ver y exportar registros históricos de asistencia</CardDescription>
+            <Button className="flex items-center space-x-2 w-1/4">
+              <Download className="h-4 w-4" />
+              <span>Exportar CSV</span>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {/* Filtros */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <Input placeholder="Search student..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar clase" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las clases</SelectItem>
+                <SelectItem value="1A">Clase 10A</SelectItem>
+                <SelectItem value="1B">Clase 10A</SelectItem>
+                <SelectItem value="1C">Clase 10A</SelectItem>
+                <SelectItem value="1D">Clase 10A</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar clase" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="present">Presente</SelectItem>
+                <SelectItem value="absent">Ausente</SelectItem>
+                <SelectItem value="justified">Justificado</SelectItem>
+                <SelectItem value="unjustified">Injustificado</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
+          </div>
+
+          {/* Tabla de asistencia */}
+          <div className="bprder rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Matricula</TableHead>
+                  <TableHead>Clase</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Comentario</TableHead>
+                  <TableHead>Creado</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {/* {filteredHistory.map((record) => ( */}
+                  <TableRow>
+                    <TableCell> {new Date().toLocaleDateString()}
+                      {/* {new Date(record.date).toLocaleDateString()} */}
+                    </TableCell> 
+                    <TableCell className="font-medium">Fulanito Fula
+                      {/* {record.student?.name} */}
+                    </TableCell>
+                    <TableCell> 1Q2S3E4F
+                      {/* {record.student?.enrollment} */}
+                    </TableCell>
+                    <TableCell>10A
+                      {/* {record.className} */}
+                    </TableCell>
+                    <TableCell>
+                      Presente
+                      {/* {getStatusBadge(record)} */}
+                    </TableCell>
+                    <TableCell 
+                      className="max-w-xs truncate"
+                      // title={record.comments}
+                    >Algun comentario
+                      {/* {record.comments || "-"} */}
+                    </TableCell>
+                    <TableCell></TableCell>
+                    <TableCell></TableCell>
+                  </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* {filteredHistory.length === 0 && ( */}
+            <div className="text-center py-8 text-gray-500">No se encontraron registros de asistencia que coincidan con sus filtros</div>
+        </CardContent>
+      </Card>
     </div>
+    
   )
 }
 // export default function AttendanceHistory({ studentClasses, attendanceRecords }: AttendanceHistoryProps) {

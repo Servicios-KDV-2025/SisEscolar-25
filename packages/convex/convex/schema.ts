@@ -150,13 +150,13 @@ const applicationTable = defineSchema({
     //Horarios
     schedule: defineTable({
         schoolId: v.id("school"),
-        name: v.id('classCatalog'),
+        name: v.string(), //El nombre viene desde el nombre (name) de classCatalog
         day: v.union(
-          v.literal('MON'),
-          v.literal('TUE'),
-          v.literal('WEN'),
-          v.literal('THU'),
-          v.literal('FRI'),
+          v.literal('lun.'),
+          v.literal('mar.'),
+          v.literal('mié.'),
+          v.literal('jue.'),
+          v.literal('vie.'),
         ),
         startTime: v.string(),
         endTime: v.string(),

@@ -5,19 +5,18 @@ import { Search, Check, X } from "@repo/ui/icons"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
 import { Input } from "@repo/ui/components/shadcn/input"
 import { Button } from "@repo/ui/components/shadcn/button"
-import { Badge } from "@repo/ui/components/shadcn/badge"
+// import { Badge } from "@repo/ui/components/shadcn/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/shadcn/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select"
 import { Textarea } from "@repo/ui/components/shadcn/textarea"
 import { Label } from "@repo/ui/components/shadcn/label"
-import { AttendanceWithStudent, StudentWithClass } from "stores/attendanceStore"
 
-interface AttendanceMarkingProps {
-  studentClasses: StudentWithClass[]
-  attendanceRecords: AttendanceWithStudent[]
-}
+// interface AttendanceMarkingProps {
+//   studentClasses: StudentWithClass[]
+//   attendanceRecords: AttendanceWithStudent[]
+// }
 
-export default function AttendanceMarking({}) {
+export default function AttendanceMarking() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedClass, setSelectedClass] = useState("")
 
@@ -100,6 +99,28 @@ export default function AttendanceMarking({}) {
                   </div>
                 </div>
 
+                {/* seccion de comentarios */}
+                <div className="space-y-2">
+                  <Label 
+                    // htmlFor={`comments-${studentClass.id}`} 
+                  >Comentarios</Label>
+                  <Textarea
+                    // id={`comments-${studentClass.id}`}
+                    placeholder="Añade cualquier comentario sobre la asistencia...."
+                    // value={comments[studentClass.id] || record?.comments || ""}
+                    // onChange={(e) => handleCommentChange(studentClass.id, e.target.value)}
+                    className="min-h-[60px]"
+                  />
+                </div>
+
+                {/* Show existing record info */}
+                {/* {record && ( */}
+                  <div className="text-xs text-gray-500 border-t pt-2">
+                    <p>Creada: {new Date().getTime()} 
+                      {/* {new Date(record.registrationDate).toLocaleString()} */}
+                      {/* {record.updatedAt && <p>Última actualización: {new Date(record.updatedAt).toLocaleString()}</p>} */}
+                    </p>
+                  </div>
                 
               </div>
           </div>

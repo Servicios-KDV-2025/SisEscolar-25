@@ -1,10 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { CheckCircle, XCircle, Clock } from "@repo/ui/icons"
+// import { CheckCircle, XCircle, Clock } from "@repo/ui/icons"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
 import { Button } from "@repo/ui/components/shadcn/button"
-import { Badge } from "@repo/ui/components/shadcn/badge"
+// import { Badge } from "@repo/ui/components/shadcn/badge"
 import { Textarea } from "@repo/ui/components/shadcn/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/shadcn/avatar"
 import {
@@ -17,18 +17,137 @@ import {
   DialogTrigger,
 } from "@repo/ui/components/shadcn/dialog"
 import { Label } from "@repo/ui/components/shadcn/label"
-import { useMutation } from "convex/react"
-import { api } from "@repo/convex/convex/_generated/api"
-import { AttendanceWithStudent, StudentWithClass } from "stores/attendanceStore"
 
-interface AbsenceJustificationProps {
-  studentClasses: StudentWithClass[]
-  attendanceRecords: AttendanceWithStudent[]
-}
-export default function AbsenceJustification({}) {
+// interface AbsenceJustificationProps {
+//   studentClasses: StudentWithClass[]
+//   attendanceRecords: AttendanceWithStudent[]
+// }
+
+export default function AbsenceJustification() {
+  const [reviewComment, setReviewComment] = useState("")
+
   return (
-    <div>
-      Justificación de asistencia
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Justificaciones de ausencia</CardTitle>
+          <CardDescription>Revisar y gestionar las solicitudes de justificación de ausencias de los estudiantes.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {/* {absenceRecords.map((record) => ( */}
+            <div
+              // key={`${record.studentClassId}-${record.date}`} 
+              className="border rounded-lg p-4 hover:bg-gray-50"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-start space-x-4">
+                  <Avatar>
+                    <AvatarImage 
+                      // src={record.student?.imgUrl || "/placeholder.svg"} 
+                      alt={'Fulanito fulano'} />
+                    <AvatarFallback>
+                      {'FF'}
+                      {/* {record.student?.name
+                        ?.split(" ")
+                        .map((n) => n[0])
+                        .join("") || "?"} */}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <h3 className="font-medium">Fulanito Fulano
+                        {/* {record.student?.name} */}
+                      </h3>
+                    </div>
+
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <p>
+                        <strong>Matricula:</strong> 1A2W3D4R | <strong>Clase</strong> {' '} 10A
+                      </p>
+                      <p>
+                        <strong>Fecha de ausencia:</strong> {new Date().toLocaleDateString()}
+                      </p>
+                      <p>
+                        <strong>Recorded:</strong> {new Date().toLocaleDateString()}
+                      </p>
+                      {/* {record.updatedAt && ( */}
+                        <p>
+                          <strong>Ultima actualización:</strong> {new Date().toLocaleDateString()}
+                        </p>
+                    </div>
+
+                    {/* {record.comments && ( */}
+                      <div className="mt-2 p-2 bg-gray-50 border rounded text-sm">
+                        <strong>Comentarios:</strong>
+                        <p className="mt-1 whitespace-pre-wrap">Algun comentario</p>
+                      </div>
+                  </div>
+                </div>
+
+                {/* {record.justified === undefined && ( */}
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline" size="sm"
+                        // onClick={() => setSelectedRecord(record)}
+                      >
+                        Revisar
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <DialogHeader>
+                        <DialogTitle>Revisar Ausencia</DialogTitle>
+                        <DialogDescription>Revisar la ausencia de (nombre del alumno)</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Detalles del alumno</Label>
+                          <div className="text-sm text-gray-600">
+                            <p>
+                              Nombre del alumno (matricula)
+                            </p>
+                            <p>Claese: 10A</p>
+                            <p>Fecha de ausencia: {new Date().toLocaleDateString()}</p>
+                          </div>
+                        </div>
+
+                        {/* {record.comments && ( */}
+                          <div className="space-y-2">
+                            <Label>Comanetarios existentes</Label>
+                            <div className="text-sm text-gray-600 p-2 bg-gray-50 border rounded">
+                              {/* {record.comments} */}
+                              Algun comentario
+                            </div>
+                          </div>
+
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="review-comment"
+                          >Revision de comentario</Label>
+                          <Textarea
+                            id="review-comment"
+                            placeholder="Añadir cualquier comentario sobre su decision..."
+                            value={reviewComment}
+                            onChange={(e) => setReviewComment(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          variant='destructive'
+                        >
+                          No Justificado
+                        </Button>
+                        <Button>Justificar Ausencia</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -6,17 +6,99 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo
 import { Input } from "@repo/ui/components/shadcn/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/shadcn/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select"
-import { Badge } from "@repo/ui/components/shadcn/badge"
-import { StudentClass } from "@/types/attendance"
+// import { Badge } from "@repo/ui/components/shadcn/badge"
 
-interface StudentManagementProps {
-  studentClasses: StudentClass[]
-}
+// interface StudentManagementProps {
+//   studentClasses: StudentClass[]
+// }
 
-export default function StudentManagement({}) {
+export default function StudentManagement() {
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedClass, setSelectedClass] = useState("all")
+
   return (
-    <div>
-      Visulaisación de estudiantes
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Gestión de estudiantes</CardTitle>
+          <CardDescription>Visualización de la información y los perfiles de los estudiantes</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Busqueda y filtro */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400"/>
+              <Input
+                placeholder="Buscar estudiantes..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Seleccionar clase"/>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las clases</SelectItem>
+                <SelectItem value="1A">Clase 1A</SelectItem>
+                <SelectItem value="2A">Clase 2A</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Lista de estudiantes */}
+          <div className="space-y-4">
+            {/* {filteredStudents.map((studentClass) => { */}
+              {/* const attendanceRate = calculateAttendanceRate(studentClass.student.id) */}
+                {/* return () */}
+                <div 
+                  // key={studentClass.id}
+                  className="border rounded-lg p-4 hover:bg-gray-50"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage alt="Fulanito Fulano"
+                          // src={studentClass.student.avatar || "/placeholder.svg"}
+                        />
+                        <AvatarFallback>
+                          Ff
+                          {/* {studentClass.student.name.split(' ').map((n) => n[0])} */}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <h3 className="font-medium text-lg">Fulano Fulanito</h3>
+                        <div className="flex items-center space-x-4 text-sm text-gray-600">
+                          <samp>N°: 1Q2S3E4F</samp>
+                          <samp>Clase: 1A</samp>
+                        </div>
+                        <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                          <div className="flex items-center space-x-1">
+                            <Mail className="h-3 w-3"/>
+                            <samp>Fulanito@escuela.edu.mx</samp>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Phone className="h-3 w-3"/>
+                            <span>677 107 1156</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="felx items-center space-x-3">Bueno
+                      {/* {getAttendanceRateBadge(attendanceRate)} // Como se considera el estado de la asistencia del alumno (exelente, bueno, promedio, malo)*/}
+                    </div>
+                  </div>
+                </div>
+          </div>
+
+          {/* {filteredStudents.length === 0 && ( */}
+            <div className="text-center py-8 text-gray-500">
+              No se encontraron estudiantes que coincidan con el criterio de busqueda.
+            </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
