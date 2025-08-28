@@ -155,7 +155,7 @@ export default function RubricDashboard() {
 
   const totalWeight = rubrics
     .filter((rubric) => rubric.status)
-    .reduce((sum, rubric) => sum + rubric.weight * 100, 0);
+    .reduce((sum, rubric) => sum + (Math.round(rubric.weight * 100)), 0);
 
   const handleOpenModal = (rubric?: Rubric) => {
     if (rubric) {
@@ -163,7 +163,7 @@ export default function RubricDashboard() {
       setFormData({
         name: rubric.name,
         // Convertir el decimal de Convex a porcentaje para el slider
-        weight: [rubric.weight * 100],
+        weight: [Math.round(rubric.weight * 100)],
         maxScore: rubric.maxScore,
         schoolCycle: "", // Este campo no se usa en el modo edición, ya que no se puede cambiar
         class: rubric.classCatalogId as string,
@@ -238,6 +238,12 @@ export default function RubricDashboard() {
     await deleteGradeRubric({ gradeRubricId: id });
   };
 
+  const isNameDuplicate = rubrics.some(
+      (r) =>
+        r.name.toLowerCase() === formData.name.trim().toLowerCase() &&
+        r._id !== editingRubric?._id
+    );
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="mx-auto max-w-7xl space-y-6">
@@ -248,13 +254,13 @@ export default function RubricDashboard() {
             <Card className="py-3">
               <CardContent className="text-red-400 text-sm font-semibold flex flex-row gap-2 justify-center ">
                 <AlertCircle className="h-5" />
-                <p>El total no es 100%. Adjusta las rubicas</p>
+                <p>El total no es 100%. Adjusta las rubricas</p>
               </CardContent>
             </Card>
           </div>
         )}
 
-        <h1 className="text-3xl font-bold text-foreground">Rubicas</h1>
+        <h1 className="text-3xl font-bold text-foreground">Rubricas</h1>
         {/* Search and Filters */}
         <Card>
           <CardContent className="">
@@ -358,7 +364,7 @@ export default function RubricDashboard() {
                         {rubric.name}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{rubric.weight * 100}%</Badge>
+                        <Badge variant="outline">{Math.round(rubric.weight * 100)}%</Badge>
                       </TableCell>
                       <TableCell>{rubric.maxScore}</TableCell>
                       <TableCell>
@@ -423,8 +429,15 @@ export default function RubricDashboard() {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, name: e.target.value }))
                   }
-                  placeholder="Enter rubric name"
+                  placeholder="Nombre de Rubrica"
                 />
+                
+                {isNameDuplicate && (
+                                <div className="  text-sm text-destructive  p-1 flex justify-center items-center gap-2">
+                                  <AlertTriangle className="h-5 w-5" />
+                                  <p>Rubrica Duplicada.</p>
+                                </div>
+                              )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 {/* Nuevo Select para School Cycle en el modal */}
@@ -493,7 +506,7 @@ export default function RubricDashboard() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="maxScore">Max Score</Label>
+                  <Label htmlFor="maxScore">Puntuación máxima (100)</Label>
                   <Input
                     id="maxScore"
                     type="number"
@@ -513,7 +526,7 @@ export default function RubricDashboard() {
 
               <div className="space-y-3">
                 <div className="px-3">
-                  <Label>Weight (%)</Label>
+                  <Label>Porcentaje Maximo ({100-totalWeight}%)</Label>
                   <div className="flex justify-center text-xm mt-1"></div>
                   <Slider
                     value={formData.weight}
@@ -538,18 +551,21 @@ export default function RubricDashboard() {
 
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-                Cancel
+                Cancelar
               </Button>
               <Button
                 onClick={handleSaveRubric}
                 disabled={
                   !formData.name.trim() ||
+                  formData.maxScore > 100 ||
                   formData.maxScore <= 0 ||
                   !formData.class ||
+                  isNameDuplicate ||
+                  // formData.weight[0]! >= (totalWeight) ||
                   !formData.term
                 }
               >
-                Save
+                Guardar
               </Button>
             </div>
           </DialogContent>
