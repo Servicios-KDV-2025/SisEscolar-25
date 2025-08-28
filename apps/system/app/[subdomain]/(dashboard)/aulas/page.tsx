@@ -132,7 +132,7 @@ export default function ClassroomManagement() {
     if (editingClassroom) {
       await updateClassroom({
         id: editingClassroom.id as any,
-        schoolId: currentSchool!._id,
+        schoolId: currentSchool?.school._id as any, //solucionar esto
         name: formData.name,
         capacity: Number.parseInt(formData.capacity),
         location: formData.location,
@@ -141,7 +141,7 @@ export default function ClassroomManagement() {
       toast.success("Aula actualizada correctamente.")
     } else {
       await createClassroom({
-        schoolId: currentSchool?.school._id, 
+        schoolId: currentSchool?.school._id as any, //solucionar esto
         name: formData.name,
         capacity: Number.parseInt(formData.capacity),
         location: formData.location,
@@ -166,7 +166,7 @@ export default function ClassroomManagement() {
   }
 
   const handleDelete = async (id: string) => {
-    await deleteClassroom({id: id as any, schoolId: currentSchool?.school._id})
+    await deleteClassroom({id: id as any, schoolId: currentSchool?.school._id as any}) //solucionar esto
     toast.success("Aula eliminada correctamente.")
   }
 
@@ -330,7 +330,7 @@ export default function ClassroomManagement() {
             <MapPin className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{classroom.length}</div>
+            <div className="text-2xl font-bold">{classrooms.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -339,7 +339,7 @@ export default function ClassroomManagement() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{classroom.reduce((sum, room) => sum + room.capacity, 0)}</div>
+            <div className="text-2xl font-bold">{classrooms.reduce((sum, room) => sum + room.capacity, 0)}</div>
           </CardContent>
         </Card>
       </div>
@@ -398,7 +398,7 @@ export default function ClassroomManagement() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {classroom.createdAt.toLocaleDateString()}
+                        {classroom.createdAt.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
