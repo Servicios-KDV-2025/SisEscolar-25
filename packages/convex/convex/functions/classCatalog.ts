@@ -9,15 +9,14 @@ export const createClassCatalog = mutation({
         subjectId: v.id("subject"),
         classroomId: v.id("classroom"),
         teacherId: v.id("user"),
+        termId: v.id("term"),
         groupId: v.optional(v.id("group")),
-        // scheduleId: v.id("schedule"),
         name: v.string(),
         status: v.union(
             v.literal('active'),
             v.literal('inactive')
         ),
-        createdBy: v.optional(v.id("user")),
-        updatedAt: v.number(),
+        createdBy: v.optional(v.id("user"))
     },
     handler: async (ctx, args) => {
         await ctx.db.insert("classCatalog", args);
@@ -38,9 +37,10 @@ export const getAllClassCatalog = query({
 
         const res = await Promise.all(
             catalog.map(async (clase) => {
-                const [cycle, subject, classroom, teacher, group] = await Promise.all([
+                const [cycle, subject, term, classroom, teacher, group] = await Promise.all([
                     clase.schoolCycleId ? ctx.db.get(clase.schoolCycleId) : null,
                     clase.subjectId ? ctx.db.get(clase.subjectId) : null,
+                    clase.termId ? ctx.db.get(clase.termId) :null,
                     clase.classroomId ? ctx.db.get(clase.classroomId) : null,
                     clase.teacherId ? ctx.db.get(clase.teacherId) : null,
                     clase.groupId ? ctx.db.get(clase.groupId) : null,
@@ -49,11 +49,12 @@ export const getAllClassCatalog = query({
                 return {
                     // Propiedades base de ClassCatalog
                     _id: clase._id,
-                    schoolId: clase.schoolId, // ← Añadir esta
-                    schoolCycleId: clase.schoolCycleId, // ← Añadir esta
-                    subjectId: clase.subjectId, // ← Añadir esta
-                    classroomId: clase.classroomId, // ← Añadir esta
-                    teacherId: clase.teacherId, // ← Añadir esta
+                    schoolId: clase.schoolId,
+                    schoolCycleId: clase.schoolCycleId,
+                    subjectId: clase.subjectId,
+                    termId: clase.termId,
+                    classroomId: clase.classroomId,
+                    teacherId: clase.teacherId,
                     groupId: clase.groupId,
                     name: clase.name,
                     status: clase.status,
@@ -63,6 +64,7 @@ export const getAllClassCatalog = query({
                     // Propiedades extendidas con objetos completos
                     schoolCycle: cycle,
                     subject: subject,
+                    term: term,
                     classroom: classroom,
                     teacher: teacher,
                     group: group,
@@ -96,15 +98,15 @@ export const updateClassCatalog = mutation({
         subjectId: v.id("subject"),
         classroomId: v.id("classroom"),
         teacherId: v.id("user"),
+        termId: v.id("term"),
         groupId: v.optional(v.id("group")),
-        // scheduleId: v.id("schedule"),
         name: v.string(),
         status: v.union(
             v.literal('active'),
             v.literal('inactive')
         ),
         createdBy: v.optional(v.id("user")),
-        updatedAt: v.number(),
+        updatedAt: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
         const catalog = await ctx.db.get(args._id);

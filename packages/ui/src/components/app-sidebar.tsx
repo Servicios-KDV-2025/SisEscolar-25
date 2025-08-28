@@ -54,11 +54,11 @@ const defaultNavData = {
       items: [
         {
           title: "Ciclos Escolares",
-          url: `#`,
+          url: `/CiclosEscolares`,
         },
         {
           title: "Calendario Escolar",
-          url: `#`,
+          url: `/calendar`,
         },
         {
           title: "Clases por Alumno",
@@ -83,8 +83,8 @@ const defaultNavData = {
       ],
     },
     {
-      title: "Salones",
-      url: `#`,
+      title: "Aulas",
+      url: `/aulas`,
       icon: SquareTerminal,
       isActive: true,
     },
