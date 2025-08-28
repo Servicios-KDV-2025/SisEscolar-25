@@ -23,10 +23,10 @@ export const userSchema = z.object({
 /**
  * Schema para super-administradores (para creación)
  * Los super-administradores tienen acceso completo sin restricciones departamentales
- * Incluye password requerido para creación
+ * Password opcional porque puede asignar usuarios existentes
  */
 export const superAdminCreateSchema = userSchema.extend({
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").optional(),
 });
 
 /**

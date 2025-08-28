@@ -165,6 +165,40 @@ export default function SuperadminPage() {
     });
   }, [superAdmins, searchTerm, statusFilter]);
 
+  // State para búsqueda dinámica de usuario
+  const [searchEmail, setSearchEmail] = useState<string | null>(null);
+  const [searchResultPromise, setSearchResultPromise] = useState<{
+    resolve: (value: any) => void;
+    reject: (reason?: any) => void;
+  } | null>(null);
+  
+  // Query para buscar usuario por email cuando se necesite
+  const searchResult = useQuery(
+    api.functions.users.searchUsers,
+    searchEmail ? {
+      searchTerm: searchEmail,
+      status: "active",
+      limit: 1
+    } : "skip"
+  );
+
+  // Effect para resolver la promesa cuando llegue el resultado
+  React.useEffect(() => {
+    if (searchResultPromise && searchResult !== undefined) {
+      searchResultPromise.resolve(searchResult);
+      setSearchResultPromise(null);
+      setSearchEmail(null);
+    }
+  }, [searchResult, searchResultPromise]);
+
+  // Función auxiliar para buscar usuario de manera asíncrona
+  const searchUserByEmailAsync = (email: string): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      setSearchResultPromise({ resolve, reject });
+      setSearchEmail(email);
+    });
+  };
+
   // Funciones CRUD usando userActionsStore
   const handleCreate = async (data: Record<string, unknown>) => {
     // Debug: ver qué datos están llegando
@@ -174,52 +208,86 @@ export default function SuperadminPage() {
       console.error("No hay escuela actual disponible");
       throw new Error("No hay escuela actual disponible");
     }
-    
-    // Paso 1: Crear usuario en Clerk
-    const createData = {
-      email: data.email as string,
-      password: data.password as string,
-      name: data.name as string,
-      lastName: data.lastName as string,
-    };
 
-    // Validación adicional para asegurar que tenemos password en modo create
-    if (!createData.password) {
-      throw new Error("La contraseña es requerida para crear un usuario");
-    }
-
-    const result = await userActions.createUser(createData);
+    const email = data.email as string;
     
-    if (result.success && result.userId) {
-      console.log("Usuario creado en Clerk exitosamente:", result.userId);
+    try {
+      // PASO 1: Buscar si el usuario ya existe en Convex
+      console.log("🔍 Buscando usuario existente por email:", email);
       
-      try {
-        // Paso 2: Esperar un poco para que el webhook sincronice el usuario
-        console.log("Esperando sincronización del webhook...");
-        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 segundos
-        
-        // Paso 3: Asignar rol de superadmin en la escuela actual
-        console.log("Asignando usuario a la escuela actual...");
+      const existingUsers = await searchUserByEmailAsync(email);
+
+      if (existingUsers && existingUsers.length > 0) {
+        // FLUJO A: Usuario existe, solo asignar a escuela
+        const existingUser = existingUsers[0];
+        console.log("✅ Usuario encontrado:", existingUser.name, existingUser.email);
+        console.log("📋 Asignando usuario existente a la escuela actual...");
+
         await createUserSchoolRelation({
-          clerkId: result.userId, // ID del usuario de Clerk
-          schoolId: currentSchool.school._id, // ID de la escuela actual
-          role: ['superadmin'], // Rol de superadmin
-          status: 'active', // Estado activo
+          clerkId: existingUser.clerkId,
+          schoolId: currentSchool.school._id,
+          role: ['superadmin'],
+          status: 'active',
         });
-        
-        console.log("Super-administrador asignado exitosamente a la escuela");
-        // El CrudDialog cerrará automáticamente ya que no se lanzó ningún error
-        
-      } catch (error) {
-        console.error("Error al asignar usuario a la escuela:", error);
-        // Lanzar error para que el CrudDialog no se cierre
-        const errorMessage = `Usuario creado pero error al asignar a la escuela: ${error instanceof Error ? error.message : 'Error desconocido'}`;
-        throw new Error(errorMessage);
+
+        console.log("🎉 Usuario existente asignado exitosamente como super-admin!");
+        return; // Terminar aquí, usuario ya existía
       }
-    } else {
-      console.error("Error al crear usuario en Clerk:", result.error);
-      // Lanzar error para que el CrudDialog no se cierre
-      throw new Error(result.error || 'Error al crear usuario en Clerk');
+
+      // FLUJO B: Usuario no existe, crear nuevo en Clerk + asignar
+      console.log("👤 Usuario no existe, creando nuevo en Clerk...");
+      
+      const password = data.password as string;
+      
+      // Validación: Si no existe el usuario, la contraseña es obligatoria
+      if (!password || password.trim() === "") {
+        throw new Error("La contraseña es requerida para crear un usuario nuevo. Si el usuario ya existe en el sistema, se asignará automáticamente.");
+      }
+      
+      const createData = {
+        email: email,
+        password: password,
+        name: data.name as string,
+        lastName: data.lastName as string,
+      };
+
+      const result = await userActions.createUser(createData);
+      
+      if (result.success && result.userId) {
+        console.log("✅ Usuario creado en Clerk exitosamente:", result.userId);
+        
+        try {
+          // Esperar sincronización del webhook
+          console.log("⏳ Esperando sincronización del webhook...");
+          await new Promise(resolve => setTimeout(resolve, 2000)); // 2 segundos
+          
+          // Asignar rol de superadmin en la escuela actual
+          console.log("📋 Asignando nuevo usuario a la escuela actual...");
+          await createUserSchoolRelation({
+            clerkId: result.userId,
+            schoolId: currentSchool.school._id,
+            role: ['superadmin'],
+            status: 'active',
+          });
+          
+          console.log("🎉 Nuevo super-administrador creado y asignado exitosamente!");
+          
+        } catch (error) {
+          console.error("❌ Error al asignar usuario a la escuela:", error);
+          const errorMessage = `Usuario creado pero error al asignar a la escuela: ${error instanceof Error ? error.message : 'Error desconocido'}`;
+          throw new Error(errorMessage);
+        }
+      } else {
+        console.error("❌ Error al crear usuario en Clerk:", result.error);
+        throw new Error(result.error || 'Error al crear usuario en Clerk');
+      }
+
+    } catch (error) {
+      // Si el error menciona que ya está asignado, dar mensaje más amigable
+      if (error instanceof Error && error.message.includes("ya está asignado")) {
+        throw new Error(`El usuario ${email} ya es super-administrador de esta escuela`);
+      }
+      throw error; // Re-lanzar otros errores
     }
   };
 
@@ -605,33 +673,33 @@ export default function SuperadminPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                        <Button
+                          variant="ghost"
+                          size="sm"
                             onClick={() => handleOpenView(admin)}
-                            className="h-8 w-8 p-0"
+                          className="h-8 w-8 p-0"
                             disabled={isCrudLoading}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                             onClick={() => handleOpenEdit(admin)}
-                            className="h-8 w-8 p-0"
+                          className="h-8 w-8 p-0"
                             disabled={isCrudLoading}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                             onClick={() => handleOpenDelete(admin)}
-                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                             disabled={isCrudLoading}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -748,11 +816,14 @@ export default function SuperadminPage() {
                         {...field} 
                         value={field.value as string || ""}
                         type="password"
-                        placeholder="Ingresa una contraseña segura"
+                        placeholder="Solo requerida para usuarios nuevos"
                         disabled={false}
                       />
                     </FormControl>
                     <FormMessage />
+                    <p className="text-xs text-muted-foreground">
+                      💡 Si el email ya existe en el sistema, se asignará el usuario existente (sin crear uno nuevo)
+                    </p>
                   </FormItem>
                 )}
               />
