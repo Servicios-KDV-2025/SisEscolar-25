@@ -142,7 +142,7 @@ export default function SubjectPage() {
                         onClick={() => setStatusFilter("all")}
                         className="text-sm font-bold"
                     >
-                        All Subjects ({subjects.length})
+                        Todas las materias ({subjects.length})
                     </Button>
                     <Button
                         variant={statusFilter === "active" ? "default" : "outline"}
@@ -156,7 +156,7 @@ export default function SubjectPage() {
                         onClick={() => setStatusFilter("inactive")}
                         className={`text-sm font-bold ${statusFilter === "inactive" ? "bg-red-100 text-red-800 hover:bg-red-300" : ""}`}
                     >
-                        Inactive ({subjects.filter((s) => s.status === "inactive").length})
+                        Inactivas ({subjects.filter((s) => s.status === "inactive").length})
                     </Button>
                 </div>
             </div>
@@ -202,7 +202,6 @@ export default function SubjectPage() {
                 )
                 : <p></p>
             }
-
             <CrudDialog
                 operation={operation}
                 title={
