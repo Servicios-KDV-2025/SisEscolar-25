@@ -38,7 +38,7 @@ import { stripeCheckout } from './endpoints/stripeCheckout'
 import { paymentSession } from './endpoints/paymentSession'
 import { stripeWebhook } from './endpoints/stripeWebhook'
 
-import CheckoutButtons from './collections/CheckoutButtons/CheckoutButtons'
+//import CheckoutButtons from './collections/CheckoutButtons/CheckoutButtons'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)

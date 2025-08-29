@@ -96,7 +96,7 @@ http.route({
         webhookSecret
       );
 
-      console.log("✅ Evento Stripe recibido:", event.type);
+      console.log(" Evento Stripe recibido:", event.type);
 
       switch (event.type) {
         case "checkout.session.completed":
@@ -112,7 +112,7 @@ http.route({
           // await handleSubscriptionUpdated(ctx, event.data.object);
           break;
         default:
-          console.log(`⚠️ Evento no manejado: ${event.type}`);
+          console.log(` Evento no manejado: ${event.type}`);
       }
 
       return new Response(null, { status: 200 });
@@ -124,7 +124,7 @@ http.route({
 });
 
 async function handleCheckoutSessionCompleted(ctx: any, session: Stripe.Checkout.Session) {
-  console.log("✅ checkout.session.completed");
+  console.log(" checkout.session.completed");
 
   const { customer, subscription, metadata } = session;
   if (!metadata?.schoolId || !metadata?.userId || !subscription) {
