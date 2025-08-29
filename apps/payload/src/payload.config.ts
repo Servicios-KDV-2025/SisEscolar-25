@@ -88,19 +88,32 @@ export default buildConfig({
     },
   }),
   collections: [Pages, Posts, Media, Categories, Users, Prices, Payments],
-  endpoints: [
-    {
-      path: '/checkout',
-      method: 'post',
-      handler: stripeCheckout,
+ endpoints: [
+  {
+    path: '/checkout',
+    method: 'post',
+    handler: async (req) => {
+      const { stripeCheckout } = await import('./endpoints/stripeCheckout')
+      return stripeCheckout(req) 
     },
-    {
-      path: '/api/payment-session',
-      method: 'post',
-      handler: paymentSession,
+  },
+  {
+    path: '/api/payment-session',
+    method: 'post',
+    handler: async (req) => {
+      const { paymentSession } = await import('./endpoints/paymentSession')
+      return paymentSession(req) 
     },
-    { path: '/api/payment-session', method: 'get', handler: paymentSession },
-  ],
+  },
+  {
+    path: '/api/payment-session',
+    method: 'get',
+    handler: async (req) => {
+      const { paymentSession } = await import('./endpoints/paymentSession')
+      return paymentSession(req) 
+    },
+  },
+],
   blocks: [
     Archive,
     Content,
