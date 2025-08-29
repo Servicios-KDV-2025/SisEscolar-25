@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/card'
 import type { PriceBlock } from '@/payload-types'
 import { Check, School } from 'lucide-react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import React from 'react'
 
@@ -42,13 +43,11 @@ export const PriceBlockComponent: React.FC<PriceBlock> = (props) => {
           })}
         </CardContent>
         <CardFooter>
-          <Button
-            className="w-full"
-            variant="outline"
-            onClick={() => router.push(`/create?id=${price.IdStripe}`)}
-          >
-            Empezar
-          </Button>
+          <Link href="/create" className="w-full">
+            <Button className="w-full" variant="outline">
+              Empezar
+            </Button>
+          </Link>
         </CardFooter>
       </Card>
     </div>

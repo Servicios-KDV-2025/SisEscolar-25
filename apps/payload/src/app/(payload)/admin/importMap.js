@@ -24,7 +24,6 @@ import { RowLabel as RowLabel_ec255a65fa6fa8d1faeb09cf35284224 } from '@/Header/
 import { RowLabel as RowLabel_1f6ff6ff633e3695d348f4f3c58f1466 } from '@/Footer/RowLabel'
 import { default as default_a5bcb2677d9b6ea4efc01e1370828e82 } from 'src/collections/fields/ColumnWidth.tsx'
 import { Error as Error_e662cd6d2dc5fe17df92792ba533ad0d } from 'src/components/Admin/Field/Error.tsx'
-import { default as default_3ac49f30dc01dd1c032d016712132fa8 } from '@/components/IconPicker'
 import { default as default_a0bd5f2fa532ef2166f77171a2b9828a } from '@/components/Logo/Logo'
 import { default as default_1a7510af427896d367a49dbf838d2de6 } from '@/components/BeforeDashboard'
 import { default as default_8a7ab0eb7ab5c511aba12e68480bfe5e } from '@/components/BeforeLogin'
@@ -57,7 +56,6 @@ export const importMap = {
   "@/Footer/RowLabel#RowLabel": RowLabel_1f6ff6ff633e3695d348f4f3c58f1466,
   "src/collections/fields/ColumnWidth.tsx#default": default_a5bcb2677d9b6ea4efc01e1370828e82,
   "src/components/Admin/Field/Error.tsx#Error": Error_e662cd6d2dc5fe17df92792ba533ad0d,
-  "@/components/IconPicker#default": default_3ac49f30dc01dd1c032d016712132fa8,
   "@/components/Logo/Logo#default": default_a0bd5f2fa532ef2166f77171a2b9828a,
   "@/components/BeforeDashboard#default": default_1a7510af427896d367a49dbf838d2de6,
   "@/components/BeforeLogin#default": default_8a7ab0eb7ab5c511aba12e68480bfe5e,
