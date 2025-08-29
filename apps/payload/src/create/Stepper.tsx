@@ -29,7 +29,7 @@ export const Stepper: React.FC = () => {
       {({ methods }) => {
         React.useEffect(() => {
           if (isLoaded) {
-            if (isSignedIn && methods.current.id === 'step-1') methods.next()
+            if (isSignedIn && methods.current.id === 'step-1') methods.goTo('step-4')
             setReady(true)
           }
         }, [isSignedIn, isLoaded, methods])
@@ -76,22 +76,6 @@ interface ContentProps {
   schoolId: string
 }
 
-const Content: React.FC<ContentProps> = (props) => {
-  const { user, isLoaded} = useUser() // respaldo solo para DEV
-
-  if(!isLoaded) return null
-
-  return (
-    <StepperUi.Panel className="h-[200px] content-center rounded border bg-secondary text-secondary-foreground p-8">
-      <p className="text-xl font-normal mb-4">
-        Casi estás por terminar. Da clic en “Pagar ahora” para ir a Stripe.
-      </p>
-
-      <PayNowButton priceId={props.priceId} schoolId={props.schoolId} userId={user?.id!}/>
-    </StepperUi.Panel>
-  )
-}
-
 const ClerkComponent: React.FC = () => {
   const [showSignIn, setShowSignIn] = React.useState(false)
   const methods = useStepper()
@@ -99,5 +83,23 @@ const ClerkComponent: React.FC = () => {
     <SignIn onBackToSignUp={() => setShowSignIn(false)} onClick={() => methods.next()} />
   ) : (
     <SignUp onSwitchToSignIn={() => setShowSignIn(true)} onClick={() => methods.next()} />
+  )
+}
+const Content: React.FC<ContentProps> = (props) => {
+  const { user, isLoaded } = useUser() // respaldo solo para DEV
+
+  if (!isLoaded) return null
+
+  return (
+    <StepperUi.Panel className="h-[200px] rounded-2xl border border-gray-200 bg-white text-gray-800 p-8 shadow-lg flex flex-col justify-between">
+      {/* Mensaje */}
+      <p className="text-lg sm:text-xl font-medium mb-6 leading-relaxed">
+        ¡Casi estás por terminar! Da clic en{' '}
+        <span className="font-semibold text-red-500">“Pagar ahora”</span> para ir a Stripe.
+      </p>
+
+      {/* Botón */}
+      <PayNowButton priceId={props.priceId} schoolId={props.schoolId} userId={user?.id!} />
+    </StepperUi.Panel>
   )
 }

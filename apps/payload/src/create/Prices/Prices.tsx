@@ -14,11 +14,16 @@ export const Prices: React.FC<PricePros> = (props) => {
   if (isError) return <p>Error occurred while fetching data.</p>
 
   return (
-    <div>
-      <div>Selecciona Los precios</div>
-      {data?.docs.map((price: Price, index: number) => {
-        return <PriceComponent key={index} {...price} onSelect={onSelect} />
-      })}
+    <div className="w-full py-10">
+      <h2 className="text-2xl font-bold text-center mb-8">
+        Selecciona el plan que más te convenga
+      </h2>
+
+      <div className="grid gap-6 justify-center sm:grid-cols-[repeat(auto-fit,minmax(200px,1fr))] lg:grid-cols-[repeat(auto-fit,minmax(250px,1fr))]">
+        {data?.docs.map((price: Price, index: number) => (
+          <PriceComponent key={index} {...price} onSelect={onSelect} />
+        ))}
+      </div>
     </div>
   )
 }

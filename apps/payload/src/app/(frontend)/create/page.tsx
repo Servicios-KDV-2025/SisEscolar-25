@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import React from 'react'
 import PageClient from './page.client'
 import { Stepper } from '@/create/Stepper'
-import {  Shield, Users, Zap } from 'lucide-react'
+import { Shield, Users, Zap } from 'lucide-react'
 
 export default function Page() {
   return (
@@ -54,11 +54,10 @@ export default function Page() {
           </div>
         </div>
       </section>
-
-      <div className="prose dark:prose-invert max-w-none text-center">
-        <h1 className="mb-8 lg:mb-16">Esta es la página para comprar tu servicio</h1>
-      </div>
-      <div className="container mb-16">{<Stepper />}</div>
+      <section className="py-16 px-4">
+        {' '}
+        <div className="container mb-16">{<Stepper />}</div>
+      </section>
     </div>
   )
 }
