@@ -32,7 +32,7 @@ import { Section } from './blocks/Section/config'
 import { Acordeon } from './blocks/Acordeon/config'
 import { CarouselAvatar } from './blocks/CarouselAvatar/config'
 import Payments from './collections/Payments'
-
+import { PaymentStatus } from './blocks/PaymentStatus/config'
 // LIBRERIAS DE STRIPE
 import { stripeCheckout } from './endpoints/stripeCheckout'
 import { paymentSession } from './endpoints/paymentSession'
@@ -87,7 +87,7 @@ export default buildConfig({
       connectionString: process.env.POSTGRES_URL || '',
     },
   }),
-  collections: [Pages, Posts, Media, Categories, Users, Prices, Payments, CheckoutButtons],
+  collections: [Pages, Posts, Media, Categories, Users, Prices, Payments],
   endpoints: [
     {
       path: '/checkout',
@@ -118,6 +118,8 @@ export default buildConfig({
     Section,
     Carousel,
     CarouselAvatar,
+    PaymentStatus
+
   ],
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer],

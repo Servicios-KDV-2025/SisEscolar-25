@@ -82,6 +82,7 @@ export interface Config {
     section: SectionBlock;
     carousel: CarouselBlock;
     carouselAvatar: CarouselAvatarBlock;
+    paymentStatus: PaymentStatus;
   };
   collections: {
     pages: Page;
@@ -91,7 +92,6 @@ export interface Config {
     users: User;
     prices: Price;
     payments: Payment;
-    checkoutButtons: CheckoutButton;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -110,7 +110,6 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     prices: PricesSelect<false> | PricesSelect<true>;
     payments: PaymentsSelect<false> | PaymentsSelect<true>;
-    checkoutButtons: CheckoutButtonsSelect<false> | CheckoutButtonsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -500,6 +499,7 @@ export interface Page {
     | RowBlock
     | CarouselBlock
     | CarouselAvatarBlock
+    | PaymentStatus
   )[];
   meta?: {
     title?: string | null;
@@ -510,7 +510,6 @@ export interface Page {
     description?: string | null;
   };
   publishedAt?: string | null;
-  checkout?: (number | null) | CheckoutButton;
   slug?: string | null;
   slugLock?: boolean | null;
   updatedAt: string;
@@ -995,15 +994,20 @@ export interface CarouselBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "checkoutButtons".
+ * via the `definition` "paymentStatus".
  */
-export interface CheckoutButton {
-  id: number;
-  label: string;
-  priceId: string;
-  buttonText?: string | null;
-  updatedAt: string;
-  createdAt: string;
+export interface PaymentStatus {
+  status: 'success' | 'cancelled';
+  title: string;
+  message?: string | null;
+  image?: (number | null) | Media;
+  button?: {
+    label?: string | null;
+    url?: string | null;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'paymentStatus';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1242,10 +1246,6 @@ export interface PayloadLockedDocument {
         value: number | Payment;
       } | null)
     | ({
-        relationTo: 'checkoutButtons';
-        value: number | CheckoutButton;
-      } | null)
-    | ({
         relationTo: 'redirects';
         value: number | Redirect;
       } | null)
@@ -1344,7 +1344,6 @@ export interface PagesSelect<T extends boolean = true> {
         description?: T;
       };
   publishedAt?: T;
-  checkout?: T;
   slug?: T;
   slugLock?: T;
   updatedAt?: T;
@@ -1551,17 +1550,6 @@ export interface PaymentsSelect<T extends boolean = true> {
   status?: T;
   metadata?: T;
   raw?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "checkoutButtons_select".
- */
-export interface CheckoutButtonsSelect<T extends boolean = true> {
-  label?: T;
-  priceId?: T;
-  buttonText?: T;
   updatedAt?: T;
   createdAt?: T;
 }

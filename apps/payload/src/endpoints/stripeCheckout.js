@@ -53,7 +53,7 @@ export const stripeCheckout = async (req) => {
       mode: isRecurring ? 'subscription' : 'payment',
       line_items: [{ price: priceId, quantity: 1 }],
       client_reference_id: userId,
-      success_url: `${appURL}/checkout/success?checkoutId={CHECKOUT_SESSION_ID}`,
+      success_url: `${appURL}/success?checkoutId={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${appURL}/checkout/cancel`,
       metadata: { userId, schoolId, schoolName, userName },
       ...(isRecurring ? { subscription_data: { metadata } } : {}),
