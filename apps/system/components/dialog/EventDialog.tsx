@@ -83,7 +83,7 @@ export default function EventDialog({
             form.reset({
                 date: new Date(eventoEditar?.date),
                 eventTypeId: eventoEditar?.eventTypeId,
-                description: eventoEditar.description || "",
+                description: eventoEditar.description || "Sin descriipción",
                 schoolCycleId: eventoEditar.schoolCycleId,
                 status: (eventoEditar.status === "active" || eventoEditar.status === "inactive") ? eventoEditar.status : "active"
             });
@@ -282,7 +282,7 @@ export default function EventDialog({
                                     </FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl>
-                                            <SelectTrigger className="bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-400" >
+                                            <SelectTrigger className="bg-slate-50 max-w-[90vw] sm:max-w-[400px] min-w-[200px] border-slate-200 focus:bg-white focus:border-blue-400" >
                                                 <SelectValue placeholder="Selecciona un tipo de evento" />
                                             </SelectTrigger>
                                         </FormControl>
