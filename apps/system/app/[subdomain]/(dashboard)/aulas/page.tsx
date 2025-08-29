@@ -123,8 +123,7 @@ export default function ClassroomManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.capacity || !formData.location || !formData.name) {
-
+    if (!formData.location.trim() || Number(formData.capacity) <= 0) {
       toast.error("Por favor llena todos los campos obligatorios.")
       return
     }
@@ -270,7 +269,7 @@ export default function ClassroomManagement() {
                   <Button type="button" variant="outline" onClick={resetForm}>
                     Cancelar
                   </Button>
-                  <Button type="submit">{editingClassroom ? "Update" : "Create"} Classroom</Button>
+                  <Button type="submit">{editingClassroom ? "Editar" : "Crear"} Aula</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -285,15 +284,15 @@ export default function ClassroomManagement() {
 
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex flex-col gap-1">
-              <Label htmlFor="location-filter" className="text-xs text-muted-foreground">
-                Location
-              </Label>
+              {/*<Label htmlFor="location-filter" className="text-xs text-muted-foreground">
+                Ubicación
+              </Label>*/}
               <Select value={locationFilter} onValueChange={setLocationFilter}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Todas las ubicaciones" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
+                  <SelectItem value="all">Ubicaciones</SelectItem>
                   {getUniqueLocations().map((location) => (
                     <SelectItem key={location} value={location}>
                       {location}
@@ -304,17 +303,17 @@ export default function ClassroomManagement() {
             </div>
 
             <div className="flex flex-col gap-1">
-              <Label htmlFor="status-filter" className="text-xs text-muted-foreground">
+              {/*<Label htmlFor="status-filter" className="text-xs text-muted-foreground">
                 Status
-              </Label>
+              </Label>*/}
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="all">Estatus</SelectItem>
+                  <SelectItem value="active">Activo</SelectItem>
+                  <SelectItem value="inactive">Inactivo</SelectItem>
                 </SelectContent>
               </Select>
             </div>
