@@ -10,13 +10,12 @@ import { useUserWithConvex } from "stores/userStore";
 import { useCrudDialog, CrudDialog } from "@repo/ui/components/dialog/crud-dialog";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
 import { Input } from "@repo/ui/components/shadcn/input";
-// import { toast } from "sonner";
+import { toast } from "sonner";  
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@repo/ui/components/shadcn/select";
 import { ScheduleFormData, scheduleSchema } from "schema/scheduleSchema"; 
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card";
 import { useState, useMemo } from "react"
 import { useClassCatalog } from "stores/classCatalogStore";
-import Error from "next/error";
 
 type FilterType = 'all' | 'active' | 'inactive'
 
@@ -26,14 +25,6 @@ export default function SchedulePage() {
   const {currentSchool, isLoading} = useCurrentSchool(currentUser?._id)
   // Estado para el filtro
   const [filter, setFilter] = useState<FilterType>('all')
-
-  // const formatDate = (timestamp: number) => {
-  //       return new Date(timestamp).toLocaleDateString("es-ES", {
-  //           year: "numeric",
-  //           month: "short",
-  //           day: "numeric",
-  //       });
-  //   }
 
   const {
     schedule,
@@ -86,7 +77,7 @@ export default function SchedulePage() {
   // Ejemplo: crear un horario rapido
   const handleSubmit = async (values: Record<string, unknown>) => {
     if(!currentSchool?.school._id){
-      // toast.error('Error: Escuela no seleccionada')
+      toast.error('Error: Escuela no seleccionada')
       return 
     } 
 
@@ -98,38 +89,27 @@ export default function SchedulePage() {
           schoolId: currentSchool.school._id,
           name: value.name as string,
           day: value.day as 'lun.' | 'mar.' | 'mié.' | 'jue.' | 'vie.',
-          // scheduleDate: new Date(value.scheduleDate).getTime().toString(),
           startTime: value.startTime as string,
           endTime: value.endTime as string,
           status: value.status as 'active' | 'inactive',
           updatedAt: Date.now()
         })
-        // toast.success('Horario creado exitosamente')
+        toast.success('Horario creado exitosamente')
       } else if(operation === 'edit' && data?._id) {
         await updateSchedule({
           id: data._id,
           schoolId: currentSchool.school._id,
           name: value.name as string,
           day: value.day as 'lun.' | 'mar.' | 'mié.' | 'jue.' | 'vie.',
-          // scheduleDate: new Date(value.scheduleDate).getTime().toString(),
           startTime: value.startTime as string,
           endTime: value.endTime as string,
           status: value.status as 'active' | 'inactive',
           updatedAt: Date.now()
         })
-        // toast.success('Horario actualizado exitosamente')
+        toast.success('Horario actualizado exitosamente')
       }
     } catch (error) {
-      console.error('Error en operación CRUD:', error);
-
-      // Mostrar mensajes de error especificos
-      if (error instanceof Error) {
-        if (error.message === "HORARIO_SUPERPUESTO") {
-          // toast.error("El horario se solapa con otro horario existente en el mismo día");
-        } else if (error.message === "HORARIO_DUPLICADO") {
-          // toast.error("Ya existe un horario idéntico para este día");
-        }
-      }
+      console.error('Error en operación CRUD:', error)
 
       close()
       throw error;
@@ -138,13 +118,13 @@ export default function SchedulePage() {
 
   const handleDelete = async (id: string) => {
     if (!currentSchool?.school._id) {
-      // toast.error('Error: Escuela no seleccionada');
+      toast.error('Error: Escuela no seleccionada')
       return
     }
 
     try {
       await deleteSchedule(id, currentSchool.school._id);
-      // toast.success('Eliminado correctamente')
+      toast.success('Eliminado correctamente')
     } catch (error) {
       console.error('Error al eliminar horario:', error);
       throw error;
@@ -201,10 +181,6 @@ export default function SchedulePage() {
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
           <div className="text-sm text-red-800">
 
-            {/* {createError && <div>Error al crear horario: {createError}</div>}
-            {updateError && <div>Error al actualizar horario: {updateError}</div>}
-            {deleteError && <div>Error al eliminar horario: {deleteError}</div>} */}
-
             {createError === "HORARIO_SUPERPUESTO" && (
               <div>Error: El horario se solapa con otro horario existente en el mismo día</div>
             )}
@@ -258,20 +234,19 @@ export default function SchedulePage() {
               <CardContent className="space-y-2 text-sm">
                 <p className="flex space-x-1">
                   <CalendarDays /><span className="font-semibold flex">Día:</span>
-                  {/* {formatDate(+schedule.scheduleDate)} */}
-                  <div>
+                  <span>
                     {schedule.day}
-                  </div>
+                  </span>
                 </p>
                 <p className="flex space-x-1">
                   <Clock3 />
                   <span className="font-semibold flex">Inicio:</span>
-                  <div>{schedule.startTime}</div>
+                  <span>{schedule.startTime}</span>
                 </p>
                 <p className="flex space-x-1">
                   <Clock3 />
                   <span className="font-semibold flex">Fin:</span>
-                  <div>{schedule.endTime}</div>
+                  <span>{schedule.endTime}</span>
                 </p>
               </CardContent>
               <CardFooter className="flex justify-end gap-2">

@@ -19,7 +19,27 @@ export const hasTimeOverlap = (
   });
 };
 
+// export const convertTimeToMinutes = (timeString: string): number => {
+//   const [hours, minutes] = timeString.split(':').map(Number);
+//   return hours * 60 + minutes;
+// }
+
 export const convertTimeToMinutes = (timeString: string): number => {
-  const [hours, minutes] = timeString.split(':').map(Number);
+  const parts = timeString.split(':');
+
+  // Asegúrate de que el array tenga al menos 2 elementos
+  if (parts.length < 2) {
+    // Manejar el caso de un formato de tiempo incorrecto
+    // Podrías lanzar un error o devolver 0, según tu lógica de negocio.
+    throw new Error('Formato de tiempo inválido. Debe ser "HH:MM".');
+  }
+
+  const [hours, minutes] = parts.map(Number);
+
+  // Validar si los valores convertidos son números válidos
+  if (isNaN(hours) || isNaN(minutes)) {
+    throw new Error('Formato de tiempo inválido. Las partes deben ser números.');
+  }
+
   return hours * 60 + minutes;
-}
+};
