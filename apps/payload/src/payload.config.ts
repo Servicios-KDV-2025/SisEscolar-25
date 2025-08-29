@@ -32,7 +32,6 @@ import { BloqueInformativo } from './blocks/BloqueInformativo/config'
 import { Section } from './blocks/Section/config'
 import { Acordeon } from './blocks/Acordeon/config'
 import { CarouselAvatar } from './blocks/CarouselAvatar/config'
-import Payments from './collections/Payments'
 import { PaymentStatus } from './blocks/PaymentStatus/config'
 // LIBRERIAS DE STRIPE
 import { stripeCheckout } from './endpoints/stripeCheckout'

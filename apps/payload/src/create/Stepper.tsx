@@ -29,7 +29,7 @@ export const Stepper: React.FC = () => {
       {({ methods }) => {
         React.useEffect(() => {
           if (isLoaded) {
-            if (isSignedIn && methods.current.id === 'step-1') methods.goTo('step-4')
+            if (isSignedIn && methods.current.id === 'step-1') methods.goTo('step-2')
             setReady(true)
           }
         }, [isSignedIn, isLoaded, methods])
@@ -37,7 +37,7 @@ export const Stepper: React.FC = () => {
         if (!ready) return null
 
         const onFihishStepSchool = (idSchool: string) => {
-         // alert(idSchool)
+          // alert(idSchool)
           setSchoolId(idSchool)
           methods.next()
         }
