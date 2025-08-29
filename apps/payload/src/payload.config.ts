@@ -32,14 +32,14 @@ import { BloqueInformativo } from './blocks/BloqueInformativo/config'
 import { Section } from './blocks/Section/config'
 import { Acordeon } from './blocks/Acordeon/config'
 import { CarouselAvatar } from './blocks/CarouselAvatar/config'
-import { Stepper } from './blocks/Stepper/config'
-
+import Payments from './collections/Payments'
+import { PaymentStatus } from './blocks/PaymentStatus/config'
 // LIBRERIAS DE STRIPE
 import { stripeCheckout } from './endpoints/stripeCheckout'
 import { paymentSession } from './endpoints/paymentSession'
 import { stripeWebhook } from './endpoints/stripeWebhook'
 
-import CheckoutButtons from './collections/CheckoutButtons/CheckoutButtons'
+//import CheckoutButtons from './collections/CheckoutButtons/CheckoutButtons'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -101,19 +101,32 @@ export default buildConfig({
       connectionString: process.env.POSTGRES_URL || '',
     },
   }),
-  collections: [Pages, Posts, Media, Categories, Users, Prices, Payments, CheckoutButtons],
+  collections: [Pages, Posts, Media, Categories, Users, Prices, Payments],
   endpoints: [
     {
       path: '/checkout',
       method: 'post',
-      handler: stripeCheckout,
+      handler: async (req) => {
+        const { stripeCheckout } = await import('./endpoints/stripeCheckout')
+        return stripeCheckout(req)
+      },
     },
     {
       path: '/api/payment-session',
       method: 'post',
-      handler: paymentSession,
+      handler: async (req) => {
+        const { paymentSession } = await import('./endpoints/paymentSession')
+        return paymentSession(req)
+      },
     },
-    { path: '/api/payment-session', method: 'get', handler: paymentSession },
+    {
+      path: '/api/payment-session',
+      method: 'get',
+      handler: async (req) => {
+        const { paymentSession } = await import('./endpoints/paymentSession')
+        return paymentSession(req)
+      },
+    },
   ],
   blocks: [
     Archive,
@@ -132,7 +145,7 @@ export default buildConfig({
     Section,
     Carousel,
     CarouselAvatar,
-    Stepper,
+    PaymentStatus,
   ],
 
   cors: [getServerSideURL()].filter(Boolean),

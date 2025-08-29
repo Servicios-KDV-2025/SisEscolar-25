@@ -1,3 +1,4 @@
+
 import { CheckCircle, Download, ArrowRight, Home } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -13,10 +14,7 @@ export interface PaymentSuccessData {
   currency?: string
 
   // Order items
-  orderItems: Array<{
-    name: string
-    price: string
-  }>
+  orderItems: Array<{ name: string; price: string }>
 
   // Tax and totals
   subtotal: string
@@ -31,12 +29,13 @@ export interface PaymentSuccessData {
   supportPhone?: string
 
   // Next steps (optional)
-  nextSteps?: Array<{
-    text: string
-  }>
+  nextSteps?: Array<{ text: string }>
 
   // Colors (optional customization)
   accentColor?: string
+
+  // NUEVO: recibo Stripe (si existe)
+  receiptUrl?: string
 }
 
 interface PaymentSuccessBlockProps {
@@ -61,9 +60,9 @@ export default function PaymentSuccessBlock({ data }: PaymentSuccessBlockProps) 
     supportPhone = '+1 (234) 567-890',
     nextSteps,
     accentColor = 'green',
+    receiptUrl,
   } = data
 
-  // Dynamic color classes based on accent color
   const colorClasses = {
     green: {
       bg: 'from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20',
@@ -83,7 +82,7 @@ export default function PaymentSuccessBlock({ data }: PaymentSuccessBlockProps) 
       linkColor: 'text-blue-600 dark:text-blue-400',
       dotColor: 'bg-blue-500',
     },
-  }
+  } as const
 
   const colors = colorClasses[accentColor as keyof typeof colorClasses] || colorClasses.green
 
@@ -92,34 +91,26 @@ export default function PaymentSuccessBlock({ data }: PaymentSuccessBlockProps) 
     { text: 'Tu cuenta será activada automáticamente' },
     { text: 'Podrás acceder a todas las funciones premium inmediatamente' },
   ]
-
   const stepsToShow = nextSteps || defaultNextSteps
 
   return (
-    <div
-      className={`min-h-screen bg-gradient-to-br ${colors.bg} flex items-center justify-center p-4`}
-    >
+    <div className={`min-h-screen bg-gradient-to-br ${colors.bg} flex items-center justify-center p-4`}>
       <div className="w-full max-w-2xl">
-        {/* Success Icon and Header */}
+        {/* Header */}
         <div className="text-center mb-8">
-          <div
-            className={`inline-flex items-center justify-center w-20 h-20 ${colors.iconBg} rounded-full mb-6`}
-          >
+          <div className={`inline-flex items-center justify-center w-20 h-20 ${colors.iconBg} rounded-full mb-6`}>
             <CheckCircle className={`w-12 h-12 ${colors.iconColor}`} />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">{title}</h1>
           <p className="text-lg text-gray-600 dark:text-gray-400">{subtitle}</p>
         </div>
 
-        {/* Payment Details Card */}
+        {/* Card detalles */}
         <Card className="mb-8 shadow-lg">
           <CardContent className="p-8">
             <div className="space-y-6">
-              {/* Transaction Info */}
               <div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                  Detalles de la Transacción
-                </h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Detalles de la Transacción</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Número de Orden</p>
@@ -136,8 +127,7 @@ export default function PaymentSuccessBlock({ data }: PaymentSuccessBlockProps) 
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Total Pagado</p>
                     <p className={`text-2xl font-bold ${colors.totalColor}`}>
-                      {currency}
-                      {totalAmount}
+                      {currency}{totalAmount}
                     </p>
                   </div>
                 </div>
@@ -145,35 +135,23 @@ export default function PaymentSuccessBlock({ data }: PaymentSuccessBlockProps) 
 
               <Separator />
 
-              {/* Order Summary */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                  Resumen del Pedido
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Resumen del Pedido</h3>
                 <div className="space-y-3">
-                  {orderItems.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center">
+                  {orderItems.map((item, i) => (
+                    <div key={i} className="flex justify-between items-center">
                       <span className="text-gray-600 dark:text-gray-400">{item.name}</span>
-                      <span className="font-medium">
-                        {currency}
-                        {item.price}
-                      </span>
+                      <span className="font-medium">{currency}{item.price}</span>
                     </div>
                   ))}
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600 dark:text-gray-400">Impuestos</span>
-                    <span className="font-medium">
-                      {currency}
-                      {taxes}
-                    </span>
+                    <span className="font-medium">{currency}{taxes}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between items-center text-lg font-semibold">
                     <span>Total</span>
-                    <span className={colors.totalColor}>
-                      {currency}
-                      {totalAmount}
-                    </span>
+                    <span className={colors.totalColor}>{currency}{totalAmount}</span>
                   </div>
                 </div>
               </div>
@@ -181,18 +159,14 @@ export default function PaymentSuccessBlock({ data }: PaymentSuccessBlockProps) 
           </CardContent>
         </Card>
 
-        {/* Next Steps */}
+        {/* Next steps */}
         <Card className="mb-8">
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              ¿Qué sigue?
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">¿Qué sigue?</h3>
             <div className="space-y-3">
-              {stepsToShow.map((step, index) => (
-                <div key={index} className="flex items-start gap-3">
-                  <div
-                    className={`w-2 h-2 ${colors.dotColor} rounded-full mt-2 flex-shrink-0`}
-                  ></div>
+              {stepsToShow.map((step, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className={`w-2 h-2 ${colors.dotColor} rounded-full mt-2 flex-shrink-0`} />
                   <p className="text-gray-600 dark:text-gray-400">{step.text}</p>
                 </div>
               ))}
@@ -200,39 +174,39 @@ export default function PaymentSuccessBlock({ data }: PaymentSuccessBlockProps) 
           </CardContent>
         </Card>
 
-        {/* Action Buttons */}
+        {/* Acciones */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button asChild size="lg" className={colors.buttonBg}>
-            <Link href={dashboardUrl} className="flex items-center gap-2">
-              Ir al Dashboard
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </Button>
+         
 
-          <Button variant="outline" size="lg" className="flex items-center gap-2 bg-transparent">
-            <Download className="w-4 h-4" />
-            Descargar Recibo
-          </Button>
+          {receiptUrl ? (
+            <Button variant="outline" size="lg" asChild className="flex items-center gap-2 bg-transparent">
+              <Link href={receiptUrl} target="_blank" rel="noreferrer">
+                <Download className="w-4 h-4" />
+                Descargar Recibo
+              </Link>
+            </Button>
+          ) : (
+            <Button variant="outline" size="lg" className="flex items-center gap-2 bg-transparent" disabled>
+              <Download className="w-4 h-4" />
+              Descargar Recibo
+            </Button>
+          )}
 
           <Button variant="ghost" size="lg" asChild>
-            <Link href={homeUrl} className="flex items-center gap-2">
+            <Link href={homeUrl!} className="flex items-center gap-2">
               <Home className="w-4 h-4" />
               Volver al Inicio
             </Link>
           </Button>
         </div>
 
-        {/* Support Info */}
+        {/* Soporte */}
         <div className="text-center mt-8 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             ¿Necesitas ayuda? Contáctanos en{' '}
-            <a href={`mailto:${supportEmail}`} className={`${colors.linkColor} hover:underline`}>
-              {supportEmail}
-            </a>{' '}
+            <a href={`mailto:${supportEmail}`} className={`${colors.linkColor} hover:underline`}>{supportEmail}</a>{' '}
             o llama al{' '}
-            <a href={`tel:${supportPhone}`} className={`${colors.linkColor} hover:underline`}>
-              {supportPhone}
-            </a>
+            <a href={`tel:${supportPhone}`} className={`${colors.linkColor} hover:underline`}>{supportPhone}</a>
           </p>
         </div>
       </div>

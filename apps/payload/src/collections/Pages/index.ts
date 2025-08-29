@@ -87,7 +87,7 @@ export const Pages: CollectionConfig<'pages'> = {
                 'row',
                 'carousel',
                 'carouselAvatar',
-                'stepper',
+                'paymentStatus',
               ],
               required: true,
               admin: {
@@ -132,11 +132,6 @@ export const Pages: CollectionConfig<'pages'> = {
       admin: {
         position: 'sidebar',
       },
-    },
-    {
-      name: 'checkout',
-      type: 'relationship',
-      relationTo: 'checkoutButtons',
     },
     ...slugField(),
   ],
