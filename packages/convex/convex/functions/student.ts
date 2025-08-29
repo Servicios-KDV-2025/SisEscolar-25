@@ -1,7 +1,6 @@
 // convex/student.ts
 import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
-import { Id } from "../_generated/dataModel";
 
 // CREATE
 export const createStudent = mutation({
@@ -155,13 +154,24 @@ export const deleteStudent = mutation({
 export const getStudentWithClasses = query({
   args: {classCatalogId: v.id('classCatalog')},
   handler: async (ctx, args) => {
-    let studentClassesQuery = ctx.db.query('studentClass')
-    // filtrar studentClass por classCatalogId si se proporciona
-    if(args.classCatalogId) {
-      studentClassesQuery = studentClassesQuery.withIndex('by_class_catalog', (q) => q.eq('classCatalogId', args.classCatalogId!))
-    }
+    // let studentClassesQuery = ctx.db.query('studentClass')
+    // // filtrar studentClass por classCatalogId si se proporciona
+    // if(args.classCatalogId) {
+    //   studentClassesQuery = studentClassesQuery.withIndex('by_class_catalog', (q) => q.eq('classCatalogId', args.classCatalogId!))
+    // }
 
-    const studentClasses = await studentClassesQuery.collect()
+    // const studentClasses = await studentClassesQuery.collect()
+
+    let studentClasses;
+    // Filtrar studentClass por classCatalogId si se proporciona
+    if(args.classCatalogId) {
+      studentClasses = await ctx.db.query('studentClass')
+        .withIndex('by_class_catalog', (q) => q.eq('classCatalogId', args.classCatalogId!))
+        .collect();
+    } else {
+      // Si no hay filtro, obtener todos los registros
+      studentClasses = await ctx.db.query('studentClass').collect();
+    }
 
     const studentsWithDetails = await Promise.all(
       studentClasses.map(async (sc) => {
