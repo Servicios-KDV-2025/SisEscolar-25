@@ -52,11 +52,11 @@ export default function CalendarioEscolar() {
 
   const ciclosEscolares = useQuery(
     api.functions.schoolCycles.ObtenerCiclosEscolares,
-    currentSchool ? { escuelaID: currentSchool.school._id} : "skip"
+    currentSchool ? { escuelaID: currentSchool.school._id } : "skip"
   )
   const tiposDeEventos = useQuery(
     api.functions.eventType.getEventType,
-    currentSchool ? { schoolId: currentSchool.school._id} : "skip"
+    currentSchool ? { schoolId: currentSchool.school._id } : "skip"
   )
 
   const getTipoEventoById = useCallback((tipoEventoId: string) => {
@@ -75,7 +75,7 @@ export default function CalendarioEscolar() {
       : "skip"
   )
 
-  
+
 
   // Calendarios
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -97,7 +97,7 @@ export default function CalendarioEscolar() {
       }
     }
   }, [ciclosEscolares, filtroCicloEscolarId]);
- 
+
   const convertirColorAClases = useCallback((color: string | undefined) => {
     if (!color) return {
       color: "bg-gray-500 text-white",
@@ -328,8 +328,24 @@ export default function CalendarioEscolar() {
                             </div>
                           </div>
                           {evento.description && (
-                            <p className="text-sm text-slate-700 ml-11 leading-relaxed">
-                              {evento.description}
+                            <p className="text-sm text-slate-700 ml-0 sm:ml-11 leading-relaxed break-words">
+                              {
+                                (() => {
+                                  const maxWords = 15;
+                                  const maxChars = 80;
+                                  let desc = evento.description;
+                                  // Limita palabras
+                                  const words = desc.split(" ");
+                                  if (words.length > maxWords) {
+                                    desc = words.slice(0, maxWords).join(" ");
+                                  }
+                                  // Limita caracteres
+                                  if (desc.length > maxChars) {
+                                    desc = desc.slice(0, maxChars) + "...";
+                                  }
+                                  return desc.endsWith(".") ? desc : desc + ".";
+                                })()
+                              }
                             </p>
                           )}
                         </div>
@@ -385,13 +401,15 @@ export default function CalendarioEscolar() {
                           }}
                           className={cn(
                             "p-4 rounded-xl border-l-4 transition-all duration-200 hover:shadow-md cursor-pointer",
+                            "w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl", // Responsivo
+                            "mx-auto", // Centra en pantallas pequeñas
                             config?.bgLight || "bg-gray-50",
                             config?.borderColor || "border-l-gray-300"
                           )}
                           role="button"
                           tabIndex={0}
                         >
-                          <div className="flex items-center gap-3 mb-2">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-2">
                             <div className={cn(
                               "p-2 rounded-lg shadow-sm",
                               config?.color || "bg-gray-500 text-white"
@@ -408,8 +426,24 @@ export default function CalendarioEscolar() {
                             </div>
                           </div>
                           {evento.description && (
-                            <p className="text-sm text-slate-700 ml-11 leading-relaxed">
-                              {evento.description}
+                            <p className="text-sm text-slate-700 ml-0 sm:ml-11 leading-relaxed break-words">
+                              {
+                                (() => {
+                                  const maxWords = 15;
+                                  const maxChars = 80;
+                                  let desc = evento.description;
+                                  // Limita palabras
+                                  const words = desc.split(" ");
+                                  if (words.length > maxWords) {
+                                    desc = words.slice(0, maxWords).join(" ");
+                                  }
+                                  // Limita caracteres
+                                  if (desc.length > maxChars) {
+                                    desc = desc.slice(0, maxChars) + "...";
+                                  }
+                                  return desc.endsWith(".") ? desc : desc + ".";
+                                })()
+                              }
                             </p>
                           )}
                         </div>
@@ -584,9 +618,27 @@ export default function CalendarioEscolar() {
                         </div>
                         <TrendingUp className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
                       </div>
-                      <p className="text-sm text-slate-600 ml-11 leading-relaxed">
-                        {config.description}
-                      </p>
+                      {config.description && (
+                            <p className="text-sm text-slate-700 ml-0 sm:ml-11 leading-relaxed break-words">
+                              {
+                                (() => {
+                                  const maxWords = 15;
+                                  const maxChars = 80;
+                                  let desc = config.description;
+                                  // Limita palabras
+                                  const words = desc.split(" ");
+                                  if (words.length > maxWords) {
+                                    desc = words.slice(0, maxWords).join(" ");
+                                  }
+                                  // Limita caracteres
+                                  if (desc.length > maxChars) {
+                                    desc = desc.slice(0, maxChars) + "...";
+                                  }
+                                  return desc.endsWith(".") ? desc : desc + ".";
+                                })()
+                              }
+                            </p>
+                          )}
                     </div>
                   );
                 })}
