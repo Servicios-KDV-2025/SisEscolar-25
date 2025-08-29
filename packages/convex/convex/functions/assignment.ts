@@ -67,7 +67,7 @@ export const getAssignmentsForTutor = query({
 
     // Validamos que el usuario autenticado sea el tutor de ese estudiante
     const isTutor = await ctx.runQuery(
-      internal.assignments.isTutorOfStudent,
+      internal.functions.assignment.isTutorOfStudent,
       { userId: user._id, studentId: args.studentId }
     );
     if (!isTutor) {
@@ -138,7 +138,7 @@ export const getAdminAssignmentsByClass = query({
 
     // Validamos que el usuario sea administrador de la escuela
     const isAdmin = await ctx.runQuery(
-      internal.assignments.isAdminOfSchool,
+      internal.functions.assignment.isAdminOfSchool,
       { userId: user._id, schoolId: classCatalog.schoolId }
     );
     if (!isAdmin) {
@@ -181,7 +181,7 @@ export const createAssignment = mutation({
     const createdBy = user._id;
 
     const newAssignment = { ...args, createdBy };
-    return await ctx.runMutation(internal.assignments.create, newAssignment);
+    return await ctx.runMutation(internal.functions.assignment.create, newAssignment);
   },
 });
 
@@ -201,7 +201,7 @@ export const updateAssignment = mutation({
       gradeRubricId: v.optional(v.id("gradeRubric")),
     }),
   },
-  handler: async (ctx, args): Promise<Id<"assignment">> => {
+  handler: async (ctx, args): Promise<void> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("No estás autenticado.");
     const user = await ctx.db
@@ -220,7 +220,7 @@ export const updateAssignment = mutation({
       throw new Error("Acceso denegado: Solo puedes editar tus propias tareas.");
     }
 
-    return await ctx.runMutation(internal.assignments.update, {
+    await ctx.runMutation(internal.functions.assignment.update, {
       id: args.id,
       patch: args.patch,
     });
@@ -232,7 +232,7 @@ export const updateAssignment = mutation({
  */
 export const deleteAssignment = mutation({
   args: { id: v.id("assignment") },
-  handler: async (ctx, args): Promise<Id<"assignment">> => {
+  handler: async (ctx, args): Promise<void> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("No estás autenticado.");
     const user = await ctx.db
@@ -251,7 +251,7 @@ export const deleteAssignment = mutation({
       throw new Error("Acceso denegado: Solo puedes eliminar tus propias tareas.");
     }
 
-    return await ctx.runMutation(delete_, { id: args.id });
+    await ctx.runMutation(internal.functions.assignment.delete_, { id: args.id });
   },
 });
 

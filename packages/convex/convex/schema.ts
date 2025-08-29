@@ -198,9 +198,9 @@ const applicationTable = defineSchema({
   // Tareas, exámenes o proyectos individuales
   assignment: defineTable({
     classCatalogId: v.id("classCatalog"),
-    termId: v.id("term"),
+    termId: v.id("term"),//periodo
     gradeRubricId: v.id("gradeRubric"),
-    name: v.string(),
+    name: v.string(), //Agregar classCatalog, cicloescolar
     description: v.optional(v.string()),
     dueDate: v.number(),
     maxScore: v.number(),
