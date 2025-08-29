@@ -146,8 +146,9 @@ export const useSubject = (schoolId?: string) => {
             });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Error al crear materia';
-            setCreateError(errorMessage);
-            throw new Error(errorMessage);
+            const errMess = errorMessage?.split(': ').at(-1);
+            setCreateError(errMess!);
+            throw new Error(errMess!);
         } finally {
             setCreating(false);
         }
@@ -170,8 +171,9 @@ export const useSubject = (schoolId?: string) => {
             });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Error al actualizar materia';
-            setUpdateError(errorMessage);
-            throw new Error(errorMessage);
+            const errMess = errorMessage?.split(': ').at(-1);
+            setUpdateError(errMess!);
+            throw new Error(errMess!);
         } finally {
             setUpdating(false);
         }
@@ -188,8 +190,9 @@ export const useSubject = (schoolId?: string) => {
             });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Error al eliminar materia';
-            setDeleteError(errorMessage);
-            throw new Error(errorMessage);
+            const errMess = errorMessage?.split(': ').at(-1);
+            setDeleteError(errMess!);
+            throw new Error(errMess!);
         } finally {
             setDeleting(false);
         }

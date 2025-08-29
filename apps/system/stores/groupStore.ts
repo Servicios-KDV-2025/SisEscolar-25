@@ -195,8 +195,9 @@ export const useGroup = (schoolId?: string) => {
             });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Error al eliminar grupo';
-            setDeleteError(errorMessage);
-            throw new Error(errorMessage);
+            const errMess = errorMessage?.split(': ').at(-1);
+            setDeleteError(errMess!);
+            throw new Error(errMess!);
         } finally {
             setDeleting(false);
         }
