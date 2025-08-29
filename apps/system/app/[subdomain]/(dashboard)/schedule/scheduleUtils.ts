@@ -19,7 +19,14 @@ export const hasTimeOverlap = (
   });
 };
 
+// export const convertTimeToMinutes = (timeString: string): number => {
+//   const [hours, minutes] = timeString.split(':').map(Number);
+//   return hours * 60 + minutes;
+// }
+
 export const convertTimeToMinutes = (timeString: string): number => {
-  const [hours, minutes] = timeString.split(':').map(Number);
-  return hours * 60 + minutes;
+  const [hoursStr, minutesStr] = timeString.split(':');
+  const hours = Number(hoursStr);
+  const minutes = Number(minutesStr);
+  return (isNaN(hours) ? 0 : hours) * 60 + (isNaN(minutes) ? 0 : minutes);
 }
