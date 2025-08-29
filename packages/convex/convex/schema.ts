@@ -121,7 +121,8 @@ const applicationTable = defineSchema({
     updatedBy: v.optional(v.id("user")),
   })
     .index("by_school", ["schoolId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_name", ["name"]),
   
   //Aulas
   classroom: defineTable({

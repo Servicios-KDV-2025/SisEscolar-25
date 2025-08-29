@@ -11,7 +11,7 @@ export const getAllSubjectsBySchool = query({
     handler: async (ctx, args) => {
         const school = await ctx.db.get(args.schoolId);
         if (!school) {
-            throw new Error('School does not exist');
+            throw new Error('La escuela no existe');
         }
 
         return await ctx.db
@@ -31,7 +31,7 @@ export const getSubjectByIdAndSchool = query({
         const school = await ctx.db.get(args.schoolId);
         // Verify that the subject exists and belongs to the correct school
         if (!subject || !school) {
-            throw new Error("Subject not found or does not belong to this school.");
+            throw new Error("La materia no se encuentra o no pertenece a esta escuela.");
         }
         return subject;
     }
@@ -53,8 +53,19 @@ export const createSubjectWithSchoolId = mutation({
         const existSchool = await ctx.db.get(args.schoolId);
         if (!existSchool) {
             throw new Error(
-                "Cannot create subject: The specified school does not exist."
+                "No se pudo crear la materia."
             );
+        }
+
+        const existingSubject = await ctx.db
+            .query("subject")
+            .withIndex("by_name", q =>
+                q.eq("name", args.name)
+            )
+            .first();
+
+        if (existingSubject) {
+            throw new Error("Ya existe esa materia con el mismo nombre en esta escuela");
         }
         return await ctx.db.insert("subject", args);
     }
