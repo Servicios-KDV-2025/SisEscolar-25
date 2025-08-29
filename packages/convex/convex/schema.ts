@@ -302,7 +302,8 @@ const applicationTable = defineSchema({
     updatedAt: v.number(),
   })
     .index("by_student_class", ["studentClassId"])
-    .index("by_date", ["date"]),
+    .index("by_date", ["date"])
+    .index("by_student_class_and_date", ["studentClassId", "date"]),
 
   //Eventos del calendario escolar
   calendar: defineTable({

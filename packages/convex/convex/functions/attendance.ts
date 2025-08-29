@@ -156,10 +156,16 @@ export const markAttendanceSimple = mutation({
     comments: v.optional(v.string())
   },
   handler: async (ctx, args) => {
+    // const existingRecord = await ctx.db.query('attendance')
+    //   .withIndex('by_student_class', (q) => q.eq(
+    //     'studentClassId', args.studentClassId
+    //   ).eq("date", args.date)).first()
+    // Usar el nuevo índice compuesto
     const existingRecord = await ctx.db.query('attendance')
-      .withIndex('by_student_class', (q) => q.eq(
-        'studentClassId', args.studentClassId
-      ).eq("date", args.date)).first()
+      .withIndex('by_student_class_and_date', (q) => 
+        q.eq('studentClassId', args.studentClassId).eq("date", args.date)
+      )
+      .first()
 
       const now = Date.now()
 
