@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import {useUser} from "@clerk/nextjs"
 import { useUserWithConvex } from "stores/userStore"
 import { useCurrentSchool } from "stores/userSchoolsStore";
+import { ClassroomFormValues } from "@/types/form/classroomSchema";
 
 
 interface Classroom {
@@ -72,9 +73,9 @@ export default function ClassroomManagement() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingClassroom, setEditingClassroom] = useState<Classroom | null>(null)
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ClassroomFormValues>({
     name: "",
-    capacity: "",
+    capacity: 0,
     location: "",
     status: "active" as "active" | "inactive",
   })
@@ -123,28 +124,38 @@ export default function ClassroomManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.location.trim() || Number(formData.capacity) <= 0) {
+    /*if (!formData.location.trim() || Number(formData.capacity) <= 0) {
       toast.error("Por favor llena todos los campos obligatorios.")
       return
+    }*/ // esto lo estoy cambiando para validacion con zod
+
+    const result = classroomFormSchema.safeParse(formData)
+
+    if (!result.success) {
+      toast.error("Por favor revisa los campos: " + result.error.errors.map(e => e.message).join(", "))
     }
+
+    const validData = result.data
 
     if (editingClassroom) {
       await updateClassroom({
         id: editingClassroom.id as any,
         schoolId: currentSchool?.school._id as any, //solucionar esto
-        name: formData.name,
-        capacity: Number.parseInt(formData.capacity),
-        location: formData.location,
-        status: formData.status,
+        name: validData.name,
+        capacity: Number.parseInt(validData.capacity),
+        location: validData.location,
+        status: validData.status,
+        updatedAt: Date.now(),
+
       });
       toast.success("Aula actualizada correctamente.")
     } else {
       await createClassroom({
         schoolId: currentSchool?.school._id as any, //solucionar esto
-        name: formData.name,
-        capacity: Number.parseInt(formData.capacity),
-        location: formData.location,
-        status: formData.status,  
+        name: validData.name,
+        capacity: Number.parseInt(validData.capacity),
+        location: validData.location,
+        status: validData.status,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       })
@@ -231,9 +242,10 @@ export default function ClassroomManagement() {
                       id="capacity"
                       type="number"
                       min="1"
+                      max= "100"
                       placeholder="Ingresa la capacidad"
                       value={formData.capacity}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, capacity: e.target.value }))}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, capacity: Number(e.target.value) }))}
                       required
                     />
                   </div>
