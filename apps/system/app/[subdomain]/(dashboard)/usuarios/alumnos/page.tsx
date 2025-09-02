@@ -99,8 +99,8 @@ export default function AlumnosPage() {
   // Default values para el formulario
   const defaultValues = useMemo(() => ({
     schoolId: currentSchool?.school._id || "",
-    groupId: groups?.[0]?._id || "",
-    tutorId: tutors?.[0]?._id || "",
+    groupId: "", // Dejar vacío para forzar selección
+    tutorId: "", // Dejar vacío para forzar selección
     enrollment: "",
     name: "",
     lastName: "",
@@ -108,7 +108,7 @@ export default function AlumnosPage() {
     admissionDate: Date.now(),
     birthDate: undefined,
     imgUrl: "",
-  }), [currentSchool?.school._id, groups, tutors]);
+  }), [currentSchool?.school._id]);
 
   // Hook del CRUD Dialog
   const {
@@ -139,7 +139,7 @@ export default function AlumnosPage() {
     if (studentsError) {
       const timer = setTimeout(() => {
         clearError();
-      }, 5000);
+      }, 8000); // Aumentado a 8 segundos para errores de formulario
       return () => clearTimeout(timer);
     }
   }, [studentsError, clearError]);
@@ -151,27 +151,26 @@ export default function AlumnosPage() {
       return;
     }
 
-    try {
-      const studentData: CreateStudentData = {
-        schoolId: currentSchool.school._id as Id<"school">,
-        groupId: formData.groupId as Id<"group">,
-        tutorId: formData.tutorId as Id<"user">,
-        enrollment: formData.enrollment as string,
-        name: formData.name as string,
-        lastName: formData.lastName as string || undefined,
-        birthDate: formData.birthDate as number || undefined,
-        admissionDate: formData.admissionDate as number || Date.now(),
-        imgUrl: formData.imgUrl as string || undefined,
-      };
+    const studentData: CreateStudentData = {
+      schoolId: currentSchool.school._id as Id<"school">,
+      groupId: formData.groupId as Id<"group">,
+      tutorId: formData.tutorId as Id<"user">,
+      enrollment: formData.enrollment as string,
+      name: formData.name as string,
+      lastName: formData.lastName as string || undefined,
+      birthDate: formData.birthDate as number || undefined,
+      admissionDate: formData.admissionDate as number || Date.now(),
+      imgUrl: formData.imgUrl as string || undefined,
+    };
 
-      const result = await createStudent(studentData);
-      
-      if (result) {
-        close();
-      }
-    } catch (error) {
-      console.error("Error al crear estudiante:", error);
+    const result = await createStudent(studentData);
+    
+    // Solo cerrar el modal si la creación fue exitosa
+    if (result) {
+      close();
     }
+    // Si result es null, significa que hubo un error y no cerramos el modal
+    // El error ya está siendo manejado en el store y se mostrará en la UI
   };
 
   const handleUpdate = async (formData: Record<string, unknown>) => {
@@ -369,6 +368,21 @@ export default function AlumnosPage() {
         </Alert>
       )}
 
+      {/* Mostrar alerta cuando no hay datos necesarios para crear estudiantes */}
+      {canCreateUsers && (!groups?.length || !tutors?.length) && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {!groups?.length && !tutors?.length 
+              ? "No se pueden crear estudiantes porque no hay grupos ni tutores disponibles. Debes crear grupos y asignar tutores primero."
+              : !groups?.length 
+              ? "No se pueden crear estudiantes porque no hay grupos disponibles. Debes crear grupos primero."
+              : "No se pueden crear estudiantes porque no hay tutores disponibles. Debes asignar tutores a esta escuela primero."
+            }
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Información de permisos */}
       {(isTutor || isTeacher) && !isSuperAdmin && !isAdmin && (
         <Alert>
@@ -403,7 +417,12 @@ export default function AlumnosPage() {
                 size="lg" 
                 className="gap-2" 
                 onClick={openCreate}
-                disabled={isCreating || !currentSchool}
+                disabled={isCreating || !currentSchool || !groups?.length || !tutors?.length}
+                title={
+                  !groups?.length ? "No hay grupos disponibles" :
+                  !tutors?.length ? "No hay tutores disponibles" :
+                  !currentSchool ? "No hay escuela seleccionada" : ""
+                }
               >
                 {isCreating ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -624,7 +643,15 @@ export default function AlumnosPage() {
                 Intenta ajustar los filtros o agregar un nuevo alumno.
               </p>
               {canCreateUsers && (
-                <Button onClick={openCreate} className="gap-2">
+                <Button 
+                  onClick={openCreate} 
+                  className="gap-2"
+                  disabled={!groups?.length || !tutors?.length}
+                  title={
+                    !groups?.length ? "No hay grupos disponibles" :
+                    !tutors?.length ? "No hay tutores disponibles" : ""
+                  }
+                >
                   <Plus className="w-4 h-4" />
                   Agregar Alumno
                 </Button>
@@ -666,7 +693,18 @@ export default function AlumnosPage() {
         deleteConfirmationDescription="Esta acción eliminará permanentemente al alumno del sistema. Esta acción no se puede deshacer."
       >
         {(form, currentOperation) => (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4">
+            {/* Mostrar error del store dentro del formulario */}
+            {studentsError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {studentsError}
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Campo oculto para schoolId */}
             <FormField
               control={form.control}
@@ -729,6 +767,13 @@ export default function AlumnosPage() {
                       value={field.value as string || ""}
                       placeholder="2024-001"
                       disabled={currentOperation === "view"}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        // Limpiar error cuando el usuario empiece a escribir
+                        if (studentsError) {
+                          clearError();
+                        }
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -778,13 +823,19 @@ export default function AlumnosPage() {
                         <SelectValue placeholder="Seleccionar grupo" />
                       </SelectTrigger>
                       <SelectContent>
-                        {groups?.map((group: any) => (
-                          <SelectItem key={group._id} value={group._id}>
-                            {group.grade} - {group.name}
-                          </SelectItem>
-                        )) || (
+                        {groups && groups.length > 0 ? (
+                          groups.map((group: any) => (
+                            <SelectItem key={group._id} value={group._id}>
+                              {group.grade} - {group.name}
+                            </SelectItem>
+                          ))
+                        ) : groups === undefined ? (
                           <SelectItem value="loading" disabled>
                             Cargando grupos...
+                          </SelectItem>
+                        ) : (
+                          <SelectItem value="no-groups" disabled>
+                            No hay grupos disponibles
                           </SelectItem>
                         )}
                       </SelectContent>
@@ -826,36 +877,47 @@ export default function AlumnosPage() {
                       <Command>
                         <CommandInput placeholder="Buscar tutor..." className="h-9" />
                         <CommandList>
-                          <CommandEmpty>No se encontró ningún tutor.</CommandEmpty>
+                          <CommandEmpty>
+                            {tutors && tutors.length === 0 
+                              ? "No hay tutores disponibles en esta escuela."
+                              : "No se encontró ningún tutor."
+                            }
+                          </CommandEmpty>
                           <CommandGroup>
-                            {tutors?.map((tutor: any) => (
-                              <CommandItem
-                                value={`${tutor.name} ${tutor.lastName || ''}`}
-                                key={tutor._id}
-                                onSelect={() => {
-                                  field.onChange(tutor._id);
-                                  setOpen(false);
-                                }}
-                              >
-                                <div className="flex flex-col">
-                                  <span className="font-medium">
-                                    {tutor.name} {tutor.lastName || ''}
-                                  </span>
-                                  <span className="text-sm text-muted-foreground">
-                                    {tutor.email}
-                                  </span>
-                                </div>
-                                <Check
-                                  className={`ml-auto h-4 w-4 ${
-                                    tutor._id === field.value
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  }`}
-                                />
-                              </CommandItem>
-                            )) || (
+                            {tutors && tutors.length > 0 ? (
+                              tutors.map((tutor: any) => (
+                                <CommandItem
+                                  value={`${tutor.name} ${tutor.lastName || ''}`}
+                                  key={tutor._id}
+                                  onSelect={() => {
+                                    field.onChange(tutor._id);
+                                    setOpen(false);
+                                  }}
+                                >
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">
+                                      {tutor.name} {tutor.lastName || ''}
+                                    </span>
+                                    <span className="text-sm text-muted-foreground">
+                                      {tutor.email}
+                                    </span>
+                                  </div>
+                                  <Check
+                                    className={`ml-auto h-4 w-4 ${
+                                      tutor._id === field.value
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    }`}
+                                  />
+                                </CommandItem>
+                              ))
+                            ) : tutors === undefined ? (
                               <CommandItem disabled>
                                 Cargando tutores...
+                              </CommandItem>
+                            ) : (
+                              <CommandItem disabled>
+                                No hay tutores disponibles
                               </CommandItem>
                             )}
                           </CommandGroup>
@@ -892,6 +954,7 @@ export default function AlumnosPage() {
                 </div>
               </div>
             )}
+            </div>
           </div>
         )}
       </CrudDialog>
