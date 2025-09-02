@@ -138,7 +138,7 @@ export default function RubricDashboard() {
   const deleteGradeRubric = useMutation(
     api.functions.gradeRubrics.deleteGradeRubric
   );
-
+  console.log("rubricas: ", rubrics, "clases ", classes, "periodo: ", terms, "ciclos: ", schoolCycles);
   if (
     schoolLoading ||
     rubrics === undefined ||
@@ -149,6 +149,7 @@ export default function RubricDashboard() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         Cargando rúbricas...
+        
       </div>
     );
   }
