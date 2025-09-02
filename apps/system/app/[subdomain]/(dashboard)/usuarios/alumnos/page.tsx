@@ -161,6 +161,7 @@ export default function AlumnosPage() {
       birthDate: formData.birthDate as number || undefined,
       admissionDate: formData.admissionDate as number || Date.now(),
       imgUrl: formData.imgUrl as string || undefined,
+      status: formData.status as 'active' | 'inactive' || 'active',
     };
 
     const result = await createStudent(studentData);
@@ -189,6 +190,7 @@ export default function AlumnosPage() {
         birthDate: formData.birthDate as number || undefined,
         admissionDate: formData.admissionDate as number || undefined,
         imgUrl: formData.imgUrl as string || undefined,
+        status: formData.status as 'active' | 'inactive',
       };
 
       const result = await updateStudent(data._id as Id<"student">, updateData);

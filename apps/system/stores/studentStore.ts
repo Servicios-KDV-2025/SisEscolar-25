@@ -32,6 +32,7 @@ export interface CreateStudentData {
   birthDate?: number;
   admissionDate?: number;
   imgUrl?: string;
+  status?: 'active' | 'inactive';
 }
 
 // Tipos para actualizar estudiante
@@ -44,6 +45,7 @@ export interface UpdateStudentData {
   birthDate?: number;
   admissionDate?: number;
   imgUrl?: string;
+  status?: 'active' | 'inactive';
 }
 
 // Filtros para búsqueda de estudiantes
@@ -334,7 +336,7 @@ export const useStudentWithConvex = (
         const newStudent: Student = {
           _id: newStudentId,
           ...data,
-          status: 'active' as const,
+          status: data.status || 'active' as const,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };

@@ -14,6 +14,7 @@ export const createStudent = mutation({
     birthDate: v.optional(v.number()),
     admissionDate: v.optional(v.number()),
     imgUrl: v.optional(v.string()),
+    status: v.optional(v.union(v.literal("active"), v.literal("inactive"))),
   },
   handler: async (ctx, args) => {
     // Validar matrícula única por escuela
@@ -34,7 +35,7 @@ export const createStudent = mutation({
     const now = Date.now();
     return await ctx.db.insert("student", {
       ...args,
-      status: "active",
+      status: args.status || "active", // Usar el status proporcionado o default "active"
       createdAt: now,
       updatedAt: now,
     });
@@ -112,6 +113,7 @@ export const updateStudent = mutation({
       birthDate: v.optional(v.number()),
       admissionDate: v.optional(v.number()),
       imgUrl: v.optional(v.string()),
+      status: v.optional(v.union(v.literal("active"), v.literal("inactive"))),
     }),
   },
   handler: async (ctx, args) => {
