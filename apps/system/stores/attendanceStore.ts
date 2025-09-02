@@ -145,7 +145,7 @@ export const useAttendance = (studentClassId: Id<'studentClass'>, classCatalogId
 
   // Obtener las asistencias del dia seleccionado
   const attendanceQuery = useQuery(
-    api.functions.attendance.getAttendanceByDate,
+    api.functions.attendance.getAttendanceByDateandClass,
     selectedClass ? {
       date: selectedDate,
       classCatalogId: selectedClass,
@@ -214,7 +214,6 @@ export const useAttendance = (studentClassId: Id<'studentClass'>, classCatalogId
 
     try {
       await markAttendanceMutation({
-        userId: '' as Id<'user'>, // Esto se debe obtener del usuario autenticado
         studentClassId,
         date: selectedDate,
         present,
