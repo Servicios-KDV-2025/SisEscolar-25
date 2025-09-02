@@ -113,14 +113,22 @@ export const useUserActionsWithConvex = () => {
       
       const result = await createUserAction(data);
       
-      store.setLastResult(result);
+      // Asegurar que result tenga el tipo correcto
+      const typedResult: UserActionResponse = {
+        success: result.success,
+        message: result.message,
+        error: typeof result.error === 'string' ? result.error : undefined,
+        userId: result.userId
+      };
+      
+      store.setLastResult(typedResult);
       store.setCreating(false);
       
-      if (!result.success && result.error) {
-        store.setCreateError(result.error);
+      if (!typedResult.success && typedResult.error) {
+        store.setCreateError(typedResult.error);
       }
       
-      return result;
+      return typedResult;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error al crear usuario';
       const errorResult: UserActionResponse = {
@@ -145,14 +153,22 @@ export const useUserActionsWithConvex = () => {
       
       const result = await updateUserAction({ userId, ...data });
       
-      store.setLastResult(result);
+      // Asegurar que result tenga el tipo correcto
+      const typedResult: UserActionResponse = {
+        success: result.success,
+        message: result.message,
+        error: typeof result.error === 'string' ? result.error : undefined,
+        userId: result.userId
+      };
+      
+      store.setLastResult(typedResult);
       store.setUpdating(false);
       
-      if (!result.success && result.error) {
-        store.setUpdateError(result.error);
+      if (!typedResult.success && typedResult.error) {
+        store.setUpdateError(typedResult.error);
       }
       
-      return result;
+      return typedResult;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error al actualizar usuario';
       const errorResult: UserActionResponse = {
