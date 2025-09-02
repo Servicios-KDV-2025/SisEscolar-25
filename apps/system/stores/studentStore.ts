@@ -4,6 +4,22 @@ import { api } from '../../../packages/convex/convex/_generated/api';
 import { Id } from '../../../packages/convex/convex/_generated/dataModel';
 import React from 'react';
 
+// Función auxiliar para limpiar mensajes de error de Convex
+const cleanConvexError = (error: unknown): string => {
+  if (error instanceof Error) {
+    // Limpiar el mensaje de error de Convex para mostrar solo el mensaje relevante
+    // Patrón: [CONVEX M(functions/student:createStudent)] [Request ID: xxxx] Server Error Uncaught Error: MENSAJE Called by client
+    return error.message
+      .replace(/^\[CONVEX.*?\]\s*/, '') // Remover [CONVEX M(functions/...)]
+      .replace(/\[Request ID:.*?\]\s*/, '') // Remover [Request ID: ...]
+      .replace(/Server Error\s*/, '') // Remover "Server Error"
+      .replace(/Uncaught Error:\s*/, '') // Remover "Uncaught Error:"
+      .replace(/\s*Called by client$/, '') // Remover "Called by client" al final
+      .trim();
+  }
+  return 'Error desconocido';
+};
+
 // Tipos para el estudiante basados en el schema
 export interface Student {
   _id: Id<"student">;
@@ -352,7 +368,7 @@ export const useStudentWithConvex = (
       store.setCreating(false);
       return null;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error al crear estudiante';
+      const errorMessage = cleanConvexError(error) || 'Error al crear estudiante';
       store.setError(errorMessage);
       store.setCreating(false);
       return null;
@@ -388,7 +404,7 @@ export const useStudentWithConvex = (
       store.setUpdating(false);
       return updatedStudents.find(s => s._id === studentId) || null;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error al actualizar estudiante';
+      const errorMessage = cleanConvexError(error) || 'Error al actualizar estudiante';
       store.setError(errorMessage);
       store.setUpdating(false);
       return null;
@@ -424,7 +440,7 @@ export const useStudentWithConvex = (
       store.setUpdating(false);
       return true;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error al actualizar estado del estudiante';
+      const errorMessage = cleanConvexError(error) || 'Error al actualizar estado del estudiante';
       store.setError(errorMessage);
       store.setUpdating(false);
       return false;
@@ -453,7 +469,7 @@ export const useStudentWithConvex = (
       store.setDeleting(false);
       return true;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error al eliminar estudiante';
+      const errorMessage = cleanConvexError(error) || 'Error al eliminar estudiante';
       store.setError(errorMessage);
       store.setDeleting(false);
       return false;
