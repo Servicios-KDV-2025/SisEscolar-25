@@ -43,20 +43,20 @@ export const usePermissions = (schoolId?: string) => {
             "update:users": false,
             "delete:users": false,
         },
-        tutor: {
-            // Tutor puede gestionar grupos, materias, asistencia y calificaciones
-            "create:users": false,
-            "read:users": true, // Solo usuarios de sus grupos
-            "update:users": false,
-            "delete:users": false,
-        },
         teacher: {
             // Profesor similar al tutor pero con menos permisos
             "create:users": false,
             "read:users": true, // Solo usuarios de sus materias
             "update:users": false,
             "delete:users": false,
-        }
+        },
+        tutor: {
+            // Tutor es el padre 
+            "create:users": false,
+            "read:users": true, // Solo podra ver a sus hijos
+            "update:users": false,
+            "delete:users": false,
+        },
     };
 
     // Obtener roles del usuario en la escuela específica o en todas las escuelas
@@ -77,13 +77,13 @@ export const usePermissions = (schoolId?: string) => {
         }
     }, [currentUser, userSchools, schoolId]);
 
-    // Obtener el rol más alto (prioridad: superadmin > admin > auditor > tutor > teacher)
+    // Obtener el rol más alto (prioridad: superadmin > admin > auditor > teacher > tutor)
     const highestRole = useMemo((): UserRole | null => {
         if (userRoles.includes('superadmin')) return 'superadmin';
         if (userRoles.includes('admin')) return 'admin';
         if (userRoles.includes('auditor')) return 'auditor';
-        if (userRoles.includes('tutor')) return 'tutor';
         if (userRoles.includes('teacher')) return 'teacher';
+        if (userRoles.includes('tutor')) return 'tutor';
         return null;
     }, [userRoles]);
 
@@ -153,6 +153,36 @@ export const usePermissions = (schoolId?: string) => {
         return roleList.some(role => userRoles.includes(role));
     };
 
+    // Función para obtener filtros de estudiantes basados en el rol del usuario
+    const getStudentFilters = React.useCallback(() => {
+        if (!currentUser || !highestRole) {
+            return { canViewAll: false, tutorId: undefined, teacherId: undefined };
+        }
+
+        // Superadmin y Admin pueden ver todos los estudiantes
+        if (highestRole === 'superadmin' || highestRole === 'admin') {
+            return { canViewAll: true, tutorId: undefined, teacherId: undefined };
+        }
+
+        // Auditor puede ver todos pero con restricciones de edición
+        if (highestRole === 'auditor') {
+            return { canViewAll: true, tutorId: undefined, teacherId: undefined };
+        }
+
+        // Tutor solo puede ver sus estudiantes asignados
+        if (highestRole === 'tutor') {
+            return { canViewAll: false, tutorId: currentUser._id, teacherId: undefined };
+        }
+
+        // Maestro solo puede ver estudiantes de sus materias
+        if (highestRole === 'teacher') {
+            return { canViewAll: false, tutorId: undefined, teacherId: currentUser._id };
+        }
+
+        // Por defecto, no puede ver nada
+        return { canViewAll: false, tutorId: undefined, teacherId: undefined };
+    }, [currentUser, highestRole]);
+
     return {
         // Estado
         permissions,
@@ -182,7 +212,10 @@ export const usePermissions = (schoolId?: string) => {
         isSuperAdmin: hasRole('superadmin'),
         isAdmin: hasRole('admin'),
         isAuditor: hasRole('auditor'),
-        isTutor: hasRole('tutor'),
         isTeacher: hasRole('teacher'),
+        isTutor: hasRole('tutor'),
+        
+        // Filtros para estudiantes
+        getStudentFilters,
     };
 };
