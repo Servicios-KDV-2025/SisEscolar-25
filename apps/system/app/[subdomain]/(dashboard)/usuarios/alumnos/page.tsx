@@ -18,7 +18,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { 
    Users, Search, Plus, Eye, Edit, Trash2, Filter, Calendar, UserCheck, UserX, GraduationCap, AlertCircle, Loader2, Check, ChevronsUpDown
 } from "@repo/ui/icons";
-import { studentSchema, type StudentWithMetadata } from "@/types/form/userSchemas";
+import { studentSchema } from "@/types/form/userSchemas";
 import { useStudentsWithPermissions, type CreateStudentData, type UpdateStudentData } from "../../../../../stores/studentStore";
 import { useUserWithConvex } from "../../../../../stores/userStore";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
@@ -26,8 +26,6 @@ import { usePermissions } from "../../../../../hooks/usePermissions";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
-
-type Student = StudentWithMetadata;
 
 export default function AlumnosPage() {
   // Hooks de autenticación y contexto
@@ -43,13 +41,10 @@ export default function AlumnosPage() {
     canDeleteUsers,
     isSuperAdmin,
     isAdmin,
-    isAuditor,
     isTeacher,
     isTutor,
     isLoading: permissionsLoading 
   } = usePermissions(currentSchool?.school._id);
-  
-
 
   // Estados locales para filtros
   const [searchTerm, setSearchTerm] = useState("");
