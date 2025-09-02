@@ -40,8 +40,8 @@ export const createAttendance = mutation({
     comments: v.optional(v.string()),
     registrationDate: v.number(),
     createdBy: v.id('user'),
-    updatedBy: v.optional(v.id('user')),
-    updatedAt: v.optional(v.number())
+    updatedBy: v.id('user'),
+    updatedAt: v.number()
   },
   handler: async (ctx, args) => {
     const studentClassExists = await ctx.db.get(args.studentClassId)
@@ -52,7 +52,7 @@ export const createAttendance = mutation({
   }
 })
 // Actualizar una asistencia existente
-export const updateAttendace = mutation({
+export const updateAttendance = mutation({
   args: {
     id: v.id('attendance'),
     studentClassId: v.id('studentClass'),
@@ -62,8 +62,8 @@ export const updateAttendace = mutation({
     comments: v.optional(v.string()),
     registrationDate: v.number(),
     createdBy: v.id('user'),
-    updatedBy: v.optional(v.id('user')),
-    updatedAt: v.optional(v.number())
+    updatedBy: v.id('user'),
+    updatedAt: v.number()
   },
   handler: async (ctx, args) => {
     const {id, studentClassId, ...data} = args
@@ -91,3 +91,104 @@ export const deleteAttendance = mutation({
   }
 })
 
+// Obtener registros de asistencia por fecha
+export const getAttendanceByDate = query({
+  args: {date: v.number()},
+  handler: async (ctx, args) => {
+    return await ctx.db.query('attendance').withIndex('by_date', (q) => q.eq('date', args.date)).collect()
+  }
+})
+
+// Obtener registros de asistencia con información de estudiantes
+export const getAttendanceWithStudents = query({
+  args: { classCatalogId: v.id('classCatalog') },
+  handler: async (ctx, args) => {
+    // let attendanceQuery = ctx.db.query('attendance')
+    let attendanceRecords
+
+    // Si se proporciona classCatalogId, filtrar por esa clase
+    if(args.classCatalogId) {
+      // Optener los estudiantes para esa classe
+      const studentClasses = await ctx.db
+        .query('studentClass')
+        .withIndex('by_class_catalog', (q) => q.eq('classCatalogId', args.classCatalogId!))
+        .collect()
+
+      const studentClassIds = studentClasses.map(sc => sc._id)
+
+      // attendanceQuery = attendanceQuery.filter(q => q.eq('studentClassId', studentClassIds))
+      // Obtener todos los registros de asistencia y filtrar manualmente
+      const allAttendance = await ctx.db.query("attendance").collect();
+      attendanceRecords = allAttendance.filter(record => 
+        studentClassIds.includes(record.studentClassId)
+      )
+    } else {
+      attendanceRecords = await ctx.db.query('attendance').collect()
+    }
+
+    const recordsWithStudents = await Promise.all(
+      attendanceRecords.map(async (record) => {
+        const studentClass = await ctx.db.get(record.studentClassId)
+        if(!studentClass) return null
+
+        const student = await ctx.db.get(studentClass.studentId)
+        const classCatalog = await ctx.db.get(studentClass.classCatalogId)
+
+        return {
+          ...record,
+          student: student || null,
+          className: classCatalog?.name || 'Unknown'
+        }
+      })
+    )
+
+    return recordsWithStudents.filter(record => record !== null)
+  },
+})
+
+// Marcar asistencia
+export const markAttendanceSimple = mutation({
+  args: {
+    userId: v.id('user'),
+    studentClassId: v.id('studentClass'),
+    date: v.number(),
+    present: v.boolean(),
+    comments: v.optional(v.string())
+  },
+  handler: async (ctx, args) => {
+    // const existingRecord = await ctx.db.query('attendance')
+    //   .withIndex('by_student_class', (q) => q.eq(
+    //     'studentClassId', args.studentClassId
+    //   ).eq("date", args.date)).first()
+    // Usar el nuevo índice compuesto
+    const existingRecord = await ctx.db.query('attendance')
+      .withIndex('by_student_class_and_date', (q) => 
+        q.eq('studentClassId', args.studentClassId).eq("date", args.date)
+      )
+      .first()
+
+      const now = Date.now()
+
+      if(existingRecord) {
+        await ctx.db.patch(existingRecord._id, {
+          present: args.present,
+          justified: args.present ? undefined : false,
+          comments: args.comments,
+          updatedBy: args.userId,
+          updatedAt: now,
+        })
+      } else {
+        await ctx.db.insert('attendance', {
+          studentClassId: args.studentClassId,
+          date: args.date,
+          present: args.present,
+          justified: args.present ? undefined : false,
+          comments: args.comments,
+          registrationDate: now,
+          createdBy: args.userId,
+          updatedBy: args.userId,
+          updatedAt: now
+        })
+      }
+  }
+})
