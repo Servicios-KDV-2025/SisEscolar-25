@@ -41,16 +41,13 @@ export const getByRole = query({
       v.literal("auditor"),
       v.literal("teacher"),
       v.literal("tutor")
-    )
+    ),
   },
   handler: async (ctx, args) => {
     const allRelations = await ctx.db.query("userSchool").collect();
-    return allRelations.filter(relation =>
-      relation.role.includes(args.role)
-    );
+    return allRelations.filter((relation) => relation.role.includes(args.role));
   },
 });
-
 
 // Obtener por estado
 export const getByStatus = query({
@@ -127,9 +124,7 @@ export const hasRoleInSchool = query({
       .collect();
 
     // Filtrar en memoria para verificar el rol
-    return relations.some(relation =>
-      relation.role.includes(args.role)
-    );
+    return relations.some((relation) => relation.role.includes(args.role));
   },
 });
 
@@ -144,12 +139,12 @@ export const getByRoles = query({
         v.literal("teacher"),
         v.literal("tutor")
       )
-    )
+    ),
   },
   handler: async (ctx, args) => {
     const allRelations = await ctx.db.query("userSchool").collect();
-    return allRelations.filter(relation =>
-      args.roles.some(role => relation.role.includes(role))
+    return allRelations.filter((relation) =>
+      args.roles.some((role) => relation.role.includes(role))
     );
   },
 });
@@ -173,12 +168,9 @@ export const getByRoleAndSchool = query({
       .filter((q) => q.eq(q.field("status"), "active"))
       .collect();
 
-    return relations.filter(relation =>
-      relation.role.includes(args.role)
-    );
+    return relations.filter((relation) => relation.role.includes(args.role));
   },
 });
-
 
 //* Mutation
 // Crear nueva relación usuario-escuela
@@ -260,14 +252,14 @@ export const update = mutation({
 
     // Manejar department: si es null, lo establecemos como undefined
     if (args.department !== undefined) {
-      updateData.department = args.department === null ? undefined : args.department;
+      updateData.department =
+        args.department === null ? undefined : args.department;
     }
 
     await ctx.db.patch(id, updateData);
     return await ctx.db.get(id);
   },
 });
-
 
 // Agregar rol a un usuario
 export const addRole = mutation({
@@ -313,7 +305,7 @@ export const removeRole = mutation({
     const relation = await ctx.db.get(args.id);
     if (!relation) throw new Error("Relación no encontrada");
 
-    const newRoles = relation.role.filter(r => r !== args.role);
+    const newRoles = relation.role.filter((r) => r !== args.role);
     await ctx.db.patch(args.id, {
       role: newRoles,
       updatedAt: Date.now(),
@@ -363,9 +355,7 @@ export const removeByUserAndSchool = mutation({
       .filter((q) => q.eq(q.field("schoolId"), args.schoolId))
       .collect();
 
-    await Promise.all(relations.map(relation =>
-      ctx.db.delete(relation._id)
-    ));
+    await Promise.all(relations.map((relation) => ctx.db.delete(relation._id)));
 
     return { success: true, deletedCount: relations.length };
   },

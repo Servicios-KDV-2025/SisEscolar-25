@@ -335,6 +335,30 @@ const applicationTable = defineSchema({
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
   }).index("by_school", ["schoolId"]),
+
+  //Suscriptions
+  schoolSubscription: defineTable({
+    schoolId: v.id("school"),
+    userId: v.id("user"),
+    stripeCustomerId: v.string(),
+    stripeSubscriptionId: v.string(),
+    currency: v.string(),
+    plan: v.string(),
+    status: v.union(
+      v.literal("active"),
+      v.literal("past_due"),
+      v.literal("canceled"),
+      v.literal("trialing"),
+      v.literal("inactive")
+    ),
+    currentPeriodStart: v.number(),
+    currentPeriodEnd: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_schoolId", ["schoolId"])
+    .index("by_stripeSubscriptionId", ["stripeSubscriptionId"])
+    .index("by_status", ["status"])
 });
 
 export default applicationTable;
