@@ -10,8 +10,8 @@ export type Attendance = {
   studentClassId: Id<'studentClass'>
   date: number
   present: boolean
-  justified: boolean
-  comments: string
+  justified?: boolean
+  comments?: string
   registrationDate: number
   createdBy: Id<'user'>
   updatedBy: Id<'user'>
@@ -25,268 +25,345 @@ export type CreateAttendance = {
   justified?: boolean
   comments?: string
   registrationDate: number
-  createdBy: Id<'user'>
-  updatedBy: Id<'user'>
-  updatedAt: number
+  // createdBy: Id<'user'>
+  // updatedBy: Id<'user'>
+  // updatedAt: number
 }
 
 export type updateAttendance = {
   id: Id<'attendance'>
-  studentClassId: Id<'studentClass'>
-  date: number
+  // studentClassId: Id<'studentClass'>
+  // date: number
   present: boolean
   justified?: boolean
   comments?: string
-  registrationDate: number
-  createdBy: Id<'user'>
-  updatedBy: Id<'user'>
-  updatedAt: number
+  // registrationDate: number
+  // createdBy: Id<'user'>
+  // updatedBy: Id<'user'>
+  // updatedAt: number
 }
 
-export type AttendanceWithStudent = {
-  _id: string
-  studentClassId: Id<'studentClass'>
-  date: number
-  present: boolean
-  justified: boolean
-  comments: string
-  registrationDate: number
-  createdBy: Id<'user'>
-  updatedBy: Id<'user'>
-  updatedAt: number
+export type AttendanceWithStudent = Attendance & {
   student: {
     _id: Id<'student'>
     name: string
+    lastName?: string
     enrollment: string
     imgUrl?: string
-    // otros campos del estudiante
-  } //| null
+  }
   className: string
 }
 
 export type StudentWithClass = {
-  id: Id<'studentClass'>
-  studentId: Id<'student'>
-  classId: Id<'classCatalog'>
-  className: string
+  studentClassId: Id<'studentClass'>
   student: {
     _id: Id<'student'>
     name: string
+    lastName?: string
     enrollment: string
     imgUrl?: string
-    // otros campos del estudiante
-  } //| null
+  }
 }
 
 export type AttendanceStore = {
-  attendance: Attendance[]
-  selectedAttendance: Attendance | null
+  attendance: AttendanceWithStudent[]
+  students: StudentWithClass[]
+  selectedClass: Id<'classCatalog'> | null
+  selectedDate: number
   isLoading: boolean
   isCreating: boolean
   isUpdating: boolean
-  isDeleting: boolean
   error: string | null
-  createError: string | null
-  updateError: string | null
-  deleteError: string | null
-  setAttendance: (attendance: Attendance[]) => void
-  setSelectedAttendance: (attendance: Attendance | null) => void
+  setAttendance: (attendance: AttendanceWithStudent[]) => void
+  setStudents: (students: StudentWithClass[]) => void
+  setSelectedClass: (classId: Id<'classCatalog'> | null) => void
+  setSelectedDate: (date: number) => void
   setLoading: (loading: boolean) => void
   setCreating: (creating: boolean) => void
   setUpdating: (updating: boolean) => void
-  setDeleting: (deleting: boolean) => void
   setError: (error: string | null) => void
-  setCreateError: (error: string | null) => void
-  setUpdateError: (error: string | null) => void
-  setDeleteError: (error: string | null) => void
   clearErrors: () => void
-  reset: () => void
 }
 
-const initialState = {
+const initialState: Omit<AttendanceStore,
+  'setAttendance' | 'setStudents' | 'setSelectedClass' | 'setSelectedDate' | 
+  'setLoading' | 'setCreating' | 'setUpdating' | 'setError' | 'clearErrors'
+> = {
   attendance: [],
-  selectedAttendance: null,
+  students: [],
+  selectedClass: null,
+  selectedDate: Date.now(),
   isLoading: false,
   isCreating: false,
   isUpdating: false,
-  isDeleting: false,
-  error: null,
-  createError: null,
-  updateError: null,
-  deleteError: null
+  error: null
 }
 
 export const useAttendanceStore = create<AttendanceStore>((set) => ({
   ...initialState,
   setAttendance: (attendance) => set({attendance}),
-  setSelectedAttendance: (selectedAttendance) => set({selectedAttendance}),
+  setStudents: (students) => set({students}),
+  setSelectedClass: (selectedClass) => set({selectedClass}),
+  setSelectedDate: (selectedDate) => set({selectedDate}),
   setLoading: (isLoading) => set({isLoading}),
   setCreating: (isCreating) => set({isCreating}),
   setUpdating: (isUpdating) => set({ isUpdating }),
-  setDeleting: (isDeleting) => set({ isDeleting }),
   setError: (error) => set({ error }),
-  setCreateError: (createError) => set({ createError }),
-  setUpdateError: (updateError) => set({ updateError }),
-  setDeleteError: (deleteError) => set({ deleteError }),
-  clearErrors: () => set({
-    error: null,
-    createError: null,
-    updateError: null,
-    deleteError: null,
-  }),
-  reset: () => set(initialState),
+  clearErrors: () => set({error: null})
 }))
-
-type AttendanceQueryData = {
-  _id: Id<'attendance'>
-  studentClassId: Id<'studentClass'>
-  date: number
-  present: boolean
-  justified: boolean
-  comments: string
-  registrationDate: number
-  createdBy: Id<'user'>
-  updatedBy: Id<'user'>
-  updatedAt: number
-}
 
 export const useAttendance = (studentClassId: Id<'studentClass'>, classCatalogId: Id<'classCatalog'>  ) => {
   const {
     attendance,
-    selectedAttendance,
+    students,
+    selectedClass,
+    selectedDate,
     isLoading,
     isCreating,
     isUpdating,
-    isDeleting,
     error,
-    createError,
-    updateError,
-    deleteError,
     setAttendance,
-    setSelectedAttendance,
+    setStudents,
+    setSelectedClass,
+    setSelectedDate,
     setCreating,
     setUpdating,
-    setDeleting,
-    setCreateError,
-    setUpdateError,
-    setDeleteError,
+    setError,
     clearErrors,
   } = useAttendanceStore()
 
-  // Query para obtener las asistencias de la clase
+  //ObtenerClases del profesor actual
+  const teacherClasses = useQuery(
+    api.functions.attendance.getTeacherClasses, {}
+  )
+
+  // Obtener estudiantes de la seleccionada
+  const studentQuery = useQuery(
+    api.functions.student.getStudentsByClass,
+    classCatalogId ? {classCatalogId} : 'skip'
+  )
+
+  // Obtener las asistencias del dia seleccionado
   const attendanceQuery = useQuery(
-    api.functions.attendance.getAttendance,
-    studentClassId ? { studentClassId } : 'skip'
-  )
-  const studentClasses = useQuery(
-    api.functions.student.getStudentWithClasses, classCatalogId ? { classCatalogId } : 'skip'
-  )
-  const attendanceRecords = useQuery(
-    api.functions.attendance.getAttendanceWithStudents, classCatalogId ? { classCatalogId } : 'skip'
+    api.functions.attendance.getAttendanceByDate,
+    selectedClass ? {
+      date: selectedDate,
+      classCatalogId: selectedClass,
+    } : 'skip'
   )
 
-  // Mutations
-  const createAttendanceMutation = useMutation(api.functions.attendance.createAttendance)
-  const updateAttendanceMutation = useMutation(api.functions.attendance.updateAttendance)
-  const deleteAttendanceMutatuon = useMutation(api.functions.attendance.deleteAttendance)
+  // MUTACIONES
+  const markAttendanceMutation = useMutation(api.functions.attendance.markAttendanceSimple)
 
-  // Create
-  const createAttendance = useCallback(async (data: CreateAttendance) => {
+  // Cambuar estudiantes cuando cambie la clase seleccionada
+  useEffect(() => {
+    if(studentQuery && Array.isArray(studentQuery)) {
+      const formattendStudents: StudentWithClass[] = studentQuery.map((sc) => ({
+        studentClassId: sc._id,
+        student: {
+          _id: sc.studentId,
+          name: sc.student?.name || '',
+          lastName: sc.student?.lastName || '',
+          enrollment: sc.student?.enrollment || '',
+          imgUrl: sc.student?.imgUrl
+        },
+        className: sc.className || 'Unknow'
+      }))
+      setStudents(formattendStudents)
+    }
+  },[studentQuery, setStudents])
+
+  // Cambiar asistencias cuando cambie la fecha o la clase
+  useEffect(() => {
+    if(attendanceQuery && Array.isArray(attendanceQuery)) {
+      const formattedAttendance: AttendanceWithStudent[] = attendanceQuery.map((att: any) => ({
+        _id: att._id,
+        studentClassId: att.studentClassId,
+        date: att.date,
+        present: att.present,
+        justified: att.justified,
+        comments: att.comments,
+        registrationDate: att.registrationDate,
+        createdBy: att.createdBy,
+        updatedBy: att.updatedBy,
+        updatedAt: att.updatedAt,
+        student: att.student || {
+          _id: '' as Id<'student'>,
+          name: 'Unknown',
+          enrollment: ''
+        },
+        className: att.className || 'Unknown'
+      }))
+      setAttendance(formattedAttendance)
+    }
+  },[attendanceQuery, setAttendance])
+
+  // Marcar Asistencia
+  const markAttendance = useCallback( async (
+    studentClassId: Id<'studentClass'>,
+    present: boolean,
+    comments?: string
+  ) => {
+    if (!selectedClass) {
+      setError('No hay clase seleccionada')
+      return
+    }
+
     setCreating(true)
-    setCreateError(null)
+    clearErrors()
+
     try {
-      await createAttendanceMutation({
-        ...data,
-        studentClassId: data.studentClassId as Id<'studentClass'>
+      await markAttendanceMutation({
+        userId: '' as Id<'user'>, // Esto se debe obtener del usuario autenticado
+        studentClassId,
+        date: selectedDate,
+        present,
+        comments
       })
-    } catch(error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error al crear las asistencias'
-      setCreateError(errorMessage)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error al marcar asistencia'
+      setError(errorMessage)
       throw new Error(errorMessage)
     } finally {
       setCreating(false)
     }
-  },[createAttendanceMutation, setCreating, setCreateError])
-
-  // UPDATE
-  const updateAttendance = useCallback(async (data: updateAttendance) => {
-    setUpdating(true)
-    setUpdateError(null)
-    try{
-      await updateAttendanceMutation({
-        id: data.id,
-        studentClassId: data.studentClassId,
-        date: data.date,
-        present: data.present,
-        justified: data.justified,
-        comments: data.comments,
-        registrationDate: data.registrationDate,
-        createdBy: data.createdBy,
-        updatedBy: data.updatedBy,
-        updatedAt: data.updatedAt
-      })
-    } catch(error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error al actualizar asistencia'
-      setUpdateError(errorMessage)
-      throw new Error(errorMessage)
-    } finally {
-      setUpdating(false)
-    }
-  },[updateAttendanceMutation, setUpdating, setUpdateError])
-
-  // DELETE
-  const deleteAttendance = useCallback(async (id: string, studentClassId: string) => {
-    setDeleting(true)
-    setDeleteError(null)
-    try {
-      await deleteAttendanceMutatuon({
-        id: id as Id<'attendance'>,
-        studentClassId: studentClassId as Id<'studentClass'>
-      })
-    } catch(error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error al eliminar asistencia'
-      setDeleteError(errorMessage)
-      throw new Error(errorMessage)
-    } finally {
-      setDeleting(false)
-    }
-  },[deleteAttendanceMutatuon, setDeleting, setDeleteError])
-
-  // Refrescar periodos cuando cambie la query
-  useEffect(() => {
-    if(attendanceQuery) {
-      setAttendance(
-        (attendanceQuery as AttendanceQueryData[]).map((p) => ({
-          _id: p._id,
-          studentClassId: p.studentClassId,
-          date: p.date,
-          present: p.present,
-          justified: p.justified,
-          comments: p.comments,
-          registrationDate: p.registrationDate,
-          createdBy: p.createdBy,
-          updatedBy: p.updatedBy,
-          updatedAt: p.updatedAt
-        }))
-      )
-    }
-  }, [attendanceQuery, setAttendance])
+  }, [selectedClass, selectedDate, markAttendanceMutation, setCreating, setError, clearErrors])
 
   return {
+    // Estado
     attendance,
-    selectedAttendance,
+    students,
+    teacherClasses,
+    selectedClass,
+    selectedDate,
     isLoading,
     isCreating,
     isUpdating,
-    isDeleting,
     error,
-    createError,
-    updateError,
-    deleteError,
-    createAttendance,
-    updateAttendance,
-    deleteAttendance,
-    setSelectedAttendance,
-    clearErrors,
+    
+    // Acciones
+    setSelectedClass,
+    setSelectedDate,
+    markAttendance,
+    clearErrors
   }
 }
+
+
+  // Query para obtener las asistencias de la clase
+  // const attendanceQuery = useQuery(
+  //   api.functions.attendance.getAttendance,
+  //   studentClassId ? { studentClassId } : 'skip'
+  // )
+  // const studentClasses = useQuery(
+  //   api.functions.student.getStudentWithClasses, classCatalogId ? { classCatalogId } : 'skip'
+  // )
+  // const attendanceRecords = useQuery(
+  //   api.functions.attendance.getAttendanceWithStudents, classCatalogId ? { classCatalogId } : 'skip'
+  // )
+
+  // // Mutations
+  // const createAttendanceMutation = useMutation(api.functions.attendance.createAttendance)
+  // const updateAttendanceMutation = useMutation(api.functions.attendance.updateAttendance)
+  // const deleteAttendanceMutatuon = useMutation(api.functions.attendance.deleteAttendance)
+
+  // // Create
+  // const createAttendance = useCallback(async (data: CreateAttendance) => {
+  //   setCreating(true)
+  //   setCreateError(null)
+  //   try {
+  //     await createAttendanceMutation({
+  //       ...data,
+  //       studentClassId: data.studentClassId as Id<'studentClass'>
+  //     })
+  //   } catch(error) {
+  //     const errorMessage = error instanceof Error ? error.message : 'Error al crear las asistencias'
+  //     setCreateError(errorMessage)
+  //     throw new Error(errorMessage)
+  //   } finally {
+  //     setCreating(false)
+  //   }
+  // },[createAttendanceMutation, setCreating, setCreateError])
+
+  // // UPDATE
+  // const updateAttendance = useCallback(async (data: updateAttendance) => {
+  //   setUpdating(true)
+  //   setUpdateError(null)
+  //   try{
+  //     await updateAttendanceMutation({
+  //       id: data.id,
+  //       studentClassId: data.studentClassId,
+  //       date: data.date,
+  //       present: data.present,
+  //       justified: data.justified,
+  //       comments: data.comments,
+  //       registrationDate: data.registrationDate,
+  //       createdBy: data.createdBy,
+  //       updatedBy: data.updatedBy,
+  //       updatedAt: data.updatedAt
+  //     })
+  //   } catch(error) {
+  //     const errorMessage = error instanceof Error ? error.message : 'Error al actualizar asistencia'
+  //     setUpdateError(errorMessage)
+  //     throw new Error(errorMessage)
+  //   } finally {
+  //     setUpdating(false)
+  //   }
+  // },[updateAttendanceMutation, setUpdating, setUpdateError])
+
+  // // DELETE
+  // const deleteAttendance = useCallback(async (id: string, studentClassId: string) => {
+  //   setDeleting(true)
+  //   setDeleteError(null)
+  //   try {
+  //     await deleteAttendanceMutatuon({
+  //       id: id as Id<'attendance'>,
+  //       studentClassId: studentClassId as Id<'studentClass'>
+  //     })
+  //   } catch(error) {
+  //     const errorMessage = error instanceof Error ? error.message : 'Error al eliminar asistencia'
+  //     setDeleteError(errorMessage)
+  //     throw new Error(errorMessage)
+  //   } finally {
+  //     setDeleting(false)
+  //   }
+  // },[deleteAttendanceMutatuon, setDeleting, setDeleteError])
+
+  // // Refrescar periodos cuando cambie la query
+  // useEffect(() => {
+  //   if(attendanceQuery) {
+  //     setAttendance(
+  //       (attendanceQuery as AttendanceQueryData[]).map((p) => ({
+  //         _id: p._id,
+  //         studentClassId: p.studentClassId,
+  //         date: p.date,
+  //         present: p.present,
+  //         justified: p.justified,
+  //         comments: p.comments,
+  //         registrationDate: p.registrationDate,
+  //         createdBy: p.createdBy,
+  //         updatedBy: p.updatedBy,
+  //         updatedAt: p.updatedAt
+  //       }))
+  //     )
+  //   }
+  // }, [attendanceQuery, setAttendance])
+
+  // return {
+  //   attendance,
+  //   selectedAttendance,
+  //   isLoading,
+  //   isCreating,
+  //   isUpdating,
+  //   isDeleting,
+  //   error,
+  //   createError,
+  //   updateError,
+  //   deleteError,
+  //   createAttendance,
+  //   updateAttendance,
+  //   deleteAttendance,
+  //   setSelectedAttendance,
+  //   clearErrors,
+  // }
+// }

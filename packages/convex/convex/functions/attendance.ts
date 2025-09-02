@@ -103,7 +103,6 @@ export const getAttendanceByDate = query({
 export const getAttendanceWithStudents = query({
   args: { classCatalogId: v.id('classCatalog') },
   handler: async (ctx, args) => {
-    // let attendanceQuery = ctx.db.query('attendance')
     let attendanceRecords
 
     // Si se proporciona classCatalogId, filtrar por esa clase
@@ -116,8 +115,6 @@ export const getAttendanceWithStudents = query({
 
       const studentClassIds = studentClasses.map(sc => sc._id)
 
-      // attendanceQuery = attendanceQuery.filter(q => q.eq('studentClassId', studentClassIds))
-      // Obtener todos los registros de asistencia y filtrar manualmente
       const allAttendance = await ctx.db.query("attendance").collect();
       attendanceRecords = allAttendance.filter(record => 
         studentClassIds.includes(record.studentClassId)
@@ -156,11 +153,6 @@ export const markAttendanceSimple = mutation({
     comments: v.optional(v.string())
   },
   handler: async (ctx, args) => {
-    // const existingRecord = await ctx.db.query('attendance')
-    //   .withIndex('by_student_class', (q) => q.eq(
-    //     'studentClassId', args.studentClassId
-    //   ).eq("date", args.date)).first()
-    // Usar el nuevo índice compuesto
     const existingRecord = await ctx.db.query('attendance')
       .withIndex('by_student_class_and_date', (q) => 
         q.eq('studentClassId', args.studentClassId).eq("date", args.date)
@@ -191,4 +183,45 @@ export const markAttendanceSimple = mutation({
         })
       }
   }
+})
+
+// ======= CLASES ======= //
+
+export const getTeacherClasses = query({
+  handler: async (ctx) => {
+    // Obtener usuario actual basado en clerk
+    const identity = await ctx.auth.getUserIdentity()
+    if(!identity) {
+      throw new Error ('No autenticado')
+    }
+
+    // Buscar usuario por clerckId
+    const user = await ctx.db
+      .query('user')
+      .withIndex('by_clerkId', (q) => q.eq('clerkId', identity.subject))
+      .first()
+
+    if(!user) {
+      throw new Error ('Usuario no encontrado')
+    }
+
+    // Obtener las clases donde el usuario es profesor
+    const classes = await ctx.db
+      .query('classCatalog')
+      .withIndex('by_teacher', (q) => q.eq('teacherId', user._id))
+      .collect()
+
+    // Obtener información adicional de los grupos
+    const classesWithDetails = await Promise.all(
+      classes.map(async (classItem) => {
+        const grupo = classItem.groupId ? await ctx.db.get(classItem.groupId) : null
+        return {
+          ...classItem,
+          grupoName: grupo?.name || 'Sin grupo'
+        }
+      })
+    )
+
+    return classesWithDetails
+  },
 })

@@ -150,43 +150,28 @@ export const deleteStudent = mutation({
   },
 });
 
-// Obtener estudiantes con informacion de clases
-export const getStudentWithClasses = query({
-  args: {classCatalogId: v.id('classCatalog')},
+export const getStudentsByClass = query({
+  args: {
+    classCatalogId: v.id('classCatalog')
+  },
   handler: async (ctx, args) => {
-    // let studentClassesQuery = ctx.db.query('studentClass')
-    // // filtrar studentClass por classCatalogId si se proporciona
-    // if(args.classCatalogId) {
-    //   studentClassesQuery = studentClassesQuery.withIndex('by_class_catalog', (q) => q.eq('classCatalogId', args.classCatalogId!))
-    // }
-
-    // const studentClasses = await studentClassesQuery.collect()
-
-    let studentClasses;
-    // Filtrar studentClass por classCatalogId si se proporciona
-    if(args.classCatalogId) {
-      studentClasses = await ctx.db.query('studentClass')
-        .withIndex('by_class_catalog', (q) => q.eq('classCatalogId', args.classCatalogId!))
-        .collect();
-    } else {
-      // Si no hay filtro, obtener todos los registros
-      studentClasses = await ctx.db.query('studentClass').collect();
-    }
-
+    // Obtener estudantes de la clase
+    const studentClasses = await ctx.db
+      .query('studentClass')
+      .withIndex('by_class_catalog', (q) => q.eq('classCatalogId', args.classCatalogId))
+      .collect()
     const studentsWithDetails = await Promise.all(
       studentClasses.map(async (sc) => {
         const student = await ctx.db.get(sc.studentId)
         const classCatalog = await ctx.db.get(sc.classCatalogId)
-
         return {
-          id: sc._id,
-          studentId: sc.studentId,
-          classId: sc.classCatalogId,
-          className: classCatalog?.name || 'Unknown',
-          student: student
+          ...sc,
+          student,
+          className: classCatalog?.name || 'Unknow'
         }
       })
     )
-    return studentsWithDetails.filter(sc => sc.student !== null)
+
+    return studentsWithDetails
   },
 })
