@@ -340,7 +340,11 @@ const applicationTable = defineSchema({
       v.literal("past_due"),
       v.literal("canceled"),
       v.literal("trialing"),
-      v.literal("inactive")
+      v.literal("inactive"),
+      v.literal("incomplete"),
+      v.literal("incomplete_expired"),
+      v.literal("unpaid"),
+      v.literal("paused"),
     ),
     currentPeriodStart: v.number(),
     currentPeriodEnd: v.number(),
