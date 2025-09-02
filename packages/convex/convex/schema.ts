@@ -153,10 +153,14 @@ const applicationTable = defineSchema({
     //Horarios
     schedule: defineTable({
         schoolId: v.id("school"),
-        name: v.string(),
-        day: v.string(),
-        week: v.string(),
-        // scheduleDate: v.string(),
+        name: v.string(), //El nombre viene desde el nombre (name) de classCatalog
+        day: v.union(
+          v.literal('lun.'),
+          v.literal('mar.'),
+          v.literal('mié.'),
+          v.literal('jue.'),
+          v.literal('vie.'),
+        ),
         startTime: v.string(),
         endTime: v.string(),
         status: v.union(
@@ -165,7 +169,7 @@ const applicationTable = defineSchema({
         ),
         updatedAt: v.number(),
     })
-    .index("by_school_day_week", ["schoolId","day","week"])
+    .index("by_school_day", ["schoolId","day",])
     .index("by_status", ["status"]),
 
   //Periodos
@@ -297,11 +301,12 @@ const applicationTable = defineSchema({
     comments: v.optional(v.string()),
     registrationDate: v.number(),
     createdBy: v.id("user"),
-    updatedBy: v.optional(v.id("user")),
-    updatedAt: v.optional(v.number()),
+    updatedBy: v.id("user"),
+    updatedAt: v.number(),
   })
     .index("by_student_class", ["studentClassId"])
-    .index("by_date", ["date"]),
+    .index("by_date", ["date"])
+    .index("by_student_class_and_date", ["studentClassId", "date"]),
 
   //Eventos del calendario escolar
   calendar: defineTable({
