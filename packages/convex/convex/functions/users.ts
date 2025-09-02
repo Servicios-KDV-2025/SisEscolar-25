@@ -1,6 +1,7 @@
 import { mutation, query, internalMutation } from "../_generated/server";
 import { v, Validator } from "convex/values";
 import { UserJSON } from "@clerk/backend";
+import { Doc } from '../_generated/dataModel';
 
 //=============== CLERK USERS FUNCTIONS ===============
 export const upsertFromClerk = internalMutation({
@@ -158,6 +159,26 @@ export const getUserById = query({
     }
     return user;
   },
+});
+export const getUsersByIds = query({
+  args: { 
+    userIds: v.array(v.id("user")),
+    status: v.optional(v.union(
+      v.literal('active'),
+      v.literal('inactive')
+    ))
+  },
+  handler: async (ctx, args) => {
+    const users = await Promise.all(
+      args.userIds.map(userId => ctx.db.get(userId))
+    );
+    
+    // Filtrar nulls y por status si se especifica
+    return users.filter(user => 
+      user !== null && 
+      (args.status ? user.status === args.status : true)
+    ) as Doc<"user">[];
+  }
 });
 
 // READ - Obtener usuario por Clerk ID

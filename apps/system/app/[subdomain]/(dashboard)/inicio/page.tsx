@@ -10,6 +10,7 @@ import { Button } from "@repo/ui/components/shadcn/button";
 import { Separator } from "@repo/ui/components/shadcn/separator";
 import { useUserWithConvex } from "../../../../stores/userStore";
 import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
+import { usePermissions } from "../../../../hooks/usePermissions";
 
 
 export default function EscuelaHome() {
@@ -25,8 +26,22 @@ export default function EscuelaHome() {
     error: schoolError,
   } = useCurrentSchool(currentUser?._id);
 
+  // Get user permissions for current school
+  const {
+    permissions,
+    isLoading: permissionsLoading,
+    canCreateUsers,
+    canReadUsers,
+    canUpdateUsers,
+    canDeleteUsers,
+    isSuperAdmin,
+    isAdmin,
+    isTutor,
+    highestRole
+  } = usePermissions(currentSchool?.school._id);
+
   // Combined loading state
-  const isLoading = !isLoaded || userLoading || schoolLoading;
+  const isLoading = !isLoaded || userLoading || schoolLoading || permissionsLoading;
 
   // Prepare school data with loading and error states
   const schoolData = React.useMemo(() => {
@@ -118,7 +133,7 @@ export default function EscuelaHome() {
       title: "Horarios",
       description: "Programar clases y eventos",
       icon: Calendar,
-      href: "/horarios",
+      href: "/schedule",
       color: "bg-purple-500"
     },
     {
@@ -270,6 +285,102 @@ export default function EscuelaHome() {
               </CardHeader>
             </Card>
           ))}
+        </div>
+
+        {/* Ejemplo de uso del hook usePermissions */}
+        <div className="mt-8 space-y-4">
+          <h3 className="text-xl font-semibold">Gestión de Usuarios</h3>
+          <p className="text-muted-foreground">
+            Acciones disponibles según tus permisos como <Badge variant="outline">{highestRole || 'sin rol'}</Badge>
+          </p>
+          
+          <div className="flex flex-wrap gap-3">
+            {/* Usando permissions directamente - como querías */}
+            {permissions["create:users"] && (
+              <Button className="gap-2">
+                <Users className="w-4 h-4" />
+                Crear Usuario
+              </Button>
+            )}
+
+            {/* Usando las propiedades específicas */}
+            {canReadUsers && (
+              <Button variant="outline" className="gap-2">
+                <Users className="w-4 h-4" />
+                Ver Usuarios
+              </Button>
+            )}
+
+            {canUpdateUsers && (
+              <Button variant="outline" className="gap-2">
+                <Settings className="w-4 h-4" />
+                Editar Usuarios
+              </Button>
+            )}
+
+            {canDeleteUsers && (
+              <Button variant="destructive" className="gap-2">
+                <Users className="w-4 h-4" />
+                Eliminar Usuarios
+              </Button>
+            )}
+
+            {/* Usando roles específicos */}
+            {isSuperAdmin && (
+              <Button variant="secondary" className="gap-2">
+                <Shield className="w-4 h-4" />
+                Panel SuperAdmin
+              </Button>
+            )}
+
+            {isAdmin && (
+              <Button variant="secondary" className="gap-2">
+                <Shield className="w-4 h-4" />
+                Panel Admin
+              </Button>
+            )}
+
+            {isTutor && (
+              <Button variant="secondary" className="gap-2">
+                <GraduationCap className="w-4 h-4" />
+                Panel Tutor
+              </Button>
+            )}
+          </div>
+
+          {/* Información de debug sobre permisos */}
+          <Card className="bg-muted/50">
+            <CardHeader>
+              <CardTitle className="text-sm">Debug: Información de Permisos</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <strong>Rol más alto:</strong> {highestRole || 'Sin rol'}
+                </div>
+                <div>
+                  <strong>Escuela actual:</strong> {currentSchool?.school.name || 'No encontrada'}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <strong>Permisos de usuarios:</strong>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <span className={canCreateUsers ? 'text-green-600' : 'text-red-600'}>
+                    ✓ Crear: {canCreateUsers ? 'Sí' : 'No'}
+                  </span>
+                  <span className={canReadUsers ? 'text-green-600' : 'text-red-600'}>
+                    ✓ Leer: {canReadUsers ? 'Sí' : 'No'}
+                  </span>
+                  <span className={canUpdateUsers ? 'text-green-600' : 'text-red-600'}>
+                    ✓ Actualizar: {canUpdateUsers ? 'Sí' : 'No'}
+                  </span>
+                  <span className={canDeleteUsers ? 'text-green-600' : 'text-red-600'}>
+                    ✓ Eliminar: {canDeleteUsers ? 'Sí' : 'No'}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
