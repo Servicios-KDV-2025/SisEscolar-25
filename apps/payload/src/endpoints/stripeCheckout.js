@@ -1,12 +1,12 @@
 import Stripe from 'stripe'
-// import { auth } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', { apiVersion: '2023-10-16' })
 
 export const stripeCheckout = async (req) => {
   try {
     //  SESIÓN DE CLERK (lado servidor)
-    // const { userId: serverUserId } = await auth()
+     const { userId: serverUserId } = await auth()
 
     // BODY DEL CLIENTE (en dev puedo traer un fallback userId)
     const body = (await req.json().catch(() => ({}))) || {}
