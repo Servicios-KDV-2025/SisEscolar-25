@@ -63,7 +63,7 @@ export default function ClassroomManagement() {
   const [searchTerm, setSearchTerm] = useState("")
   const [locationFilter, setLocationFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [sortBy, setSortBy] = useState<"name" | "location" | "capacity" | "createdAt">("location")
+  const [sortBy, setSortBy] = useState<"location" | "capacity" | "createdAt">("location")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingClassroom, setEditingClassroom] = useState<Classroom | null>(null)
@@ -100,15 +100,6 @@ export default function ClassroomManagement() {
       if (sortBy === "createdAt") {
         aValue = new Date(aValue).getTime()
         bValue = new Date(bValue).getTime()
-      }
-
-      //comparación para strings (name, location)
-      if (typeof aValue === "string" && typeof bValue === "string") {
-        if (sortOrder === "asc") {
-          return aValue.localeCompare(bValue)
-        } else {
-          return bValue.localeCompare(aValue)
-        }
       }
 
       if (sortOrder === "asc") {
@@ -197,7 +188,7 @@ export default function ClassroomManagement() {
     setIsDialogOpen(false)
   }
   
-  const handleSort = (column: "name" | "location" | "capacity" | "createdAt") => {
+  const handleSort = (column: "location" | "capacity" | "createdAt") => {
     if (sortBy === column) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc")
     } else {
@@ -255,7 +246,6 @@ export default function ClassroomManagement() {
                       value={formData.name}
                       onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                       required
-                      maxLength={50}
                     />
                   </div>
                   <div className="grid gap-2">
@@ -275,11 +265,10 @@ export default function ClassroomManagement() {
                     <Label htmlFor="location">Ubicación *</Label>
                     <Input
                       id="location"
-                      placeholder="Ingresa la ubicación"
+                      placeholder="Ingresa la ubicación/nombre"
                       value={formData.location}
                       onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
                       required
-                      maxLength={50}
                     />
                   </div>
                   <div className="grid gap-2">
@@ -390,7 +379,7 @@ export default function ClassroomManagement() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("name")}> 
-                    Nombre 
+                    Nombre
                   </TableHead>
                   <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("location")}> 
                     Ubicación {sortBy === "location" && (sortOrder === "asc" ? "↑" : "↓")}
@@ -410,8 +399,8 @@ export default function ClassroomManagement() {
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       {searchTerm || locationFilter !== "all" || statusFilter !== "all"
-                        ? "No se encontraron aulas que coincidan con tus filtros."
-                        : "No se encontraron aulas registradas."}
+                        ? "No classrooms found matching your filters."
+                        : "No classrooms registered yet."}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -438,11 +427,7 @@ export default function ClassroomManagement() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {new Date(classroom.createdAt).toLocaleDateString('es-MX', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric'
-                        })}
+                        {classroom.createdAt.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">

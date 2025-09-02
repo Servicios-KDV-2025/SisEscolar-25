@@ -11,7 +11,7 @@ export const createClassroom = mutation({
         location: v.optional(v.string()),
         status: v.union(v.literal("active"), v.literal("inactive")),
         createdAt: v.number(),
-        updatedAt:v.number(),
+        updatedAt: v.number(),
 
     },
     handler: async (ctx, args) => {
@@ -96,6 +96,7 @@ export const updateClassroom = mutation({
     capacity: v.number(),
     location: v.optional(v.string()),
     status: v.union(v.literal("active"), v.literal("inactive")),
+    updatedAt: v.number(),
   },
     handler: async (ctx, args) => {
     const aula = await ctx.db.get(args.id);

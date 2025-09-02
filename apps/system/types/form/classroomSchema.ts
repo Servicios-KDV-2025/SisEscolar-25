@@ -2,9 +2,9 @@ import { z } from "@repo/zod-config/index"
 
 // esta validacion es solo para el front-end(formulario) -->
 export const classroomFormSchema = z.object({
-    name: z.string().min(1).max(100),
-    capacity: z.number().min(1).max(100),
-    location: z.string().max(100),
+    name: z.string().min(1).max(50),
+    capacity: z.number().min(1, "La capacidad debe ser mayor a 0").max(100, "Máximo 100 alumnos"),
+    location: z.string().min(1, "Ubicación requerida").max(50, "Máximo 50 caracteres"),
     status: z.enum(["active", "inactive"]).default("active")
 })
 
