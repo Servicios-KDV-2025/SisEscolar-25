@@ -1,15 +1,28 @@
 // components/student-form.tsx
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@repo/ui/components/shadcn/button"
-import { Input } from "@repo/ui/components/shadcn/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
-import { Label } from "@repo/ui/components/shadcn/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select"
-import { useQuery } from "convex/react"
-import { api } from "@repo/convex/convex/_generated/api"
-import { Id, Doc } from "@repo/convex/convex/_generated/dataModel"
+import { useState } from "react";
+import { Button } from "@repo/ui/components/shadcn/button";
+import { Input } from "@repo/ui/components/shadcn/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/shadcn/card";
+import { Label } from "@repo/ui/components/shadcn/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@repo/ui/components/shadcn/select";
+import { useQuery } from "convex/react";
+import { api } from "@repo/convex/convex/_generated/api";
+import { Id, Doc } from "@repo/convex/convex/_generated/dataModel";
+// import { Upload, X } from "@repo/ui/icons"
 
 // Tipos de datos
 type Student = Doc<"student">;
@@ -96,35 +109,43 @@ const initialFormData = (student: Student | null): FormState => {
   };
 };
 
-export function StudentForm({ student, schoolId, onSave, onCancel }: StudentFormProps) {
+export function StudentForm({
+  student,
+  schoolId,
+  onSave,
+  onCancel,
+}: StudentFormProps) {
   // Inicializamos el estado usando el nuevo tipo `FormState`.
-  const [formData, setFormData] = useState<FormState>(() => initialFormData(student));
+  const [formData, setFormData] = useState<FormState>(() =>
+    initialFormData(student)
+  );
 
   // Obtener los datos de grupos desde Convex
-  const groups = useQuery(api.functions.group.getAllGroupsBySchool, { schoolId });
-  
+  const groups = useQuery(api.functions.group.getAllGroupsBySchool, {
+    schoolId,
+  });
+
   // Usamos los datos de prueba de tutores
   const tutors = mockTutors;
-  
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData((prevData) => ({ ...prevData, [id]: value }));
-  }
+  };
 
   const handleSelectChange = (id: string, value: string) => {
     // Convertimos de string a Id de Convex
     const convexId = value as Id<"group"> | Id<"user">;
     setFormData((prevData) => ({ ...prevData, [id]: convexId }));
-  }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (student) {
       // Caso de edición: convertimos a StudentPatch
       const patchData: StudentPatch = {};
-      
+
       // Asignamos solo los campos que tienen un valor
       if (formData.name) patchData.name = formData.name;
       if (formData.lastName) patchData.lastName = formData.lastName;
@@ -135,11 +156,11 @@ export function StudentForm({ student, schoolId, onSave, onCancel }: StudentForm
         patchData.status = formData.status;
       }
       if (formData.birthDate) patchData.birthDate = formData.birthDate;
-      if (formData.admissionDate) patchData.admissionDate = formData.admissionDate;
+      if (formData.admissionDate)
+        patchData.admissionDate = formData.admissionDate;
       if (formData.imgUrl) patchData.imgUrl = formData.imgUrl;
 
       onSave(patchData);
-
     } else {
       // Caso de creación: convertimos a StudentCreate
       // Validamos que los campos obligatorios no sean null antes de enviar
@@ -157,7 +178,9 @@ export function StudentForm({ student, schoolId, onSave, onCancel }: StudentForm
         };
         onSave(createData);
       } else {
-        console.error("Los campos de grupo y tutor son obligatorios para crear un estudiante.");
+        console.error(
+          "Los campos de grupo y tutor son obligatorios para crear un estudiante."
+        );
       }
     }
   };
@@ -169,9 +192,13 @@ export function StudentForm({ student, schoolId, onSave, onCancel }: StudentForm
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{student ? "Editar Estudiante" : "Agregar Estudiante"}</CardTitle>
+        <CardTitle>
+          {student ? "Editar Estudiante" : "Agregar Estudiante"}
+        </CardTitle>
         <CardDescription>
-          {student ? "Actualizar información del estudiante." : "Complete los datos del nuevo estudiante"}
+          {student
+            ? "Actualizar información del estudiante."
+            : "Complete los datos del nuevo estudiante"}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -181,7 +208,7 @@ export function StudentForm({ student, schoolId, onSave, onCancel }: StudentForm
               <Label htmlFor="name">Nombre</Label>
               <Input
                 id="name"
-                value={formData.name || ''}
+                value={formData.name || ""}
                 onChange={handleChange}
                 required
               />
@@ -190,7 +217,7 @@ export function StudentForm({ student, schoolId, onSave, onCancel }: StudentForm
               <Label htmlFor="lastName">Apellido</Label>
               <Input
                 id="lastName"
-                value={formData.lastName || ''}
+                value={formData.lastName || ""}
                 onChange={handleChange}
               />
             </div>
@@ -198,7 +225,7 @@ export function StudentForm({ student, schoolId, onSave, onCancel }: StudentForm
               <Label htmlFor="enrollment">Matricula</Label>
               <Input
                 id="enrollment"
-                value={formData.enrollment || ''}
+                value={formData.enrollment || ""}
                 onChange={handleChange}
                 required
               />
@@ -208,23 +235,35 @@ export function StudentForm({ student, schoolId, onSave, onCancel }: StudentForm
               <Input
                 id="birthDate"
                 type="date"
-                value={formData.birthDate ? new Date(formData.birthDate).toISOString().split('T')[0] : ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, birthDate: new Date(e.target.value).getTime() }))}
+                value={
+                  formData.birthDate
+                    ? new Date(formData.birthDate).toISOString().split("T")[0]
+                    : ""
+                }
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    birthDate: new Date(e.target.value).getTime(),
+                  }))
+                }
               />
             </div>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="groupId">Grupo</Label>
-              <Select value={formData.groupId || ''} onValueChange={(value) => handleSelectChange("groupId", value)}>
+              <Select
+                value={formData.groupId || ""}
+                onValueChange={(value) => handleSelectChange("groupId", value)}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a group" />
+                  <SelectValue placeholder="Asignar Grupo" />
                 </SelectTrigger>
                 <SelectContent>
                   {groups?.map((group) => (
                     <SelectItem key={group._id} value={group._id}>
-                    {group.grade}  {group.name}
+                      {group.grade} {group.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -232,9 +271,12 @@ export function StudentForm({ student, schoolId, onSave, onCancel }: StudentForm
             </div>
             <div className="space-y-2">
               <Label htmlFor="tutorId">Tutor</Label>
-              <Select value={formData.tutorId || ''} onValueChange={(value) => handleSelectChange("tutorId", value)}>
+              <Select
+                value={formData.tutorId || ""}
+                onValueChange={(value) => handleSelectChange("tutorId", value)}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a tutor" />
+                  <SelectValue placeholder="Asignar Tutor" />
                 </SelectTrigger>
                 <SelectContent>
                   {tutors.map((tutor) => (
@@ -245,7 +287,48 @@ export function StudentForm({ student, schoolId, onSave, onCancel }: StudentForm
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="status">Estatus</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    status: value as "active" | "inactive",
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar Estatus" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Activo</SelectItem>
+                  <SelectItem value="inactive">Inactivo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+          {/* foto
+          <div className="space-y-2">
+            <Label>Profile Photo (Optional)</Label>
+            <div className="flex items-center gap-4">
+               (
+                <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center border-2 border-dashed border-border">
+                  <Upload className="h-8 w-8 text-muted-foreground" />
+                </div>
+              )
+              <div>
+                <Input type="file" accept="image/*"  className="hidden" id="photo-upload" />
+                <Label htmlFor="photo-upload" className="cursor-pointer">
+                  <Button type="button" variant="outline" asChild>
+                    <span>Choose Photo</span>
+                  </Button>
+                </Label>
+                <p className="text-sm text-muted-foreground mt-1">Upload a profile photo (optional)</p>
+              </div>
+            </div>
+          </div>
+          */}
 
           <div className="flex gap-4 justify-end">
             <Button type="button" variant="outline" onClick={onCancel}>
@@ -258,5 +341,5 @@ export function StudentForm({ student, schoolId, onSave, onCancel }: StudentForm
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

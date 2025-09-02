@@ -21,11 +21,21 @@
       }
     ],
     "paths": {
-      "@payload-config": ["./src/payload.config.ts"],
-      "react": ["./node_modules/@types/react"],
-      "@/*": ["./src/*"],
-      "@repo/convex": ["../../packages/convex/index.ts"],
-      "@repo/convex/*": ["../../packages/convex/*"]
+      "@payload-config": [
+        "./src/payload.config.ts"
+      ],
+      "react": [
+        "./node_modules/@types/react"
+      ],
+      "@/*": [
+        "./src/*"
+      ],
+      "@repo/convex": [
+        "../../packages/convex/index.ts"
+      ],
+      "@repo/convex/*": [
+        "../../packages/convex/*"
+      ]
     }
   },
   "include": [

@@ -2,6 +2,11 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useUser } from "@clerk/nextjs";
+import { useParams } from "next/navigation";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@repo/convex/convex/_generated/api";
+import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Button } from "@repo/ui/components/shadcn/button";
@@ -13,72 +18,91 @@ import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialo
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@repo/ui/components/shadcn/form";
 import { 
   Shield, Users, Search, Plus, Eye, Edit, Trash2, Filter, 
-  Mail, Phone, MapPin, Calendar, UserCheck, UserX 
+  Mail, Phone, MapPin, Calendar, UserCheck, UserX, AlertCircle,
+  CheckCircle 
 } from "@repo/ui/icons";
-import { superAdminSchema, type SuperAdminWithMetadata } from "@/types/schemas";
+import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
+import { superAdminSchema, superAdminCreateSchema, superAdminEditSchema, type SuperAdminWithMetadata } from "@/types/form/userSchemas";
+import { useUserWithConvex } from "../../../../../stores/userStore";
+import { useCurrentSchool, useUserSchoolsWithConvex } from "../../../../../stores/userSchoolsStore";
+import { useUserActionsWithConvex } from "../../../../../stores/userActionsStore";
 
 type SuperAdmin = SuperAdminWithMetadata;
 
-// Datos de ejemplo (mock data)
-const mockSuperAdmins: SuperAdmin[] = [
-  {
-    _id: "1",
-    name: "María",
-    lastName: "González Pérez",
-    email: "maria.gonzalez@escuela.edu.mx",
-    phone: "+52 555 1234567",
-    address: "Av. Educación 123, CDMX",
-    status: "active",
-    _creationTime: Date.now() - 86400000 * 30, // 30 días atrás
-    createdAt: Date.now() - 86400000 * 30, // 30 días atrás
-    updatedAt: Date.now() - 86400000 * 5,  // 5 días atrás
-    clerkId: "clerk_maria123",
-    admissionDate: Date.now() - 86400000 * 365, // 1 año atrás
-  },
-  {
-    _id: "2", 
-    name: "Carlos",
-    lastName: "Rodríguez Martín",
-    email: "carlos.rodriguez@escuela.edu.mx",
-    phone: "+52 555 2345678",
-    address: "Calle Principal 456, CDMX",
-    status: "active",
-    _creationTime: Date.now() - 86400000 * 60,
-    createdAt: Date.now() - 86400000 * 60,
-    updatedAt: Date.now() - 86400000 * 2,
-    clerkId: "clerk_carlos456",
-    admissionDate: Date.now() - 86400000 * 500,
-  },
-  {
-    _id: "3",
-    name: "Ana",
-    lastName: "López Silva",
-    email: "ana.lopez@escuela.edu.mx", 
-    phone: "+52 555 3456789",
-    status: "inactive",
-    _creationTime: Date.now() - 86400000 * 90,
-    createdAt: Date.now() - 86400000 * 90,
-    updatedAt: Date.now() - 86400000 * 10,
-    clerkId: "clerk_ana789",
-    admissionDate: Date.now() - 86400000 * 200,
-  },
-  {
-    _id: "4",
-    name: "Roberto",
-    lastName: "Hernández Castro",
-    email: "roberto.hernandez@escuela.edu.mx",
-    phone: "+52 555 4567890",
-    address: "Zona Escolar 789, CDMX",
-    status: "active",
-    _creationTime: Date.now() - 86400000 * 15,
-    createdAt: Date.now() - 86400000 * 15,
-    updatedAt: Date.now() - 86400000 * 1,
-    clerkId: "clerk_roberto012",
-    admissionDate: Date.now() - 86400000 * 180,
-  },
-];
+// Función para obtener el esquema correcto según la operación
+const getSchemaForOperation = (operation: string) => {
+  switch (operation) {
+    case 'create':
+      return superAdminCreateSchema;
+    case 'edit':
+      return superAdminEditSchema;
+    default:
+      return superAdminSchema; // Para view y otros casos
+  }
+};
+
+// Tipo para los super-administradores que vienen de Convex
+type SuperAdminFromConvex = {
+  _id: Id<"user">;
+  name: string;
+  lastName?: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  birthDate?: number;
+  admissionDate?: number;
+  imgUrl?: string;
+  createdAt: number;
+  updatedAt: number;
+  clerkId: string;
+  status?: 'active' | 'inactive';
+  userSchoolId: Id<"userSchool">;
+  schoolRole: Array<'superadmin' | 'admin' | 'auditor' | 'teacher' | 'tutor'>;
+  department?: 'secretary' | 'direction' | 'schoolControl' | 'technology';
+};
 
 export default function SuperadminPage() {
+  const { user: clerkUser } = useUser();
+  const params = useParams();
+  const subdomain = params?.subdomain as string;
+
+  // Obtener usuario actual
+  const { currentUser } = useUserWithConvex(clerkUser?.id);
+  
+  // Obtener escuela actual por subdominio
+  const { currentSchool, isLoading: schoolLoading } = useCurrentSchool(currentUser?._id);
+  
+  // Obtener super-administradores de la escuela actual
+  const superAdmins = useQuery(
+    api.functions.schools.getUsersBySchoolAndRole,
+    currentSchool?.school?._id ? {
+      schoolId: currentSchool.school._id,
+      role: "superadmin",
+      status: "active"
+    } : "skip"
+  );
+
+  // Debug: verificar datos de la query
+  React.useEffect(() => {
+    if (superAdmins && superAdmins.length > 0) {
+      console.log("🔍 superAdmins query result:", superAdmins);
+      const firstAdmin = superAdmins[0];
+      if (firstAdmin) {
+        console.log("🔍 Primer admin keys:", Object.keys(firstAdmin));
+        console.log("🔍 Primer admin clerkId:", firstAdmin.clerkId);
+      }
+    }
+  }, [superAdmins]);
+
+  // User Actions Store para CRUD operations
+  const userActions = useUserActionsWithConvex();
+  
+  // User Schools Store para asignación a escuela
+  const userSchoolsActions = useUserSchoolsWithConvex();
+  
+  // Mutation para crear relación usuario-escuela
+  const createUserSchoolRelation = useMutation(api.functions.schools.createUserSchool);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -97,34 +121,243 @@ export default function SuperadminPage() {
     admissionDate: Date.now(),
   });
 
-  // Filtrado de datos
+  // Funciones wrapper para abrir diálogos con limpieza de errores
+  const handleOpenCreate = () => {
+    userActions.clearErrors();
+    userActions.clearLastResult();
+    openCreate();
+  };
+
+  const handleOpenEdit = (admin: SuperAdminFromConvex) => {
+    console.log("✏️ handleOpenEdit LLAMADO - Admin data:", admin);
+    console.log("✏️ handleOpenEdit - Keys disponibles:", Object.keys(admin));
+    console.log("✏️ handleOpenEdit - clerkId:", admin.clerkId);
+    userActions.clearErrors();
+    userActions.clearLastResult();
+    openEdit(admin);
+  };
+
+  const handleOpenView = (admin: SuperAdminFromConvex) => {
+    userActions.clearErrors();
+    userActions.clearLastResult();
+    openView(admin);
+  };
+
+  const handleOpenDelete = (admin: SuperAdminFromConvex) => {
+    userActions.clearErrors();
+    userActions.clearLastResult();
+    openDelete(admin);
+  };
+
+  // Filtrado de datos reales
   const filteredSuperAdmins = useMemo(() => {
-    return mockSuperAdmins.filter((admin) => {
+    if (!superAdmins) return [];
+    
+    return superAdmins.filter((admin: SuperAdminFromConvex) => {
       const searchMatch = 
         admin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         admin.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         admin.email.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const statusMatch = statusFilter === "all" || admin.status === statusFilter;
+      const statusMatch = statusFilter === "all" || (admin.status || 'active') === statusFilter;
       
       return searchMatch && statusMatch;
     });
-  }, [searchTerm, statusFilter]);
+  }, [superAdmins, searchTerm, statusFilter]);
 
-  // Funciones CRUD (mock)
+  // State para búsqueda dinámica de usuario
+  const [searchEmail, setSearchEmail] = useState<string | null>(null);
+  const [searchResultPromise, setSearchResultPromise] = useState<{
+    resolve: (value: any) => void;
+    reject: (reason?: any) => void;
+  } | null>(null);
+  
+  // Query para buscar usuario por email cuando se necesite
+  const searchResult = useQuery(
+    api.functions.users.searchUsers,
+    searchEmail ? {
+      searchTerm: searchEmail,
+      status: "active",
+      limit: 1
+    } : "skip"
+  );
+
+  // Effect para resolver la promesa cuando llegue el resultado
+  React.useEffect(() => {
+    if (searchResultPromise && searchResult !== undefined) {
+      searchResultPromise.resolve(searchResult);
+      setSearchResultPromise(null);
+      setSearchEmail(null);
+    }
+  }, [searchResult, searchResultPromise]);
+
+  // Función auxiliar para buscar usuario de manera asíncrona
+  const searchUserByEmailAsync = (email: string): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      setSearchResultPromise({ resolve, reject });
+      setSearchEmail(email);
+    });
+  };
+
+  // Funciones CRUD usando userActionsStore
   const handleCreate = async (data: Record<string, unknown>) => {
-    console.log("Crear super-administrador:", data);
-    // Aquí iría la integración con Convex
+    // Debug: ver qué datos están llegando
+    console.log("Datos recibidos en handleCreate:", data);
+    
+    if (!currentSchool?.school?._id) {
+      console.error("No hay escuela actual disponible");
+      throw new Error("No hay escuela actual disponible");
+    }
+
+    const email = data.email as string;
+    
+    try {
+      // PASO 1: Buscar si el usuario ya existe en Convex
+      console.log("🔍 Buscando usuario existente por email:", email);
+      
+      const existingUsers = await searchUserByEmailAsync(email);
+
+      if (existingUsers && existingUsers.length > 0) {
+        // FLUJO A: Usuario existe, solo asignar a escuela
+        const existingUser = existingUsers[0];
+        console.log("✅ Usuario encontrado:", existingUser.name, existingUser.email);
+        console.log("📋 Asignando usuario existente a la escuela actual...");
+
+        await createUserSchoolRelation({
+          clerkId: existingUser.clerkId,
+          schoolId: currentSchool.school._id,
+          role: ['superadmin'],
+          status: 'active',
+        });
+
+        console.log("🎉 Usuario existente asignado exitosamente como super-admin!");
+        return; // Terminar aquí, usuario ya existía
+      }
+
+      // FLUJO B: Usuario no existe, crear nuevo en Clerk + asignar
+      console.log("👤 Usuario no existe, creando nuevo en Clerk...");
+      
+      const password = data.password as string;
+      
+      // Validación: Si no existe el usuario, la contraseña es obligatoria
+      if (!password || password.trim() === "") {
+        throw new Error("La contraseña es requerida para crear un usuario nuevo. Si el usuario ya existe en el sistema, se asignará automáticamente.");
+      }
+      
+      const createData = {
+        email: email,
+        password: password,
+        name: data.name as string,
+        lastName: data.lastName as string,
+      };
+
+      const result = await userActions.createUser(createData);
+      
+      if (result.success && result.userId) {
+        console.log("✅ Usuario creado en Clerk exitosamente:", result.userId);
+        
+        try {
+          // Esperar sincronización del webhook
+          console.log("⏳ Esperando sincronización del webhook...");
+          await new Promise(resolve => setTimeout(resolve, 2000)); // 2 segundos
+          
+          // Asignar rol de superadmin en la escuela actual
+          console.log("📋 Asignando nuevo usuario a la escuela actual...");
+          await createUserSchoolRelation({
+            clerkId: result.userId,
+            schoolId: currentSchool.school._id,
+            role: ['superadmin'],
+            status: 'active',
+          });
+          
+          console.log("🎉 Nuevo super-administrador creado y asignado exitosamente!");
+          
+        } catch (error) {
+          console.error("❌ Error al asignar usuario a la escuela:", error);
+          const errorMessage = `Usuario creado pero error al asignar a la escuela: ${error instanceof Error ? error.message : 'Error desconocido'}`;
+          throw new Error(errorMessage);
+        }
+      } else {
+        console.error("❌ Error al crear usuario en Clerk:", result.error);
+        throw new Error(result.error || 'Error al crear usuario en Clerk');
+      }
+
+    } catch (error) {
+      // Si el error menciona que ya está asignado, dar mensaje más amigable
+      if (error instanceof Error && error.message.includes("ya está asignado")) {
+        throw new Error(`El usuario ${email} ya es super-administrador de esta escuela`);
+      }
+      throw error; // Re-lanzar otros errores
+    }
   };
 
-  const handleUpdate = async (data: Record<string, unknown>) => {
-    console.log("Actualizar super-administrador:", data);
-    // Aquí iría la integración con Convex
+  const handleUpdate = async (formData: Record<string, unknown>) => {
+    // Debug: ver qué datos están llegando del formulario vs datos originales
+    console.log("🔄 handleUpdate LLAMADO - Form data:", formData);
+    console.log("🔄 handleUpdate - Original data:", data);
+    console.log("🔄 handleUpdate - Estado actual userActions:", {
+      isCreating: userActions.isCreating,
+      isUpdating: userActions.isUpdating,
+      isDeleting: userActions.isDeleting
+    });
+
+    // Combinar datos del formulario con datos originales para tener clerkId
+    const combinedData = { ...data, ...formData };
+    
+    if (!combinedData.clerkId) {
+      console.error("Clerk ID de usuario no disponible");
+      console.error("Combined data keys:", Object.keys(combinedData));
+      console.error("Original data keys:", data ? Object.keys(data) : 'data is undefined');
+      console.error("Form data keys:", Object.keys(formData));
+      throw new Error("Clerk ID de usuario no disponible");
+    }
+
+    const updateData = {
+      name: combinedData.name as string,
+      lastName: combinedData.lastName as string,
+      email: combinedData.email as string,
+      // Nota: phone, address, status se manejan en otro nivel (no en auth)
+    };
+
+    // Usar clerkId en lugar de _id para actualizar en Clerk
+    const result = await userActions.updateUser(combinedData.clerkId as string, updateData);
+    
+    if (result.success) {
+      console.log("Super-administrador actualizado exitosamente");
+      // El CrudDialog cerrará automáticamente ya que no se lanzó ningún error
+    } else {
+      console.error("Error al actualizar super-administrador:", result.error);
+      // Lanzar error para que el CrudDialog no se cierre
+      throw new Error(result.error || 'Error al actualizar super-administrador');
+    }
   };
 
-  const handleDelete = async (id: string) => {
-    console.log("Eliminar super-administrador:", id);
-    // Aquí iría la integración con Convex
+  const handleDelete = async (deleteData: Record<string, unknown>) => {
+    // Debug: ver qué datos están llegando
+    console.log("🗑️ handleDelete - deleteData recibido:", deleteData);
+    console.log("🗑️ handleDelete - data original:", data);
+    
+    // Usar los datos originales del diálogo que tienen el clerkId
+    const targetData = data || deleteData;
+    
+    if (!targetData.clerkId) {
+      console.error("Clerk ID de usuario no disponible para eliminación");
+      console.error("Target data keys:", Object.keys(targetData));
+      console.error("Original data keys:", data ? Object.keys(data) : 'data is undefined');
+      throw new Error("Clerk ID de usuario no disponible para eliminación");
+    }
+
+    // Usar clerkId en lugar de _id para eliminar en Clerk
+    const result = await userActions.deleteUser(targetData.clerkId as string);
+    
+    if (result.success) {
+      console.log("Super-administrador eliminado exitosamente");
+      // El CrudDialog cerrará automáticamente ya que no se lanzó ningún error
+    } else {
+      console.error("Error al eliminar super-administrador:", result.error);
+      // Lanzar error para que el CrudDialog no se cierre
+      throw new Error(result.error || 'Error al eliminar super-administrador');
+    }
   };
 
   // Funciones de utilidad
@@ -145,27 +378,59 @@ export default function SuperadminPage() {
 
 
 
+  // Loading y error states
+  const isLoading = schoolLoading || superAdmins === undefined;
+  const hasError = !currentSchool && !schoolLoading;
+  const isCrudLoading = userActions.isCreating || userActions.isUpdating || userActions.isDeleting;
+
+  // Debug: mostrar estados en consola cuando sea necesario
+  if (operation && operation !== 'create') {
+    console.log("Estados del diálogo:", {
+      isLoading,
+      isSubmitting: userActions.isCreating || userActions.isUpdating,
+      isDeleting: userActions.isDeleting,
+      operation,
+      data: data ? Object.keys(data) : 'undefined'
+    });
+  }
+
   const stats = [
     {
       title: "Total Super Administradores",
-      value: mockSuperAdmins.length.toString(),
+      value: superAdmins?.length.toString() || "0",
       icon: Users,
       trend: "Usuarios registrados"
     },
     {
       title: "Activos",
-      value: mockSuperAdmins.filter(admin => admin.status === "active").length.toString(),
+      value: superAdmins?.filter((admin: SuperAdminFromConvex) => (admin.status || 'active') === "active").length.toString() || "0",
       icon: UserCheck,
       trend: "Estado activo"
     },
     {
       title: "Inactivos", 
-      value: mockSuperAdmins.filter(admin => admin.status === "inactive").length.toString(),
+      value: superAdmins?.filter((admin: SuperAdminFromConvex) => (admin.status || 'active') === "inactive").length.toString() || "0",
       icon: UserX,
       trend: "Estado inactivo"
     },
-
   ];
+
+  // Mostrar estado de error si no se puede acceder a la escuela
+  if (hasError) {
+    return (
+      <div className="space-y-8 p-6">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+            <h3 className="text-lg font-medium mb-2">Error de acceso</h3>
+            <p className="text-muted-foreground text-center">
+              No tienes acceso a esta escuela o la escuela no existe.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 p-6">
@@ -183,17 +448,67 @@ export default function SuperadminPage() {
                   <h1 className="text-4xl font-bold tracking-tight">Super-Administradores</h1>
                   <p className="text-lg text-muted-foreground">
                     Gestión de usuarios con permisos administrativos completos
+                    {currentSchool?.school && (
+                      <span className="block text-sm mt-1">
+                        {currentSchool.school.name}
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
             </div>
-            <Button size="lg" className="gap-2" onClick={openCreate}>
+            <Button 
+              size="lg" 
+              className="gap-2" 
+              onClick={handleOpenCreate}
+              disabled={isLoading || !currentSchool || isCrudLoading}
+            >
               <Plus className="w-4 h-4" />
               Agregar Super-Admin
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Error Alerts */}
+      {userActions.hasAnyError && (
+        <div className="space-y-4">
+          {userActions.createError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Error al crear usuario: {userActions.createError}
+              </AlertDescription>
+            </Alert>
+          )}
+          {userActions.updateError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Error al actualizar usuario: {userActions.updateError}
+              </AlertDescription>
+            </Alert>
+          )}
+          {userActions.deleteError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Error al eliminar usuario: {userActions.deleteError}
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+      )}
+
+      {/* Success Alert */}
+      {userActions.lastResult?.success && (
+        <Alert>
+          <CheckCircle className="h-4 w-4" />
+          <AlertDescription>
+            {userActions.lastResult.message || "Operación completada exitosamente"}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -266,6 +581,33 @@ export default function SuperadminPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Cargando super-administradores...</p>
+              </div>
+            </div>
+          ) : filteredSuperAdmins.length === 0 ? (
+            <div className="text-center py-12">
+              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">No se encontraron super-administradores</h3>
+              <p className="text-muted-foreground mb-4">
+                {searchTerm || statusFilter !== "all" 
+                  ? "Intenta ajustar los filtros para ver más resultados."
+                  : "Aún no hay super-administradores registrados en esta escuela."
+                }
+              </p>
+              <Button 
+                onClick={handleOpenCreate} 
+                className="gap-2"
+                disabled={!currentSchool || isCrudLoading}
+              >
+                <Plus className="h-4 w-4" />
+                Agregar Super-Admin
+              </Button>
+            </div>
+          ) : (
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -278,7 +620,7 @@ export default function SuperadminPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSuperAdmins.map((admin) => (
+                  {filteredSuperAdmins.map((admin: SuperAdminFromConvex) => (
                   <TableRow key={admin._id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -317,16 +659,16 @@ export default function SuperadminPage() {
                     </TableCell>
                     <TableCell>
                       <Badge 
-                        variant={admin.status === "active" ? "default" : "secondary"}
-                        className={admin.status === "active" ? "bg-green-500 hover:bg-green-600" : ""}
+                          variant={(admin.status || 'active') === "active" ? "default" : "secondary"}
+                          className={(admin.status || 'active') === "active" ? "bg-green-500 hover:bg-green-600" : ""}
                       >
-                        {admin.status === "active" ? "Activo" : "Inactivo"}
+                          {(admin.status || 'active') === "active" ? "Activo" : "Inactivo"}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 text-sm">
                         <Calendar className="h-3 w-3 text-muted-foreground" />
-                        {formatDate(admin.admissionDate)}
+                          {formatDate(admin.admissionDate || admin.createdAt)}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -334,24 +676,27 @@ export default function SuperadminPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openView(admin)}
+                            onClick={() => handleOpenView(admin)}
                           className="h-8 w-8 p-0"
+                            disabled={isCrudLoading}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openEdit(admin)}
+                            onClick={() => handleOpenEdit(admin)}
                           className="h-8 w-8 p-0"
+                            disabled={isCrudLoading}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openDelete(admin)}
+                            onClick={() => handleOpenDelete(admin)}
                           className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            disabled={isCrudLoading}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -361,19 +706,6 @@ export default function SuperadminPage() {
                 ))}
               </TableBody>
             </Table>
-          </div>
-          
-          {filteredSuperAdmins.length === 0 && (
-            <div className="text-center py-12">
-              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No se encontraron super-administradores</h3>
-              <p className="text-muted-foreground mb-4">
-                Intenta ajustar los filtros o agregar un nuevo super-administrador.
-              </p>
-              <Button onClick={openCreate} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Agregar Super-Admin
-              </Button>
             </div>
           )}
         </CardContent>
@@ -400,14 +732,17 @@ export default function SuperadminPage() {
             ? "Información detallada del super-administrador"
             : undefined
         }
-        schema={superAdminSchema}
+        schema={getSchemaForOperation(operation)}
         data={data}
         isOpen={isOpen}
         onOpenChange={close}
         onSubmit={operation === "create" ? handleCreate : handleUpdate}
-        onDelete={handleDelete}
+        onDelete={(id) => handleDelete(data || {})}
         deleteConfirmationTitle="¿Eliminar super-administrador?"
         deleteConfirmationDescription="Esta acción eliminará permanentemente al super-administrador del sistema. Esta acción no se puede deshacer."
+        isLoading={isLoading}
+        isSubmitting={userActions.isCreating || userActions.isUpdating}
+        isDeleting={userActions.isDeleting}
       >
         {(form, currentOperation) => (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -468,6 +803,31 @@ export default function SuperadminPage() {
                 </FormItem>
               )}
             />
+
+            {currentOperation === "create" && (
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contraseña Temporal *</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        value={field.value as string || ""}
+                        type="password"
+                        placeholder="Solo requerida para usuarios nuevos"
+                        disabled={false}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                    <p className="text-xs text-muted-foreground">
+                      💡 Si el email ya existe en el sistema, se asignará el usuario existente (sin crear uno nuevo)
+                    </p>
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}

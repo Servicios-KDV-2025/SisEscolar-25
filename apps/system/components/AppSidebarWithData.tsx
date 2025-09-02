@@ -18,13 +18,6 @@ export function AppSidebarWithData({ ...props }: React.ComponentProps<typeof App
     error,
   } = useCurrentSchool(currentUser?._id);
 
-  // Debug logs
-  console.log('=== SIDEBAR DEBUG ===');
-  console.log('subdomain (auto-detected):', subdomain);
-  console.log('currentUser:', currentUser);
-  console.log('schoolsLoading:', schoolsLoading);
-  console.log('currentSchool:', currentSchool);
-  console.log('error:', error);
 
 
   // Preparar datos del usuario para el sidebar
