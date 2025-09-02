@@ -148,7 +148,7 @@ export default function AlumnosPage() {
   const handleCreate = async (formData: Record<string, unknown>) => {
     if (!currentSchool?.school._id) {
       console.error("No hay escuela seleccionada");
-      return;
+      throw new Error("No hay escuela seleccionada");
     }
 
     const studentData: CreateStudentData = {
@@ -166,40 +166,44 @@ export default function AlumnosPage() {
 
     const result = await createStudent(studentData);
     
-    // Solo cerrar el modal si la creación fue exitosa
-    if (result) {
-      close();
+    // Si no hay resultado, significa que hubo un error
+    if (!result) {
+      // El error ya está establecido en el store, pero necesitamos lanzar una excepción
+      // para que el CrudDialog no cierre el modal
+      throw new Error(studentsError || "Error al crear el estudiante");
     }
-    // Si result es null, significa que hubo un error y no cerramos el modal
-    // El error ya está siendo manejado en el store y se mostrará en la UI
+    
+    // Si llegamos aquí, la creación fue exitosa y el CrudDialog se cerrará automáticamente
   };
 
   const handleUpdate = async (formData: Record<string, unknown>) => {
     if (!data?._id) {
       console.error("No hay estudiante seleccionado para actualizar");
-      return;
+      throw new Error("No hay estudiante seleccionado para actualizar");
     }
 
-    try {
-      const updateData: UpdateStudentData = {
-        name: formData.name as string,
-        lastName: formData.lastName as string || undefined,
-        enrollment: formData.enrollment as string,
-        groupId: formData.groupId as Id<"group">,
-        tutorId: formData.tutorId as Id<"user">,
-        birthDate: formData.birthDate as number || undefined,
-        admissionDate: formData.admissionDate as number || undefined,
-        imgUrl: formData.imgUrl as string || undefined,
-        status: formData.status as 'active' | 'inactive',
-      };
+    const updateData: UpdateStudentData = {
+      name: formData.name as string,
+      lastName: formData.lastName as string || undefined,
+      enrollment: formData.enrollment as string,
+      groupId: formData.groupId as Id<"group">,
+      tutorId: formData.tutorId as Id<"user">,
+      birthDate: formData.birthDate as number || undefined,
+      admissionDate: formData.admissionDate as number || undefined,
+      imgUrl: formData.imgUrl as string || undefined,
+      status: formData.status as 'active' | 'inactive',
+    };
 
-      const result = await updateStudent(data._id as Id<"student">, updateData);
-      if (result) {
-        close();
-      }
-    } catch (error) {
-      console.error("Error al actualizar estudiante:", error);
+    const result = await updateStudent(data._id as Id<"student">, updateData);
+    
+    // Si no hay resultado, significa que hubo un error
+    if (!result) {
+      // El error ya está establecido en el store, pero necesitamos lanzar una excepción
+      // para que el CrudDialog no cierre el modal
+      throw new Error(studentsError || "Error al actualizar el estudiante");
     }
+    
+    // Si llegamos aquí, la actualización fue exitosa y el CrudDialog se cerrará automáticamente
   };
 
   const handleDelete = async (id: string) => {
@@ -360,15 +364,6 @@ export default function AlumnosPage() {
 
   return (
     <div className="space-y-8 p-6">
-      {/* Mostrar errores */}
-      {studentsError && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {studentsError}
-          </AlertDescription>
-        </Alert>
-      )}
 
       {/* Mostrar alerta cuando no hay datos necesarios para crear estudiantes */}
       {canCreateUsers && (!groups?.length || !tutors?.length) && (
@@ -693,6 +688,10 @@ export default function AlumnosPage() {
         onDelete={handleDelete}
         deleteConfirmationTitle="¿Eliminar alumno?"
         deleteConfirmationDescription="Esta acción eliminará permanentemente al alumno del sistema. Esta acción no se puede deshacer."
+        onError={() => {
+          // Evitar que el CrudDialog muestre su propio toast de error
+          // ya que nosotros mostramos el error específico dentro del dialog
+        }}
       >
         {(form, currentOperation) => (
           <div className="space-y-4">
