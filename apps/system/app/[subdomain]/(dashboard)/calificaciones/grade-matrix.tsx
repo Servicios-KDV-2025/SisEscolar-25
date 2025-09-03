@@ -4,6 +4,7 @@ import type React from "react";
 import { useState } from "react";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
+import { toast } from 'sonner'; // ✨ Importa la librería de toast
 
 // Update types to match your Convex schema
 interface StudentWithClass {
@@ -29,10 +30,9 @@ interface Grade {
 
 interface GradeMatrixProps {
   students: StudentWithClass[];
-  assignments: Assignment[] | undefined; // ✨ Aceptar undefined
+  assignments: Assignment[] | undefined; 
   grades: Grade[];
   onGradeUpdate: (studentClassId: string, assignmentId: string, score: number | null) => void;
-  
   calculateAverage: (studentClassId: string) => number | null;
 }
 
@@ -59,6 +59,15 @@ export function GradeMatrix({
 
   const handleCellBlur = (studentClassId: string, assignmentId: string) => {
     const score = tempValue === "" ? null : Number.parseFloat(tempValue);
+
+    // ✨ Validación para que la calificación no sea mayor que el puntaje máximo
+    const assignment = assignments?.find(a => a._id === assignmentId);
+    if (score !== null && assignment && score > assignment.maxScore) {
+      toast.error(`La calificación no puede ser mayor que el puntaje máximo (${assignment.maxScore}).`);
+      setEditingCell(null);
+      return; // Detiene la función
+    }
+  
     if (!isNaN(score!)) {
       onGradeUpdate(studentClassId, assignmentId, score);
     }
