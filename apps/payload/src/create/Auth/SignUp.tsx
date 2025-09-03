@@ -19,7 +19,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { z } from '@repo/zod-config/index'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from '@payloadcms/ui'
-import { useSignUp } from '@clerk/nextjs'
+import { useClerk, useSignUp } from '@clerk/nextjs'
 
 const registerSchema = z.object({
   name: z
