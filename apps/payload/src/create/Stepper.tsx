@@ -69,9 +69,9 @@ export const Stepper: React.FC = () => {
                     <Button
                       className="w-full"
                       disabled={isLoading}
-                      onClick={async () => {
+                      onClick={() => {
                         setIsLoading(true)
-                        await signOut()
+                        signOut({ redirectUrl: '#' })
                         methods.goTo('step-1')
                       }}
                     >
