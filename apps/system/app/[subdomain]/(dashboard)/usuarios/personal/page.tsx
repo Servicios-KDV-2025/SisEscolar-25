@@ -282,9 +282,9 @@ export default function PersonalPage() {
         await createUserSchoolRelation({
           clerkId: existingUser.clerkId,
           schoolId: currentSchool.school._id,
-          role: [selectedRole],
+          role: [selectedRole as 'superadmin' | 'admin' | 'auditor' | 'teacher' | 'tutor'],
           status: 'active',
-          department: departmentValue,
+          department: departmentValue as 'secretary' | 'direction' | 'schoolControl' | 'technology' | undefined,
         });
 
         console.log("🎉 Usuario existente asignado exitosamente!");
@@ -323,9 +323,9 @@ export default function PersonalPage() {
           await createUserSchoolRelation({
             clerkId: result.userId,
             schoolId: currentSchool.school._id,
-            role: [selectedRole],
+            role: [selectedRole as 'superadmin' | 'admin' | 'auditor' | 'teacher' | 'tutor'],
             status: 'active',
-            department: departmentValue,
+            department: departmentValue as 'secretary' | 'direction' | 'schoolControl' | 'technology' | undefined,
           });
           
           console.log("🎉 Nuevo usuario creado y asignado exitosamente!");
@@ -844,19 +844,8 @@ export default function PersonalPage() {
         isSubmitting={userActions.isCreating || userActions.isUpdating}
         isDeleting={userActions.isDeleting}
       >
-        {(form, currentOperation) => {
-          // Efecto para limpiar el departamento cuando el rol no es admin
-          React.useEffect(() => {
-            const subscription = form.watch((value, { name }) => {
-              if (name === "role" && value.role !== "admin") {
-                form.setValue("department", undefined);
-              }
-            });
-            return () => subscription.unsubscribe();
-          }, [form]);
-
-          return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {(form, currentOperation) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="name"
@@ -924,7 +913,13 @@ export default function PersonalPage() {
                   <FormControl>
                     <Select 
                       value={field.value as string} 
-                      onValueChange={field.onChange}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        // Limpiar departamento si el rol no es admin
+                        if (value !== "admin") {
+                          form.setValue("department", undefined);
+                        }
+                      }}
                       disabled={currentOperation === "view"}
                     >
                       <SelectTrigger>
@@ -1088,28 +1083,17 @@ export default function PersonalPage() {
                     <span className="text-muted-foreground">Clerk ID:</span>
                     <p className="font-mono">{data.clerkId as string}</p>
                   </div>
-                  {data.schoolRole && Array.isArray(data.schoolRole) && (
+                  {data.schoolRole && Array.isArray(data.schoolRole) ? (
                     <div className="col-span-2">
-                      <span className="text-muted-foreground">Todos los roles:</span>
-                      <div className="flex gap-1 mt-1">
-                        {(data.schoolRole as string[]).map((role) => {
-                          const roleInfo = roleConfig[role as keyof typeof roleConfig];
-                          return roleInfo ? (
-                            <Badge key={role} variant="outline" className={roleInfo.color}>
-                              <roleInfo.icon className="h-3 w-3 mr-1" />
-                              {roleInfo.label}
-                            </Badge>
-                          ) : null;
-                        })}
-                      </div>
+                      <span className="text-muted-foreground">Roles asignados:</span>
+                      <p className="text-sm">{(data.schoolRole as string[]).join(", ")}</p>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             )}
-            </div>
-          );
-        }}
+          </div>
+        )}
       </CrudDialog>
     </div>
   );
