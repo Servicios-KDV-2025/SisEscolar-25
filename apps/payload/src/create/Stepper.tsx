@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import { defineStepper } from '@/components/ui/stepper'
 import { Button } from '@/components/ui/button'
-import { School, User, CopySlash } from 'lucide-react'
+import { School, User, CopySlash, Loader2 } from 'lucide-react'
 import { useAuth, useClerk, useUser } from '@clerk/nextjs'
 import { SignUp } from './Auth/SignUp'
 import { SignIn } from './Auth/SignIn'
@@ -23,6 +23,7 @@ export const Stepper: React.FC = () => {
   const [ready, setReady] = useState(false)
   const [isSelect, setSelected] = useState<string>('')
   const [schooldId, setSchoolId] = useState<string>('')
+  const [isLoading, setIsLoading] = useState(false)
   const { signOut } = useClerk()
 
   return (
@@ -67,12 +68,21 @@ export const Stepper: React.FC = () => {
                   {isSignedIn && (
                     <Button
                       className="w-full"
+                      disabled={isLoading}
                       onClick={async () => {
+                        setIsLoading(true)
                         await signOut()
                         methods.goTo('step-1')
                       }}
                     >
-                      Cerrar Sesion
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Cerrando Sesion.
+                        </>
+                      ) : (
+                        'Cerrar Sesion'
+                      )}
                     </Button>
                   )}
                 </div>
