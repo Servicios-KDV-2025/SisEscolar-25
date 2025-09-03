@@ -136,8 +136,9 @@ export default function PersonalPage() {
   // User Schools Store para asignación a escuela
   const userSchoolsActions = useUserSchoolsWithConvex();
   
-  // Mutation para crear relación usuario-escuela
+  // Mutations para gestión de relaciones usuario-escuela
   const createUserSchoolRelation = useMutation(api.functions.schools.createUserSchool);
+  const updateUserSchoolRelation = useMutation(api.functions.userSchool.update);
 
   // Estado para búsqueda dinámica de usuario
   const [searchEmail, setSearchEmail] = useState<string | null>(null);
@@ -198,15 +199,19 @@ export default function PersonalPage() {
 
   const handleOpenEdit = (user: UserFromConvex) => {
     console.log("✏️ handleOpenEdit LLAMADO - User data:", user);
+    console.log("✏️ handleOpenEdit - Keys disponibles:", Object.keys(user));
+    console.log("✏️ handleOpenEdit - userSchoolId:", user.userSchoolId);
     userActions.clearErrors();
     userActions.clearLastResult();
     
-    // Preparar datos para edición incluyendo el rol principal
+    // Preparar datos para edición incluyendo el rol principal y userSchoolId
     const editData = {
       ...user,
       role: user.schoolRole[0], // Tomar el primer rol como principal
+      userSchoolId: user.userSchoolId, // Asegurar que se incluya el userSchoolId
     };
     
+    console.log("✏️ editData preparado:", editData);
     openEdit(editData);
   };
 
@@ -214,10 +219,11 @@ export default function PersonalPage() {
     userActions.clearErrors();
     userActions.clearLastResult();
     
-    // Preparar datos para vista incluyendo el rol principal
+    // Preparar datos para vista incluyendo el rol principal y userSchoolId
     const viewData = {
       ...user,
       role: user.schoolRole[0], // Tomar el primer rol como principal
+      userSchoolId: user.userSchoolId, // Asegurar que se incluya el userSchoolId
     };
     
     openView(viewData);
@@ -262,10 +268,13 @@ export default function PersonalPage() {
     const selectedRole = formData.role as string;
     const selectedDepartment = formData.department as string;
     
-    // Solo asignar departamento si el rol es administrador
+    // IMPORTANTE: Solo los administradores pueden tener departamento
+    // Para cualquier otro rol, el departamento debe ser undefined
     const departmentValue = selectedRole === "admin" 
       ? (selectedDepartment === "none" ? undefined : selectedDepartment)
-      : undefined;
+      : undefined; // Forzar undefined para roles que no son admin
+    
+    console.log("📋 Creando usuario con rol:", selectedRole, "y departamento:", departmentValue);
     
     try {
       // PASO 1: Buscar si el usuario ya existe en Convex
@@ -361,20 +370,72 @@ export default function PersonalPage() {
       throw new Error("Clerk ID de usuario no disponible");
     }
 
-    const updateData = {
-      name: combinedData.name as string,
-      lastName: combinedData.lastName as string,
-      email: combinedData.email as string,
-    };
+    if (!combinedData.userSchoolId) {
+      console.error("UserSchool ID no disponible");
+      throw new Error("UserSchool ID no disponible");
+    }
 
-    // Usar clerkId en lugar de _id para actualizar en Clerk
-    const result = await userActions.updateUser(combinedData.clerkId as string, updateData);
-    
-    if (result.success) {
-      console.log("Usuario actualizado exitosamente");
-    } else {
-      console.error("Error al actualizar usuario:", result.error);
-      throw new Error(result.error || 'Error al actualizar usuario');
+    try {
+      // PASO 1: Actualizar información básica del usuario en Clerk
+      const userUpdateData = {
+        name: combinedData.name as string,
+        lastName: combinedData.lastName as string,
+        email: combinedData.email as string,
+      };
+
+      const userResult = await userActions.updateUser(combinedData.clerkId as string, userUpdateData);
+      
+      if (!userResult.success) {
+        console.error("Error al actualizar usuario en Clerk:", userResult.error);
+        throw new Error(userResult.error || 'Error al actualizar información básica del usuario');
+      }
+
+      // PASO 2: Actualizar rol y departamento en la relación usuario-escuela
+      const selectedRole = formData.role as string;
+      const selectedDepartment = formData.department as string;
+      const originalRole = data?.role as string; // Rol original antes del cambio
+      
+      // LÓGICA DE DEPARTAMENTO:
+      // - Si el nuevo rol es admin: usar el departamento seleccionado
+      // - Si el nuevo rol NO es admin Y el rol original ERA admin: limpiar departamento (undefined)
+      // - Si el nuevo rol NO es admin Y el rol original NO era admin: mantener como está (undefined)
+      let departmentValue: string | undefined;
+      
+      if (selectedRole === "admin") {
+        // Rol admin: usar departamento seleccionado
+        departmentValue = selectedDepartment === "none" ? undefined : selectedDepartment;
+      } else if (originalRole === "admin") {
+        // Cambio DE admin A otro rol: limpiar departamento
+        departmentValue = undefined;
+        console.log("🧹 Limpiando departamento porque cambió de ADMIN a:", selectedRole);
+      } else {
+        // Cambio entre roles no-admin: mantener undefined
+        departmentValue = undefined;
+      }
+
+      const finalDepartmentValue = departmentValue === undefined ? null : departmentValue;
+      
+      console.log("📋 Actualizando rol y departamento...", {
+        userSchoolId: combinedData.userSchoolId,
+        originalRole,
+        newRole: selectedRole,
+        department: departmentValue,
+        finalDepartmentForConvex: finalDepartmentValue,
+        status: combinedData.status || 'active'
+      });
+
+      await updateUserSchoolRelation({
+        id: combinedData.userSchoolId as Id<"userSchool">,
+        role: [selectedRole as 'superadmin' | 'admin' | 'auditor' | 'teacher' | 'tutor'],
+        department: departmentValue === undefined ? null : (departmentValue as 'secretary' | 'direction' | 'schoolControl' | 'technology'),
+        status: (combinedData.status as 'active' | 'inactive') || 'active',
+      });
+
+      console.log("✅ Usuario y relación actualizados exitosamente");
+      
+    } catch (error) {
+      console.error("❌ Error en handleUpdate:", error);
+      throw error;
     }
   };
 
@@ -914,9 +975,12 @@ export default function PersonalPage() {
                     <Select 
                       value={field.value as string} 
                       onValueChange={(value) => {
+                        const previousRole = form.getValues("role");
                         field.onChange(value);
-                        // Limpiar departamento si el rol no es admin
-                        if (value !== "admin") {
+                        
+                        // Solo limpiar departamento si cambiamos DE admin A otro rol
+                        if (previousRole === "admin" && value !== "admin") {
+                          console.log("🧹 Limpiando campo departamento en formulario: admin →", value);
                           form.setValue("department", undefined);
                         }
                       }}
