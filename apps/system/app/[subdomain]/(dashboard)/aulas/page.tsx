@@ -1,3 +1,4 @@
+
 "use client"
 
 //import type React from "react"
@@ -68,11 +69,11 @@ export default function ClassroomManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingClassroom, setEditingClassroom] = useState<Classroom | null>(null)
   const [formData, setFormData] = useState<ClassroomFormValues>({
-    name: "",
-    capacity: 0,
-    location: "",
-    status: "active" as "active" | "inactive",
-  })
+  name: "",
+  capacity: 0,
+  location: "",
+  status: "active",
+})
 
   const isLoading = !isLoaded || userLoading || schoolLoading 
   if (isLoading) {
@@ -85,6 +86,7 @@ export default function ClassroomManagement() {
   const filteredAndSortedClassrooms = (classrooms || [])
     .filter((c) => {
       const matchesSearch =
+        c.name?.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase()) ||
         c.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.capacity.toString().includes(searchTerm)
 
@@ -126,14 +128,18 @@ export default function ClassroomManagement() {
   // crear y actualizar aulas
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!formData.capacity) {
+      toast.error("La capacidad es obligatoria.");
+      return;
+    }
 
-    /*if (!formData.location.trim() || Number(formData.capacity) <= 0) {
-      toast.error("Por favor llena todos los campos obligatorios.")
-      return
-    }*/ // esto lo estoy cambiando para validacion con zod
-
+    // Convertimos capacity a número antes de validar
+    const parsedFormData = {
+      ...formData,
+      capacity: Number(formData.capacity)
+    }
     // validación con zod
-    const result = classroomFormSchema.safeParse(formData)
+    const result = classroomFormSchema.safeParse(parsedFormData)
 
     if (!result.success) {
       //si hay errores, los mostramos y detenemos la función
@@ -143,6 +149,21 @@ export default function ClassroomManagement() {
 
     //los datos deben ser validos... por lo tanto se continua con: 
     const validData = result.data
+
+    //validación para que no haya duplicados
+    const existingClassroom = (name: string, location:string) => {
+      return (classrooms || []).some(
+        (c) => c.name.trim().toLowerCase() === name.trim().toLocaleLowerCase() &&
+               c.location.trim().toLowerCase() === location.trim().toLocaleLowerCase()
+      )
+    }
+
+    // en el handleSubmit, antes de crear/editar checamos:
+    if (existingClassroom(formData.name, formData.location) && (!editingClassroom ||
+        (editingClassroom.name !== formData.name || editingClassroom.location !== formData.location))) {
+      toast.error("Ya existe un aula con ese nombre y ubicación.");
+      return;
+    }
 
     if(!currentSchool?.school._id){
       toast.error("No se encontró la escuela actual. Refresca e intenta de nuevo.")
@@ -157,7 +178,6 @@ export default function ClassroomManagement() {
         location: validData.location,
         status: validData.status,
         updatedAt: Date.now(),
-        
       })
       toast.success("Aula actualizada correctamente.")
     } else {
@@ -179,7 +199,7 @@ export default function ClassroomManagement() {
     setEditingClassroom(c)
     setFormData({
       name: c.name,
-      capacity:c.capacity,
+      capacity: c.capacity,
       location: c.location || "",
       status: c.status,
     })
@@ -192,7 +212,7 @@ export default function ClassroomManagement() {
   }
 
   const resetForm = () => {
-    setFormData({ name: "", capacity: 0, location: "", status: "active"})
+  setFormData({ name: "", capacity: 0, location: "", status: "active" });
     setEditingClassroom(null)
     setIsDialogOpen(false)
   }
@@ -206,9 +226,6 @@ export default function ClassroomManagement() {
     }
   }
 
-
-
-
   return (
     <div className="space-y-6">
       {/* Header Actions */}
@@ -221,7 +238,7 @@ export default function ClassroomManagement() {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
-              placeholder="Búsqueda por ubicación o capacidad..."
+              placeholder="Búsqueda por nombre, ubicación o capacidad..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -264,10 +281,16 @@ export default function ClassroomManagement() {
                       id="capacity"
                       type="number"
                       min="1"
-                      max= "100"
+                      max="100"
                       placeholder="Ingresa la capacidad"
                       value={formData.capacity}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, capacity: Number(e.target.value) }))}
+                      onChange={(e) => {
+                        const value = Number(e.target.value);
+                        setFormData((prev) => ({
+                          ...prev,
+                          capacity: isNaN(value) ? 0 : value,
+                        }));
+                      }}
                       required
                     />
                   </div>
@@ -327,7 +350,7 @@ export default function ClassroomManagement() {
                   <SelectValue placeholder="Todas las ubicaciones" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Ubicaciones</SelectItem>
+                  <SelectItem value="all">Total Ubicaciones</SelectItem>
                   {getUniqueLocations().map((location) => (
                     <SelectItem key={location} value={location}>
                       {location}
