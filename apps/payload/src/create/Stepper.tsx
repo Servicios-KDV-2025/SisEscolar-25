@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import { defineStepper } from '@/components/ui/stepper'
 import { Button } from '@/components/ui/button'
 import { School, User, CopySlash } from 'lucide-react'
-import { useAuth, useUser } from '@clerk/nextjs'
+import { useAuth, useClerk, useUser } from '@clerk/nextjs'
 import { SignUp } from './Auth/SignUp'
 import { SignIn } from './Auth/SignIn'
 import { Prices } from './Prices/Prices'
@@ -23,6 +23,7 @@ export const Stepper: React.FC = () => {
   const [ready, setReady] = useState(false)
   const [isSelect, setSelected] = useState<string>('')
   const [schooldId, setSchoolId] = useState<string>('')
+  const { signOut } = useClerk()
 
   return (
     <StepperUi.Provider className="space-y-4" labelOrientation="vertical">
@@ -60,7 +61,22 @@ export const Stepper: React.FC = () => {
 
             {methods.switch({
               'step-1': () => <ClerkComponent />,
-              'step-2': () => <SchoolForm onNext={onFihishStepSchool} />,
+              'step-2': () => (
+                <div>
+                  <SchoolForm onNext={onFihishStepSchool} />
+                  {isSignedIn && (
+                    <Button
+                      className="w-full"
+                      onClick={async () => {
+                        await signOut()
+                        methods.goTo('step-1')
+                      }}
+                    >
+                      Cerrar Sesion
+                    </Button>
+                  )}
+                </div>
+              ),
               'step-3': () => <Prices onSelect={onSelectPrice} />,
               'step-4': () => <Content priceId={isSelect} schoolId={schooldId} />,
             })}
@@ -79,6 +95,7 @@ interface ContentProps {
 const ClerkComponent: React.FC = () => {
   const [showSignIn, setShowSignIn] = React.useState(false)
   const methods = useStepper()
+
   return showSignIn ? (
     <SignIn onBackToSignUp={() => setShowSignIn(false)} onClick={() => methods.next()} />
   ) : (
