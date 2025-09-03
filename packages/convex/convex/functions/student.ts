@@ -119,6 +119,29 @@ export const updateStudent = mutation({
   handler: async (ctx, args) => {
     const { studentId, patch } = args;
 
+    if (patch.enrollment) {
+      // Obtener el estudiante actual para verificar su escuela
+      const currentStudent = await ctx.db.get(studentId);
+      if (!currentStudent) {
+        throw new Error("Estudiante no encontrado.");
+      }
+
+      // Verificar si ya existe otro estudiante con esa matrícula en la misma escuela
+      const existingStudent = await ctx.db
+        .query("student")
+        .withIndex("by_schoolId_and_enrollment", (q) =>
+          q.eq("schoolId", currentStudent.schoolId).eq("enrollment", patch.enrollment!)
+        )
+        .unique();
+
+      // Si existe otro estudiante con esa matrícula (y no es el mismo estudiante)
+      if (existingStudent && existingStudent._id !== studentId) {
+        throw new Error(
+          "Ya existe un estudiante con esta matrícula en la escuela."
+        );
+      }
+    }
+
     // Actualiza solo los campos presentes en el objeto 'patch'
     await ctx.db.patch(studentId, {
       ...patch,

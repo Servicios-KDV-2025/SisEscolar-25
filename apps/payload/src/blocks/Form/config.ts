@@ -1,7 +1,7 @@
 import type { Block } from 'payload'
 
 import {
-  AlignFeature,
+  
   FixedToolbarFeature,
   HeadingFeature,
   InlineToolbarFeature,

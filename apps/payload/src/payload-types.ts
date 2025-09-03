@@ -82,6 +82,7 @@ export interface Config {
     section: SectionBlock;
     carousel: CarouselBlock;
     carouselAvatar: CarouselAvatarBlock;
+    paymentStatus: PaymentStatus;
   };
   collections: {
     pages: Page;
@@ -90,6 +91,7 @@ export interface Config {
     categories: Category;
     users: User;
     prices: Price;
+    payments: Payment;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -107,6 +109,7 @@ export interface Config {
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     prices: PricesSelect<false> | PricesSelect<true>;
+    payments: PaymentsSelect<false> | PaymentsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -496,6 +499,7 @@ export interface Page {
     | RowBlock
     | CarouselBlock
     | CarouselAvatarBlock
+    | PaymentStatus
   )[];
   meta?: {
     title?: string | null;
@@ -943,6 +947,7 @@ export interface Price {
   id: number;
   precio: number;
   titulo: string;
+  IdStripe: string;
   descripcion?: string | null;
   funciones?:
     | {
@@ -986,6 +991,58 @@ export interface CarouselBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'carousel';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "paymentStatus".
+ */
+export interface PaymentStatus {
+  status: 'success' | 'cancelled';
+  title: string;
+  message?: string | null;
+  image?: (number | null) | Media;
+  button?: {
+    label?: string | null;
+    url?: string | null;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'paymentStatus';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payments".
+ */
+export interface Payment {
+  id: number;
+  eventId: string;
+  type: string;
+  sessionId?: string | null;
+  paymentIntentId?: string | null;
+  customerId?: string | null;
+  amount_total?: number | null;
+  currency?: string | null;
+  status?: string | null;
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  raw?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1183,6 +1240,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'prices';
         value: number | Price;
+      } | null)
+    | ({
+        relationTo: 'payments';
+        value: number | Payment;
       } | null)
     | ({
         relationTo: 'redirects';
@@ -1463,6 +1524,7 @@ export interface UsersSelect<T extends boolean = true> {
 export interface PricesSelect<T extends boolean = true> {
   precio?: T;
   titulo?: T;
+  IdStripe?: T;
   descripcion?: T;
   funciones?:
     | T
@@ -1470,6 +1532,24 @@ export interface PricesSelect<T extends boolean = true> {
         funcion?: T;
         id?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payments_select".
+ */
+export interface PaymentsSelect<T extends boolean = true> {
+  eventId?: T;
+  type?: T;
+  sessionId?: T;
+  paymentIntentId?: T;
+  customerId?: T;
+  amount_total?: T;
+  currency?: T;
+  status?: T;
+  metadata?: T;
+  raw?: T;
   updatedAt?: T;
   createdAt?: T;
 }

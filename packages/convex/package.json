@@ -31,6 +31,8 @@
   "dependencies": {
     "@clerk/backend": "^2.6.0",
     "convex": "^1.25.4",
+    "resend": "^6.0.1",
+    "stripe": "^18.4.0",
     "svix": "^1.69.0"
   }
 }
