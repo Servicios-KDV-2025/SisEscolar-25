@@ -473,7 +473,7 @@ export default function RubricDashboard() {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>
-                {editingRubric ? "Editar Rubrica" : "Neeva Rubrica"}
+                {editingRubric ? "Editar Rubrica" : "Nueva Rubrica"}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-6 py-4 ">
