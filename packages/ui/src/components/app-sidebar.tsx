@@ -156,10 +156,14 @@ const defaultNavData = {
     },
     {
       title: "Usuarios",
-      url: `#`,
+      url: `/usuarios`,
       icon: Users,
       isActive: true,
       items: [
+        {
+          title: "Gestión de Personal",
+          url: `/usuarios/personal`,
+        },
         {
           title: "Super Administrador",
           url: `/usuarios/super-administrador`,
@@ -173,7 +177,7 @@ const defaultNavData = {
           url: `/usuarios/docentes`,
         },
         {
-          title: "Auditor",
+          title: "Auditores",
           url: `/usuarios/auditores`,
         },
         {
