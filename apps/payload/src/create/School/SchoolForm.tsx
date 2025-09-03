@@ -1,40 +1,40 @@
-"use client";
+'use client'
 
-import React, { useState } from 'react';
-import { useUser } from '@clerk/nextjs';
-import { useMutation } from 'convex/react';
-import { api } from '../../../../packages/convex/convex/_generated/api';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
-import { Id } from '../../../../packages/convex/convex/_generated/dataModel';
+import React, { useState } from 'react'
+import { useUser } from '@clerk/nextjs'
+import { useMutation } from 'convex/react'
+import { api } from '@repo/convex/convex/_generated/api'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 
 // Interface basada en el schema de Convex
 interface SchoolFormData {
-  name: string;
-  subdomain: string;
-  shortName: string;
-  cctCode: string;
-  address: string;
-  description: string; // Requerido según el schema de Convex
-  imgUrl: string;
-  phone: string;
-  email: string;
+  name: string
+  subdomain: string
+  shortName: string
+  cctCode: string
+  address: string
+  description: string // Requerido según el schema de Convex
+  imgUrl: string
+  phone: string
+  email: string
 }
 
 interface SchoolFormProps {
-  onSuccess?: (schoolData: SchoolFormData) => void;
-  onNext?: () => void;
+  onSuccess?: (schoolData: SchoolFormData) => void
+  onSchoolSelected?: (id: string) => void
+  onNext: (data: string) => void
 }
 
-function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
-  const { user } = useUser();
-  const createSchoolWithUser = useMutation(api.functions.schools.createSchoolWithUser);
-  
+function SchoolForm({ onSuccess, onSchoolSelected, onNext }: SchoolFormProps) {
+  const { user } = useUser()
+  const createSchoolWithUser = useMutation(api.functions.schools.createSchoolWithUser)
+
   const [formData, setFormData] = useState<SchoolFormData>({
     name: '',
     subdomain: '',
@@ -45,87 +45,87 @@ function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
     imgUrl: '',
     phone: '',
     email: '',
-  });
-  
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  })
+
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
+    const { name, value } = e.target
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
-    }));
+      [name]: value,
+    }))
     // Limpiar error cuando el usuario empiece a escribir
-    if (error) setError(null);
-  };
+    if (error) setError(null)
+  }
 
   const validateForm = (): boolean => {
     // Validar campos requeridos según el schema de Convex
     if (!formData.name.trim()) {
-      setError('El nombre de la escuela es requerido');
-      return false;
+      setError('El nombre de la escuela es requerido')
+      return false
     }
     if (!formData.subdomain.trim()) {
-      setError('El subdominio es requerido');
-      return false;
+      setError('El subdominio es requerido')
+      return false
     }
     if (!formData.shortName.trim()) {
-      setError('El nombre corto es requerido');
-      return false;
+      setError('El nombre corto es requerido')
+      return false
     }
     if (!formData.cctCode.trim()) {
-      setError('El código CCT es requerido');
-      return false;
+      setError('El código CCT es requerido')
+      return false
     }
     if (!formData.address.trim()) {
-      setError('La dirección es requerida');
-      return false;
+      setError('La dirección es requerida')
+      return false
     }
     if (!formData.description.trim()) {
-      setError('La descripción es requerida');
-      return false;
+      setError('La descripción es requerida')
+      return false
     }
     if (!formData.phone.trim()) {
-      setError('El teléfono es requerido');
-      return false;
+      setError('El teléfono es requerido')
+      return false
     }
     if (!formData.email.trim()) {
-      setError('El email es requerido');
-      return false;
+      setError('El email es requerido')
+      return false
     }
-    
+
     // Validar formato de subdominio (debe ser único)
     if (!/^[a-z0-9-]+$/.test(formData.subdomain.trim())) {
-      setError('El subdominio solo puede contener letras minúsculas, números y guiones');
-      return false;
+      setError('El subdominio solo puede contener letras minúsculas, números y guiones')
+      return false
     }
-    
+
     // Validar formato de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(formData.email.trim())) {
-      setError('El formato del email no es válido');
-      return false;
+      setError('El formato del email no es válido')
+      return false
     }
-    
-    return true;
-  };
+
+    return true
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+    e.preventDefault()
+
     if (!user) {
-      setError('Usuario no autenticado');
-      return;
-    }
-    
-    if (!validateForm()) {
-      return;
+      setError('Usuario no autenticado')
+      return
     }
 
-    setIsLoading(true);
-    setError(null);
+    if (!validateForm()) {
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
 
     try {
       // Crear la escuela y asignar al usuario como superadmin usando Convex
@@ -139,17 +139,39 @@ function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
         imgUrl: formData.imgUrl.trim() || '/default-school.jpg',
         phone: formData.phone.trim(),
         email: formData.email.trim(),
-        userId: user.id as Id<"user">,
-      });
-      
-      console.log('Escuela creada:', result);
-      setSuccess(true);
-      
+        userId: user.id, // si tu mutation espera Clerk ID (string)
+        // userId: convexUserId,                  // si espera Id<"user"> de Convex
+      })
+
+      console.log('Escuela creada:', result)
+      setSuccess(true)
+
+      type CreateSchoolResp = { schoolId: string; userSchoolId?: string; message?: string }
+
+      // Extrae el id de forma segura (sea string u objeto)
+
+      const schoolId = String(
+        typeof result === 'string' ? result : ((result as CreateSchoolResp).schoolId ?? ''),
+      )
+
+      if (!schoolId) {
+        console.error('Respuesta de createSchoolWithUser:', result)
+        setError('No se recibió el ID de la escuela desde el servidor')
+        return
+      }
+
+      // envía el id al Stepper
+      onSchoolSelected?.(schoolId)
+      onNext(result.schoolId)
+      try {
+        localStorage.setItem('schoolId', schoolId)
+      } catch {}
+
       // Llamar a la función de éxito si existe
       if (onSuccess) {
-        onSuccess(formData);
+        onSuccess(formData)
       }
-      
+
       // Limpiar el formulario
       setFormData({
         name: '',
@@ -161,17 +183,14 @@ function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
         imgUrl: '',
         phone: '',
         email: '',
-      });
-      
+      })
     } catch (err: any) {
-      console.error('Error creating school:', err);
-      setError(err.message || 'Error al crear la escuela. Por favor, inténtalo de nuevo.');
+      console.error('Error creating school:', err)
+      setError(err.message || 'Error al crear la escuela. Por favor, inténtalo de nuevo.')
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
-
-
+  }
   if (success) {
     return (
       <Card className="w-full max-w-2xl mx-auto">
@@ -179,13 +198,11 @@ function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
           <div className="text-center">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">¡Escuela creada exitosamente!</h3>
-            <p className="text-muted-foreground mb-4">
-              Puedes continuar con el siguiente paso.
-            </p>
+            <p className="text-muted-foreground mb-4">Puedes continuar con el siguiente paso.</p>
           </div>
         </CardContent>
       </Card>
-    );
+    )
   }
 
   return (
@@ -193,7 +210,8 @@ function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
       <CardHeader>
         <CardTitle>Registro de Escuela</CardTitle>
         <CardDescription>
-          Completa la información de tu escuela. Al ser el primer usuario, serás asignado como superadministrador.
+          Completa la información de tu escuela. Al ser el primer usuario, serás asignado como
+          superadministrador.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -239,7 +257,7 @@ function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
                 name="subdomain"
                 value={formData.subdomain}
                 onChange={handleInputChange}
-                placeholder="subdominio.ejemplo.com"
+                placeholder="subdominio.ekardex.io"
                 required
               />
               <p className="text-sm text-muted-foreground">
@@ -257,9 +275,7 @@ function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
                 placeholder="Código CCT de la escuela"
                 required
               />
-              <p className="text-sm text-muted-foreground">
-                Debe ser único
-              </p>
+              <p className="text-sm text-muted-foreground">Debe ser único</p>
             </div>
           </div>
 
@@ -330,11 +346,7 @@ function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
             </p>
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={isLoading}
-          >
+          <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -347,7 +359,7 @@ function SchoolForm({ onSuccess, onNext }: SchoolFormProps) {
         </form>
       </CardContent>
     </Card>
-  );
+  )
 }
 
-export default SchoolForm;
+export default SchoolForm
