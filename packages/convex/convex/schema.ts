@@ -216,21 +216,21 @@ const applicationTable = defineSchema({
     .index("by_rubric", ["gradeRubricId"]),
     
   //Calificaciones Individuales
+  //Calificaciones Individuales
   grade: defineTable({
     studentClassId: v.id("studentClass"),
-    gradeRubricId: v.id("gradeRubric"), // Referencia al criterio de evaluación
-    score: v.number(), // Calificación obtenida por el estudiante
+    assignmentId: v.id("assignment"), // Referencia a la tarea, examen o proyecto
+    score: v.number(),
     comments: v.optional(v.string()),
     registeredById: v.id("user"),
-    // registrationDate: v.number(), //no tiene caso se puede usar _creationTime de convex
     createdBy: v.id("user"),
     updatedBy: v.optional(v.id("user")),
     updatedAt: v.optional(v.number()),
   })
     .index("by_student_class", ["studentClassId"])
-    .index("by_registered_by", ["registeredById"])
-    .index("by_rubric", ["gradeRubricId"])
-    ,
+    .index("by_student_assignment", ["studentClassId", "assignmentId"])
+    .index("by_assignment", ["assignmentId"]),
+ 
 
   //Promedios Calculados
   termAverage: defineTable({
@@ -246,7 +246,7 @@ const applicationTable = defineSchema({
 
     //Clases
     classCatalog: defineTable({
-    termId: v.id("term"),
+    termId: v.optional(v.id("term")),
     schoolId: v.id("school"),
     schoolCycleId: v.id("schoolCycle"),
     subjectId: v.id("subject"),

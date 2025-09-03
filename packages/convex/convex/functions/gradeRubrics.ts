@@ -115,3 +115,22 @@ export const deleteGradeRubric = mutation({
     return args.gradeRubricId;
   },
 });
+
+// Obtener rúbricas por clase (para el formulario de tareas)
+export const getGradeRubricsByClass = query({
+  args: {
+    classCatalogId: v.id("classCatalog"),
+    termId: v.id("term"),
+  },
+  handler: async (ctx, args) => {
+    const gradeRubrics = await ctx.db
+      .query("gradeRubric")
+      .withIndex("by_class_term", (q) => 
+        q.eq("classCatalogId", args.classCatalogId).eq("termId", args.termId)
+      )
+      .filter((q) => q.eq(q.field("status"), true))
+      .collect();
+
+    return gradeRubrics;
+  }
+});

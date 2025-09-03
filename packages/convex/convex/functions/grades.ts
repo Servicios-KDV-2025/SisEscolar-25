@@ -1,41 +1,53 @@
 import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
-
-// C: Crear una Nueva Calificación
-export const createGrade = mutation({
+ 
+// La función para crear o actualizar calificaciones (upsert)
+export const upsertGrade = mutation({
   args: {
     studentClassId: v.id("studentClass"),
-    gradeRubricId: v.id("gradeRubric"),
+    assignmentId: v.id("assignment"), // ✨ CAMBIO CLAVE
     score: v.number(),
     comments: v.optional(v.string()),
     registeredById: v.id("user"),
   },
   handler: async (ctx, args) => {
-    // 1. Validar que el score no supere el maxScore del criterio de rúbrica
-    const rubric = await ctx.db.get(args.gradeRubricId);
-    if (!rubric) {
-      throw new Error("Criterio de rúbrica no encontrado");
+    // Validar el score
+    const assignment = await ctx.db.get(args.assignmentId);
+    if (!assignment) {
+      throw new Error("Tarea no encontrada.");
     }
-    if (args.score > rubric.maxScore) {
-      throw new Error("La calificación no puede ser mayor que el puntaje máximo permitido");
+    if (args.score > assignment.maxScore) {
+      throw new Error("La calificación no puede ser mayor que el puntaje máximo permitido.");
     }
-
-    // 2. Insertar la nueva calificación
-    const now = Date.now();
-    const id = await ctx.db.insert("grade", {
-      studentClassId: args.studentClassId,
-      gradeRubricId: args.gradeRubricId,
-      score: args.score,
-      comments: args.comments,
-      registeredById: args.registeredById,
-      createdBy: args.registeredById,
-      updatedBy: undefined,
-      updatedAt: undefined,
-    });
-    return id;
+ 
+    // Buscar si la calificación ya existe usando el nuevo índice
+    const existingGrade = await ctx.db
+      .query("grade")
+      .withIndex("by_student_assignment", (q) =>
+        q.eq("studentClassId", args.studentClassId).eq("assignmentId", args.assignmentId)
+      )
+      .unique();
+ 
+    if (existingGrade) {
+      // Si existe, actualizarla
+      await ctx.db.patch(existingGrade._id, {
+        score: args.score,
+        comments: args.comments,
+        updatedBy: args.registeredById,
+        updatedAt: Date.now(),
+      });
+      return existingGrade._id;
+    } else {
+      // Si no existe, crearla
+      const id = await ctx.db.insert("grade", {
+        ...args,
+        createdBy: args.registeredById,
+      });
+      return id;
+    }
   },
 });
-
+ 
 // R: Leer todas las calificaciones de un estudiante en una clase
 export const getGradesByStudentClass = query({
   args: { studentClassId: v.id("studentClass") },
@@ -46,18 +58,19 @@ export const getGradesByStudentClass = query({
       .collect();
   },
 });
-
-// R: Leer calificaciones por criterio de rúbrica
-export const getGradesByRubric = query({
-  args: { gradeRubricId: v.id("gradeRubric") },
+ 
+// R: Leer calificaciones por tarea
+export const getGradesByAssignment = query({
+  args: { assignmentId: v.id("assignment") },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("grade")
-      .withIndex("by_rubric", (q) => q.eq("gradeRubricId", args.gradeRubricId))
+      .withIndex("by_assignment", (q) => q.eq("assignmentId", args.assignmentId))
       .collect();
   },
 });
-
+ 
+ 
 // U: Actualizar una calificación
 export const updateGrade = mutation({
   args: {
@@ -73,13 +86,13 @@ export const updateGrade = mutation({
     if (args.data.score !== undefined) {
       const grade = await ctx.db.get(args.gradeId);
       if (!grade) throw new Error("Calificación no encontrada");
-      const rubric = await ctx.db.get(grade.gradeRubricId);
+      const rubric = await ctx.db.get(grade.assignmentId);
       if (!rubric) throw new Error("Criterio de rúbrica no encontrado");
       if (args.data.score > rubric.maxScore) {
         throw new Error("La calificación no puede ser mayor que el puntaje máximo permitido");
       }
     }
-
+ 
     // 2. Aplicar la actualización
     await ctx.db.patch(args.gradeId, {
       ...args.data,
@@ -89,7 +102,33 @@ export const updateGrade = mutation({
     return args.gradeId;
   },
 });
-
+ 
+// La función para obtener calificaciones de una clase en un periodo
+export const getGradesByClassAndTerm = query({
+  args: {
+    classCatalogId: v.id("classCatalog"),
+    termId: v.id("term"),
+  },
+  handler: async (ctx, args) => {
+    // Obtener los IDs de todas las tareas para esa clase y periodo
+    const assignments = await ctx.db
+      .query("assignment")
+      .withIndex("by_classCatalogId", (q) => q.eq("classCatalogId", args.classCatalogId))
+      .filter((q) => q.eq(q.field("termId"), args.termId))
+      .collect();
+ 
+    const assignmentIds = assignments.map(a => a._id);
+ 
+    // Obtener todas las calificaciones que coinciden con esos IDs de tarea
+    const grades = await ctx.db
+      .query("grade")
+      .filter((q) => q.or(...assignmentIds.map(id => q.eq(q.field("assignmentId"), id))))
+      .collect();
+ 
+    return grades;
+  },
+});
+ 
 // D: Borrar una calificación
 export const deleteGrade = mutation({
   args: { gradeId: v.id("grade") },

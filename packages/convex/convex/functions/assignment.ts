@@ -84,7 +84,7 @@ export const getAssignmentsForTutor = query({
     const assignments = await Promise.all(
       studentClasses.map(async (sc) => {
         const classCatalog = await ctx.db.get(sc.classCatalogId);
-        if (!classCatalog) return [];
+        if (!classCatalog) return [] as any[];
 
         return await ctx.db
           .query("assignment")
@@ -111,10 +111,41 @@ export const getTeacherAssignments = query({
     if (!user) throw new Error("Usuario no encontrado.");
 
     // Buscamos las tareas por el ID del usuario creador
-    return await ctx.db
+    const assignments = await ctx.db
       .query("assignment")
       .withIndex("by_createdBy", (q) => q.eq("createdBy", user._id))
       .collect();
+
+    // Enriquecer cada tarea con la rúbrica de calificación y la información del grupo
+    const enriched = await Promise.all(
+      assignments.map(async (a) => {
+        const [gradeRubric, classCatalog] = await Promise.all([
+          ctx.db.get(a.gradeRubricId),
+          ctx.db.get(a.classCatalogId)
+        ]);
+        
+        let group = null;
+        if (classCatalog?.groupId) {
+          group = await ctx.db.get(classCatalog.groupId);
+        }
+        
+        return { 
+          ...a, 
+          gradeRubric,
+          group: group ? { 
+            _id: group._id, 
+            name: group.name,
+            grade: group.grade,
+            section: group.name
+          } : null
+        } as typeof a & { 
+          gradeRubric: { _id: Id<"gradeRubric">; name: string } | null;
+          group: { _id: Id<"group">; name: string; grade: number; section: string } | null;
+        };
+      })
+    );
+
+    return enriched;
   },
 });
 
@@ -149,6 +180,165 @@ export const getAdminAssignmentsByClass = query({
       .query("assignment")
       .withIndex("by_classCatalogId", (q) => q.eq("classCatalogId", args.classCatalogId))
       .collect();
+  },
+});
+
+/**
+ * Obtiene el progreso de entregas para todas las tareas del profesor.
+ * Retorna información básica de progreso para cada tarea.
+ */
+export const getTeacherAssignmentsProgress = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("No estás autenticado.");
+
+    const user = await ctx.db
+      .query("user")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!user) throw new Error("Usuario no encontrado.");
+
+    // Obtener todas las tareas del profesor
+    const assignments = await ctx.db
+      .query("assignment")
+      .withIndex("by_createdBy", (q) => q.eq("createdBy", user._id))
+      .collect();
+
+    // Para cada tarea, obtener el progreso de entregas
+    const assignmentsWithProgress = await Promise.all(
+      assignments.map(async (assignment) => {
+        // Obtener todos los estudiantes de la clase
+        const studentClasses = await ctx.db
+          .query("studentClass")
+          .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", assignment.classCatalogId))
+          .filter((q) => q.eq(q.field("status"), "active"))
+          .collect();
+
+        // Obtener las calificaciones (entregas) para esta asignación
+        const grades = await ctx.db
+          .query("grade")
+          .withIndex("by_assignment", (q) => q.eq("assignmentId", assignment._id))
+          .collect();
+
+        // Calcular estadísticas
+        const totalStudents = studentClasses.length;
+        const submittedCount = grades.length;
+
+        return {
+          assignmentId: assignment._id,
+          totalStudents,
+          submittedCount,
+          pendingCount: totalStudents - submittedCount,
+          progressPercentage: totalStudents > 0 ? Math.round((submittedCount / totalStudents) * 100) : 0,
+        };
+      })
+    );
+
+    return assignmentsWithProgress;
+  },
+});
+
+/**
+ * Obtiene los detalles de entregas de una asignación específica.
+ * Incluye información de estudiantes que entregaron y los pendientes.
+ */
+export const getAssignmentDeliveryDetails = query({
+  args: { assignmentId: v.id("assignment") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("No estás autenticado.");
+
+    const user = await ctx.db
+      .query("user")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!user) throw new Error("Usuario no encontrado.");
+
+    // Obtener la asignación
+    const assignment = await ctx.db.get(args.assignmentId);
+    if (!assignment) throw new Error("Asignación no encontrada.");
+
+    // Obtener la clase
+    const classCatalog = await ctx.db.get(assignment.classCatalogId);
+    if (!classCatalog) throw new Error("Clase no encontrada.");
+
+    // Validar que el usuario sea el profesor de la clase o administrador
+    const isTeacher = classCatalog.teacherId === user._id;
+    const isAdmin = await ctx.runQuery(
+      internal.functions.assignment.isAdminOfSchool,
+      { userId: user._id, schoolId: classCatalog.schoolId }
+    );
+
+    if (!isTeacher && !isAdmin) {
+      throw new Error("Acceso denegado: No tienes permisos para ver esta información.");
+    }
+
+    // Obtener todos los estudiantes de la clase
+    const studentClasses = await ctx.db
+      .query("studentClass")
+      .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", assignment.classCatalogId))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .collect();
+
+    // Obtener las calificaciones (entregas) para esta asignación
+    const grades = await ctx.db
+      .query("grade")
+      .withIndex("by_assignment", (q) => q.eq("assignmentId", args.assignmentId))
+      .collect();
+
+    // Obtener información detallada de los estudiantes
+    const studentsWithDetails = await Promise.all(
+      studentClasses.map(async (sc) => {
+        const student = await ctx.db.get(sc.studentId);
+        if (!student) return null;
+
+        // Verificar si el estudiante entregó (tiene calificación)
+        const grade = grades.find(g => g.studentClassId === sc._id);
+        
+        return {
+          studentClassId: sc._id,
+          studentId: student._id,
+          name: `${student.name} ${student.lastName || ""}`.trim(),
+          enrollment: student.enrollment,
+          submitted: !!grade,
+          grade: grade?.score || null,
+          submittedDate: grade ? new Date(grade.createdBy).toISOString() : null,
+        };
+      })
+    );
+
+    // Filtrar estudiantes válidos y separar por estado de entrega
+    const submittedStudents: any[] = [];
+    const pendingStudents: any[] = [];
+    
+    studentsWithDetails.forEach(student => {
+      if (student) {
+        if (student.submitted) {
+          submittedStudents.push(student);
+        } else {
+          pendingStudents.push(student);
+        }
+      }
+    });
+
+    return {
+      assignment: {
+        _id: assignment._id,
+        name: assignment.name,
+        description: assignment.description,
+        dueDate: assignment.dueDate,
+        maxScore: assignment.maxScore,
+      },
+      classCatalog: {
+        _id: classCatalog._id,
+        name: classCatalog.name,
+      },
+      totalStudents: submittedStudents.length + pendingStudents.length, // Total de estudiantes válidos
+      submittedCount: submittedStudents.length,
+      pendingCount: pendingStudents.length,
+      submittedStudents,
+      pendingStudents,
+    };
   },
 });
 
