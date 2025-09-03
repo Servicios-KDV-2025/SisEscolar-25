@@ -21,11 +21,21 @@
       }
     ],
     "paths": {
-      "@payload-config": ["./src/payload.config.ts"],
-      "react": ["./node_modules/@types/react"],
-      "@/*": ["./src/*"],
-      "@repo/convex": ["../../packages/convex/index.ts"],
-      "@repo/convex/*": ["../../packages/convex/*"]
+      "@payload-config": [
+        "./src/payload.config.ts"
+      ],
+      "react": [
+        "./node_modules/@types/react"
+      ],
+      "@/*": [
+        "./src/*"
+      ],
+      "@repo/convex": [
+        "../../packages/convex/index.ts"
+      ],
+      "@repo/convex/*": [
+        "../../packages/convex/*"
+      ]
     }
   },
   "include": [
@@ -37,5 +47,7 @@
     "next.config.js",
     "next-sitemap.config.cjs"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ],
 }

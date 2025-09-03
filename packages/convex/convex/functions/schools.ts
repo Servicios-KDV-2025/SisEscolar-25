@@ -1,4 +1,4 @@
-import { query, mutation } from "../_generated/server";
+import { query, mutation, internalQuery } from "../_generated/server";
 import { v } from "convex/values";
 
 /*
@@ -663,59 +663,18 @@ export const createUserSchool = mutation({
 
         return userSchoolId;
     }
-});
+}); 
 
-// Obtener usuarios de una escuela por rol específico
-export const getUsersBySchoolAndRole = query({
-    args: {
+// Obtener una escuela por ID (internal)
+export const getSchoolById = internalQuery({
+    args: { 
         schoolId: v.id("school"),
-        role: v.union(
-            v.literal("superadmin"),
-            v.literal("admin"),
-            v.literal("auditor"),
-            v.literal("teacher"),
-            v.literal("tutor")
-        ),
-        status: v.optional(v.union(
-            v.literal("active"),
-            v.literal("inactive")
-        ))
     },
     handler: async (ctx, args) => {
-        // Obtener todas las relaciones usuario-escuela para la escuela específica
-        const userSchools = await ctx.db
-            .query("userSchool")
-            .filter((q) => 
-                q.and(
-                    q.eq(q.field("schoolId"), args.schoolId),
-                    q.eq(q.field("status"), args.status || "active")
-                )
-            )
-            .collect();
-
-        // Filtrar por rol específico
-        const filteredUserSchools = userSchools.filter(us => 
-            us.role.includes(args.role)
-        );
-
-        // Obtener los detalles de los usuarios
-        const usersWithDetails = await Promise.all(
-            filteredUserSchools.map(async (userSchool) => {
-                const user = await ctx.db.get(userSchool.userId);
-                if (!user || user.status !== "active") {
-                    return null;
-                }
-
-                return {
-                    ...user,
-                    userSchoolId: userSchool._id,
-                    schoolRole: userSchool.role,
-                    department: userSchool.department,
-                };
-            })
-        );
-
-        // Filtrar resultados nulos y retornar
-        return usersWithDetails.filter(result => result !== null);
+        const school = await ctx.db.get(args.schoolId);
+        if (!school) {
+            throw new Error("Escuela no encontrada");
+        }
+        return school;
     }
 }); 

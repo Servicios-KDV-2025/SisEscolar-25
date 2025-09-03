@@ -1,6 +1,6 @@
-import { Doc } from '../_generated/dataModel';
-import { mutation, query } from '../_generated/server';
-import { v } from 'convex/values';
+import { Doc } from "../_generated/dataModel";
+import { mutation, query } from "../_generated/server";
+import { v } from "convex/values";
 
 // Obtener todas las relaciones usuario-escuela
 export const getAllUserSchool = query({
@@ -44,10 +44,13 @@ export const getByRole = query({
     ),
   },
   handler: async (ctx, args) => {
-    const allRelations = await ctx.db.query('userSchool').collect();
-    return allRelations.filter((relation) => relation.role.includes(args.role));
+    const allRelations = await ctx.db.query("userSchool").collect();
+    return allRelations.filter(relation =>
+      relation.role.includes(args.role)
+    );
   },
 });
+
 
 // Obtener por estado
 export const getByStatus = query({
@@ -222,13 +225,13 @@ export const update = mutation({
         )
       )
     ),
-    status: v.optional(v.union(v.literal('active'), v.literal('inactive'))),
+    status: v.optional(v.union(v.literal("active"), v.literal("inactive"))),
     department: v.optional(
       v.union(
-        v.literal('secretary'),
-        v.literal('direction'),
-        v.literal('schoolControl'),
-        v.literal('technology'),
+        v.literal("secretary"),
+        v.literal("direction"),
+        v.literal("schoolControl"),
+        v.literal("technology"),
         v.null()
       )
     ),
