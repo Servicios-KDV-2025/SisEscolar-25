@@ -3,7 +3,6 @@
 
 import React, { useState, useMemo } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
@@ -25,11 +24,10 @@ import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import { 
   tutorSchema, 
   tutorCreateSchema, 
-  tutorEditSchema,
-  type Tutor 
+  tutorEditSchema
 } from "@/types/form/userSchemas";
 import { useUserWithConvex } from "../../../../../stores/userStore";
-import { useCurrentSchool, useUserSchoolsWithConvex } from "../../../../../stores/userSchoolsStore";
+import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { useUserActionsWithConvex } from "../../../../../stores/userActionsStore";
 
 // Tipo para los usuarios que vienen de Convex
@@ -52,6 +50,18 @@ type UserFromConvex = {
   department?: 'secretary' | 'direction' | 'schoolControl' | 'technology';
 };
 
+// Tipo para el resultado de búsqueda de usuarios
+type SearchUserResult = {
+  _id: Id<"user">;
+  name: string;
+  lastName?: string;
+  email: string;
+  clerkId: string;
+  status?: 'active' | 'inactive';
+  createdAt: number;
+  updatedAt: number;
+};
+
 // Función para obtener el esquema correcto según la operación
 const getSchemaForOperation = (operation: string) => {
   switch (operation) {
@@ -66,8 +76,6 @@ const getSchemaForOperation = (operation: string) => {
 
 export default function TutorPage() {
   const { user: clerkUser } = useUser();
-  const params = useParams();
-  const subdomain = params?.subdomain as string;
 
   // Obtener usuario actual
   const { currentUser } = useUserWithConvex(clerkUser?.id);
@@ -91,8 +99,7 @@ export default function TutorPage() {
   // User Actions Store para CRUD operations
   const userActions = useUserActionsWithConvex();
   
-  // User Schools Store para asignación a escuela
-  const userSchoolsActions = useUserSchoolsWithConvex();
+
   
   // Mutations para gestión de relaciones usuario-escuela
   const createUserSchoolRelation = useMutation(api.functions.schools.createUserSchool);
@@ -102,8 +109,8 @@ export default function TutorPage() {
   // Estado para búsqueda dinámica de usuario
   const [searchEmail, setSearchEmail] = useState<string | null>(null);
   const [searchResultPromise, setSearchResultPromise] = useState<{
-    resolve: (value: any) => void;
-    reject: (reason?: any) => void;
+    resolve: (value: SearchUserResult[]) => void;
+    reject: (reason?: unknown) => void;
   } | null>(null);
   
   // Query para buscar usuario por email cuando se necesite
@@ -126,7 +133,7 @@ export default function TutorPage() {
   }, [searchResult, searchResultPromise]);
 
   // Función auxiliar para buscar usuario de manera asíncrona
-  const searchUserByEmailAsync = (email: string): Promise<any> => {
+  const searchUserByEmailAsync = (email: string): Promise<SearchUserResult[]> => {
     return new Promise((resolve, reject) => {
       setSearchResultPromise({ resolve, reject });
       setSearchEmail(email);
@@ -229,6 +236,11 @@ export default function TutorPage() {
       if (existingUsers && existingUsers.length > 0) {
         // FLUJO A: Usuario existe, solo asignar a escuela
         const existingUser = existingUsers[0];
+        
+        if (!existingUser?.clerkId || !existingUser?.name || !existingUser?.email) {
+          throw new Error("Error al obtener datos completos del usuario existente");
+        }
+        
         console.log("✅ Usuario encontrado:", existingUser.name, existingUser.email);
         console.log("📋 Asignando usuario existente como tutor...");
 
@@ -401,7 +413,6 @@ export default function TutorPage() {
 
   // Loading y error states
   const isLoading = schoolLoading || allUsers === undefined;
-  const hasError = !currentSchool && !schoolLoading;
   const isCrudLoading = userActions.isCreating || userActions.isUpdating || userActions.isDeleting;
 
   // Estadísticas para tutores
@@ -742,7 +753,7 @@ export default function TutorPage() {
         isOpen={isOpen}
         onOpenChange={close}
         onSubmit={operation === "create" ? handleCreate : handleUpdate}
-        onDelete={(id) => handleDelete(data || {})}
+        onDelete={() => handleDelete(data || {})}
         deleteConfirmationTitle="¿Desactivar tutor?"
         deleteConfirmationDescription="Esta acción desactivará al tutor de esta escuela. El usuario mantendrá su información en el sistema y podrá ser reactivado posteriormente."
         isLoading={isLoading}
