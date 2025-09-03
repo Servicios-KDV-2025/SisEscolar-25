@@ -522,22 +522,7 @@ export default function PersonalPage() {
     },
   ];
 
-  // Mostrar estado de error si no se puede acceder a la escuela
-  if (hasError) {
-    return (
-      <div className="space-y-8 p-6">
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-            <h3 className="text-lg font-medium mb-2">Error de acceso</h3>
-            <p className="text-muted-foreground text-center">
-              No tienes acceso a esta escuela o la escuela no existe.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+
 
   return (
     <div className="space-y-8 p-6">
