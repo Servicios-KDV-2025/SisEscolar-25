@@ -281,9 +281,9 @@ export default function ClassroomManagement() {
                       id="capacity"
                       type="number"
                       min="1"
-                      max="100"
+                      max="35"
                       placeholder="Ingresa la capacidad"
-                      value={formData.capacity}
+                      defaultValue={formData.capacity}
                       onChange={(e) => {
                         const value = Number(e.target.value);
                         setFormData((prev) => ({
