@@ -156,7 +156,7 @@ const defaultNavData = {
     },
     {
       title: "Usuarios",
-      url: `/usuarios`,
+      url: "#",
       icon: Users,
       isActive: true,
       items: [
@@ -165,27 +165,11 @@ const defaultNavData = {
           url: `/usuarios/personal`,
         },
         {
-          title: "Super Administrador",
-          url: `/usuarios/super-administrador`,
-        },
-        {
-          title: "Administradores",
-          url: `/usuarios/administradores`,
-        },
-        {
-          title: "Docentes",
-          url: `/usuarios/docentes`,
-        },
-        {
-          title: "Auditores",
-          url: `/usuarios/auditores`,
-        },
-        {
-          title: "Tutores",
+          title: "Gestión de Tutores",
           url: `/usuarios/tutores`,
         },
         {
-          title: "Alumnos",
+          title: "Gestión de Alumnos",
           url: `/usuarios/alumnos`,
         },
       ],
