@@ -87,6 +87,7 @@ export const Pages: CollectionConfig<'pages'> = {
                 'row',
                 'carousel',
                 'carouselAvatar',
+                'paymentStatus',
               ],
               required: true,
               admin: {
@@ -134,6 +135,7 @@ export const Pages: CollectionConfig<'pages'> = {
     },
     ...slugField(),
   ],
+
   hooks: {
     afterChange: [revalidatePage],
     beforeChange: [populatePublishedAt],

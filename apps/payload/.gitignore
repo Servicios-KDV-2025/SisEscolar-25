@@ -21,3 +21,4 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 #src/payload.config.ts
+.env.local

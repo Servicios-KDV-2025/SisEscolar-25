@@ -19,7 +19,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { z } from '@repo/zod-config/index'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from '@payloadcms/ui'
-import { useSignUp } from '@clerk/nextjs'
+import { useClerk, useSignUp } from '@clerk/nextjs'
 
 const registerSchema = z.object({
   name: z
@@ -94,6 +94,8 @@ export const SignUp: React.FC<SignUpProps> = ({ onSwitchToSignIn, onClick }) => 
   }
 
   async function onPressVerify(e: React.FormEvent) {
+    setIsLoading(true)
+    setSubmitError(null)
     e.preventDefault()
     if (!isLoaded) {
       return
@@ -105,6 +107,7 @@ export const SignUp: React.FC<SignUpProps> = ({ onSwitchToSignIn, onClick }) => 
       })
       if (completeSignUp.status !== 'complete') {
         console.log(JSON.stringify(completeSignUp, null, 2))
+        setSubmitError('Error la verificación. Por favor, intenta de nuevo.')
       }
 
       if (completeSignUp.status === 'complete') {
@@ -115,6 +118,8 @@ export const SignUp: React.FC<SignUpProps> = ({ onSwitchToSignIn, onClick }) => 
     } catch (err: any) {
       console.error(JSON.stringify(err, null, 2))
       setError(err.errors[0].message)
+    } finally {
+      setIsLoading(false)
     }
   }
 
