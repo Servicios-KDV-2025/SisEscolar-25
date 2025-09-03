@@ -407,7 +407,7 @@ export default function AlumnosPage() {
             {canCreateUsers && (
               <Button 
                 size="lg" 
-                className="gap-2" 
+                className="gap-2 bg-blue-600 hover:bg-blue-700" 
                 onClick={openCreate}
                 disabled={isCreating || !currentSchool || !groups?.length || !tutors?.length}
                 title={
@@ -512,7 +512,7 @@ export default function AlumnosPage() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Lista de Alumnos</span>
-            <Badge variant="outline">{filteredStudents.length} estudiantes</Badge>
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{filteredStudents.length} estudiantes</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -637,7 +637,7 @@ export default function AlumnosPage() {
               {canCreateUsers && (
                 <Button 
                   onClick={openCreate} 
-                  className="gap-2"
+                  className="gap-2 bg-blue-600 hover:bg-blue-700"
                   disabled={!groups?.length || !tutors?.length}
                   title={
                     !groups?.length ? "No hay grupos disponibles" :

@@ -236,24 +236,26 @@ export default function PersonalPage() {
     openDelete(user);
   };
 
-  // Filtrado de datos
+  // Filtrado de datos - Excluir tutores
   const filteredUsers = useMemo(() => {
     if (!allUsers) return [];
     
-    return allUsers.filter((user: UserFromConvex) => {
-      const searchMatch = 
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const statusMatch = statusFilter === "all" || (user.status || 'active') === statusFilter;
-      
-      const roleMatch = roleFilter === "all" || user.schoolRole.includes(roleFilter as any);
-      
-      const departmentMatch = departmentFilter === "all" || user.department === departmentFilter;
-      
-      return searchMatch && statusMatch && roleMatch && departmentMatch;
-    });
+    return allUsers
+      .filter((user: UserFromConvex) => !user.schoolRole.includes('tutor')) // Excluir tutores
+      .filter((user: UserFromConvex) => {
+        const searchMatch = 
+          user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.email.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const statusMatch = statusFilter === "all" || (user.status || 'active') === statusFilter;
+        
+        const roleMatch = roleFilter === "all" || user.schoolRole.includes(roleFilter as any);
+        
+        const departmentMatch = departmentFilter === "all" || user.department === departmentFilter;
+        
+        return searchMatch && statusMatch && roleMatch && departmentMatch;
+      });
   }, [allUsers, searchTerm, statusFilter, roleFilter, departmentFilter]);
 
   // Funciones CRUD
@@ -500,29 +502,31 @@ export default function PersonalPage() {
   const hasError = !currentSchool && !schoolLoading;
   const isCrudLoading = userActions.isCreating || userActions.isUpdating || userActions.isDeleting;
 
-  // Estadísticas por rol
+  // Estadísticas por rol - Excluir tutores
+  const personalUsers = allUsers?.filter((user: UserFromConvex) => !user.schoolRole.includes('tutor')) || [];
+  
   const stats = [
     {
       title: "Total Personal",
-      value: allUsers?.length.toString() || "0",
+      value: personalUsers.length.toString(),
       icon: Users,
-      trend: "Todos los roles"
+      trend: "Excluyendo tutores"
     },
     {
       title: "Super-Admins",
-      value: allUsers?.filter((user: UserFromConvex) => user.schoolRole.includes('superadmin')).length.toString() || "0",
+      value: personalUsers.filter((user: UserFromConvex) => user.schoolRole.includes('superadmin')).length.toString(),
       icon: Shield,
       trend: "Acceso completo"
     },
     {
       title: "Administradores",
-      value: allUsers?.filter((user: UserFromConvex) => user.schoolRole.includes('admin')).length.toString() || "0",
+      value: personalUsers.filter((user: UserFromConvex) => user.schoolRole.includes('admin')).length.toString(),
       icon: Building2,
       trend: "Gestión departamental"
     },
     {
       title: "Docentes",
-      value: allUsers?.filter((user: UserFromConvex) => user.schoolRole.includes('teacher')).length.toString() || "0",
+      value: personalUsers.filter((user: UserFromConvex) => user.schoolRole.includes('teacher')).length.toString(),
       icon: BookOpen,
       trend: "Enseñanza"
     },
@@ -545,7 +549,7 @@ export default function PersonalPage() {
                 <div>
                   <h1 className="text-4xl font-bold tracking-tight">Gestión de Personal</h1>
                   <p className="text-lg text-muted-foreground">
-                    Administra todo el personal del sistema en una vista unificada
+                    Administra el personal administrativo y docente (tutores gestionados por separado)
                     {currentSchool?.school && (
                       <span className="block text-sm mt-1">
                         {currentSchool.school.name}
@@ -666,7 +670,7 @@ export default function PersonalPage() {
                 <SelectItem value="admin">Administrador</SelectItem>
                 <SelectItem value="auditor">Auditor</SelectItem>
                 <SelectItem value="teacher">Docente</SelectItem>
-                <SelectItem value="tutor">Tutor</SelectItem>
+
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -985,7 +989,7 @@ export default function PersonalPage() {
                         <SelectItem value="admin">Administrador</SelectItem>
                         <SelectItem value="auditor">Auditor</SelectItem>
                         <SelectItem value="teacher">Docente</SelectItem>
-                        <SelectItem value="tutor">Tutor</SelectItem>
+        
                       </SelectContent>
                     </Select>
                   </FormControl>
