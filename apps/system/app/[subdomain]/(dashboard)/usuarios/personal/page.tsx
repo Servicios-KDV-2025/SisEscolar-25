@@ -139,6 +139,7 @@ export default function PersonalPage() {
   // Mutations para gestión de relaciones usuario-escuela
   const createUserSchoolRelation = useMutation(api.functions.schools.createUserSchool);
   const updateUserSchoolRelation = useMutation(api.functions.userSchool.update);
+  const deactivateUserInSchool = useMutation(api.functions.schools.deactivateUserInSchool);
 
   // Estado para búsqueda dinámica de usuario
   const [searchEmail, setSearchEmail] = useState<string | null>(null);
@@ -443,22 +444,27 @@ export default function PersonalPage() {
     console.log("🗑️ handleDelete - deleteData recibido:", deleteData);
     console.log("🗑️ handleDelete - data original:", data);
     
-    // Usar los datos originales del diálogo que tienen el clerkId
+    // Usar los datos originales del diálogo que tienen el userSchoolId
     const targetData = data || deleteData;
     
-    if (!targetData.clerkId) {
-      console.error("Clerk ID de usuario no disponible para eliminación");
-      throw new Error("Clerk ID de usuario no disponible para eliminación");
+    if (!targetData.userSchoolId) {
+      console.error("UserSchool ID no disponible para eliminación");
+      throw new Error("UserSchool ID no disponible para eliminación");
     }
 
-    // Usar clerkId en lugar de _id para eliminar en Clerk
-    const result = await userActions.deleteUser(targetData.clerkId as string);
+    console.log("🔄 Realizando soft delete - desactivando usuario de la escuela actual...");
     
-    if (result.success) {
-      console.log("Usuario eliminado exitosamente");
-    } else {
-      console.error("Error al eliminar usuario:", result.error);
-      throw new Error(result.error || 'Error al eliminar usuario');
+    try {
+      // Realizar soft delete: cambiar status a 'inactive' en lugar de eliminar completamente
+      await deactivateUserInSchool({
+        userSchoolId: targetData.userSchoolId as Id<"userSchool">
+      });
+      
+      console.log("✅ Usuario desactivado exitosamente de la escuela actual");
+      
+    } catch (error) {
+      console.error("❌ Error al desactivar usuario:", error);
+      throw new Error(`Error al desactivar usuario: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   };
 
@@ -867,7 +873,7 @@ export default function PersonalPage() {
             ? "Editar Personal"
             : operation === "view"
             ? "Ver Personal"
-            : "Eliminar Personal"
+            : "Desactivar Personal"
         }
         description={
           operation === "create"
@@ -884,8 +890,8 @@ export default function PersonalPage() {
         onOpenChange={close}
         onSubmit={operation === "create" ? handleCreate : handleUpdate}
         onDelete={(id) => handleDelete(data || {})}
-        deleteConfirmationTitle="¿Eliminar personal?"
-        deleteConfirmationDescription="Esta acción eliminará permanentemente al personal del sistema. Esta acción no se puede deshacer."
+        deleteConfirmationTitle="¿Desactivar personal?"
+        deleteConfirmationDescription="Esta acción desactivará al personal de esta escuela. El usuario mantendrá su información en el sistema y podrá ser reactivado posteriormente."
         isLoading={isLoading}
         isSubmitting={userActions.isCreating || userActions.isUpdating}
         isDeleting={userActions.isDeleting}
