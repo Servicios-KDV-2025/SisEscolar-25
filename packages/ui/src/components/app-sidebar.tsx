@@ -146,6 +146,10 @@ const defaultNavData = {
           title: "Calificaciones",
           url: `/calificaciones`,
         },
+        {
+          title: "Rúbricas",
+          url: `/gradeRubic`,
+        },
       ],
     },
     {
