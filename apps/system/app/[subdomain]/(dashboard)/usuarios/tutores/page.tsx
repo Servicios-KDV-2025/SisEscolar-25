@@ -23,10 +23,10 @@ import {
 } from "@repo/ui/icons";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import { 
-  unifiedUserSchema, 
-  unifiedUserCreateSchema, 
-  unifiedUserEditSchema,
-  type UnifiedUser 
+  tutorSchema, 
+  tutorCreateSchema, 
+  tutorEditSchema,
+  type Tutor 
 } from "@/types/form/userSchemas";
 import { useUserWithConvex } from "../../../../../stores/userStore";
 import { useCurrentSchool, useUserSchoolsWithConvex } from "../../../../../stores/userSchoolsStore";
@@ -56,11 +56,11 @@ type UserFromConvex = {
 const getSchemaForOperation = (operation: string) => {
   switch (operation) {
     case 'create':
-      return unifiedUserCreateSchema;
+      return tutorCreateSchema;
     case 'edit':
-      return unifiedUserEditSchema;
+      return tutorEditSchema;
     default:
-      return unifiedUserSchema;
+      return tutorSchema;
   }
 };
 
@@ -143,10 +143,9 @@ export default function TutorPage() {
     openView,
     openDelete,
     close,
-  } = useCrudDialog(unifiedUserSchema, {
+  } = useCrudDialog(tutorSchema, {
     status: "active",
     admissionDate: Date.now(),
-    role: "tutor", // Valor por defecto para tutores
   });
 
   // Funciones wrapper para abrir diálogos con limpieza de errores
@@ -161,10 +160,9 @@ export default function TutorPage() {
     userActions.clearErrors();
     userActions.clearLastResult();
     
-    // Preparar datos para edición incluyendo el rol principal y userSchoolId
+    // Preparar datos para edición incluyendo userSchoolId
     const editData = {
       ...user,
-      role: "tutor", // Forzar rol de tutor
       userSchoolId: user.userSchoolId,
     };
     
@@ -176,10 +174,9 @@ export default function TutorPage() {
     userActions.clearErrors();
     userActions.clearLastResult();
     
-    // Preparar datos para vista incluyendo el rol principal y userSchoolId
+    // Preparar datos para vista incluyendo userSchoolId
     const viewData = {
       ...user,
-      role: "tutor", // Forzar rol de tutor
       userSchoolId: user.userSchoolId,
     };
     
@@ -818,19 +815,19 @@ export default function TutorPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Contraseña Temporal *</FormLabel>
+                    <FormLabel>Contraseña Temporal (opcional)</FormLabel>
                     <FormControl>
                       <Input 
                         {...field} 
                         value={field.value as string || ""}
                         type="password"
-                        placeholder="Solo requerida para usuarios nuevos"
+                        placeholder="Dejar vacío si el usuario ya existe"
                         disabled={false}
                       />
                     </FormControl>
                     <FormMessage />
                     <p className="text-xs text-muted-foreground">
-                      💡 Si el email ya existe en el sistema, se asignará el usuario existente (sin crear uno nuevo)
+                      💡 Si el email ya existe en el sistema, se asignará el usuario existente automáticamente
                     </p>
                   </FormItem>
                 )}

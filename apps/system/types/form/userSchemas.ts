@@ -63,10 +63,42 @@ export const auditorSchema = userSchema;
 export const teacherSchema = userSchema;
 
 /**
- * Schema para tutores
+ * Schema para tutores (creación)
  * Los tutores tienen acceso a información de sus alumnos asignados
  */
-export const tutorSchema = userSchema;
+export const tutorCreateSchema = userSchema.extend({
+  password: z.string().optional().refine((val) => {
+    // Si se proporciona password, debe tener al menos 8 caracteres
+    if (val && val.length > 0) {
+      return val.length >= 8;
+    }
+    return true;
+  }, {
+    message: "La contraseña debe tener al menos 8 caracteres"
+  }),
+});
+
+/**
+ * Schema para tutores (edición)
+ * Los tutores tienen acceso a información de sus alumnos asignados
+ */
+export const tutorEditSchema = userSchema;
+
+/**
+ * Schema para tutores (general)
+ * Los tutores tienen acceso a información de sus alumnos asignados
+ */
+export const tutorSchema = userSchema.extend({
+  password: z.string().optional().refine((val) => {
+    // Si se proporciona password, debe tener al menos 8 caracteres
+    if (val && val.length > 0) {
+      return val.length >= 8;
+    }
+    return true;
+  }, {
+    message: "La contraseña debe tener al menos 8 caracteres"
+  }),
+});
 
 /**
  * Schema unificado para gestión de usuarios
@@ -189,6 +221,8 @@ export type Admin = z.infer<typeof adminSchema>;
 export type Auditor = z.infer<typeof auditorSchema>;
 export type Teacher = z.infer<typeof teacherSchema>;
 export type Tutor = z.infer<typeof tutorSchema>;
+export type TutorCreate = z.infer<typeof tutorCreateSchema>;
+export type TutorEdit = z.infer<typeof tutorEditSchema>;
 export type Student = z.infer<typeof studentSchema>;
 export type UserSchool = z.infer<typeof userSchoolSchema>;
 
