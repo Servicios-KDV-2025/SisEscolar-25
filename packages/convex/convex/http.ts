@@ -1,12 +1,46 @@
 import { httpRouter } from "convex/server";
-import { httpAction } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { ActionCtx, httpAction } from "./_generated/server";
+import { api, internal } from "./_generated/api";
 import type { WebhookEvent } from "@clerk/backend";
 import { Webhook } from "svix";
 import Stripe from "stripe";
-import type { Id } from "./_generated/dataModel";
+import { Id } from "./_generated/dataModel";
+import { paymentSuccessTemplate } from "./templates/paymentSuccess";
 
 const http = httpRouter();
+
+async function sendEmail(to: string, subject: string, html: string) {
+  console.log("📧 Iniciando envío de correo a:", to);
+
+  const resendApiKey = process.env.RESEND_API_KEY;
+  if (!resendApiKey) {
+    console.error("❌ RESEND_API_KEY no está configurado");
+    throw new Error("RESEND_API_KEY no está configurado");
+  }
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${resendApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: "sistema.escolar@ekardex.app",
+      to: [to],
+      subject: subject,
+      html: html,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    console.error("❌ Error en respuesta de Resend:", errorData);
+    throw new Error(`Error al enviar correo: ${response.status} - ${JSON.stringify(errorData)}`);
+  }
+
+  const result = await response.json();
+  return result;
+}
 
 http.route({
   path: "/clerk-users-webhook",
@@ -81,22 +115,22 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     try {
       const sig = request.headers.get("stripe-signature");
-      if (!sig) throw new Error("Falta la firma de Stripe");
+      if (!sig) {
+        return new Response("Falta la firma de Stripe", { status: 400 });
+      }
 
       const body = await request.text();
-      
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
       if (!webhookSecret) {
         throw new Error("STRIPE_WEBHOOK_SECRET no está configurado");
       }
-      
-      const event = await stripe.webhooks.constructEventAsync(
-        body,
-        sig,
-        webhookSecret
-      );
 
-      console.log(" Evento Stripe recibido:", event.type);
+      const event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecret);
+
+      if (!event.data || !event.data.object) {
+        console.error("❌ Evento Stripe malformado - falta data.object:", event);
+        return new Response("Evento malformado", { status: 400 });
+      }
 
       switch (event.type) {
         case "checkout.session.completed":
@@ -106,65 +140,60 @@ http.route({
           await handleInvoicePaymentSucceeded(ctx, event.data.object);
           break;
         case "customer.subscription.deleted":
-          // await handleSubscriptionDeleted(ctx, event.data.object);
+          await handleSubscriptionDeleted(ctx, event.data.object);
           break;
         case "customer.subscription.updated":
-          // await handleSubscriptionUpdated(ctx, event.data.object);
+          await handleSubscriptionUpdated(ctx, event.data.object);
           break;
         default:
           console.log(` Evento no manejado: ${event.type}`);
       }
 
-      return new Response(null, { status: 200 });
-    } catch (error) {
-      console.error("Error processing webhook:", error);
+      return new Response(JSON.stringify({ received: true }), { status: 200 });
+    } catch (error: any) {
+      if (error.type === "StripeSignatureVerificationError") {
+        console.error("❌ Firma Stripe inválida:", error);
+        return new Response("Firma inválida", { status: 400 });
+      }
+      console.error("❌ Error interno procesando webhook:", error);
       return new Response("Internal server error", { status: 500 });
     }
   }),
 });
 
-async function handleCheckoutSessionCompleted(ctx: any, session: Stripe.Checkout.Session) {
-  console.log(" checkout.session.completed");
-
+async function handleCheckoutSessionCompleted(ctx: ActionCtx, session: Stripe.Checkout.Session) {
+  console.log("✅ checkout.session.completed");
   const { customer, subscription, metadata } = session;
   if (!metadata?.schoolId || !metadata?.userId || !subscription) {
+    console.error("❌ Checkout session incompleta:", { metadata, subscription });
     throw new Error("Faltan datos necesarios en checkout session");
   }
 
-  // 1) Mapear Clerk ID -> Convex ID
-  const userDoc = await ctx.db
-    .query("user")
-    .filter((q: any) => q.eq(q.field("clerkId"), metadata.userId)) // Clerk ID que mandaste en metadata
-    .unique();
+  const user = await ctx.runQuery(api.functions.users.getUserByClerkId, {
+    clerkId: metadata.userId,
+  });
 
-  if (!userDoc?._id) {
-    throw new Error("Usuario de Convex no encontrado para ese Clerk ID");
-  }
+  console.log("✅ User", user?._id);
+  console.log("✅ School", metadata.schoolId);
 
-  // 2) Datos de la suscripción en Stripe
-  const sub = (await stripe.subscriptions.retrieve(subscription as string)) as Stripe.Subscription;
-  const plan = sub.items.data[0]?.price;
+  const subscriptionDetails = await stripe.subscriptions.retrieve(subscription as string);
+  const plan = subscriptionDetails.items.data[0]?.price;
 
-  const currentPeriodStart: number = (sub as any).current_period_start ?? 0; // epoch (s)
-  const currentPeriodEnd: number   = (sub as any).current_period_end   ?? 0; // epoch (s)
-  
-
-  // 3) Guardar suscripción usando IDs de Convex (NO Clerk IDs)
   await ctx.runMutation(internal.functions.schoolSubscriptions.saveSubscription, {
     schoolId: metadata.schoolId as Id<"school">,
-    userId: userDoc._id as Id<"user">,
+    userId: user?._id as Id<"user">,
     stripeCustomerId: customer as string,
     stripeSubscriptionId: subscription as string,
     currency: plan?.currency || "usd",
     plan: plan?.id || "unknown",
-    status: sub.status ?? "trialing",
-    currentPeriodStart,
-    currentPeriodEnd
+    status: subscriptionDetails.status || "inactive",
+    currentPeriodStart: subscriptionDetails.created,
+    currentPeriodEnd: session.expires_at,
   });
 }
-async function handleInvoicePaymentSucceeded(ctx: any, invoice: Stripe.Invoice) {
+
+async function handleInvoicePaymentSucceeded(ctx: ActionCtx, invoice: Stripe.Invoice) {
   console.log("✅ invoice.payment_succeeded");
-  console.log(invoice)
   if (!invoice.customer) throw new Error("Missing customer in invoice");
 
   const subscriptions = await stripe.subscriptions.list({
@@ -181,23 +210,62 @@ async function handleInvoicePaymentSucceeded(ctx: any, invoice: Stripe.Invoice) 
     stripeSubscriptionId: subscription.id,
     status: "active",
   });
+
+  const subscriptionData = await ctx.runQuery(internal.functions.schoolSubscriptions.getSubscriptionByStripeId, {
+    stripeSubscriptionId: subscription.id
+  });
+
+  if (!subscriptionData) {
+    console.error("❌ No se encontró información de la suscripción");
+    return;
+  }
+
+  const user = await ctx.runQuery(internal.functions.users.getUserById, {
+    userId: subscriptionData.userId
+  });
+
+  const school = await ctx.runQuery(internal.functions.schools.getSchoolById, {
+    schoolId: subscriptionData.schoolId
+  });
+
+  if (!user || !school) {
+    console.error("❌ No se pudo obtener información del usuario o la escuela");
+    return;
+  }
+
+  const emailHtml = paymentSuccessTemplate({
+    school,
+    user,
+    invoice,
+    currentDate: new Date().toLocaleDateString("es-ES"),
+    serverUrl: process.env.NEXT_PUBLIC_SERVER_URL!
+  });
+  const emailSubject = `¡Bienvenido a ${school.name}! - Pago Confirmado`;
+
+  try {
+    const emailData = await sendEmail(user.email, emailSubject, emailHtml);
+    console.log("✅ Correo enviado exitosamente:", emailData);
+  } catch (emailError) {
+    console.error("❌ Error al enviar correo:", emailError);
+    if (emailError instanceof Error) {
+      console.error("   - Detalles del error:", emailError.message);
+    }
+  }
 }
 
-// async function handleSubscriptionDeleted(ctx: any, subscription: Stripe.Subscription) {
-//   await ctx.runMutation(internal["functions/schoolSubscriptions"].updateSubscription, {
-//     stripeSubscriptionId: subscription.id,
-//     status: "canceled",
-//     updatedAt: Math.floor(Date.now() / 1000),
-//   });
-// }
+async function handleSubscriptionDeleted(ctx: any, subscription: Stripe.Subscription) {
+  await ctx.runMutation(internal.functions.schoolSubscriptions.updateSubscription, {
+    stripeSubscriptionId: subscription.id,
+    status: "canceled",
+  });
+}
 
-// async function handleSubscriptionUpdated(ctx: any, subscription: Stripe.Subscription) {
-//   await ctx.runMutation(internal["functions/schoolSubscriptions"].updateSubscription, {
-//     stripeSubscriptionId: subscription.id,
-//     status: subscription.status,
-//     updatedAt: Math.floor(Date.now() / 1000),
-//   });
-// }
+async function handleSubscriptionUpdated(ctx: any, subscription: Stripe.Subscription) {
+  await ctx.runMutation(internal.functions.schoolSubscriptions.updateSubscription, {
+    stripeSubscriptionId: subscription.id,
+    status: subscription.status,
+  });
+}
 
 
 export default http;
