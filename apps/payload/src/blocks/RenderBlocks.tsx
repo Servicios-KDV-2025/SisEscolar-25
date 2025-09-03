@@ -18,6 +18,7 @@ import { TextComponent } from './Text/Component'
 import { Carousel } from './Carousel/Component'
 import { CarouselAvatar } from './CarouselAvatar/Component'
 import { ImagenConTextoComponent } from './ImagenConTexto/Component'
+import {  PaymentStatusBlock } from './PaymentStatus/Component'
 
 const blockComponents = {
   archive: ArchiveBlock,
@@ -36,6 +37,8 @@ const blockComponents = {
   row: RowComponent,
   carousel: Carousel,
   carouselAvatar: CarouselAvatar,
+  paymentStatus: PaymentStatusBlock,
+ 
 }
 export const RenderBlocks: React.FC<{
   blocks: Page['layout'][0][]
