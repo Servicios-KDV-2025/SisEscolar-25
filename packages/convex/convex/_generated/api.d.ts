@@ -29,6 +29,7 @@ import type * as functions_schoolCycles from "../functions/schoolCycles.js";
 import type * as functions_schoolSubscriptions from "../functions/schoolSubscriptions.js";
 import type * as functions_schools from "../functions/schools.js";
 import type * as functions_student from "../functions/student.js";
+import type * as functions_studentsClasses from "../functions/studentsClasses.js";
 import type * as functions_subject from "../functions/subject.js";
 import type * as functions_termAverages from "../functions/termAverages.js";
 import type * as functions_terms from "../functions/terms.js";
@@ -62,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   "functions/schoolSubscriptions": typeof functions_schoolSubscriptions;
   "functions/schools": typeof functions_schools;
   "functions/student": typeof functions_student;
+  "functions/studentsClasses": typeof functions_studentsClasses;
   "functions/subject": typeof functions_subject;
   "functions/termAverages": typeof functions_termAverages;
   "functions/terms": typeof functions_terms;
