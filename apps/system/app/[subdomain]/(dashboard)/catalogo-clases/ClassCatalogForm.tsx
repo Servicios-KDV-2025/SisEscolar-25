@@ -1,15 +1,11 @@
 import { useEffect, useState } from "react";
 import { UseFormReturn, useWatch } from "react-hook-form";
-import {
-    FormControl, FormField, FormItem, FormLabel, FormMessage,
-} from "@repo/ui/components/shadcn/form";
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select";
 import { Input } from "@repo/ui/components/shadcn/input";
-// import { CicloEscolar, Grupo ,Personal,  Salon } from "@/types/convex-zod-types";
-// import { Switch } from "@repo/ui/components/shadcn/switch";
 import { Subject } from "stores/subjectStore";
 import { Group } from "stores/groupStore";
-import { SchoolCycleType, TeacherType } from '@/types/temporalSchema';
+import { ClassroomType, SchoolCycleType, TeacherType } from '@/types/temporalSchema';
 
 interface FormularioCatalogoDeClasesProps {
     form: UseFormReturn<Record<string, unknown>>;
@@ -17,9 +13,8 @@ interface FormularioCatalogoDeClasesProps {
     subjects: Subject[] | undefined;
     groups: Group[] | undefined;
     schoolCycles: SchoolCycleType[] | undefined;
-    salones?: unknown[] | undefined;
+    classrooms?: ClassroomType[] | undefined;
     teachers: TeacherType[] | undefined;
-    // personal: Personal[] | undefined;
 }
 
 export function ClassCatalogForm({
@@ -28,25 +23,24 @@ export function ClassCatalogForm({
     subjects,
     groups,
     schoolCycles,
-    // salones,
+    classrooms,
     teachers,
-    // personal,
 }: FormularioCatalogoDeClasesProps) {
     const [isNombreModificadoManualmente, setIsNombreModificadoManualmente] = useState(false);
 
-    const subjectId = useWatch({ control: form.control, name: "materiaId" });
-    const groupoId = useWatch({ control: form.control, name: "grupoId" });
+    const subjectId = useWatch({ control: form.control, name: "subjectId" });
+    const groupId = useWatch({ control: form.control, name: "groupId" });
 
     useEffect(() => {
         if (operation === 'view') return;
         const materia = subjects?.find((m) => m._id === subjectId)?.name;
-        const grupo = groups?.find((g) => g._id === groupoId)?.name;
-        const grado = groups?.find((g) => g._id === groupoId)?.grade;
+        const grupo = groups?.find((g) => g._id === groupId)?.name;
+        const grado = groups?.find((g) => g._id === groupId)?.grade;
 
         if (!isNombreModificadoManualmente && materia && grupo) {
-            form.setValue("nombre", `${materia} - ${grado} ${grupo}`);
+            form.setValue("name", `${materia} - ${grado} ${grupo}`);
         }
-    }, [subjectId, groupoId, form, groups, isNombreModificadoManualmente, subjects, operation]);
+    }, [subjectId, groupId, form, groups, isNombreModificadoManualmente, subjects, operation]);
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -110,9 +104,9 @@ export function ClassCatalogForm({
             />
 
             {/* salonId */}
-            {/* <FormField
+            <FormField
                 control={form.control}
-                name="salonId"
+                name="classroomId"
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Salón</FormLabel>
@@ -127,9 +121,9 @@ export function ClassCatalogForm({
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                {salones?.map((s) => (
-                                    <SelectItem key={s._id} value={s._id}>
-                                        {s.nombre}
+                                {classrooms?.map((c) => (
+                                    <SelectItem key={c.id} value={c.id}>
+                                        {c.name}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -137,12 +131,12 @@ export function ClassCatalogForm({
                         <FormMessage />
                     </FormItem>
                 )}
-            /> */}
+            />
 
             {/* maestroId */}
             <FormField
                 control={form.control}
-                name="maestroId"
+                name="teacherId"
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Maestro</FormLabel>
@@ -223,37 +217,6 @@ export function ClassCatalogForm({
                     </FormItem>
                 )}
             />
-
-            {/* createdBy */}
-            {/* <FormField
-                control={form.control}
-                name="maestroId"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Creado Por</FormLabel>
-                        <Select
-                            onValueChange={field.onChange}
-                            value={field.value as string}
-                            disabled={operation === "view"}
-                        >
-                            <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecciona un Maestro" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                {personal?.map((p) => (
-                                    <SelectItem key={p._id} value={p._id}>
-                                        {p.nombre}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            /> 
-            */}
 
             <FormField
                 control={form.control}

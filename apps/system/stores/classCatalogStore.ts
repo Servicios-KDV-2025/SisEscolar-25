@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { useCallback, useEffect } from "react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
-import { ClassroomType, SchoolCycleType, TeacherType, TermType } from "@/types/temporalSchema";
+import { ClassroomType, SchoolCycleType, TeacherType } from "@/types/temporalSchema";
 import { Subject } from "./subjectStore";
 import { Group } from "./groupStore";
 
@@ -12,7 +12,6 @@ export type ClassCatalog = {
     schoolId: string;
     schoolCycleId: string;
     subjectId: string;
-    termId: string;
     classroomId: string;
     teacherId: string;
     groupId?: string;
@@ -25,7 +24,6 @@ export type ClassCatalog = {
 export type ClassCatalogWithDetails = ClassCatalog & {
     schoolCycle?: SchoolCycleType | null;
     subject?: Subject | null;
-    term?: TermType | null ;
     classroom?: ClassroomType | null;
     teacher?: TeacherType | null;
     group?: Group | null;
@@ -36,7 +34,6 @@ export type CreateClassCatalogData = {
     schoolId: string;
     schoolCycleId: string;
     subjectId: string;
-    termId: string;
     classroomId: string;
     teacherId: string;
     groupId?: string;
@@ -50,7 +47,6 @@ export type UpdateClassCatalogData = {
     schoolId: string;
     schoolCycleId: string;
     subjectId: string;
-    termId: string;
     classroomId: string;
     teacherId: string;
     groupId?: string;
@@ -169,7 +165,6 @@ export const useClassCatalog = (schoolId?: string) => {
                 schoolId: data.schoolId as Id<"school">,
                 schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
                 subjectId: data.subjectId as Id<"subject">,
-                termId: data.termId as Id<"term">,
                 classroomId: data.classroomId as Id<"classroom">,
                 teacherId: data.teacherId as Id<"user">,
                 groupId: data.groupId as Id<"group"> | undefined,
@@ -195,7 +190,6 @@ export const useClassCatalog = (schoolId?: string) => {
                 schoolId: data.schoolId as Id<"school">,
                 schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
                 subjectId: data.subjectId as Id<"subject">,
-                termId: data.termId as Id<"term">,
                 classroomId: data.classroomId as Id<"classroom">,
                 teacherId: data.teacherId as Id<"user">,
                 groupId: data.groupId as Id<"group"> | undefined,

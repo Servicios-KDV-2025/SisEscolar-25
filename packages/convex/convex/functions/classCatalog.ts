@@ -9,7 +9,6 @@ export const createClassCatalog = mutation({
         subjectId: v.id("subject"),
         classroomId: v.id("classroom"),
         teacherId: v.id("user"),
-        termId: v.id("term"),
         groupId: v.optional(v.id("group")),
         name: v.string(),
         status: v.union(
@@ -19,7 +18,41 @@ export const createClassCatalog = mutation({
         createdBy: v.optional(v.id("user"))
     },
     handler: async (ctx, args) => {
-        await ctx.db.insert("classCatalog", args);
+        console.log('=== CREATE CLASS CATALOG ===');
+        console.log('Arguments received:', JSON.stringify(args, null, 2));
+
+        try {
+            // Verificar que todos los IDs existan
+            const [school, schoolCycle, subject, classroom, teacher] = await Promise.all([
+                ctx.db.get(args.schoolId),
+                ctx.db.get(args.schoolCycleId),
+                ctx.db.get(args.subjectId),
+                ctx.db.get(args.classroomId),
+                ctx.db.get(args.teacherId),
+            ]);
+
+            console.log('Validation results:', {
+                schoolExists: !!school,
+                schoolCycleExists: !!schoolCycle,
+                subjectExists: !!subject,
+                classroomExists: !!classroom,
+                teacherExists: !!teacher,
+                groupIdProvided: !!args.groupId
+            });
+
+            if (args.groupId) {
+                const group = await ctx.db.get(args.groupId);
+                console.log('Group exists:', !!group);
+            }
+
+            const id = await ctx.db.insert("classCatalog", args);
+            console.log('✅ Successfully created class catalog with ID:', id);
+
+            return id;
+        } catch (error) {
+            console.error('❌ Error creating class catalog:', error);
+            throw error;
+        }
     },
 });
 
@@ -37,10 +70,9 @@ export const getAllClassCatalog = query({
 
         const res = await Promise.all(
             catalog.map(async (clase) => {
-                const [cycle, subject, term, classroom, teacher, group] = await Promise.all([
+                const [cycle, subject, classroom, teacher, group] = await Promise.all([
                     clase.schoolCycleId ? ctx.db.get(clase.schoolCycleId) : null,
                     clase.subjectId ? ctx.db.get(clase.subjectId) : null,
-                    clase.termId ? ctx.db.get(clase.termId) :null,
                     clase.classroomId ? ctx.db.get(clase.classroomId) : null,
                     clase.teacherId ? ctx.db.get(clase.teacherId) : null,
                     clase.groupId ? ctx.db.get(clase.groupId) : null,
@@ -52,7 +84,6 @@ export const getAllClassCatalog = query({
                     schoolId: clase.schoolId,
                     schoolCycleId: clase.schoolCycleId,
                     subjectId: clase.subjectId,
-                    termId: clase.termId,
                     classroomId: clase.classroomId,
                     teacherId: clase.teacherId,
                     groupId: clase.groupId,
@@ -64,7 +95,6 @@ export const getAllClassCatalog = query({
                     // Propiedades extendidas con objetos completos
                     schoolCycle: cycle,
                     subject: subject,
-                    term: term,
                     classroom: classroom,
                     teacher: teacher,
                     group: group,
@@ -98,7 +128,6 @@ export const updateClassCatalog = mutation({
         subjectId: v.id("subject"),
         classroomId: v.id("classroom"),
         teacherId: v.id("user"),
-        termId: v.id("term"),
         groupId: v.optional(v.id("group")),
         name: v.string(),
         status: v.union(

@@ -15,6 +15,7 @@ import { useUserWithConvex } from "stores/userStore";
 import { ClassCatalogForm } from "./ClassCatalogForm";
 import { useQuery } from 'convex/react';
 import { api } from '@repo/convex/convex/_generated/api';
+import { toast } from 'sonner';
 
 export default function ClassCatalogPage() {
     // Get current user from Clerk
@@ -48,10 +49,19 @@ export default function ClassCatalogPage() {
 
     // Obtener la información de cada usuario
     const teachersData = useQuery(
-        api.functions.users.getUsersByIds, // Necesitarías crear esta función
-        { userIds: teacherUserIds }
+        api.functions.users.getUsersByIds,
+        teacherUserIds.length > 0
+            ? {
+                userIds: teacherUserIds,
+                status: 'active' // ← Agregar status o removerlo de la función
+            }
+            : 'skip'
     );
 
+    const classrooms = useQuery(
+        api.functions.classroom.viewAllClassrooms,
+        currentSchool?.school._id ? { schoolId: currentSchool?.school._id } : 'skip',
+    );
 
     const {
         classCatalogsWithDetails: classCatalogs,
@@ -79,59 +89,58 @@ export default function ClassCatalogPage() {
     } = useCrudDialog(classCatalogSchema);
 
     const handleSubmit = async (values: Record<string, unknown>) => {
-        // if (!currentSchool?.school._id) {
-        //     toast.error('Error', { description: 'No se pudo identificar la escuela' });
-        //     return;
-        // }
+        if (!currentSchool?.school._id || !currentUser?._id) {
+            toast.error('Error', { description: 'No se pudo identificar la escuela o usuario' });
+            return;
+        }
 
         try {
             if (operation === 'create') {
                 await createClassCatalog({
-                    schoolId: currentSchool?.school._id as Id<"school">,
-                    schoolCycleId: values?.schoolCycleId as Id<'schoolCycle'>,
-                    subjectId: values?.subjectId as Id<'subject'>,
-                    termId: values?.termId as Id<'term'>,
-                    classroomId: values?.classroomId as Id<'classroom'>,
-                    teacherId: values?.teacherId as Id<'user'>,
-                    groupId: values?.groupId as Id<'group'>,
-                    name: values?.name as string,
-                    status: values?.status as "active" | "inactive",
-                    createdBy: values?.createdBy as Id<'user'>
-                })
-                // toast.success('Creado correctamente')
+                    schoolId: currentSchool.school._id as Id<"school">,
+                    schoolCycleId: values.schoolCycleId as Id<'schoolCycle'>,
+                    subjectId: values.subjectId as Id<'subject'>,
+                    classroomId: values.classroomId as Id<'classroom'>,
+                    teacherId: values.teacherId as Id<'user'>,
+                    groupId: values.groupId as Id<'group'>,
+                    name: values.name as string,
+                    status: values.status as "active" | "inactive",
+                    createdBy: currentUser._id as Id<'user'>
+                });
+                toast.success('Creado correctamente');
             } else if (operation === 'edit' && data?._id) {
                 await updateClassCatalog({
-                    _id: values.id as Id<"classCatalog">,
-                    schoolId: values?.schoolCycleId as Id<'schoolCycle'>,
-                    schoolCycleId: values?.schoolCycleId as Id<'schoolCycle'>,
-                    subjectId: values?.subjectId as Id<'subject'>,
-                    termId: values?.termId as Id<'term'>,
-                    classroomId: values?.classroomId as Id<'classroom'>,
-                    teacherId: values?.teacherId as Id<'user'>,
-                    groupId: values?.groupId as Id<'group'>,
-                    name: values?.name as string,
-                    status: values?.status as "active" | "inactive",
+                    _id: data._id as Id<"classCatalog">,
+                    schoolId: currentSchool.school._id as Id<"school">,
+                    schoolCycleId: values.schoolCycleId as Id<'schoolCycle'>,
+                    subjectId: values.subjectId as Id<'subject'>,
+                    classroomId: values.classroomId as Id<'classroom'>,
+                    teacherId: values.teacherId as Id<'user'>,
+                    groupId: values.groupId as Id<'group'>,
+                    name: values.name as string,
+                    status: values.status as "active" | "inactive",
                     updatedAt: new Date().getTime()
-                })
-                // toast.success('Actualizado correctamente')
+                });
+                toast.success('Actualizado correctamente');
             } else {
                 console.error('Operación no válida o datos faltantes:', { operation, data });
                 throw new Error('Operación no válida o datos faltantes:');
             }
         } catch (error) {
             console.error('Error en la operación de CRUD:', error);
+            toast.error('Error', { description: 'Ocurrió un error al procesar la solicitud' });
             throw error;
         }
     }
 
     const handleDelete = async (id: string) => {
-        // if (!currentSchool?.school?._id) {
-        //     toast.error('Error', { description: 'No se pudo identificar la escuela' })
-        //     return
-        // }
+        if (!currentSchool?.school?._id) {
+            toast.error('Error', { description: 'No se pudo identificar la escuela' })
+            return
+        }
         try {
             await deleteClassCatalog(id, currentSchool?.school._id)
-            // toast.success('Eliminado correctamente')
+            toast.success('Eliminado correctamente')
         } catch (error) {
             console.error('Error al eliminar evento:', error);
             throw error;
@@ -316,9 +325,8 @@ export default function ClassCatalogPage() {
                         subjects={subjects}
                         groups={groups || []}
                         schoolCycles={schoolCycles || []}
-                        // salones={salones || []}
+                        classrooms={classrooms || []}
                         teachers={teachersData || []}
-                    // personal={personalAdaptado || []}
                     />
                 )}
             </CrudDialog>

@@ -29,10 +29,15 @@ export type TermType = {
 }
 
 export type ClassroomType = {
-    _id: string;
+    _creationTime: number;
+    location?: string | undefined;
     name: string;
+    status: "active" | "inactive";
+    createdAt: number;
+    updatedAt: number;
+    schoolId: string;
     capacity: number;
-    status: string;
+    id: string;
 };
 
 export type TeacherType = {
