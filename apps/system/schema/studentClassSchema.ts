@@ -7,7 +7,7 @@ export const studentClassSchema = z.object({
   studentId: z.string().min(1, "Debe seleccionar un alumno"),
   enrollmentDate: z.string().min(1, "La fecha de inscripción es requerida"),
   status: z.enum(["active", "inactive"]),
-  averageScore: z.number().optional(),
+  averageScore: z.number().min(0).max(100, "El promedio debe estar entre 0 y 100").optional(),
 });
 
 export type StudentClassDto = z.infer<typeof studentClassSchema>;

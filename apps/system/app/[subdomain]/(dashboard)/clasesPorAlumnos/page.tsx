@@ -204,7 +204,7 @@ export default function StudentClassesDashboard() {
             Nueva Inscripción
           </Button>
 
-          <Link href={`/`} className="w-full sm:w-auto">
+          <Link href={``} className="w-full sm:w-auto">
             <Button className="flex items-center justify-center gap-2 w-full sm:w-auto">
               <Plus className="h-4 w-4" />
               Asignar Clases Masivamente
@@ -576,6 +576,7 @@ export default function StudentClassesDashboard() {
                       <Input
                         type="date"
                         disabled={operation === 'view'}
+                        min={new Date().toISOString().split("T")[0]}
                         value={
                           field.value
                             ? (typeof field.value === 'number'

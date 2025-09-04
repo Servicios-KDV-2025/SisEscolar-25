@@ -58,11 +58,11 @@ const defaultNavData = {
         },
         {
           title: "Calendario Escolar",
-          url: `/calendar`,
+          url: `/calendario`,
         },
         {
           title: "Clases por Alumno",
-          url: `#`,
+          url: `clasesPorAlumnos`,
         },
         {
           title: "Grupos",

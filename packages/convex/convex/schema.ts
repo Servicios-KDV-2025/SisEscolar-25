@@ -278,16 +278,16 @@ const applicationTable = defineSchema({
     .index("by_class_catalog", ["classCatalogId"])
     .index("by_schedule", ["scheduleId"]),
 
-  //Relación entre estudiantes y clases
-   studentClass: defineTable({ 
+//Relación entre estudiantes y clases
+  studentClass: defineTable({
+    schoolId: v.id("school"),
     classCatalogId: v.id("classCatalog"),
     studentId: v.id("student"),
     enrollmentDate: v.number(),
     status: v.union(v.literal("active"), v.literal("inactive")),
-    // Nuevos campos para el promedio acumulado del ciclo escolar
-    averageScore: v.optional(v.number()), // Promedio acumulado de la materia
-    lastCalculatedTermId: v.optional(v.id("term")), // Referencia al último periodo calculado
+    averageScore: v.optional(v.number()),
   })
+    .index("by_school", ["schoolId"])
     .index("by_class_catalog", ["classCatalogId"])
     .index("by_student", ["studentId"]),
   
