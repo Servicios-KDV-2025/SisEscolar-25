@@ -103,9 +103,9 @@ export default function RubricDashboard() {
     api.functions.gradeRubrics.getGradeRubricByClassAndTerm,
     selectedClass && selectedTerm
       ? {
-          classCatalogId: selectedClass as Id<"classCatalog">,
-          termId: selectedTerm as Id<"term">,
-        }
+        classCatalogId: selectedClass as Id<"classCatalog">,
+        termId: selectedTerm as Id<"term">,
+      }
       : "skip"
   );
 
@@ -139,6 +139,8 @@ export default function RubricDashboard() {
     api.functions.gradeRubrics.deleteGradeRubric
   );
 
+  console.log("rubricas: ", rubrics, "clases ", classes, "periodo: ", terms, "ciclos: ", schoolCycles);
+
   if (
     schoolLoading ||
     rubrics === undefined ||
@@ -156,6 +158,29 @@ export default function RubricDashboard() {
   const totalWeight = rubrics
     .filter((rubric) => rubric.status)
     .reduce((sum, rubric) => sum + (Math.round(rubric.weight * 100)), 0);
+
+  // Función helper para calcular peso disponible
+  const calculateAvailableWeight = () => {
+    const usedWeight = rubrics
+      .filter((rubric) => rubric.status && rubric._id !== editingRubric?._id)
+      .reduce((sum, rubric) => sum + Math.round(rubric.weight * 100), 0);
+
+    const availableWeight = 100 - usedWeight;
+    return Math.max(0, availableWeight);
+  };
+
+  // Función helper para verificar si una rúbrica se puede activar
+  const canActivateRubric = (rubricId: Id<"gradeRubric">) => {
+    const rubricToCheck = rubrics.find(r => r._id === rubricId);
+    if (!rubricToCheck || rubricToCheck.status) return true;
+
+    const activeWeight = rubrics
+      .filter((rubric) => rubric.status && rubric._id !== rubricId)
+      .reduce((sum, rubric) => sum + Math.round(rubric.weight * 100), 0);
+
+    const newWeight = Math.round(rubricToCheck.weight * 100);
+    return activeWeight + newWeight <= 100;
+  };
 
   const handleOpenModal = (rubric?: Rubric) => {
     if (rubric) {
@@ -188,6 +213,25 @@ export default function RubricDashboard() {
     rubricId: Id<"gradeRubric">,
     currentStatus: boolean
   ) => {
+    // Si se está intentando activar (currentStatus es false)
+    if (!currentStatus) {
+      const rubricToActivate = rubrics.find(r => r._id === rubricId);
+      if (!rubricToActivate) return;
+
+      // Calcular el peso total de las rúbricas activas (excluyendo la que se va a activar)
+      const activeWeight = rubrics
+        .filter((rubric) => rubric.status && rubric._id !== rubricId)
+        .reduce((sum, rubric) => sum + Math.round(rubric.weight * 100), 0);
+
+      const newWeight = Math.round(rubricToActivate.weight * 100);
+
+      // Verificar si activar esta rúbrica excedería el 100%
+      if (activeWeight + newWeight > 100) {
+        alert(`No se puede activar esta rúbrica. Excedería el 100% (Actual: ${activeWeight}% + Esta rúbrica: ${newWeight}% = ${activeWeight + newWeight}%)`);
+        return;
+      }
+    }
+
     await updateGradeRubric({
       gradeRubricId: rubricId,
       data: {
@@ -239,17 +283,17 @@ export default function RubricDashboard() {
   };
 
   const isNameDuplicate = rubrics.some(
-      (r) =>
-        r.name.toLowerCase() === formData.name.trim().toLowerCase() &&
-        r._id !== editingRubric?._id
-    );
+    (r) =>
+      r.name.toLowerCase() === formData.name.trim().toLowerCase() &&
+      r._id !== editingRubric?._id
+  );
 
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="mx-auto max-w-7xl space-y-6">
         {/* Header */}
-
         <h1 className="text-3xl font-bold text-foreground">Rubricas</h1>
+
         {/* Search and Filters */}
         <Card>
           <CardContent className="">
@@ -368,12 +412,24 @@ export default function RubricDashboard() {
                       </TableCell>
                       <TableCell>{rubric.maxScore}</TableCell>
                       <TableCell>
-                        <Switch
-                          checked={rubric.status}
-                          onCheckedChange={() =>
-                            handleToggleStatus(rubric._id, rubric.status)
-                          }
-                        />
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={rubric.status}
+                            onCheckedChange={() =>
+                              handleToggleStatus(rubric._id, rubric.status)
+                            }
+                            disabled={!rubric.status && !canActivateRubric(rubric._id)}
+                          />
+                          {!rubric.status && !canActivateRubric(rubric._id) && (
+                            <div className="relative group">
+                              <AlertTriangle className="h-4 w-4 text-destructive cursor-help" />
+                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                                No se puede activar: excedería el 100%
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -411,12 +467,13 @@ export default function RubricDashboard() {
           </CardContent>
         </Card>
 
+
         {/* Modal Form */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>
-                {editingRubric ? "Editar Rubrica" : "Neeva Rubrica"}
+                {editingRubric ? "Editar Rubrica" : "Nueva Rubrica"}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-6 py-4 ">
@@ -431,13 +488,13 @@ export default function RubricDashboard() {
                   }
                   placeholder="Nombre de Rubrica"
                 />
-                
+
                 {isNameDuplicate && (
-                                <div className="  text-sm text-destructive  p-1 flex justify-center items-center gap-2">
-                                  <AlertTriangle className="h-5 w-5" />
-                                  <p>Rubrica Duplicada.</p>
-                                </div>
-                              )}
+                  <div className="text-sm text-destructive p-1 flex justify-center items-center gap-2">
+                    <AlertTriangle className="h-5 w-5" />
+                    <p>Rubrica Duplicada.</p>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 {/* Nuevo Select para School Cycle en el modal */}
@@ -448,7 +505,6 @@ export default function RubricDashboard() {
                     onValueChange={(value) =>
                       setFormData((prev) => ({ ...prev, schoolCycle: value }))
                     }
-                    // disabled={!!editingRubric}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select school cycle" />
@@ -469,7 +525,6 @@ export default function RubricDashboard() {
                     onValueChange={(value) =>
                       setFormData((prev) => ({ ...prev, class: value }))
                     }
-                    // disabled={!!editingRubric}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select class" />
@@ -491,7 +546,6 @@ export default function RubricDashboard() {
                     onValueChange={(value) =>
                       setFormData((prev) => ({ ...prev, term: value }))
                     }
-                    // disabled={!!editingRubric || !formData.schoolCycle}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select term" />
@@ -526,25 +580,49 @@ export default function RubricDashboard() {
 
               <div className="space-y-3">
                 <div className="px-3">
-                  <Label>Porcentaje Maximo ({100-totalWeight}%)</Label>
-                  <div className="flex justify-center text-xm mt-1"></div>
-                  <Slider
-                    value={formData.weight}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, weight: value }))
-                    }
-                    max={100}
-                    min={0}
-                    step={5}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>0%</span>
-                    <span className="flex justify-center text-black text-xl font-bold">
-                      {formData.weight[0]}%
-                    </span>
-                    <span>100%</span>
-                  </div>
+                  {(() => {
+                    const availableWeight = calculateAvailableWeight();
+                    const maxAllowed = Math.min(100, availableWeight);
+
+                    return (
+                      <>
+                        <Label>
+                          Porcentaje (Disponible: {availableWeight}%)
+                        </Label>
+                        <div className="flex justify-center text-sm mt-1 text-muted-foreground">
+                          {availableWeight === 0 && "No hay porcentaje disponible"}
+                          {availableWeight < formData.weight[0]! && availableWeight > 0 &&
+                            `Máximo permitido: ${maxAllowed}%`
+                          }
+                        </div>
+                        <Slider
+                          value={formData.weight}
+                          onValueChange={(value) => {
+                            // Limitar el valor al máximo disponible
+                            const limitedValue = Math.min(value[0]!, maxAllowed);
+                            setFormData((prev) => ({ ...prev, weight: [limitedValue] }));
+                          }}
+                          max={maxAllowed}
+                          min={0}
+                          step={5}
+                          className="w-full"
+                          disabled={availableWeight === 0}
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                          <span>0%</span>
+                          <span className="flex justify-center text-black text-xl font-bold">
+                            {formData.weight[0]}%
+                          </span>
+                          <span>{maxAllowed}%</span>
+                        </div>
+                        {availableWeight === 0 && (
+                          <div className="text-center text-sm text-destructive mt-2">
+                            Ya has alcanzado el 100%. Desactiva alguna rúbrica para liberar porcentaje.
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -561,8 +639,8 @@ export default function RubricDashboard() {
                   formData.maxScore <= 0 ||
                   !formData.class ||
                   isNameDuplicate ||
-                  // formData.weight[0]! >= (totalWeight) ||
-                  !formData.term
+                  !formData.term ||
+                  formData.weight[0]! > calculateAvailableWeight()
                 }
               >
                 Guardar
