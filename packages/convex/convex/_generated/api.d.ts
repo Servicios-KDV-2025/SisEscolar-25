@@ -14,10 +14,11 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as actions_users from "../actions/users.js";
-import type * as functions_assignments from "../functions/assignments.js";
+import type * as functions_assignment from "../functions/assignment.js";
 import type * as functions_attendance from "../functions/attendance.js";
 import type * as functions_calendar from "../functions/calendar.js";
 import type * as functions_classCatalog from "../functions/classCatalog.js";
+import type * as functions_classroom from "../functions/classroom.js";
 import type * as functions_classroom from "../functions/classroom.js";
 import type * as functions_eventType from "../functions/eventType.js";
 import type * as functions_gradeRubrics from "../functions/gradeRubrics.js";
@@ -28,6 +29,7 @@ import type * as functions_schoolCycles from "../functions/schoolCycles.js";
 import type * as functions_schoolSubscriptions from "../functions/schoolSubscriptions.js";
 import type * as functions_schools from "../functions/schools.js";
 import type * as functions_student from "../functions/student.js";
+import type * as functions_studentsClasses from "../functions/studentsClasses.js";
 import type * as functions_subject from "../functions/subject.js";
 import type * as functions_termAverages from "../functions/termAverages.js";
 import type * as functions_terms from "../functions/terms.js";
@@ -46,10 +48,11 @@ import type * as templates_paymentSuccess from "../templates/paymentSuccess.js";
  */
 declare const fullApi: ApiFromModules<{
   "actions/users": typeof actions_users;
-  "functions/assignments": typeof functions_assignments;
+  "functions/assignment": typeof functions_assignment;
   "functions/attendance": typeof functions_attendance;
   "functions/calendar": typeof functions_calendar;
   "functions/classCatalog": typeof functions_classCatalog;
+  "functions/classroom": typeof functions_classroom;
   "functions/classroom": typeof functions_classroom;
   "functions/eventType": typeof functions_eventType;
   "functions/gradeRubrics": typeof functions_gradeRubrics;
@@ -60,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   "functions/schoolSubscriptions": typeof functions_schoolSubscriptions;
   "functions/schools": typeof functions_schools;
   "functions/student": typeof functions_student;
+  "functions/studentsClasses": typeof functions_studentsClasses;
   "functions/subject": typeof functions_subject;
   "functions/termAverages": typeof functions_termAverages;
   "functions/terms": typeof functions_terms;

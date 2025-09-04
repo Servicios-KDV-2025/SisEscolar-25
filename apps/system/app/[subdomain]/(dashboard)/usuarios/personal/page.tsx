@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -16,15 +15,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/shadcn/
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@repo/ui/components/shadcn/form";
 import { 
-  Users, Search, Plus, Eye, Edit, Trash2, Filter, 
+  Shield, Users, Search, Plus, Eye, Edit, Trash2, Filter, 
   Mail, Phone, MapPin, Calendar, AlertCircle,
-  CheckCircle, GraduationCap
+  CheckCircle, Building2, BookOpen, Search as SearchIcon
 } from "@repo/ui/icons";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import { 
-  tutorSchema, 
-  tutorCreateSchema, 
-  tutorEditSchema
+  unifiedUserSchema, 
+  unifiedUserCreateSchema, 
+  unifiedUserEditSchema
 } from "@/types/form/userSchemas";
 import { useUserWithConvex } from "../../../../../stores/userStore";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
@@ -66,15 +65,56 @@ type SearchUserResult = {
 const getSchemaForOperation = (operation: string) => {
   switch (operation) {
     case 'create':
-      return tutorCreateSchema;
+      return unifiedUserCreateSchema;
     case 'edit':
-      return tutorEditSchema;
+      return unifiedUserEditSchema;
     default:
-      return tutorSchema;
+      return unifiedUserSchema;
   }
 };
 
-export default function TutorPage() {
+// Configuración de roles
+const roleConfig = {
+  superadmin: {
+    label: "Super-Admin",
+    color: "bg-red-100 text-red-800",
+    icon: Shield,
+    description: "Acceso completo sin restricciones"
+  },
+  admin: {
+    label: "Administrador",
+    color: "bg-blue-100 text-blue-800",
+    icon: Building2,
+    description: "Acceso administrativo departamental"
+  },
+  auditor: {
+    label: "Auditor",
+    color: "bg-green-100 text-green-800",
+    icon: SearchIcon,
+    description: "Acceso de auditoría y verificación"
+  },
+  teacher: {
+    label: "Docente",
+    color: "bg-purple-100 text-purple-800",
+    icon: BookOpen,
+    description: "Acceso de enseñanza y evaluación"
+  },
+  tutor: {
+    label: "Tutor",
+    color: "bg-orange-100 text-orange-800",
+    icon: Users,
+    description: "Acceso a información de alumnos"
+  }
+};
+
+const departmentConfig = {
+  secretary: { label: "Secretaría", color: "bg-blue-100 text-blue-800" },
+  direction: { label: "Dirección", color: "bg-purple-100 text-purple-800" },
+  schoolControl: { label: "Control Escolar", color: "bg-green-100 text-green-800" },
+  technology: { label: "Tecnología", color: "bg-orange-100 text-orange-800" }
+};
+
+export default function PersonalPage() {
   const { user: clerkUser } = useUser();
 
   // Obtener usuario actual
@@ -86,8 +126,10 @@ export default function TutorPage() {
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [departmentFilter, setDepartmentFilter] = useState<string>("all");
 
-  // Obtener usuarios de la escuela actual (solo tutores)
+  // Obtener usuarios de la escuela actual (todos los roles)
   const allUsers = useQuery(
     api.functions.schools.getUsersBySchoolAndRoles,
     currentSchool?.school?._id ? {
@@ -150,9 +192,10 @@ export default function TutorPage() {
     openView,
     openDelete,
     close,
-  } = useCrudDialog(tutorSchema, {
+  } = useCrudDialog(unifiedUserSchema, {
     status: "active",
     admissionDate: Date.now(),
+    role: "teacher", // Valor por defecto
   });
 
   // Funciones wrapper para abrir diálogos con limpieza de errores
@@ -164,13 +207,16 @@ export default function TutorPage() {
 
   const handleOpenEdit = (user: UserFromConvex) => {
     console.log("✏️ handleOpenEdit LLAMADO - User data:", user);
+    console.log("✏️ handleOpenEdit - Keys disponibles:", Object.keys(user));
+    console.log("✏️ handleOpenEdit - userSchoolId:", user.userSchoolId);
     userActions.clearErrors();
     userActions.clearLastResult();
     
-    // Preparar datos para edición incluyendo userSchoolId
+    // Preparar datos para edición incluyendo el rol principal y userSchoolId
     const editData = {
       ...user,
-      userSchoolId: user.userSchoolId,
+      role: user.schoolRole[0], // Tomar el primer rol como principal
+      userSchoolId: user.userSchoolId, // Asegurar que se incluya el userSchoolId
     };
     
     console.log("✏️ editData preparado:", editData);
@@ -181,10 +227,11 @@ export default function TutorPage() {
     userActions.clearErrors();
     userActions.clearLastResult();
     
-    // Preparar datos para vista incluyendo userSchoolId
+    // Preparar datos para vista incluyendo el rol principal y userSchoolId
     const viewData = {
       ...user,
-      userSchoolId: user.userSchoolId,
+      role: user.schoolRole[0], // Tomar el primer rol como principal
+      userSchoolId: user.userSchoolId, // Asegurar que se incluya el userSchoolId
     };
     
     openView(viewData);
@@ -196,12 +243,12 @@ export default function TutorPage() {
     openDelete(user);
   };
 
-  // Filtrado de datos - Solo tutores
+  // Filtrado de datos - Excluir tutores
   const filteredUsers = useMemo(() => {
     if (!allUsers) return [];
     
     return allUsers
-      .filter((user: UserFromConvex) => user.schoolRole.includes('tutor')) // Solo tutores
+      .filter((user: UserFromConvex) => !user.schoolRole.includes('tutor')) // Excluir tutores
       .filter((user: UserFromConvex) => {
         const searchMatch = 
           user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -210,9 +257,13 @@ export default function TutorPage() {
         
         const statusMatch = statusFilter === "all" || (user.status || 'active') === statusFilter;
         
-        return searchMatch && statusMatch;
+        const roleMatch = roleFilter === "all" || user.schoolRole.includes(roleFilter as 'superadmin' | 'admin' | 'auditor' | 'teacher' | 'tutor');
+        
+        const departmentMatch = departmentFilter === "all" || user.department === departmentFilter;
+        
+        return searchMatch && statusMatch && roleMatch && departmentMatch;
       });
-  }, [allUsers, searchTerm, statusFilter]);
+  }, [allUsers, searchTerm, statusFilter, roleFilter, departmentFilter]);
 
   // Funciones CRUD
   const handleCreate = async (formData: Record<string, unknown>) => {
@@ -224,8 +275,16 @@ export default function TutorPage() {
     }
 
     const email = formData.email as string;
+    const selectedRole = formData.role as string;
+    const selectedDepartment = formData.department as string;
     
-    console.log("📋 Creando tutor con email:", email);
+    // IMPORTANTE: Solo los administradores pueden tener departamento
+    // Para cualquier otro rol, el departamento debe ser undefined
+    const departmentValue = selectedRole === "admin" 
+      ? (selectedDepartment === "none" ? undefined : selectedDepartment)
+      : undefined; // Forzar undefined para roles que no son admin
+    
+    console.log("📋 Creando usuario con rol:", selectedRole, "y departamento:", departmentValue);
     
     try {
       // PASO 1: Buscar si el usuario ya existe en Convex
@@ -242,22 +301,22 @@ export default function TutorPage() {
         }
         
         console.log("✅ Usuario encontrado:", existingUser.name, existingUser.email);
-        console.log("📋 Asignando usuario existente como tutor...");
+        console.log("📋 Asignando usuario existente a la escuela actual...");
 
         await createUserSchoolRelation({
           clerkId: existingUser.clerkId,
           schoolId: currentSchool.school._id,
-          role: ['tutor'], // Solo rol de tutor
+          role: [selectedRole as 'superadmin' | 'admin' | 'auditor' | 'teacher' | 'tutor'],
           status: 'active',
-          department: undefined, // Los tutores no tienen departamento
+          department: departmentValue as 'secretary' | 'direction' | 'schoolControl' | 'technology' | undefined,
         });
 
-        console.log("🎉 Usuario existente asignado como tutor exitosamente!");
+        console.log("🎉 Usuario existente asignado exitosamente!");
         return;
       }
 
       // FLUJO B: Usuario no existe, crear nuevo en Clerk + asignar
-      console.log("👤 Usuario no existe, creando nuevo tutor en Clerk...");
+      console.log("👤 Usuario no existe, creando nuevo en Clerk...");
       
       const password = formData.password as string;
       
@@ -283,21 +342,21 @@ export default function TutorPage() {
           console.log("⏳ Esperando sincronización del webhook...");
           await new Promise(resolve => setTimeout(resolve, 2000)); // 2 segundos
           
-          // Asignar rol de tutor en la escuela actual
-          console.log("📋 Asignando nuevo usuario como tutor...");
+          // Asignar rol en la escuela actual
+          console.log("📋 Asignando nuevo usuario a la escuela actual...");
           await createUserSchoolRelation({
             clerkId: result.userId,
             schoolId: currentSchool.school._id,
-            role: ['tutor'], // Solo rol de tutor
+            role: [selectedRole as 'superadmin' | 'admin' | 'auditor' | 'teacher' | 'tutor'],
             status: 'active',
-            department: undefined, // Los tutores no tienen departamento
+            department: departmentValue as 'secretary' | 'direction' | 'schoolControl' | 'technology' | undefined,
           });
           
-          console.log("🎉 Nuevo tutor creado y asignado exitosamente!");
+          console.log("🎉 Nuevo usuario creado y asignado exitosamente!");
           
         } catch (error) {
-          console.error("❌ Error al asignar usuario como tutor:", error);
-          const errorMessage = `Usuario creado pero error al asignar como tutor: ${error instanceof Error ? error.message : 'Error desconocido'}`;
+          console.error("❌ Error al asignar usuario a la escuela:", error);
+          const errorMessage = `Usuario creado pero error al asignar a la escuela: ${error instanceof Error ? error.message : 'Error desconocido'}`;
           throw new Error(errorMessage);
         }
       } else {
@@ -346,20 +405,48 @@ export default function TutorPage() {
         throw new Error(userResult.error || 'Error al actualizar información básica del usuario');
       }
 
-      // PASO 2: Actualizar estado en la relación usuario-escuela (mantener rol de tutor)
-      console.log("📋 Actualizando información del tutor...", {
+      // PASO 2: Actualizar rol y departamento en la relación usuario-escuela
+      const selectedRole = formData.role as string;
+      const selectedDepartment = formData.department as string;
+      const originalRole = data?.role as string; // Rol original antes del cambio
+      
+      // LÓGICA DE DEPARTAMENTO:
+      // - Si el nuevo rol es admin: usar el departamento seleccionado
+      // - Si el nuevo rol NO es admin Y el rol original ERA admin: limpiar departamento (undefined)
+      // - Si el nuevo rol NO es admin Y el rol original NO era admin: mantener como está (undefined)
+      let departmentValue: string | undefined;
+      
+      if (selectedRole === "admin") {
+        // Rol admin: usar departamento seleccionado
+        departmentValue = selectedDepartment === "none" ? undefined : selectedDepartment;
+      } else if (originalRole === "admin") {
+        // Cambio DE admin A otro rol: limpiar departamento
+        departmentValue = undefined;
+        console.log("🧹 Limpiando departamento porque cambió de ADMIN a:", selectedRole);
+      } else {
+        // Cambio entre roles no-admin: mantener undefined
+        departmentValue = undefined;
+      }
+
+      const finalDepartmentValue = departmentValue === undefined ? null : departmentValue;
+      
+      console.log("📋 Actualizando rol y departamento...", {
         userSchoolId: combinedData.userSchoolId,
+        originalRole,
+        newRole: selectedRole,
+        department: departmentValue,
+        finalDepartmentForConvex: finalDepartmentValue,
         status: combinedData.status || 'active'
       });
 
       await updateUserSchoolRelation({
         id: combinedData.userSchoolId as Id<"userSchool">,
-        role: ['tutor'], // Mantener siempre rol de tutor
-        department: null, // Los tutores no tienen departamento
+        role: [selectedRole as 'superadmin' | 'admin' | 'auditor' | 'teacher' | 'tutor'],
+        department: departmentValue === undefined ? null : (departmentValue as 'secretary' | 'direction' | 'schoolControl' | 'technology'),
         status: (combinedData.status as 'active' | 'inactive') || 'active',
       });
 
-      console.log("✅ Tutor actualizado exitosamente");
+      console.log("✅ Usuario y relación actualizados exitosamente");
       
     } catch (error) {
       console.error("❌ Error en handleUpdate:", error);
@@ -379,7 +466,7 @@ export default function TutorPage() {
       throw new Error("UserSchool ID no disponible para eliminación");
     }
 
-    console.log("🔄 Realizando soft delete - desactivando tutor de la escuela actual...");
+    console.log("🔄 Realizando soft delete - desactivando usuario de la escuela actual...");
     
     try {
       // Realizar soft delete: cambiar status a 'inactive' en lugar de eliminar completamente
@@ -387,11 +474,11 @@ export default function TutorPage() {
         userSchoolId: targetData.userSchoolId as Id<"userSchool">
       });
       
-      console.log("✅ Tutor desactivado exitosamente de la escuela actual");
+      console.log("✅ Usuario desactivado exitosamente de la escuela actual");
       
     } catch (error) {
-      console.error("❌ Error al desactivar tutor:", error);
-      throw new Error(`Error al desactivar tutor: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      console.error("❌ Error al desactivar usuario:", error);
+      throw new Error(`Error al desactivar usuario: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   };
 
@@ -411,57 +498,69 @@ export default function TutorPage() {
     return first + last;
   };
 
+  const getPrimaryRole = (roles: Array<string>) => {
+    // Orden de prioridad para mostrar el rol principal
+    const priority = ['superadmin', 'admin', 'auditor', 'teacher', 'tutor'];
+    for (const role of priority) {
+      if (roles.includes(role)) {
+        return role;
+      }
+    }
+    return roles[0];
+  };
+
   // Loading y error states
   const isLoading = schoolLoading || allUsers === undefined;
   const isCrudLoading = userActions.isCreating || userActions.isUpdating || userActions.isDeleting;
 
-  // Estadísticas para tutores
+  // Estadísticas por rol - Excluir tutores
+  const personalUsers = allUsers?.filter((user: UserFromConvex) => !user.schoolRole.includes('tutor')) || [];
+  
   const stats = [
     {
-      title: "Total Tutores",
-      value: filteredUsers.length.toString(),
+      title: "Total Personal",
+      value: personalUsers.length.toString(),
       icon: Users,
-      trend: "Tutores activos"
+      trend: "Excluyendo tutores"
     },
     {
-      title: "Tutores Activos",
-      value: filteredUsers.filter(user => (user.status || 'active') === 'active').length.toString(),
-      icon: CheckCircle,
-      trend: "En servicio"
+      title: "Super-Admins",
+      value: personalUsers.filter((user: UserFromConvex) => user.schoolRole.includes('superadmin')).length.toString(),
+      icon: Shield,
+      trend: "Acceso completo"
     },
     {
-      title: "Tutores Inactivos",
-      value: filteredUsers.filter(user => user.status === 'inactive').length.toString(),
-      icon: AlertCircle,
-      trend: "Suspendidos"
+      title: "Administradores",
+      value: personalUsers.filter((user: UserFromConvex) => user.schoolRole.includes('admin')).length.toString(),
+      icon: Building2,
+      trend: "Gestión departamental"
     },
     {
-      title: "Nuevos este mes",
-      value: filteredUsers.filter(user => {
-        const createdThisMonth = new Date(user.createdAt).getMonth() === new Date().getMonth();
-        return createdThisMonth;
-      }).length.toString(),
-      icon: GraduationCap,
-      trend: "Incorporaciones"
+      title: "Docentes",
+      value: personalUsers.filter((user: UserFromConvex) => user.schoolRole.includes('teacher')).length.toString(),
+      icon: BookOpen,
+      trend: "Enseñanza"
     },
   ];
+
+
 
   return (
     <div className="space-y-8 p-6">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500/10 via-orange-500/5 to-background border">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
         <div className="relative p-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-orange-500/10 rounded-xl">
-                  <GraduationCap className="h-8 w-8 text-orange-600" />
+                <div className="p-3 bg-primary/10 rounded-xl">
+                  <Users className="h-8 w-8 text-primary" />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-bold tracking-tight">Gestión de Tutores</h1>
+                  <h1 className="text-4xl font-bold tracking-tight">Gestión de Personal</h1>
                   <p className="text-lg text-muted-foreground">
-                    Administra los tutores que tienen acceso a información de alumnos
+                    Administra el personal administrativo y docente (tutores gestionados por separado)
                     {currentSchool?.school && (
                       <span className="block text-sm mt-1">
                         {currentSchool.school.name}
@@ -473,12 +572,12 @@ export default function TutorPage() {
             </div>
             <Button 
               size="lg" 
-              className="gap-2 bg-orange-600 hover:bg-orange-700" 
+              className="gap-2" 
               onClick={handleOpenCreate}
               disabled={isLoading || !currentSchool || isCrudLoading}
             >
               <Plus className="w-4 h-4" />
-              Agregar Tutor
+              Agregar Personal
             </Button>
           </div>
         </div>
@@ -491,7 +590,7 @@ export default function TutorPage() {
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Error al crear tutor: {userActions.createError}
+                Error al crear usuario: {userActions.createError}
               </AlertDescription>
             </Alert>
           )}
@@ -499,7 +598,7 @@ export default function TutorPage() {
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Error al actualizar tutor: {userActions.updateError}
+                Error al actualizar usuario: {userActions.updateError}
               </AlertDescription>
             </Alert>
           )}
@@ -507,7 +606,7 @@ export default function TutorPage() {
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Error al eliminar tutor: {userActions.deleteError}
+                Error al eliminar usuario: {userActions.deleteError}
               </AlertDescription>
             </Alert>
           )}
@@ -532,8 +631,8 @@ export default function TutorPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 {stat.title}
               </CardTitle>
-              <div className="p-2 bg-orange-500/10 rounded-lg group-hover:bg-orange-500/20 transition-colors">
-                <stat.icon className="h-4 w-4 text-orange-600" />
+              <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                <stat.icon className="h-4 w-4 text-primary" />
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -554,7 +653,7 @@ export default function TutorPage() {
                 Filtros y Búsqueda
               </CardTitle>
               <CardDescription>
-                Encuentra tutores por nombre, email o estado
+                Encuentra personal por nombre, email, rol, estado o departamento
               </CardDescription>
             </div>
           </div>
@@ -572,6 +671,19 @@ export default function TutorPage() {
                 />
               </div>
             </div>
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Rol" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los roles</SelectItem>
+                <SelectItem value="superadmin">Super-Admin</SelectItem>
+                <SelectItem value="admin">Administrador</SelectItem>
+                <SelectItem value="auditor">Auditor</SelectItem>
+                <SelectItem value="teacher">Docente</SelectItem>
+
+              </SelectContent>
+            </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full md:w-48">
                 <SelectValue placeholder="Estado" />
@@ -582,45 +694,55 @@ export default function TutorPage() {
                 <SelectItem value="inactive">Inactivos</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Departamento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los departamentos</SelectItem>
+                <SelectItem value="secretary">Secretaría</SelectItem>
+                <SelectItem value="direction">Dirección</SelectItem>
+                <SelectItem value="schoolControl">Control Escolar</SelectItem>
+                <SelectItem value="technology">Tecnología</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Tabla de Tutores */}
+      {/* Tabla de Personal */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Lista de Tutores</span>
-            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-              {filteredUsers.length} tutores
-            </Badge>
+            <span>Lista de Personal</span>
+            <Badge variant="outline">{filteredUsers.length} usuarios</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-4"></div>
-                <p className="text-muted-foreground">Cargando tutores...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Cargando personal...</p>
               </div>
             </div>
           ) : filteredUsers.length === 0 ? (
             <div className="text-center py-12">
-              <GraduationCap className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No se encontraron tutores</h3>
+              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">No se encontró personal</h3>
               <p className="text-muted-foreground mb-4">
-                {searchTerm || statusFilter !== "all"
+                {searchTerm || statusFilter !== "all" || roleFilter !== "all" || departmentFilter !== "all"
                   ? "Intenta ajustar los filtros para ver más resultados."
-                  : "Aún no hay tutores registrados en esta escuela."
+                  : "Aún no hay personal registrado en esta escuela."
                 }
               </p>
               <Button 
                 onClick={handleOpenCreate} 
-                className="gap-2 bg-orange-600 hover:bg-orange-700"
+                className="gap-2"
                 disabled={!currentSchool || isCrudLoading}
               >
                 <Plus className="h-4 w-4" />
-                Agregar Tutor
+                Agregar Personal
               </Button>
             </div>
           ) : (
@@ -628,7 +750,9 @@ export default function TutorPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Tutor</TableHead>
+                    <TableHead>Usuario</TableHead>
+                    <TableHead>Rol Principal</TableHead>
+                    <TableHead>Departamento</TableHead>
                     <TableHead>Contacto</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Fecha de Ingreso</TableHead>
@@ -636,90 +760,117 @@ export default function TutorPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredUsers.map((user: UserFromConvex) => (
-                    <TableRow key={user._id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={user.imgUrl} alt={user.name} />
-                            <AvatarFallback className="bg-orange-100 text-orange-700">
-                              {getInitials(user.name, user.lastName)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-medium">
-                              {user.name} {user.lastName}
-                            </div>
-                            <div className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Mail className="h-3 w-3" />
-                              {user.email}
+                  {filteredUsers.map((user: UserFromConvex) => {
+                    const primaryRole = getPrimaryRole(user.schoolRole);
+                    const roleInfo = roleConfig[primaryRole as keyof typeof roleConfig];
+                    const departmentInfo = user.department ? departmentConfig[user.department] : null;
+                    
+                    return (
+                      <TableRow key={user._id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={user.imgUrl} alt={user.name} />
+                              <AvatarFallback className="bg-primary/10">
+                                {getInitials(user.name, user.lastName)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium">
+                                {user.name} {user.lastName}
+                              </div>
+                              <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                <Mail className="h-3 w-3" />
+                                {user.email}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          {user.phone && (
-                            <div className="text-sm flex items-center gap-1">
-                              <Phone className="h-3 w-3 text-muted-foreground" />
-                              {user.phone}
-                            </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant="outline" 
+                            className={roleInfo?.color}
+                          >
+                            <roleInfo.icon className="h-3 w-3 mr-1" />
+                            {roleInfo?.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {departmentInfo ? (
+                            <Badge 
+                              variant="outline" 
+                              className={departmentInfo.color}
+                            >
+                              {departmentInfo.label}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">No asignado</span>
                           )}
-                          {user.address && (
-                            <div className="text-sm text-muted-foreground flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              {user.address}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={(user.status || 'active') === "active" ? "default" : "secondary"}
-                          className={(user.status || 'active') === "active" ? "bg-green-500 hover:bg-green-600" : ""}
-                        >
-                          {(user.status || 'active') === "active" ? "Activo" : "Inactivo"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-sm">
-                          <Calendar className="h-3 w-3 text-muted-foreground" />
-                          {formatDate(user.admissionDate || user.createdAt)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenView(user)}
-                            className="h-8 w-8 p-0"
-                            disabled={isCrudLoading}
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            {user.phone && (
+                              <div className="text-sm flex items-center gap-1">
+                                <Phone className="h-3 w-3 text-muted-foreground" />
+                                {user.phone}
+                              </div>
+                            )}
+                            {user.address && (
+                              <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                {user.address}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={(user.status || 'active') === "active" ? "default" : "secondary"}
+                            className={(user.status || 'active') === "active" ? "bg-green-500 hover:bg-green-600" : ""}
                           >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenEdit(user)}
-                            className="h-8 w-8 p-0"
-                            disabled={isCrudLoading}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenDelete(user)}
-                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                            disabled={isCrudLoading}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            {(user.status || 'active') === "active" ? "Activo" : "Inactivo"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1 text-sm">
+                            <Calendar className="h-3 w-3 text-muted-foreground" />
+                            {formatDate(user.admissionDate || user.createdAt)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenView(user)}
+                              className="h-8 w-8 p-0"
+                              disabled={isCrudLoading}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenEdit(user)}
+                              className="h-8 w-8 p-0"
+                              disabled={isCrudLoading}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenDelete(user)}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              disabled={isCrudLoading}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -732,20 +883,20 @@ export default function TutorPage() {
         operation={operation}
         title={
           operation === "create" 
-            ? "Agregar Tutor"
+            ? "Agregar Personal"
             : operation === "edit"
-            ? "Editar Tutor"
+            ? "Editar Personal"
             : operation === "view"
-            ? "Ver Tutor"
-            : "Desactivar Tutor"
+            ? "Ver Personal"
+            : "Desactivar Personal"
         }
         description={
           operation === "create"
-            ? "Completa la información para agregar un nuevo tutor al sistema"
+            ? "Completa la información para agregar nuevo personal al sistema"
             : operation === "edit"
-            ? "Modifica la información del tutor"
+            ? "Modifica la información del personal"
             : operation === "view"
-            ? "Información detallada del tutor"
+            ? "Información detallada del personal"
             : undefined
         }
         schema={getSchemaForOperation(operation)}
@@ -754,8 +905,8 @@ export default function TutorPage() {
         onOpenChange={close}
         onSubmit={operation === "create" ? handleCreate : handleUpdate}
         onDelete={() => handleDelete(data || {})}
-        deleteConfirmationTitle="¿Desactivar tutor?"
-        deleteConfirmationDescription="Esta acción desactivará al tutor de esta escuela. El usuario mantendrá su información en el sistema y podrá ser reactivado posteriormente."
+        deleteConfirmationTitle="¿Desactivar personal?"
+        deleteConfirmationDescription="Esta acción desactivará al personal de esta escuela. El usuario mantendrá su información en el sistema y podrá ser reactivado posteriormente."
         isLoading={isLoading}
         isSubmitting={userActions.isCreating || userActions.isUpdating}
         isDeleting={userActions.isDeleting}
@@ -772,7 +923,7 @@ export default function TutorPage() {
                     <Input 
                       {...field} 
                       value={field.value as string || ""}
-                      placeholder="Nombre del tutor"
+                      placeholder="Nombre del personal"
                       disabled={currentOperation === "view"}
                     />
                   </FormControl>
@@ -820,25 +971,98 @@ export default function TutorPage() {
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Rol *</FormLabel>
+                  <FormControl>
+                    <Select 
+                      value={field.value as string} 
+                      onValueChange={(value) => {
+                        const previousRole = form.getValues("role");
+                        field.onChange(value);
+                        
+                        // Solo limpiar departamento si cambiamos DE admin A otro rol
+                        if (previousRole === "admin" && value !== "admin") {
+                          console.log("🧹 Limpiando campo departamento en formulario: admin →", value);
+                          form.setValue("department", undefined);
+                        }
+                      }}
+                      disabled={currentOperation === "view"}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar rol" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="superadmin">Super-Administrador</SelectItem>
+                        <SelectItem value="admin">Administrador</SelectItem>
+                        <SelectItem value="auditor">Auditor</SelectItem>
+                        <SelectItem value="teacher">Docente</SelectItem>
+        
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Campo de departamento solo visible para administradores */}
+            {form.watch("role") === "admin" && (
+              <FormField
+                control={form.control}
+                name="department"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Departamento *</FormLabel>
+                    <FormControl>
+                      <Select 
+                        value={field.value as string || undefined} 
+                        onValueChange={(value) => field.onChange(value === "none" ? undefined : value)}
+                        disabled={currentOperation === "view"}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar departamento" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Sin departamento</SelectItem>
+                          <SelectItem value="secretary">Secretaría</SelectItem>
+                          <SelectItem value="direction">Dirección</SelectItem>
+                          <SelectItem value="schoolControl">Control Escolar</SelectItem>
+                          <SelectItem value="technology">Tecnología</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                    <p className="text-xs text-muted-foreground">
+                      Los administradores pueden ser asignados a un departamento específico
+                    </p>
+                  </FormItem>
+                )}
+              />
+            )}
+
             {currentOperation === "create" && (
               <FormField
                 control={form.control}
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Contraseña Temporal (opcional)</FormLabel>
+                    <FormLabel>Contraseña Temporal *</FormLabel>
                     <FormControl>
                       <Input 
                         {...field} 
                         value={field.value as string || ""}
                         type="password"
-                        placeholder="Dejar vacío si el usuario ya existe"
+                        placeholder="Solo requerida para usuarios nuevos"
                         disabled={false}
                       />
                     </FormControl>
                     <FormMessage />
                     <p className="text-xs text-muted-foreground">
-                      💡 Si el email ya existe en el sistema, se asignará el usuario existente automáticamente
+                      💡 Si el email ya existe en el sistema, se asignará el usuario existente (sin crear uno nuevo)
                     </p>
                   </FormItem>
                 )}
@@ -929,10 +1153,12 @@ export default function TutorPage() {
                     <span className="text-muted-foreground">Clerk ID:</span>
                     <p className="font-mono">{data.clerkId as string}</p>
                   </div>
-                  <div className="col-span-2">
-                    <span className="text-muted-foreground">Rol:</span>
-                    <p className="text-sm">Tutor - Acceso a información de alumnos</p>
-                  </div>
+                  {data.schoolRole && Array.isArray(data.schoolRole) ? (
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground">Roles asignados:</span>
+                      <p className="text-sm">{(data.schoolRole as string[]).join(", ")}</p>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             )}
