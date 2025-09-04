@@ -254,7 +254,7 @@ export default function ClassroomManagement() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="status">Estatus</Label>
+                    <Label htmlFor="status">Estado</Label>
                     <Select
                       value={formData.status}
                       onValueChange={(value: "active" | "inactive") =>
@@ -262,7 +262,7 @@ export default function ClassroomManagement() {
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecciona estatus" />
+                        <SelectValue placeholder="Selecciona Estado" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="active">Activo</SelectItem>
@@ -295,7 +295,7 @@ export default function ClassroomManagement() {
               </Label>
               <Select value={locationFilter} onValueChange={setLocationFilter}>
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Todas las locaciones" />
+                  <SelectValue placeholder="Todos las locaciones" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas las locaciones</SelectItem>
@@ -310,14 +310,14 @@ export default function ClassroomManagement() {
 
             <div className="flex flex-col gap-1">
               <Label htmlFor="status-filter" className="text-xs text-muted-foreground">
-                Status
+                Estados
               </Label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todas los status</SelectItem>
+                  <SelectItem value="all">Todas los estados</SelectItem>
                   <SelectItem value="active">Activo</SelectItem>
                   <SelectItem value="inactive">Inactivo</SelectItem>
                 </SelectContent>
@@ -398,8 +398,8 @@ export default function ClassroomManagement() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={classroom.status === "active" ? "default" : "secondary"}>
-                          {classroom.status === "active" ? "Active" : "Inactive"}
+                        <Badge className={classroom.status === "active" ? "bg-green-600 px-3" : "bg-red-600"}>
+                          {classroom.status === "active" ? "Activo" : "Inactivo"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
@@ -410,7 +410,7 @@ export default function ClassroomManagement() {
                           <Button variant="outline" size="sm" onClick={() => handleEdit(classroom)}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="outline" size="sm" onClick={() => handleDelete(classroom.id)}>
+                          <Button variant="destructive" size="sm" onClick={() => handleDelete(classroom.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
