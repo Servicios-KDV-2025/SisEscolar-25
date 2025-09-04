@@ -83,8 +83,8 @@ const defaultNavData = {
       ],
     },
     {
-      title: "Salones",
-      url: `#`,
+      title: "Aulas",
+      url: `/aulas`,
       icon: SquareTerminal,
       isActive: true,
     },
