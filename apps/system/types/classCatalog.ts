@@ -4,7 +4,6 @@ export type Status = "active" | "inactive";
 
 export interface ClassCatalog {
   _id: Id<"classCatalog">;
-  termId: Id<"term">;
   schoolId: Id<"school">;
   schoolCycleId: Id<"schoolCycle">;
   subjectId: Id<"subject">;
