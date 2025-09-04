@@ -62,7 +62,7 @@ export default function GradeManagementDashboard() {
       : "skip"
   );
   const assignments = useQuery(
-    api.functions.assignments.getAssignmentsByClassAndTerm,
+    api.functions.assignment.getAssignmentsByClassAndTerm,
     selectedClass && selectedTerm
       ? {
           classCatalogId: selectedClass as Id<"classCatalog">,
@@ -178,8 +178,7 @@ export default function GradeManagementDashboard() {
       const rubric = rubrics!.find((r) => r._id === rubricId);
       if (rubric && totals.totalMaxScore > 0) {
         // Calcular el porcentaje de la categoría (ej. 100% en Tareas)
-        const rubricPercentage =
-          (totals.totalScore / totals.totalMaxScore) * 100;
+        const rubricPercentage = Math.round((totals.totalScore / totals.totalMaxScore) * 100);
 
         // Multiplicar por el peso de la rúbrica (ej. 10% del total)
         // Asumimos que el peso es un valor decimal (ej. 0.1 para 10%)
@@ -265,7 +264,7 @@ export default function GradeManagementDashboard() {
                     className="flex justify-center border border-border rounded-md px-2 py-1 bg-secondary/50"
                   >
                     <h3 className="font-semibold px-2">{rubric.name}:</h3>
-                    <h3 className="font-semibold">{rubric.weight * 100}%</h3>
+                    <h3 className="font-semibold">{Math.round(rubric.weight * 100)}%</h3>
                   </div>
                 ))}
               </div>
