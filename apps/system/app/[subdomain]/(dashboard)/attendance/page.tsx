@@ -1,5 +1,6 @@
 "use client"
 
+import { useUser } from "@clerk/nextjs"
 import { api } from "@repo/convex/convex/_generated/api"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
 import { Button } from "@repo/ui/components/shadcn/button"
@@ -13,19 +14,8 @@ import { useMutation, useQuery } from "convex/react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { useAttendance } from "stores/attendanceStore"
-
-interface Attendance {
-  _id: Id<'attendance'>
-  studentClassId: Id<'studentClass'>,
-  date: number
-  present: boolean
-  justified?: boolean,
-  comments?: string,
-  registrationDate: number,
-  createdBy: Id<"user">,
-  updatedBy: Id<"user">,
-  updatedAt: number
-}
+import { useUserSchoolsWithConvex } from "stores/userSchoolsStore"
+import { useUserWithConvex } from "stores/userStore"
 
 // Función para formatear fechas en español
 const formatDate = (date: Date): string => {
@@ -50,6 +40,18 @@ export default function AttendanceDashboard() {
   const [selectedClass, setSelectedClass] = useState<string>('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Obtener usuario actual
+  const {user: clerkUser} = useUser()
+  const { currentUser } = useUserWithConvex(clerkUser?.id)
+
+  // Obtener escuela del usuario actual
+  const {userSchools, isLoading: schoolsLoading} = useUserSchoolsWithConvex(currentUser?._id)
+
+  const teacherClasses = useQuery(
+    api.functions.attendance.getTeacherClasses, 
+    currentUser ? {userId: currentUser._id} : 'skip'
+  )
+
    // Obtener todas las clases activas
   const allClasses = useQuery(api.functions.attendance.getAllActiveClasses)
   
@@ -58,7 +60,7 @@ export default function AttendanceDashboard() {
     api.functions.attendance.getAttendanceByDate,
     selectedClass ? {
       classCatalogId: selectedClass as any,
-      date: selectedDate.setHours(0, 0, 0, 0)
+      date: getStartOfDayTimestamp(selectedDate)
     } : 'skip'
   )
 
@@ -81,7 +83,7 @@ export default function AttendanceDashboard() {
   }, [attendanceQueryData])
 
   const handleSaveAttendance = async () => {
-    if (!selectedClass || !attendanceData.length) return
+    if (!selectedClass || !attendanceData.length || !currentUser) return
 
     setIsSubmitting(true)
     try{
@@ -94,9 +96,9 @@ export default function AttendanceDashboard() {
 
       await registerAttendance({
         classCatalogId: selectedClass as any,
-        date: selectedDate.setHours(0, 0, 0, 0),
+        date: getStartOfDayTimestamp(selectedDate),
         attendances
-      });
+      })
 
       toast.success('✅ Asistencias guardadas')
     }catch (error) {
@@ -110,8 +112,8 @@ export default function AttendanceDashboard() {
   const selectedClassInfo = allClasses?.find(cls => cls._id === selectedClass)
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex items-center gap-2">
+    <main className="container mx-auto py-10">
+      <div className="flex items-center gap-2 mb-2">
         <BookOpen className="h-8 w-8 text-primary" />
         <h1 className="text-3xl font-bold">Sistema de Asistencias</h1>
       </div>
@@ -232,6 +234,6 @@ export default function AttendanceDashboard() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </main>
   )
 }

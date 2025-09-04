@@ -6,7 +6,7 @@ import { Input } from "@repo/ui/components/shadcn/input";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 
 interface AttendanceRecord {
-  studentstudentClassId: string;
+  studentClassId: string;
   studentId: string;
   enrollment: string;
   name: string;
@@ -20,7 +20,7 @@ interface AttendanceRecord {
 interface AttendanceTableProps {
   data: AttendanceRecord[];
   selectedDate: Date;
-  onAttendanceChange: (studentClassId: string, field: string, value: any) => void;
+  onAttendanceChange: (studentClassId: string, field: string, value: boolean | string) => void;
 }
 
 export default function AttendanceTable({data, selectedDate, onAttendanceChange}: AttendanceTableProps) {
@@ -73,56 +73,59 @@ export default function AttendanceTable({data, selectedDate, onAttendanceChange}
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableCell className="font-mono text-sm">{student.enrollment}</TableCell>
-          <TableCell>
-            <div>
-              <div className="font-medium">{student.name} {student.lastName || ''}</div>
-              <div className="text-xs text-muted-foreground">ID: {student.studentId}</div>
-            </div>
-          </TableCell>
+          {data.map((student) => (
+            <TableRow key={student.studentClassId}>
+              <TableCell className="font-mono text-sm">{student.enrollment}</TableCell>
+              <TableCell>
+                <div>
+                  <div className="font-medium">{student.name} {student.lastName || ''}</div>
+                  <div className="text-xs text-muted-foreground">ID: {student.studentId}</div>
+                </div>
+              </TableCell>
 
-          <TableCell className="text-center">
-            <Checkbox
-              checked={student.present ?? false}
-              onCheckedChange={(checked) => 
-                handlePresentChange(student.studentClassId, checked as boolean)
-              }
-            />
-          </TableCell>
-          
-          <TableCell className="text-center">
-            <Checkbox
-              checked={student.justified ?? false}
-              onCheckedChange={(checked) => 
-                handleJustifiedChange(student.studentClassId, checked as boolean)
-              }
-              disabled={student.present ?? false}
-            />
-          </TableCell>
+              <TableCell>
+                <Checkbox
+                  checked={student.present ?? false}
+                  onCheckedChange={(checked) =>
+                    handlePresentChange(student.studentClassId, checked as boolean)
+                  }
+                />
+              </TableCell>
+              
+              <TableCell>
+                <Checkbox
+                  checked={student.justified ?? false}
+                  onCheckedChange={(checked) =>
+                    handleJustifiedChange(student.studentClassId, checked as boolean)
+                  }
+                />
+              </TableCell>
 
-          <TableCell>
-            <Input
-              placeholder="Observaciones..."
-              value={student.comments}
-              onChange={(e) => 
-                handleCommentsChange(student.studentClassId, e.target.value)
-              }
-              className="w-full"
-            />
-          </TableCell>
-          
-          <TableCell className="text-center">
-            <Badge
-              variant={student.alreadyRegistered ? "outline" : "secondary"}
-              className={
-                student.alreadyRegistered 
-                  ? "bg-green-100 text-green-800 border-green-200" 
-                  : "bg-gray-100 text-gray-800"
-              }
-            >
-              {student.alreadyRegistered ? 'Registrado' : 'Pendiente'}
-            </Badge>
-          </TableCell>
+              <TableCell>
+                <Input
+                  placeholder="Observaciones..."
+                  value={student.comments}
+                  onChange={(e) => 
+                    handleCommentsChange(student.studentClassId, e.target.value)
+                  }
+                  className="w-full"
+                />
+              </TableCell>
+
+              <TableCell className="text-center">
+                <Badge
+                  variant={student.alreadyRegistered ? "outline" : "secondary"}
+                  className={
+                    student.alreadyRegistered 
+                      ? "bg-green-100 text-green-800 border-green-200" 
+                      : "bg-gray-100 text-gray-800"
+                  }
+                >
+                  {student.alreadyRegistered ? 'Registrado' : 'Pendiente'}
+                </Badge>
+              </TableCell>
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
     </div>
