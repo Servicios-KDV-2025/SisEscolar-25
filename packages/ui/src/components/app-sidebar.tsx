@@ -137,8 +137,8 @@ const defaultNavData = {
       isActive: true,
     },
     {
-      title: "Calificaciones",
-      url: `/calificaciones`,
+      title: "Evaluacion",
+      url: `#`,
       icon: SquareTerminal,
       isActive: true,
       items: [
@@ -149,6 +149,10 @@ const defaultNavData = {
         {
           title: "Rúbricas",
           url: `/gradeRubic`,
+        },
+        {
+          title: "Asignaciones",
+          url: `/asignaciones`,
         },
       ],
     },

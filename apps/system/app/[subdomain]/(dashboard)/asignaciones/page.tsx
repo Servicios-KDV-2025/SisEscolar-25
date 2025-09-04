@@ -4,86 +4,65 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
-// import { useUser } from "@clerk/nextjs";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@repo/ui/components/shadcn/card";
+import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle} from "@repo/ui/components/shadcn/card";
 import { Button } from "@repo/ui/components/shadcn/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@repo/ui/components/shadcn/alert-dialog";
+import {AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger} from "@repo/ui/components/shadcn/alert-dialog";
 import { Badge } from "@repo/ui/components/shadcn/badge";
-// import {
-//   Table,
-//   TableBody,
-//   TableCell,
-//   TableHead,
-//   TableHeader,
-//   TableRow,
-// } from "@repo/ui/components/shadcn/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@repo/ui/components/shadcn/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "@repo/ui/components/shadcn/dialog";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Label } from "@repo/ui/components/shadcn/label";
 import { Textarea } from "@repo/ui/components/shadcn/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@repo/ui/components/shadcn/select";
-// import {
-//   Tabs,
-//   TabsContent,
-//   TabsList,
-//   TabsTrigger,
-// } from "@repo/ui/components/shadcn/tabs";
-import {
-  // ArrowLeft,
-  FileText,
-  Calendar,
-  // Clock,
-  Eye,
-  Edit,
-  Trash2,
-  CheckCircle,
-  XCircle,
-} from "@repo/ui/icons";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@repo/ui/components/shadcn/select";
+import {FileText, Calendar, Eye, Edit, Trash2, CheckCircle, XCircle} from "@repo/ui/icons";
 import Link from "next/link";
-import {
-  validateTaskForm,
-  getValidationErrors,
-} from "../../../../../../types/form/taskSchema";
+import {validateTaskForm, getValidationErrors} from "../../../../types/form/taskSchema";
+import { useTask } from "../../../../stores/taskStore";
+import { TaskCreateForm } from "../../../../components/TaskCreateForm";
 
-import { useTask } from "../../../../../../stores/taskStore";
-import { TaskCreateForm } from "../../../../../../components/TaskCreateForm";
+// Componente de carga
+function LoadingComponent() {
+  return (
+    <div className="min-h-screen bg-background p-6">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Cargando, por favor espere...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-// Tipos para TypeScript - usando los tipos del store
+// Componente para usuarios no autenticados
+function UnauthenticatedComponent() {
+  return (
+    <div className="min-h-screen bg-background p-6">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-foreground mb-4">
+              Acceso Requerido
+            </h1>
+            <p className="text-muted-foreground mb-6">
+              Necesitas iniciar sesión para acceder a esta página.
+            </p>
+            <Button asChild>
+              <Link href="/auth/signin">
+                Iniciar Sesión
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-// interface TaskProgressProps {
-//   task: Task;
-//   onViewDetails: (task: Task) => void;
-// }
-
-export default function TaskManagement() {
+// Componente principal de contenido (solo se ejecuta cuando está autenticado)
+function TaskManagementContent() {
   const {
     // Estado del store
     selectedTask,
@@ -115,6 +94,7 @@ export default function TaskManagement() {
   const [termFilter, setTermFilter] = useState<string>("all");
   const [groupFilter, setGroupFilter] = useState<string>("all");
   const [subjectFilter, setSubjectFilter] = useState<string>("all");
+
 
   // Estado para el dialog de detalles
   const [detailsDialogOpen, setDetailsDialogOpen] = useState<boolean>(false);
@@ -228,16 +208,7 @@ export default function TaskManagement() {
     );
   };
 
-  // Mutaciones
-  // const createAssignment = useMutation(
-  //   api.functions.assignment.createAssignment
-  // );
-  // const updateAssignment = useMutation(
-  //   api.functions.assignment.updateAssignment
-  // );
-  // const deleteAssignment = useMutation(
-  //   api.functions.assignment.deleteAssignment
-  // );
+
 
   const uniqueRubrics =
     filteredTasks?.reduce(
@@ -936,5 +907,24 @@ export default function TaskManagement() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+// Componente principal que maneja la autenticación
+export default function TaskManagement() {
+  return (
+    <>
+      <AuthLoading>
+        <LoadingComponent />
+      </AuthLoading>
+      
+      <Unauthenticated>
+        <UnauthenticatedComponent />
+      </Unauthenticated>
+      
+      <Authenticated>
+        <TaskManagementContent />
+      </Authenticated>
+    </>
   );
 }

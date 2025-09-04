@@ -445,6 +445,22 @@ export const deleteAssignment = mutation({
   },
 });
 
+export const getAssignmentsByClassAndTerm = query({
+  args: {
+    classCatalogId: v.id("classCatalog"),
+    termId: v.id("term"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("assignment")
+      .withIndex("by_classCatalogId", (q) =>
+        q.eq("classCatalogId", args.classCatalogId)
+      )
+      .filter((q) => q.eq(q.field("termId"), args.termId))
+      .collect();
+  },
+});
+
 // ########################################################################
 //                       CRUD OPERATIONS (INTERNAL)
 // ########################################################################
