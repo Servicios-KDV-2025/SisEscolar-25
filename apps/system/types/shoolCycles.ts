@@ -17,6 +17,24 @@ export const cicloEscolarSchema = z.object({
 }, {
   message: "La fecha de fin debe ser posterior a la fecha de inicio",
   path: ["endDate"],
+}).refine((data) => {
+  const startDate = new Date(data.startDate);
+  const endDate = new Date(data.endDate);
+  const diffInMs = endDate.getTime() - startDate.getTime();
+  const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+  return diffInDays >= 28; 
+}, {
+  message: "El ciclo escolar debe durar al menos 28 días",
+  path: ["endDate"],
+})
+.refine((data) => {
+  const startDate = new Date(data.startDate);
+  const endDate = new Date(data.endDate);
+  const diffInYears = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+  return diffInYears <= 5;
+}, {
+  message: "El ciclo escolar no puede durar más de 5 años",
+  path: ["endDate"],
 });
 
 export type CicloEscolarFormValues = z.input<typeof cicloEscolarSchema>;

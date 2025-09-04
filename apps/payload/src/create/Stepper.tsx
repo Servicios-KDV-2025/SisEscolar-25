@@ -1,55 +1,53 @@
 'use client'
-import React, { useEffect } from 'react'
+import React, { useState } from 'react'
 import { defineStepper } from '@/components/ui/stepper'
 import { Button } from '@/components/ui/button'
-import { School, User, CopySlash } from 'lucide-react'
-import { SignOutButton, useAuth } from '@clerk/nextjs'
-import { SignUp } from './SignUp'
-import { SignIn } from './SignIn'
-import SchoolForm from './SchoolForm'
-
+import { School, User, CopySlash, Loader2 } from 'lucide-react'
+import { useAuth, useClerk, useUser } from '@clerk/nextjs'
+import { SignUp } from './Auth/SignUp'
+import { SignIn } from './Auth/SignIn'
+import { Prices } from './Prices/Prices'
+// usa el componente genérico (no el de blocks)
+import PayNowButton from '@/components/PayNowButton'
+import SchoolForm from './School/SchoolForm'
 
 const { Stepper: StepperUi, useStepper } = defineStepper(
-  {
-    id: 'step-1',
-    title: 'Paso 1',
-    description: 'Iniciar sesión para continuar',
-    icon: <User />,
-  },
-  {
-    id: 'step-2',
-    title: 'Paso 2',
-    description: 'Ingresar datos de la escuela',
-    icon: <School />,
-  },
-  {
-    id: 'step-3',
-    title: 'Paso 3',
-    description: 'Realizar pagos',
-    icon: <CopySlash />,
-  },
+  { id: 'step-1', title: 'Paso 1', description: 'Iniciar sesión para continuar', icon: <User /> },
+  { id: 'step-2', title: 'Paso 2', description: 'Ingresar datos de la escuela', icon: <School /> },
+  { id: 'step-3', title: 'Paso 3', description: 'Selecciona el Precio', icon: <School /> },
+  { id: 'step-4', title: 'Paso 4', description: 'Realizar pagos', icon: <CopySlash /> },
 )
 
 export const Stepper: React.FC = () => {
-  const { isSignedIn, isLoaded } = useAuth();
-  const [ready, setReady] = React.useState(false);
+  const { isSignedIn, isLoaded } = useAuth()
+  const [ready, setReady] = useState(false)
+  const [isSelect, setSelected] = useState<string>('')
+  const [schooldId, setSchoolId] = useState<string>('')
+  const [isLoading, setIsLoading] = useState(false)
+  const { signOut } = useClerk()
 
   return (
-    <StepperUi.Provider
-      className="space-y-4"
-      labelOrientation="vertical"
-    >
+    <StepperUi.Provider className="space-y-4" labelOrientation="vertical">
       {({ methods }) => {
         React.useEffect(() => {
           if (isLoaded) {
-            if (isSignedIn && methods.current.id === 'step-1') {
-              methods.next();
-            }
-            setReady(true);
+            if (isSignedIn && methods.current.id === 'step-1') methods.goTo('step-2')
+            setReady(true)
           }
-        }, [isSignedIn, isLoaded, methods]);
+        }, [isSignedIn, isLoaded, methods])
 
-        if (!ready) return null;
+        if (!ready) return null
+
+        const onFihishStepSchool = (idSchool: string) => {
+          // alert(idSchool)
+          setSchoolId(idSchool)
+          methods.next()
+        }
+
+        const onSelectPrice = (idStripe: string) => {
+          setSelected(idStripe)
+          methods.next()
+        }
 
         return (
           <>
@@ -61,37 +59,47 @@ export const Stepper: React.FC = () => {
                 </StepperUi.Step>
               ))}
             </StepperUi.Navigation>
-            {methods.switch({
-              'step-1': (step) => <ClerkComponent />,
-              'step-2': (step) => <SchoolForm />,
-              'step-3': (step) => <Content id={step.id} />,
-            })}
-            <StepperUi.Controls>
-              {/* {!methods.isLast && !methods.isFirst && (
-                <Button variant="secondary" onClick={methods.prev} disabled={methods.isFirst}>
-                  Previous
-                </Button>
-              )} */}
 
-              {!methods.isFirst && (
-                <Button onClick={methods.isLast ? () => {} : methods.next}>
-                  {methods.isLast ? 'Finalizar' : 'Siguiente'}
-                </Button>
-              )}
-            </StepperUi.Controls>
+            {methods.switch({
+              'step-1': () => <ClerkComponent />,
+              'step-2': () => (
+                <div>
+                  <SchoolForm onNext={onFihishStepSchool} />
+                  {isSignedIn && (
+                    <Button
+                      className="w-full"
+                      disabled={isLoading}
+                      onClick={() => {
+                        setIsLoading(true)
+                        signOut({ redirectUrl: '#' })
+                        methods.goTo('step-1')
+                      }}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Cerrando Sesion.
+                        </>
+                      ) : (
+                        'Cerrar Sesion'
+                      )}
+                    </Button>
+                  )}
+                </div>
+              ),
+              'step-3': () => <Prices onSelect={onSelectPrice} />,
+              'step-4': () => <Content priceId={isSelect} schoolId={schooldId} />,
+            })}
           </>
-        );
+        )
       }}
     </StepperUi.Provider>
   )
 }
 
-const Content = ({ id }: { id: string }) => {
-  return (
-    <StepperUi.Panel className="h-[200px] content-center rounded border bg-secondary text-secondary-foreground p-8">
-      <p className="text-xl font-normal">Content for {id}</p>
-    </StepperUi.Panel>
-  )
+interface ContentProps {
+  priceId: string
+  schoolId: string
 }
 
 const ClerkComponent: React.FC = () => {
@@ -102,5 +110,23 @@ const ClerkComponent: React.FC = () => {
     <SignIn onBackToSignUp={() => setShowSignIn(false)} onClick={() => methods.next()} />
   ) : (
     <SignUp onSwitchToSignIn={() => setShowSignIn(true)} onClick={() => methods.next()} />
+  )
+}
+const Content: React.FC<ContentProps> = (props) => {
+  const { user, isLoaded } = useUser() // respaldo solo para DEV
+
+  if (!isLoaded) return null
+
+  return (
+    <StepperUi.Panel className="h-[200px] rounded-2xl border border-gray-200 bg-white text-gray-800 p-8 shadow-lg flex flex-col justify-between">
+      {/* Mensaje */}
+      <p className="text-lg sm:text-xl font-medium mb-6 leading-relaxed">
+        ¡Casi estás por terminar! Da clic en{' '}
+        <span className="font-semibold text-red-500">“Pagar ahora”</span> para ir a Stripe.
+      </p>
+
+      {/* Botón */}
+      <PayNowButton priceId={props.priceId} schoolId={props.schoolId} userId={user?.id!} />
+    </StepperUi.Panel>
   )
 }
