@@ -58,11 +58,11 @@ const defaultNavData = {
         },
         {
           title: "Calendario Escolar",
-          url: `/calendar`,
+          url: `/calendario`,
         },
         {
           title: "Clases por Alumno",
-          url: `#`,
+          url: `clasesPorAlumnos`,
         },
         {
           title: "Grupos",
@@ -83,8 +83,8 @@ const defaultNavData = {
       ],
     },
     {
-      title: "Salones",
-      url: `#`,
+      title: "Aulas",
+      url: `/aulas`,
       icon: SquareTerminal,
       isActive: true,
     },
@@ -137,8 +137,8 @@ const defaultNavData = {
       isActive: true,
     },
     {
-      title: "Calificaciones",
-      url: `/calificaciones`,
+      title: "Evaluacion",
+      url: `#`,
       icon: SquareTerminal,
       isActive: true,
       items: [
@@ -148,7 +148,11 @@ const defaultNavData = {
         },
         {
           title: "Rúbricas",
-          url: `/gradeRubic`,
+          url: `/RubricaDeCalificaciones`,
+        },
+        {
+          title: "Asignaciones",
+          url: `/asignaciones`,
         },
       ],
     },
