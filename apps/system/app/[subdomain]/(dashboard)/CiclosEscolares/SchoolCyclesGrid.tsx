@@ -120,7 +120,7 @@ export function SchoolCyclesGrid({ currentSchool }: SchoolCyclesGridProps) {
             const adjustedDate = new Date(date.getTime() - (offset * 60 * 1000));
             return adjustedDate.toISOString().split('T')[0];
         } catch (_error) {
-            return _error;
+            return "";
         }
     };
 
@@ -159,6 +159,13 @@ export function SchoolCyclesGrid({ currentSchool }: SchoolCyclesGridProps) {
         setFilteredCycles(filtered);
     }, [cycles, searchTerm, statusFilter]);
 
+    // Limpiar errores cuando se abre el diálogo
+    useEffect(() => {
+        if (isOpen) {
+            setDuplicateNameError(null);
+        }
+    }, [isOpen]);
+
     const handleSubmit = async (values: Record<string, unknown>) => {
         if (!currentSchool?.school._id) {
             return;
@@ -191,7 +198,6 @@ export function SchoolCyclesGrid({ currentSchool }: SchoolCyclesGridProps) {
         } catch (error) {
             console.error("Error al enviar datos:", error);
         }
-
     };
 
     const handleDelete = async (id: string) => {
@@ -346,7 +352,14 @@ export function SchoolCyclesGrid({ currentSchool }: SchoolCyclesGridProps) {
                                         <Input
                                             placeholder="Ej: Ciclo Escolar 2024-2025"
                                             value={field.value as string || ""}
-                                            onChange={field.onChange}
+                                            onChange={(e) => {
+                                                field.onChange(e);
+                                                // Limpiar errores cuando el usuario empiece a escribir
+                                                if (form.formState.errors.name) {
+                                                    form.clearErrors("name");
+                                                }
+                                                setDuplicateNameError(null);
+                                            }}
                                             onBlur={() => {
                                                 if (field.value && !validateUniqueName(field.value as string, data?._id as string)) {
                                                     setDuplicateNameError("Ya existe un ciclo escolar con este nombre");
@@ -357,6 +370,12 @@ export function SchoolCyclesGrid({ currentSchool }: SchoolCyclesGridProps) {
                                             disabled={operation === "view"}
                                         />
                                     </FormControl>
+                                    {/* Solo mostrar el texto de ayuda si no hay errores de validación */}
+                                    {!form.formState.errors.name && !duplicateNameError && (
+                                        <div className="text-sm text-muted-foreground">
+                                            El máximo de caracteres es de 50
+                                        </div>
+                                    )}
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -372,7 +391,17 @@ export function SchoolCyclesGrid({ currentSchool }: SchoolCyclesGridProps) {
                                         <Input
                                             type="date"
                                             value={field.value as string || ""}
-                                            onChange={field.onChange}
+                                            onChange={(e) => {
+                                                field.onChange(e);
+                                                // Limpiar errores de fecha cuando cambie
+                                                if (form.formState.errors.startDate) {
+                                                    form.clearErrors("startDate");
+                                                }
+                                                // Limpiar error de refinamiento si existe
+                                                if (form.formState.errors.endDate) {
+                                                    form.clearErrors("endDate");
+                                                }
+                                            }}
                                             disabled={operation === "view"}
                                         />
                                     </FormControl>
@@ -391,10 +420,22 @@ export function SchoolCyclesGrid({ currentSchool }: SchoolCyclesGridProps) {
                                         <Input
                                             type="date"
                                             value={field.value as string || ""}
-                                            onChange={field.onChange}
+                                            onChange={(e) => {
+                                                field.onChange(e);
+                                                // Limpiar errores de fecha cuando cambie
+                                                if (form.formState.errors.endDate) {
+                                                    form.clearErrors("endDate");
+                                                }
+                                            }}
                                             disabled={operation === "view"}
                                         />
                                     </FormControl>
+                                    {/* Solo mostrar el texto de ayuda si no hay errores de validación */}
+                                    {!form.formState.errors.endDate && (
+                                        <div className="text-sm text-muted-foreground">
+                                            El ciclo debe durar mínimo 28 días y máximo 5 años
+                                        </div>
+                                    )}
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -407,7 +448,13 @@ export function SchoolCyclesGrid({ currentSchool }: SchoolCyclesGridProps) {
                                 <FormItem>
                                     <FormLabel>Estado</FormLabel>
                                     <Select
-                                        onValueChange={field.onChange}
+                                        onValueChange={(value) => {
+                                            field.onChange(value);
+                                            // Limpiar errores de status cuando cambie
+                                            if (form.formState.errors.status) {
+                                                form.clearErrors("status");
+                                            }
+                                        }}
                                         value={field.value as string}
                                         disabled={operation === "view"}
                                     >
