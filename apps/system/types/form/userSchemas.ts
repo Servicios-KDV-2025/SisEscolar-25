@@ -63,10 +63,96 @@ export const auditorSchema = userSchema;
 export const teacherSchema = userSchema;
 
 /**
- * Schema para tutores
+ * Schema para tutores (creación)
  * Los tutores tienen acceso a información de sus alumnos asignados
  */
-export const tutorSchema = userSchema;
+export const tutorCreateSchema = userSchema.extend({
+  password: z.string().optional().refine((val) => {
+    // Si se proporciona password, debe tener al menos 8 caracteres
+    if (val && val.length > 0) {
+      return val.length >= 8;
+    }
+    return true;
+  }, {
+    message: "La contraseña debe tener al menos 8 caracteres"
+  }),
+});
+
+/**
+ * Schema para tutores (edición)
+ * Los tutores tienen acceso a información de sus alumnos asignados
+ */
+export const tutorEditSchema = userSchema;
+
+/**
+ * Schema para tutores (general)
+ * Los tutores tienen acceso a información de sus alumnos asignados
+ */
+export const tutorSchema = userSchema.extend({
+  password: z.string().optional().refine((val) => {
+    // Si se proporciona password, debe tener al menos 8 caracteres
+    if (val && val.length > 0) {
+      return val.length >= 8;
+    }
+    return true;
+  }, {
+    message: "La contraseña debe tener al menos 8 caracteres"
+  }),
+});
+
+/**
+ * Schema unificado para gestión de usuarios
+ * Incluye selección de rol y departamento para el CrudDialog unificado
+ */
+export const unifiedUserCreateSchema = userSchema.extend({
+  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").optional(),
+  role: z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"], {
+    message: "Debe seleccionar un rol"
+  }),
+  department: z.enum(["secretary", "direction", "schoolControl", "technology"]).optional(),
+}).refine((data) => {
+  // Si el rol es admin, el departamento es requerido
+  if (data.role === "admin" && !data.department) {
+    return false;
+  }
+  return true;
+}, {
+  message: "El departamento es requerido para administradores",
+  path: ["department"]
+});
+
+export const unifiedUserEditSchema = userSchema.extend({
+  role: z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"], {
+    message: "Debe seleccionar un rol"
+  }),
+  department: z.enum(["secretary", "direction", "schoolControl", "technology"]).optional(),
+}).refine((data) => {
+  // Si el rol es admin, el departamento es requerido
+  if (data.role === "admin" && !data.department) {
+    return false;
+  }
+  return true;
+}, {
+  message: "El departamento es requerido para administradores",
+  path: ["department"]
+});
+
+export const unifiedUserSchema = userSchema.extend({
+  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").optional(),
+  role: z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"], {
+    message: "Debe seleccionar un rol"
+  }),
+  department: z.enum(["secretary", "direction", "schoolControl", "technology"]).optional(),
+}).refine((data) => {
+  // Si el rol es admin, el departamento es requerido
+  if (data.role === "admin" && !data.department) {
+    return false;
+  }
+  return true;
+}, {
+  message: "El departamento es requerido para administradores",
+  path: ["department"]
+});
 
 // =====================================================
 // SCHEMAS DE RELACIONES USUARIO-ESCUELA
@@ -135,8 +221,15 @@ export type Admin = z.infer<typeof adminSchema>;
 export type Auditor = z.infer<typeof auditorSchema>;
 export type Teacher = z.infer<typeof teacherSchema>;
 export type Tutor = z.infer<typeof tutorSchema>;
+export type TutorCreate = z.infer<typeof tutorCreateSchema>;
+export type TutorEdit = z.infer<typeof tutorEditSchema>;
 export type Student = z.infer<typeof studentSchema>;
 export type UserSchool = z.infer<typeof userSchoolSchema>;
+
+// Tipos para schemas unificados
+export type UnifiedUser = z.infer<typeof unifiedUserSchema>;
+export type UnifiedUserCreate = z.infer<typeof unifiedUserCreateSchema>;
+export type UnifiedUserEdit = z.infer<typeof unifiedUserEditSchema>;
 
 // Tipos completos con metadata del sistema
 export type UserWithMetadata = User & WithSystemMetadata & WithClerkId;

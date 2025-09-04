@@ -60,7 +60,7 @@ export default function GradeManagementDashboard() {
       : "skip"
   );
   const assignments = useQuery(
-    api.functions.assignments.getAssignmentsByClassAndTerm,
+    api.functions.assignment.getAssignmentsByClassAndTerm,
     selectedClass && selectedTerm
       ? {
           classCatalogId: selectedClass as Id<"classCatalog">,
@@ -184,8 +184,7 @@ export default function GradeManagementDashboard() {
       const rubric = rubrics.find((r) => r._id === rubricId);
       if (rubric && totals.totalMaxScore > 0) {
         // Calcular el porcentaje de la categoría (ej. 100% en Tareas)
-        const rubricPercentage =
-          (totals.totalScore / totals.totalMaxScore) * 100;
+        const rubricPercentage = Math.round((totals.totalScore / totals.totalMaxScore) * 100);
 
         // Multiplicar por el peso de la rúbrica (ej. 10% del total)
         // Asumimos que el peso es un valor decimal (ej. 0.1 para 10%)
@@ -297,30 +296,29 @@ export default function GradeManagementDashboard() {
 
               <div className="text-right">
                 <div className="flex items-center gap-2">
-                  {/* Display Rubrics Information */}
-                  {rubrics && rubrics.length > 0 && (
-                    <div
-                      className={`grid grid-cols-1 md:grid-cols-2 gap-4 w-full ${
-                        rubrics.length === 1 ? "lg:grid-cols-1" : ""
-                      } ${rubrics.length === 2 ? "lg:grid-cols-2" : ""} ${
-                        rubrics.length >= 3 ? "lg:grid-cols-3" : ""
-                      }`}
-                    >
-                      {rubrics.map((rubric) => (
-                        <div
-                          key={rubric._id}
-                          className="flex justify-center border border-border rounded-md px-2 py-1 bg-secondary/50"
-                        >
-                          <h3 className="font-semibold px-2">
-                            {rubric.name}:
-                          </h3>
-                          <h3 className="font-semibold">
-                            {rubric.weight * 100}%
-                          </h3>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  
+                          {/* Display Rubrics Information */}
+        {rubrics && rubrics.length > 0 && (
+            <div
+                className={`grid grid-cols-1 md:grid-cols-2 gap-4 w-full 
+  ${rubrics.length === 1 ? "lg:grid-cols-1" : ""}
+  ${rubrics.length === 2 ? "lg:grid-cols-2" : ""}
+  ${rubrics.length >= 3 ? "lg:grid-cols-3" : ""}
+  
+`}
+              >
+                {rubrics.map((rubric) => (
+                  <div
+                    key={rubric._id}
+                    className="flex justify-center border border-border rounded-md px-2 py-1 bg-secondary/50"
+                  >
+                    <h3 className="font-semibold px-2">{rubric.name}:</h3>
+                    <h3 className="font-semibold">{Math.round(rubric.weight * 100)}%</h3>
+                  </div>
+                ))}
+              </div>
+        )}
+                  
                 </div>
               </div>
             </div>

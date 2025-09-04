@@ -27,6 +27,20 @@ import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
 
+// Tipos para los datos de grupos y tutores
+interface Group {
+  _id: string;
+  name: string;
+  grade: string;
+}
+
+interface Tutor {
+  _id: string;
+  name: string;
+  lastName?: string;
+  email: string;
+}
+
 export default function AlumnosPage() {
   // Hooks de autenticación y contexto
   const { user: clerkUser, isLoaded } = useUser();
@@ -50,6 +64,7 @@ export default function AlumnosPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [groupFilter, setGroupFilter] = useState<string>("all");
+  const [tutorPopoverOpen, setTutorPopoverOpen] = useState(false);
 
   // Hook del student store con filtros por rol
   const {
@@ -62,10 +77,8 @@ export default function AlumnosPage() {
     error: studentsError,
     createStudent,
     updateStudent,
-    updateStudentStatus,
     deleteStudent,
     filterStudents,
-    searchStudents,
     clearError,
   } = useStudentsWithPermissions(
     currentSchool?.school._id as Id<"school">, 
@@ -212,13 +225,7 @@ export default function AlumnosPage() {
     }
   };
 
-  const handleStatusChange = async (studentId: string, newStatus: "active" | "inactive") => {
-    try {
-      await updateStudentStatus(studentId as Id<"student">, newStatus);
-    } catch (error) {
-      console.error("Error al cambiar estado del estudiante:", error);
-    }
-  };
+
 
   // Funciones de utilidad
   const formatDate = (timestamp?: number) => {
@@ -238,13 +245,13 @@ export default function AlumnosPage() {
 
   const getGroupInfo = (groupId: string) => {
     if (!groups) return "Cargando...";
-    const group = groups.find((g: any) => g._id === groupId);
+    const group = groups.find((g: Group) => g._id === groupId);
     return group ? `${group.grade} - ${group.name}` : "No asignado";
   };
 
   const getTutorInfo = (tutorId: string) => {
     if (!tutors) return "Cargando...";
-    const tutor = tutors.find((t: any) => t._id === tutorId);
+    const tutor = tutors.find((t: Tutor) => t._id === tutorId);
     return tutor ? `${tutor.name} ${tutor.lastName || ''}`.trim() : "No asignado";
   };
 
@@ -269,13 +276,13 @@ export default function AlumnosPage() {
     },
     {
       title: "Activos",
-      value: students.filter((student: any) => student.status === "active").length.toString(),
+      value: students.filter((student) => student.status === "active").length.toString(),
       icon: UserCheck,
       trend: "Estado activo"
     },
     {
       title: "Inactivos", 
-      value: students.filter((student: any) => student.status === "inactive").length.toString(),
+      value: students.filter((student) => student.status === "inactive").length.toString(),
       icon: UserX,
       trend: "Estado inactivo"
     },
@@ -407,7 +414,7 @@ export default function AlumnosPage() {
             {canCreateUsers && (
               <Button 
                 size="lg" 
-                className="gap-2" 
+                className="gap-2 bg-blue-600 hover:bg-blue-700" 
                 onClick={openCreate}
                 disabled={isCreating || !currentSchool || !groups?.length || !tutors?.length}
                 title={
@@ -492,7 +499,7 @@ export default function AlumnosPage() {
               </SelectTrigger>
                               <SelectContent>
                 <SelectItem value="all">Todos los grupos</SelectItem>
-                {groups?.map((group: any) => (
+                {groups?.map((group: Group) => (
                   <SelectItem key={group._id} value={group._id}>
                     {group.grade} - {group.name}
                   </SelectItem>
@@ -512,7 +519,7 @@ export default function AlumnosPage() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Lista de Alumnos</span>
-            <Badge variant="outline">{filteredStudents.length} estudiantes</Badge>
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{filteredStudents.length} estudiantes</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -530,7 +537,7 @@ export default function AlumnosPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(filteredStudents.length > 0 ? filteredStudents : students).map((student: any) => (
+                {(filteredStudents.length > 0 ? filteredStudents : students).map((student) => (
                   <TableRow key={student._id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -584,7 +591,7 @@ export default function AlumnosPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openView(student)}
+                          onClick={() => openView(student as unknown as Record<string, unknown>)}
                           className="h-8 w-8 p-0"
                         >
                           <Eye className="h-4 w-4" />
@@ -593,7 +600,7 @@ export default function AlumnosPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => openEdit(student)}
+                            onClick={() => openEdit(student as unknown as Record<string, unknown>)}
                             className="h-8 w-8 p-0"
                             disabled={isUpdating || isDeleting}
                           >
@@ -608,7 +615,7 @@ export default function AlumnosPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => openDelete(student)}
+                            onClick={() => openDelete(student as unknown as Record<string, unknown>)}
                             className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                             disabled={isUpdating || isDeleting}
                           >
@@ -637,7 +644,7 @@ export default function AlumnosPage() {
               {canCreateUsers && (
                 <Button 
                   onClick={openCreate} 
-                  className="gap-2"
+                  className="gap-2 bg-blue-600 hover:bg-blue-700"
                   disabled={!groups?.length || !tutors?.length}
                   title={
                     !groups?.length ? "No hay grupos disponibles" :
@@ -820,7 +827,7 @@ export default function AlumnosPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {groups && groups.length > 0 ? (
-                          groups.map((group: any) => (
+                          groups.map((group: Group) => (
                             <SelectItem key={group._id} value={group._id}>
                               {group.grade} - {group.name}
                             </SelectItem>
@@ -846,13 +853,12 @@ export default function AlumnosPage() {
               control={form.control}
               name="tutorId"
               render={({ field }) => {
-                const selectedTutor = tutors?.find((tutor: any) => tutor._id === field.value);
-                const [open, setOpen] = useState(false);
+                const selectedTutor = tutors?.find((tutor: Tutor) => tutor._id === field.value);
                 
                 return (
                   <FormItem className="flex flex-col">
                     <FormLabel>Tutor *</FormLabel>
-                    <Popover open={open} onOpenChange={setOpen}>
+                    <Popover open={tutorPopoverOpen} onOpenChange={setTutorPopoverOpen}>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
@@ -881,13 +887,13 @@ export default function AlumnosPage() {
                           </CommandEmpty>
                           <CommandGroup>
                             {tutors && tutors.length > 0 ? (
-                              tutors.map((tutor: any) => (
+                              tutors.map((tutor: Tutor) => (
                                 <CommandItem
                                   value={`${tutor.name} ${tutor.lastName || ''}`}
                                   key={tutor._id}
                                   onSelect={() => {
                                     field.onChange(tutor._id);
-                                    setOpen(false);
+                                    setTutorPopoverOpen(false);
                                   }}
                                 >
                                   <div className="flex flex-col">

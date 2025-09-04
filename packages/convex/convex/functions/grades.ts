@@ -47,7 +47,7 @@ export const upsertGrade = mutation({
     }
   },
 });
-
+ 
 // R: Leer todas las calificaciones de un estudiante en una clase
 export const getGradesByStudentClass = query({
   args: { studentClassId: v.id("studentClass") },
@@ -92,7 +92,7 @@ export const updateGrade = mutation({
         throw new Error("La calificación no puede ser mayor que el puntaje máximo permitido");
       }
     }
-
+ 
     // 2. Aplicar la actualización
     await ctx.db.patch(args.gradeId, {
       ...args.data,
@@ -102,10 +102,10 @@ export const updateGrade = mutation({
     return args.gradeId;
   },
 });
-
+ 
 // La función para obtener calificaciones de una clase en un periodo
 export const getGradesByClassAndTerm = query({
-  args: { 
+  args: {
     classCatalogId: v.id("classCatalog"),
     termId: v.id("term"),
   },
@@ -116,19 +116,19 @@ export const getGradesByClassAndTerm = query({
       .withIndex("by_classCatalogId", (q) => q.eq("classCatalogId", args.classCatalogId))
       .filter((q) => q.eq(q.field("termId"), args.termId))
       .collect();
-
+ 
     const assignmentIds = assignments.map(a => a._id);
-
+ 
     // Obtener todas las calificaciones que coinciden con esos IDs de tarea
     const grades = await ctx.db
       .query("grade")
       .filter((q) => q.or(...assignmentIds.map(id => q.eq(q.field("assignmentId"), id))))
       .collect();
-
+ 
     return grades;
   },
 });
-
+ 
 // D: Borrar una calificación
 export const deleteGrade = mutation({
   args: { gradeId: v.id("grade") },
