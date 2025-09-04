@@ -302,7 +302,7 @@ export default function CalendarioEscolar() {
                       const IconComponent = config?.icono || CalendarIcon;
                       return (
                         <div
-                          key={index}
+                          key={evento._id}
                           className={cn(
                             "p-4 rounded-xl border-l-4 mx-2",
                             config?.bgLight || "bg-gray-50",
