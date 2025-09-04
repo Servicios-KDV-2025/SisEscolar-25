@@ -238,9 +238,11 @@ export default function TutorPage() {
     userActions.clearLastResult();
 
     // Preparar datos para edición incluyendo userSchoolId
+    // Mapear schoolStatus a status para que el formulario muestre el estado correcto
     const editData = {
       ...user,
       userSchoolId: user.userSchoolId,
+      status: user.schoolStatus, // Usar schoolStatus en lugar del status general
     };
 
     console.log("✏️ editData preparado:", editData);
@@ -252,9 +254,11 @@ export default function TutorPage() {
     userActions.clearLastResult();
 
     // Preparar datos para vista incluyendo userSchoolId
+    // Mapear schoolStatus a status para que el formulario muestre el estado correcto
     const viewData = {
       ...user,
       userSchoolId: user.userSchoolId,
+      status: user.schoolStatus, // Usar schoolStatus en lugar del status general
     };
 
     openView(viewData);
