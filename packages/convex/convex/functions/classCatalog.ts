@@ -129,3 +129,76 @@ export const deleteClassCatalog = mutation({
         await ctx.db.delete(args._id);
     }
 });
+
+//borrar si es necesario
+
+
+export const getTeacherClasses = query({
+    handler: async (ctx) => {
+      const identity = await ctx.auth.getUserIdentity();
+      if (!identity) throw new Error("No estás autenticado.");
+  
+      const user = await ctx.db
+        .query("user")
+        .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+        .unique();
+      if (!user) throw new Error("Usuario no encontrado.");
+  
+      // Buscar las clases donde el usuario es el maestro
+      const classes = await ctx.db
+        .query("classCatalog")
+        .withIndex("by_teacher", (q) => q.eq("teacherId", user._id))
+        .collect();
+  
+      // Enriquecer con información adicional
+      const enrichedClasses = await Promise.all(
+        classes.map(async (clase) => {
+          const [subject, group] = await Promise.all([
+            ctx.db.get(clase.subjectId),
+            clase.groupId ? ctx.db.get(clase.groupId) : null,
+          ]);
+  
+          return {
+            _id: clase._id,
+            name: clase.name,
+            subject: subject?.name || "Sin asignar",
+            group: group?.name || "Sin asignar",
+            status: clase.status,
+          };
+        })
+      );
+  
+      return enrichedClasses;
+    },
+  });
+
+//  Obtener todos los periodos disponibles
+export const getAllTerms = query({
+  handler: async (ctx) => {
+    const terms = await ctx.db
+      .query("term")
+      .withIndex("by_status", (q) => q.eq("status", "active"))
+      .collect();
+    
+    return terms;
+  },
+});
+
+// Obtener periodos disponibles para una clase
+export const getTermsForClass = query({
+  args: {
+    classCatalogId: v.id("classCatalog"),
+  },
+  handler: async (ctx, args) => {
+    const classCatalog = await ctx.db.get(args.classCatalogId);
+    if (!classCatalog) throw new Error("Clase no encontrada.");
+
+    // Obtener todos los periodos activos
+    const terms = await ctx.db
+      .query("term")
+      .withIndex("by_status", (q) => q.eq("status", "active"))
+      .collect();
+
+    return terms;
+  },
+});

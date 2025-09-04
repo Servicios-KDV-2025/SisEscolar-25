@@ -205,9 +205,9 @@ const applicationTable = defineSchema({
   // Tareas, exámenes o proyectos individuales
   assignment: defineTable({
     classCatalogId: v.id("classCatalog"),
-    termId: v.id("term"),
+    termId: v.id("term"),//periodo
     gradeRubricId: v.id("gradeRubric"),
-    name: v.string(),
+    name: v.string(), //Agregar classCatalog, cicloescolar
     description: v.optional(v.string()),
     dueDate: v.number(),
     maxScore: v.number(),
@@ -220,6 +220,7 @@ const applicationTable = defineSchema({
     .index("by_createdBy", ["createdBy"]) // ✨ Para el maestro
     .index("by_rubric", ["gradeRubricId"]),
     
+  //Calificaciones Individuales
   //Calificaciones Individuales
   grade: defineTable({
     studentClassId: v.id("studentClass"),
@@ -234,6 +235,7 @@ const applicationTable = defineSchema({
     .index("by_student_class", ["studentClassId"])
     .index("by_student_assignment", ["studentClassId", "assignmentId"])
     .index("by_assignment", ["assignmentId"]),
+ 
 
   //Promedios Calculados
   termAverage: defineTable({
@@ -249,7 +251,7 @@ const applicationTable = defineSchema({
 
     //Clases
     classCatalog: defineTable({
-    termId: v.id("term"),
+    termId: v.optional(v.id("term")),
     schoolId: v.id("school"),
     schoolCycleId: v.id("schoolCycle"),
     subjectId: v.id("subject"),
