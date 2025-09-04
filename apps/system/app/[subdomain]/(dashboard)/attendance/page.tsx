@@ -27,6 +27,24 @@ interface Attendance {
   updatedAt: number
 }
 
+// Función para formatear fechas en español
+const formatDate = (date: Date): string => {
+  const options: Intl.DateTimeFormatOptions = {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  };
+  return date.toLocaleDateString('es-ES', options);
+};
+
+// Función para obtener solo la fecha sin hora (timestamp de inicio del día)
+const getStartOfDayTimestamp = (date: Date): number => {
+  const newDate = new Date(date);
+  newDate.setHours(0, 0, 0, 0);
+  return newDate.getTime();
+}
+
 export default function AttendanceDashboard() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [selectedClass, setSelectedClass] = useState<string>('')
@@ -140,7 +158,7 @@ export default function AttendanceDashboard() {
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {selectedDate ? (
-                      format(selectedDate, "PPP", { locale: es })
+                      formatDate(selectedDate) // ✅ Usamos la función nativa
                     ) : (
                       <span>Selecciona una fecha</span>
                     )}
