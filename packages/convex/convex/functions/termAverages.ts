@@ -11,13 +11,19 @@ export const closeTermAndCalculateAverage = mutation({
     classCatalogId: v.id("classCatalog"),
   },
   handler: async (ctx, args) => {
-    // 1. Obtener todos los estudiantes inscritos en la clase
+    // 1. Obtener todos los documentos necesarios para el cálculo
     const studentClasses = await ctx.db
       .query("studentClass")
       .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", args.classCatalogId))
       .collect();
+ 
+    const assignments = await ctx.db
+      .query("assignment")
+      .withIndex("by_classCatalogId_term", (q) =>
+        q.eq("classCatalogId", args.classCatalogId).eq("termId", args.termId)
+      )
+      .collect();
 
-    // 2. Obtener todos los criterios de rúbrica para el periodo
     const rubrics = await ctx.db
       .query("gradeRubric")
       .withIndex("by_class_term", (q) =>
@@ -25,37 +31,54 @@ export const closeTermAndCalculateAverage = mutation({
       )
       .collect();
 
+    const grades = await ctx.db.query("grade").collect();
+
+    // Crear mapas para un acceso rápido y eficiente a los datos
+    const assignmentsMap = new Map(assignments.map(a => [a._id, a]));
+    const rubricsMap = new Map(rubrics.map(r => [r._id, r]));
+    const gradesMap = new Map(grades.map(g => [g._id, g]));
+
     const savedIds: string[] = [];
     const user = await ctx.auth.getUserIdentity();
-    const userId = user!.subject;  
+    const userId = user!.subject;
 
     for (const studentClass of studentClasses) {
-      // 3. Obtener todas las calificaciones del estudiante
-      const grades = await ctx.db
-        .query("grade")
-        .withIndex("by_student_class", (q) => q.eq("studentClassId", studentClass._id))
-        .collect();
+      // 2. Agrupar las calificaciones del estudiante por rúbrica
+      const rubricTotals = new Map<
+        Id<"gradeRubric">,
+        { totalScore: number; totalMaxScore: number }
+      >();
 
-      // 4. Filtrar calificaciones que pertenecen al periodo y criterios
-      const gradesInTerm = grades.filter((g) =>
-        rubrics.some((r) => r._id === g.gradeRubricId)
-      );
+      const studentGrades = grades.filter(g => g.studentClassId === studentClass._id);
 
-      let totalWeighted = 0;
+      studentGrades.forEach(grade => {
+        const assignment = assignmentsMap.get(grade.assignmentId);
+        if (assignment && grade.score !== null) {
+          const rubricId = assignment.gradeRubricId;
+          const totals = rubricTotals.get(rubricId) || { totalScore: 0, totalMaxScore: 0 };
+          
+          totals.totalScore += grade.score;
+          totals.totalMaxScore += assignment.maxScore;
+          rubricTotals.set(rubricId, totals);
+        }
+      });
+
+      // 3. Calcular el promedio final ponderado
+      let finalGrade = 0;
       let totalWeight = 0;
-
-      // 5. Calcular el promedio ponderado
-      for (const rubric of rubrics) {
-        const grade = gradesInTerm.find((g) => g.gradeRubricId === rubric._id);
-        if (grade) {
-          totalWeighted += (grade.score / rubric.maxScore) * rubric.weight;
+      
+      rubricTotals.forEach((totals, rubricId) => {
+        const rubric = rubricsMap.get(rubricId);
+        if (rubric && totals.totalMaxScore > 0) {
+          const rubricPercentage = (totals.totalScore / totals.totalMaxScore); // Porcentaje de 0 a 1
+          finalGrade += rubricPercentage * rubric.weight;
           totalWeight += rubric.weight;
         }
-      }
+      });
+      
+      const averageScore = totalWeight > 0 ? Math.round((finalGrade / totalWeight) * 100) : 0;
 
-      const averageScore = totalWeight > 0 ? Math.round((totalWeighted / totalWeight) * 100) : 0;
-
-      // 6. Verificar si ya existe un promedio y actualizarlo o crear uno nuevo
+      // 4. Actualizar o insertar el promedio del periodo
       const existing = await ctx.db
         .query("termAverage")
         .withIndex("by_student_term", (q) =>
@@ -63,18 +86,22 @@ export const closeTermAndCalculateAverage = mutation({
         )
         .unique();
 
+      const termAverageData = {
+        studentClassId: studentClass._id,
+        termId: args.termId,
+        averageScore,
+      };
+
       if (existing) {
         await ctx.db.patch(existing._id, {
-          averageScore,
+          ...termAverageData,
           updatedBy: userId as Id<"user">,
           updatedAt: Date.now(),
         });
         savedIds.push(existing._id);
       } else {
         const id = await ctx.db.insert("termAverage", {
-          studentClassId: studentClass._id,
-          termId: args.termId,
-          averageScore,
+          ...termAverageData,
           createdBy: userId as Id<"user">,
           updatedBy: undefined,
           updatedAt: undefined,
@@ -83,7 +110,7 @@ export const closeTermAndCalculateAverage = mutation({
       }
     }
 
-    // 7. Marcar el periodo como "cerrado"
+    // 5. Marcar el periodo como "cerrado"
     await ctx.db.patch(args.termId, { status: "closed" });
 
     return savedIds;

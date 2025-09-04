@@ -215,6 +215,7 @@ const applicationTable = defineSchema({
     updatedAt: v.optional(v.number()),
   })
     .index("by_classCatalogId", ["classCatalogId"])
+    .index("by_classCatalogId_term", ["classCatalogId", "termId"])
     .index("by_term", ["termId"]) // ✨ Para el tutor y el admin
     .index("by_createdBy", ["createdBy"]) // ✨ Para el maestro
     .index("by_rubric", ["gradeRubricId"]),
@@ -222,19 +223,17 @@ const applicationTable = defineSchema({
   //Calificaciones Individuales
   grade: defineTable({
     studentClassId: v.id("studentClass"),
-    gradeRubricId: v.id("gradeRubric"), // Referencia al criterio de evaluación
-    score: v.number(), // Calificación obtenida por el estudiante
+    assignmentId: v.id("assignment"), // Referencia a la tarea, examen o proyecto
+    score: v.number(),
     comments: v.optional(v.string()),
     registeredById: v.id("user"),
-    // registrationDate: v.number(), //no tiene caso se puede usar _creationTime de convex
     createdBy: v.id("user"),
     updatedBy: v.optional(v.id("user")),
     updatedAt: v.optional(v.number()),
   })
     .index("by_student_class", ["studentClassId"])
-    .index("by_registered_by", ["registeredById"])
-    .index("by_rubric", ["gradeRubricId"])
-    ,
+    .index("by_student_assignment", ["studentClassId", "assignmentId"])
+    .index("by_assignment", ["assignmentId"]),
 
   //Promedios Calculados
   termAverage: defineTable({
