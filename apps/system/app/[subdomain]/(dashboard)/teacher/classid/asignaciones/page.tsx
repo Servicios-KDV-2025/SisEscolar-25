@@ -91,14 +91,14 @@ export default function TaskManagement() {
     validationErrors,
     isEditDialogOpen,
     isUpdating,
-    
+
     // Datos
     teacherAssignments: filteredTasks,
     teacherClasses,
     allTerms,
     gradeRubrics,
     assignmentsProgress,
-    
+
     // Acciones
     openEditModal,
     closeEditModal,
@@ -115,23 +115,27 @@ export default function TaskManagement() {
   const [termFilter, setTermFilter] = useState<string>("all");
   const [groupFilter, setGroupFilter] = useState<string>("all");
   const [subjectFilter, setSubjectFilter] = useState<string>("all");
-  
+
   // Estado para el dialog de detalles
   const [detailsDialogOpen, setDetailsDialogOpen] = useState<boolean>(false);
-  const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<string | null>(null);
-  
+  const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<
+    string | null
+  >(null);
+
   // Query para obtener detalles de entregas
   const assignmentDetails = useQuery(
     api.functions.assignment.getAssignmentDeliveryDetails,
-    selectedTaskForDetails ? { assignmentId: selectedTaskForDetails as Id<"assignment"> } : "skip"
+    selectedTaskForDetails
+      ? { assignmentId: selectedTaskForDetails as Id<"assignment"> }
+      : "skip"
   );
-  
+
   // Función para abrir el dialog de detalles
   const handleViewDetails = (taskId: string) => {
     setSelectedTaskForDetails(taskId);
     setDetailsDialogOpen(true);
   };
-  
+
   const handleUpdateTask = async () => {
     try {
       if (!selectedTask) {
@@ -198,8 +202,6 @@ export default function TaskManagement() {
     }
   };
 
-
-
   // Componente para contador de caracteres
   const CharacterCounter = ({
     current,
@@ -255,32 +257,25 @@ export default function TaskManagement() {
       [] as Array<{ _id: string; name: string }>
     ) || [];
 
-
   const uniqueTerm =
-    filteredTasks?.reduce<Array<{ _id: string; name: string }>>(
-      (acc, task) => {
-        const term = allTerms?.find((t) => t._id === task.termId);
-        if (term && !acc.find((r) => r._id === term._id)) {
-          acc.push({ _id: term._id, name: term.name });
-        }
-        return acc;
-      },
-      []
-    ) ?? [];
+    filteredTasks?.reduce<Array<{ _id: string; name: string }>>((acc, task) => {
+      const term = allTerms?.find((t) => t._id === task.termId);
+      if (term && !acc.find((r) => r._id === term._id)) {
+        acc.push({ _id: term._id, name: term.name });
+      }
+      return acc;
+    }, []) ?? [];
 
   const uniqueSubject =
-    filteredTasks?.reduce<Array<{ _id: string; name: string }>>(
-      (acc, task) => {
-        const subject = teacherClasses?.find(
-          (t) => t._id === task.classCatalogId
-        );
-        if (subject && !acc.find((r) => r._id === subject._id)) {
-          acc.push({ _id: subject._id, name: subject.name });
-        }
-        return acc;
-      },
-      []
-    ) ?? [];
+    filteredTasks?.reduce<Array<{ _id: string; name: string }>>((acc, task) => {
+      const subject = teacherClasses?.find(
+        (t) => t._id === task.classCatalogId
+      );
+      if (subject && !acc.find((r) => r._id === subject._id)) {
+        acc.push({ _id: subject._id, name: subject.name });
+      }
+      return acc;
+    }, []) ?? [];
 
   const uniqueGradeGroups =
     filteredTasks?.reduce<
@@ -301,7 +296,6 @@ export default function TaskManagement() {
 
       return acc;
     }, []) ?? [];
-
 
   const filteredTasksList =
     filteredTasks?.filter((task) => {
@@ -359,7 +353,7 @@ export default function TaskManagement() {
               Modifica los datos de la asignación
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             {/* Selección de Clase */}
             <div className="grid gap-2">
@@ -655,10 +649,12 @@ export default function TaskManagement() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {filteredTasksList?.map((task) => (
+              {filteredTasksList
+                ?.sort((a, b) => b._creationTime - a._creationTime) 
+                .map((task) => (
                 <div
                   key={task._id}
-                  className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                  className="border rounded-lg p-4 hover:shadow-md transition-shadow "
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
@@ -723,7 +719,9 @@ export default function TaskManagement() {
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel className="cursor-pointer">Cancelar</AlertDialogCancel>
+                            <AlertDialogCancel className="cursor-pointer">
+                              Cancelar
+                            </AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => handleDeleteTask(task._id)}
                               className=" bg-white text-red-600 border-2 border-red-600 hover:bg-red-600 hover:text-white cursor-pointer"
@@ -739,10 +737,17 @@ export default function TaskManagement() {
                     <div className="flex items-center gap-4">
                       <span className="text-sm">
                         <span className="font-medium">
-                          {getTaskProgressFromQuery(task._id, assignmentsProgress)?.submittedCount || 0}
+                          {getTaskProgressFromQuery(
+                            task._id,
+                            assignmentsProgress
+                          )?.submittedCount || 0}
                         </span>{" "}
-                        de <span className="font-medium">
-                          {getTaskProgressFromQuery(task._id, assignmentsProgress)?.totalStudents || 0}
+                        de{" "}
+                        <span className="font-medium">
+                          {getTaskProgressFromQuery(
+                            task._id,
+                            assignmentsProgress
+                          )?.totalStudents || 0}
                         </span>{" "}
                         entregas
                       </span>
@@ -750,7 +755,7 @@ export default function TaskManagement() {
                         <div
                           className="bg-green-600 h-2 rounded-full"
                           style={{
-                            width: `${getTaskProgressFromQuery(task._id, assignmentsProgress)?.progressPercentage || 0}%`
+                            width: `${getTaskProgressFromQuery(task._id, assignmentsProgress)?.progressPercentage || 0}%`,
                           }}
                         ></div>
                       </div>
@@ -781,7 +786,9 @@ export default function TaskManagement() {
       <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Detalles de: {assignmentDetails?.assignment.name}</DialogTitle>
+            <DialogTitle>
+              Detalles de: {assignmentDetails?.assignment.name}
+            </DialogTitle>
           </DialogHeader>
 
           {assignmentDetails && (
@@ -791,14 +798,18 @@ export default function TaskManagement() {
                   <span className="text-sm font-medium text-gray-500">
                     Clase:
                   </span>
-                  <p className="text-gray-900">{assignmentDetails.classCatalog.name}</p>
+                  <p className="text-gray-900">
+                    {assignmentDetails.classCatalog.name}
+                  </p>
                 </div>
                 <div>
                   <span className="text-sm font-medium text-gray-500">
                     Fecha de Entrega:
                   </span>
                   <p className="text-gray-900">
-                    {new Date(assignmentDetails.assignment.dueDate).toLocaleDateString("es-ES")}
+                    {new Date(
+                      assignmentDetails.assignment.dueDate
+                    ).toLocaleDateString("es-ES")}
                   </p>
                 </div>
                 <div>
@@ -806,31 +817,62 @@ export default function TaskManagement() {
                     Progreso:
                   </span>
                   <p className="text-gray-900">
-                    {assignmentDetails.submittedCount}/{assignmentDetails.totalStudents}
-                  </p>
-                  <p className="text-gray-900">
-                    {assignmentDetails.totalStudents > 0 
-                      ? `${Math.round((assignmentDetails.submittedCount / assignmentDetails.totalStudents) * 100)}%`
-                      : "0%"}
+                    {assignmentDetails.submittedCount}/
+                    {assignmentDetails.totalStudents}
                   </p>
                 </div>
                 <div>
                   <span className="text-sm font-medium text-gray-500">
                     Estado:
                   </span>
-                  <Badge className={
-                    assignmentDetails.submittedCount === assignmentDetails.totalStudents
-                      ? "bg-green-100 text-green-800"
-                      : assignmentDetails.submittedCount > 0
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-red-100 text-red-800"
-                  }>
-                    {assignmentDetails.submittedCount === assignmentDetails.totalStudents
+                  <Badge
+                    className={
+                      assignmentDetails.submittedCount ===
+                      assignmentDetails.totalStudents
+                        ? "bg-green-100 text-green-800"
+                        : assignmentDetails.submittedCount > 0
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-red-100 text-red-800"
+                    }
+                  >
+                    {assignmentDetails.submittedCount ===
+                    assignmentDetails.totalStudents
                       ? "Completada"
                       : assignmentDetails.submittedCount > 0
                         ? "En Progreso"
                         : "Sin Entregas"}
                   </Badge>
+                </div>
+                <div className="text-gray-900 ">
+                  {assignmentDetails.totalStudents > 0 ? (
+                    <div className="flex items-center gap-3">
+                      {/* Barra de progreso visual */}
+                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                          style={{
+                            width: `${Math.round((assignmentDetails.submittedCount / assignmentDetails.totalStudents) * 100)}%`,
+                          }}
+                        />
+                      </div>
+                      {/* Porcentaje al lado */}
+                      <div className="text-sm font-semibold text-gray-700 min-w-[3rem] text-right">
+                        {Math.round(
+                          (assignmentDetails.submittedCount /
+                            assignmentDetails.totalStudents) *
+                            100
+                        )}
+                        %
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 bg-gray-200 rounded-full h-2"></div>
+                      <div className="text-sm font-semibold text-gray-700 min-w-[3rem] text-right">
+                        0%
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -838,11 +880,12 @@ export default function TaskManagement() {
                 <div>
                   <h4 className="text-lg font-semibold text-green-700 mb-3 flex items-center">
                     <CheckCircle className="w-5 h-5 mr-2" />
-                    Estudiantes que Entregaron ({assignmentDetails.submittedCount})
+                    Estudiantes que Entregaron (
+                    {assignmentDetails.submittedCount})
                   </h4>
                   <div className="grid grid-cols-2 gap-2">
                     {assignmentDetails.submittedStudents
-                      .filter(student => student !== null)
+                      .filter((student) => student !== null)
                       .map((student, index) => (
                         <div
                           key={index}
@@ -850,10 +893,14 @@ export default function TaskManagement() {
                         >
                           <div className="flex items-center gap-2">
                             <CheckCircle className="w-4 h-4 text-green-500" />
-                            <span className="text-sm text-green-800">{student.name}</span>
+                            <span className="text-sm text-green-800">
+                              {student.name}
+                            </span>
                           </div>
                           <span className="text-xs text-green-600">
-                            {student.grade !== null ? `${student.grade}/${assignmentDetails.assignment.maxScore}` : "Sin calificar"}
+                            {student.grade !== null
+                              ? `${student.grade}/${assignmentDetails.assignment.maxScore}`
+                              : "Sin calificar"}
                           </span>
                         </div>
                       ))}
@@ -869,14 +916,16 @@ export default function TaskManagement() {
                   </h4>
                   <div className="grid grid-cols-2 gap-2">
                     {assignmentDetails.pendingStudents
-                      .filter(student => student !== null)
+                      .filter((student) => student !== null)
                       .map((student, index) => (
                         <div
                           key={index}
                           className="flex items-center gap-2 p-2 bg-red-50 rounded"
                         >
                           <XCircle className="w-4 h-4 text-red-500" />
-                          <span className="text-sm text-red-800">{student.name}</span>
+                          <span className="text-sm text-red-800">
+                            {student.name}
+                          </span>
                         </div>
                       ))}
                   </div>

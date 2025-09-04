@@ -302,7 +302,7 @@ export const getAssignmentDeliveryDetails = query({
           enrollment: student.enrollment,
           submitted: !!grade,
           grade: grade?.score || null,
-          submittedDate: grade ? new Date(grade.createdBy).toISOString() : null,
+          submittedDate: grade?.updatedAt ? new Date(grade.updatedAt).toISOString() : null,
         };
       })
     );

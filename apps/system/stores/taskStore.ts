@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
+import { Id } from "@repo/convex/convex/_generated/dataModel";
 
 // Tipos para las tareas
 export type Task = {
@@ -254,8 +255,8 @@ export const useTask = () => {
       (store.selectedTask && store.selectedTask.classCatalogId && store.selectedTask.termId)
       ? {
           classCatalogId: (store.formData.classCatalogId ||
-            store.selectedTask?.classCatalogId) as any,
-          termId: (store.formData.termId || store.selectedTask?.termId) as any,
+            store.selectedTask?.classCatalogId) as Id<"classCatalog"> ,
+          termId: (store.formData.termId || store.selectedTask?.termId) as Id<"term"> ,
         }
       : "skip"
   );
@@ -271,9 +272,9 @@ export const useTask = () => {
     store.setError(null);
     try {
       await createAssignmentMutation({
-        classCatalogId: data.classCatalogId as any,
-        termId: data.termId as any,
-        gradeRubricId: data.gradeRubricId as any,
+        classCatalogId: data.classCatalogId as Id<"classCatalog">,
+        termId: data.termId as Id<"term">,
+        gradeRubricId: data.gradeRubricId as Id<"gradeRubric">,
         name: data.name,
         description: data.description,
         dueDate: data.dueDate,
@@ -295,11 +296,11 @@ export const useTask = () => {
     store.setError(null);
     try {
       await updateAssignmentMutation({
-        id: data.id as any,
+        id: data.id as Id<"assignment">,
         patch: {
-          classCatalogId: data.patch.classCatalogId as any,
-          termId: data.patch.termId as any,
-          gradeRubricId: data.patch.gradeRubricId as any,
+          classCatalogId: data.patch.classCatalogId as Id<"classCatalog">,
+          termId: data.patch.termId as Id<"term">,
+          gradeRubricId: data.patch.gradeRubricId as Id<"gradeRubric">,
           name: data.patch.name,
           description: data.patch.description,
           dueDate: data.patch.dueDate,
@@ -321,7 +322,7 @@ export const useTask = () => {
     store.setDeleting(true);
     store.setError(null);
     try {
-      await deleteAssignmentMutation({ id: id as any });
+      await deleteAssignmentMutation({ id: id as Id<"assignment"> });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete task';
       store.setError(errorMessage);
