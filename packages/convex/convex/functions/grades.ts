@@ -1,6 +1,6 @@
 import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
- 
+
 // La función para crear o actualizar calificaciones (upsert)
 export const upsertGrade = mutation({
   args: {
@@ -19,7 +19,7 @@ export const upsertGrade = mutation({
     if (args.score > assignment.maxScore) {
       throw new Error("La calificación no puede ser mayor que el puntaje máximo permitido.");
     }
- 
+
     // Buscar si la calificación ya existe usando el nuevo índice
     const existingGrade = await ctx.db
       .query("grade")
@@ -27,7 +27,7 @@ export const upsertGrade = mutation({
         q.eq("studentClassId", args.studentClassId).eq("assignmentId", args.assignmentId)
       )
       .unique();
- 
+
     if (existingGrade) {
       // Si existe, actualizarla
       await ctx.db.patch(existingGrade._id, {
@@ -58,7 +58,7 @@ export const getGradesByStudentClass = query({
       .collect();
   },
 });
- 
+
 // R: Leer calificaciones por tarea
 export const getGradesByAssignment = query({
   args: { assignmentId: v.id("assignment") },
@@ -69,8 +69,8 @@ export const getGradesByAssignment = query({
       .collect();
   },
 });
- 
- 
+
+
 // U: Actualizar una calificación
 export const updateGrade = mutation({
   args: {

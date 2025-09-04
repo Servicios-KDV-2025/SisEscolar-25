@@ -109,10 +109,14 @@ export const updateGradeRubric = mutation({
 export const deleteGradeRubric = mutation({
   args: { gradeRubricId: v.id("gradeRubric") },
   handler: async (ctx, args) => {
-    // ⚠️ Importante: Agrega aquí la lógica para verificar si existen
-    // calificaciones (grade) vinculadas a este criterio antes de borrar.
-    await ctx.db.delete(args.gradeRubricId);
-    return args.gradeRubricId;
+    
+    // Buscar el documento antes de intentar eliminarlo
+    const rubric = await ctx.db.get(args.gradeRubricId);
+
+    // Si el documento existe, lo elimina. Si no, no hace nada y evita el error.
+    if (rubric) {
+      await ctx.db.delete(args.gradeRubricId);
+    }
   },
 });
 

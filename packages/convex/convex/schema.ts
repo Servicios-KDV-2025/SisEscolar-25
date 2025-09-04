@@ -153,10 +153,14 @@ const applicationTable = defineSchema({
     //Horarios
     schedule: defineTable({
         schoolId: v.id("school"),
-        name: v.string(),
-        day: v.string(),
-        week: v.string(),
-        // scheduleDate: v.string(),
+        name: v.string(), //El nombre viene desde el nombre (name) de classCatalog
+        day: v.union(
+          v.literal('lun.'),
+          v.literal('mar.'),
+          v.literal('mié.'),
+          v.literal('jue.'),
+          v.literal('vie.'),
+        ),
         startTime: v.string(),
         endTime: v.string(),
         status: v.union(
@@ -165,7 +169,7 @@ const applicationTable = defineSchema({
         ),
         updatedAt: v.number(),
     })
-    .index("by_school_day_week", ["schoolId","day","week"])
+    .index("by_school_day", ["schoolId","day",])
     .index("by_status", ["status"]),
 
   //Periodos
@@ -211,6 +215,7 @@ const applicationTable = defineSchema({
     updatedAt: v.optional(v.number()),
   })
     .index("by_classCatalogId", ["classCatalogId"])
+    .index("by_classCatalogId_term", ["classCatalogId", "termId"])
     .index("by_term", ["termId"]) // ✨ Para el tutor y el admin
     .index("by_createdBy", ["createdBy"]) // ✨ Para el maestro
     .index("by_rubric", ["gradeRubricId"]),
@@ -297,11 +302,12 @@ const applicationTable = defineSchema({
     comments: v.optional(v.string()),
     registrationDate: v.number(),
     createdBy: v.id("user"),
-    updatedBy: v.optional(v.id("user")),
-    updatedAt: v.optional(v.number()),
+    updatedBy: v.id("user"),
+    updatedAt: v.number(),
   })
     .index("by_student_class", ["studentClassId"])
-    .index("by_date", ["date"]),
+    .index("by_date", ["date"])
+    .index("by_student_class_and_date", ["studentClassId", "date"]),
 
   //Eventos del calendario escolar
   calendar: defineTable({
@@ -330,6 +336,34 @@ const applicationTable = defineSchema({
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
   }).index("by_school", ["schoolId"]),
+
+  //Suscriptions
+  schoolSubscription: defineTable({
+    schoolId: v.id("school"),
+    userId: v.id("user"),
+    stripeCustomerId: v.string(),
+    stripeSubscriptionId: v.string(),
+    currency: v.string(),
+    plan: v.string(),
+    status: v.union(
+      v.literal("active"),
+      v.literal("past_due"),
+      v.literal("canceled"),
+      v.literal("trialing"),
+      v.literal("inactive"),
+      v.literal("incomplete"),
+      v.literal("incomplete_expired"),
+      v.literal("unpaid"),
+      v.literal("paused"),
+    ),
+    currentPeriodStart: v.number(),
+    currentPeriodEnd: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_schoolId", ["schoolId"])
+    .index("by_stripeSubscriptionId", ["stripeSubscriptionId"])
+    .index("by_status", ["status"])
 });
 
 export default applicationTable;

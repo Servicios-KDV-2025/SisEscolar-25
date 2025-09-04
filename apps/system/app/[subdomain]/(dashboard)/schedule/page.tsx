@@ -3,18 +3,19 @@
 import { useUser } from "@clerk/nextjs";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { Button } from "@repo/ui/components/shadcn/button";
-import { Eye, Pencil, Plus, Trash2, CalendarDays, Clock3, CalendarMinus2 } from "@repo/ui/icons";
+import { Eye, Pencil, Plus, Trash2, CalendarDays, Clock3 } from "@repo/ui/icons";
 import { useSchedule } from "stores/scheduleStore";
 import { useCurrentSchool } from "stores/userSchoolsStore";
 import { useUserWithConvex } from "stores/userStore";
 import { useCrudDialog, CrudDialog } from "@repo/ui/components/dialog/crud-dialog";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
 import { Input } from "@repo/ui/components/shadcn/input";
-// import { toast } from "sonner";
+import { toast } from "sonner";  
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@repo/ui/components/shadcn/select";
 import { ScheduleFormData, scheduleSchema } from "schema/scheduleSchema"; 
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card";
 import { useState, useMemo } from "react"
+import { useClassCatalog } from "stores/classCatalogStore";
 
 type FilterType = 'all' | 'active' | 'inactive'
 
@@ -24,14 +25,6 @@ export default function SchedulePage() {
   const {currentSchool, isLoading} = useCurrentSchool(currentUser?._id)
   // Estado para el filtro
   const [filter, setFilter] = useState<FilterType>('all')
-
-  // const formatDate = (timestamp: number) => {
-  //       return new Date(timestamp).toLocaleDateString("es-ES", {
-  //           year: "numeric",
-  //           month: "short",
-  //           day: "numeric",
-  //       });
-  //   }
 
   const {
     schedule,
@@ -46,6 +39,10 @@ export default function SchedulePage() {
     deleteError,
     clearErrors: clearScheduleErrors
   } = useSchedule(currentSchool?.school._id as Id<'school'>)
+
+  const {
+    classCatalogs
+  } = useClassCatalog(currentSchool?.school._id as Id<'school'>)
 
   // Filtrar los horarios según el filtro seleccionado
   const filteredSchedules = useMemo(() => {
@@ -72,8 +69,6 @@ export default function SchedulePage() {
   } = useCrudDialog(scheduleSchema, {
     name: '',
     day: '',
-    week: '',
-    // scheduleDate: '',
     startTime: '',
     endTime: '',
     status: 'active'
@@ -82,7 +77,7 @@ export default function SchedulePage() {
   // Ejemplo: crear un horario rapido
   const handleSubmit = async (values: Record<string, unknown>) => {
     if(!currentSchool?.school._id){
-      // toast.error('Error: Escuela no seleccionada')
+      toast.error('Error: Escuela no seleccionada')
       return 
     } 
 
@@ -93,32 +88,29 @@ export default function SchedulePage() {
         await createSchedule({
           schoolId: currentSchool.school._id,
           name: value.name as string,
-          day: value.day as string,
-          week: value.week as string,
-          // scheduleDate: new Date(value.scheduleDate).getTime().toString(),
+          day: value.day as 'lun.' | 'mar.' | 'mié.' | 'jue.' | 'vie.',
           startTime: value.startTime as string,
           endTime: value.endTime as string,
           status: value.status as 'active' | 'inactive',
           updatedAt: Date.now()
         })
-        // toast.success('Horario creado exitosamente')
+        toast.success('Horario creado exitosamente')
       } else if(operation === 'edit' && data?._id) {
         await updateSchedule({
           id: data._id,
           schoolId: currentSchool.school._id,
           name: value.name as string,
-          day: value.day as string,
-          week: value.week as string,
-          // scheduleDate: new Date(value.scheduleDate).getTime().toString(),
+          day: value.day as 'lun.' | 'mar.' | 'mié.' | 'jue.' | 'vie.',
           startTime: value.startTime as string,
           endTime: value.endTime as string,
           status: value.status as 'active' | 'inactive',
           updatedAt: Date.now()
         })
-        // toast.success('Horario actualizado exitosamente')
+        toast.success('Horario actualizado exitosamente')
       }
     } catch (error) {
-      console.error('Error en operación CRUD:', error);
+      console.error('Error en operación CRUD:', error)
+
       close()
       throw error;
     }
@@ -126,13 +118,13 @@ export default function SchedulePage() {
 
   const handleDelete = async (id: string) => {
     if (!currentSchool?.school._id) {
-      // toast.error('Error: Escuela no seleccionada');
+      toast.error('Error: Escuela no seleccionada')
       return
     }
 
     try {
       await deleteSchedule(id, currentSchool.school._id);
-      // toast.success('Eliminado correctamente')
+      toast.success('Eliminado correctamente')
     } catch (error) {
       console.error('Error al eliminar horario:', error);
       throw error;
@@ -188,15 +180,29 @@ export default function SchedulePage() {
       {(createError || updateError || deleteError) && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
           <div className="text-sm text-red-800">
-            {createError && <div>Error al crear horario: {createError}</div>}
-            {updateError && <div>Error al actualizar horario: {updateError}</div>}
+
+            {createError === "HORARIO_SUPERPUESTO" && (
+              <div>Error: El horario se solapa con otro horario existente en el mismo día</div>
+            )}
+            {updateError === "HORARIO_SUPERPUESTO" && (
+              <div>Error: El horario se solapa con otro horario existente en el mismo día</div>
+            )}
+            {createError === "HORARIO_DUPLICADO" && (
+              <div>Error: Ya existe un horario idéntico para este día</div>
+            )}
+            {createError && createError !== "HORARIO_SUPERPUESTO" && createError !== "HORARIO_DUPLICADO" && (
+              <div>Error al crear horario: {createError}</div>
+            )}
+            {updateError && updateError !== "HORARIO_SUPERPUESTO" && (
+              <div>Error al actualizar horario: {updateError}</div>
+            )}
             {deleteError && <div>Error al eliminar horario: {deleteError}</div>}
-            <button 
+            <Button 
               onClick={clearScheduleErrors} 
-              className="text-xs text-blue-500 underline mt-2"
+              className="text-xs text-red-950 bg-red-200 mt-2 hover:bg-red-300"
             >
               Limpiar errores
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -226,22 +232,24 @@ export default function SchedulePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
-                <p className="flex space-x-2">
+                <p className="flex space-x-1">
                   <CalendarDays /><span className="font-semibold flex">Día:</span>
-                  {/* {formatDate(+schedule.scheduleDate)} */}
-                  {schedule.day}
+                  <span>
+                    {schedule.day}
+                  </span>
                 </p>
-                <p className="flex space-x-2">
-                  <CalendarMinus2 /><span className="font-semibold flex">Semana:</span>{schedule.week}
+                <p className="flex space-x-1">
+                  <Clock3 />
+                  <span className="font-semibold flex">Inicio:</span>
+                  <span>{schedule.startTime}</span>
                 </p>
-                <p className="flex space-x-2">
-                  <Clock3 /><span className="font-semibold flex">Inicio:</span>{schedule.startTime}
-                </p>
-                <p className="flex space-x-2">
-                  <Clock3 /><span className="font-semibold flex">Fin:</span>{schedule.endTime}
+                <p className="flex space-x-1">
+                  <Clock3 />
+                  <span className="font-semibold flex">Fin:</span>
+                  <span>{schedule.endTime}</span>
                 </p>
               </CardContent>
-              <CardFooter className="flex justify-center gap-2">
+              <CardFooter className="flex justify-end gap-2">
                 <Button
                   variant='outline'
                   size='sm'
@@ -281,8 +289,6 @@ export default function SchedulePage() {
         defaultValues={{
           name: "",
           day: '',
-          week: '',
-          // scheduleDate: new Date().toISOString().split('T')[0],
           startTime: "07:00",
           endTime: "08:00",
           status: 'active'
@@ -304,41 +310,22 @@ export default function SchedulePage() {
                 <FormItem>
                   <FormLabel>Nombre</FormLabel>
                   <FormControl>
-                    <Input
-                      maxLength={30}
-                      {...field}
-                      value={field.value as string}
-                      placeholder='Nombre del horario'
-                      disabled={operation === 'view'}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <p className="text-green-300 text-center text-[14px] font-medium">El día y la semana no pueden coincidir con un registro previo</p>
-            <FormField
-              control={form.control}
-              name="day"
-              render={({field}) => (
-                <FormItem>
-                  <FormLabel>Dia de la semana</FormLabel>
-                  <FormControl>
                     <Select
                       onValueChange={field.onChange}
                       value={field.value as string}
+                      disabled={operation === 'view'}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un día" />
+                          <SelectValue placeholder="Seleccionar materia" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="lunes">Lunes</SelectItem>
-                        <SelectItem value="martes">Martes</SelectItem>
-                        <SelectItem value="miercoles">Miercoles</SelectItem>
-                        <SelectItem value="jueves">Jueves</SelectItem>
-                        <SelectItem value="viernes">Viernes</SelectItem>
+                        {classCatalogs.map((catalog) => (
+                          <SelectItem key={catalog._id} value={catalog.name}>
+                            {catalog.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </FormControl>
@@ -348,19 +335,29 @@ export default function SchedulePage() {
             />
             <FormField
               control={form.control}
-              name="week"
+              name="day"
               render={({field}) => (
                 <FormItem>
-                  <FormLabel>Semana del año</FormLabel>
+                  <FormLabel>Dia de la semana</FormLabel>
                   <FormControl>
-                    <Input
-                      type='text'
-                      maxLength={2}
-                      {...field}
-                      value={field.value as string}
-                      placeholder='Semanas en el año (1 - 52)'
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value as 'lun.' | 'mar.' | 'mié.' | 'jue' | 'vie.'}
                       disabled={operation === 'view'}
-                    />
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona un día" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="lun.">Lunes</SelectItem>
+                        <SelectItem value="mar.">Martes</SelectItem>
+                        <SelectItem value="mié.">Miercoles</SelectItem>
+                        <SelectItem value="jue.">Jueves</SelectItem>
+                        <SelectItem value="vie.">Viernes</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
