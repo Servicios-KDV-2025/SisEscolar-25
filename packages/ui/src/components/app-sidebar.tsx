@@ -148,7 +148,7 @@ const defaultNavData = {
         },
         {
           title: "Rúbricas",
-          url: `/gradeRubic`,
+          url: `/RubricaDeCalificaciones`,
         },
         {
           title: "Asignaciones",
