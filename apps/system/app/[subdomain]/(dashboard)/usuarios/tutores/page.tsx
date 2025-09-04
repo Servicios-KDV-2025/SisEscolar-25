@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo } from "react";
@@ -6,25 +5,69 @@ import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/shadcn/card";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Input } from "@repo/ui/components/shadcn/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select";
-import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/shadcn/avatar";
-import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
-import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@repo/ui/components/shadcn/form";
-import { 
-  Users, Search, Plus, Eye, Edit, Trash2, Filter, 
-  Mail, Phone, MapPin, Calendar, AlertCircle,
-  CheckCircle, GraduationCap
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@repo/ui/components/shadcn/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@repo/ui/components/shadcn/select";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@repo/ui/components/shadcn/avatar";
+import {
+  CrudDialog,
+  useCrudDialog,
+} from "@repo/ui/components/dialog/crud-dialog";
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@repo/ui/components/shadcn/form";
+import {
+  Users,
+  Search,
+  Plus,
+  Eye,
+  Edit,
+  Trash2,
+  Filter,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  AlertCircle,
+  CheckCircle,
+  GraduationCap,
 } from "@repo/ui/icons";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
-import { 
-  tutorSchema, 
-  tutorCreateSchema, 
-  tutorEditSchema
+import {
+  tutorSchema,
+  tutorCreateSchema,
+  tutorEditSchema,
 } from "@/types/form/userSchemas";
 import { useUserWithConvex } from "../../../../../stores/userStore";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
@@ -44,10 +87,11 @@ type UserFromConvex = {
   createdAt: number;
   updatedAt: number;
   clerkId: string;
-  status?: 'active' | 'inactive';
+  status?: "active" | "inactive";
   userSchoolId: Id<"userSchool">;
-  schoolRole: Array<'superadmin' | 'admin' | 'auditor' | 'teacher' | 'tutor'>;
-  department?: 'secretary' | 'direction' | 'schoolControl' | 'technology';
+  schoolRole: Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
+  schoolStatus: "active" | "inactive";
+  department?: "secretary" | "direction" | "schoolControl" | "technology";
 };
 
 // Tipo para el resultado de búsqueda de usuarios
@@ -57,7 +101,7 @@ type SearchUserResult = {
   lastName?: string;
   email: string;
   clerkId: string;
-  status?: 'active' | 'inactive';
+  status?: "active" | "inactive";
   createdAt: number;
   updatedAt: number;
 };
@@ -65,9 +109,9 @@ type SearchUserResult = {
 // Función para obtener el esquema correcto según la operación
 const getSchemaForOperation = (operation: string) => {
   switch (operation) {
-    case 'create':
+    case "create":
       return tutorCreateSchema;
-    case 'edit':
+    case "edit":
       return tutorEditSchema;
     default:
       return tutorSchema;
@@ -79,32 +123,54 @@ export default function TutorPage() {
 
   // Obtener usuario actual
   const { currentUser } = useUserWithConvex(clerkUser?.id);
-  
+
   // Obtener escuela actual por subdominio
-  const { currentSchool, isLoading: schoolLoading } = useCurrentSchool(currentUser?._id);
-  
+  const { currentSchool, isLoading: schoolLoading } = useCurrentSchool(
+    currentUser?._id
+  );
+
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Obtener usuarios de la escuela actual (solo tutores)
-  const allUsers = useQuery(
+  const activeUsers = useQuery(
     api.functions.schools.getUsersBySchoolAndRoles,
-    currentSchool?.school?._id ? {
-      schoolId: currentSchool.school._id,
-      status: "active"
-    } : "skip"
+    currentSchool?.school?._id
+      ? {
+          schoolId: currentSchool.school._id,
+          roles: ["tutor"],
+          status: "active",
+        }
+      : "skip"
   );
+
+  const inactiveUsers = useQuery(
+    api.functions.schools.getUsersBySchoolAndRoles,
+    currentSchool?.school?._id
+      ? {
+          schoolId: currentSchool.school._id,
+          roles: ["tutor"],
+          status: "inactive",
+        }
+      : "skip"
+  );
+
+  const allUsers = activeUsers?.concat(inactiveUsers || []);
+
+  // const allUsers = activeUsers?.concat(inactiveUsers || []);
 
   // User Actions Store para CRUD operations
   const userActions = useUserActionsWithConvex();
-  
 
-  
   // Mutations para gestión de relaciones usuario-escuela
-  const createUserSchoolRelation = useMutation(api.functions.schools.createUserSchool);
+  const createUserSchoolRelation = useMutation(
+    api.functions.schools.createUserSchool
+  );
   const updateUserSchoolRelation = useMutation(api.functions.userSchool.update);
-  const deactivateUserInSchool = useMutation(api.functions.schools.deactivateUserInSchool);
+  const deactivateUserInSchool = useMutation(
+    api.functions.schools.deactivateUserInSchool
+  );
 
   // Estado para búsqueda dinámica de usuario
   const [searchEmail, setSearchEmail] = useState<string | null>(null);
@@ -112,15 +178,17 @@ export default function TutorPage() {
     resolve: (value: SearchUserResult[]) => void;
     reject: (reason?: unknown) => void;
   } | null>(null);
-  
+
   // Query para buscar usuario por email cuando se necesite
   const searchResult = useQuery(
     api.functions.users.searchUsers,
-    searchEmail ? {
-      searchTerm: searchEmail,
-      status: "active",
-      limit: 1
-    } : "skip"
+    searchEmail
+      ? {
+          searchTerm: searchEmail,
+          status: "active",
+          limit: 1,
+        }
+      : "skip"
   );
 
   // Effect para resolver la promesa cuando llegue el resultado
@@ -133,7 +201,9 @@ export default function TutorPage() {
   }, [searchResult, searchResultPromise]);
 
   // Función auxiliar para buscar usuario de manera asíncrona
-  const searchUserByEmailAsync = (email: string): Promise<SearchUserResult[]> => {
+  const searchUserByEmailAsync = (
+    email: string
+  ): Promise<SearchUserResult[]> => {
     return new Promise((resolve, reject) => {
       setSearchResultPromise({ resolve, reject });
       setSearchEmail(email);
@@ -166,13 +236,13 @@ export default function TutorPage() {
     console.log("✏️ handleOpenEdit LLAMADO - User data:", user);
     userActions.clearErrors();
     userActions.clearLastResult();
-    
+
     // Preparar datos para edición incluyendo userSchoolId
     const editData = {
       ...user,
       userSchoolId: user.userSchoolId,
     };
-    
+
     console.log("✏️ editData preparado:", editData);
     openEdit(editData);
   };
@@ -180,13 +250,13 @@ export default function TutorPage() {
   const handleOpenView = (user: UserFromConvex) => {
     userActions.clearErrors();
     userActions.clearLastResult();
-    
+
     // Preparar datos para vista incluyendo userSchoolId
     const viewData = {
       ...user,
       userSchoolId: user.userSchoolId,
     };
-    
+
     openView(viewData);
   };
 
@@ -199,17 +269,27 @@ export default function TutorPage() {
   // Filtrado de datos - Solo tutores
   const filteredUsers = useMemo(() => {
     if (!allUsers) return [];
-    
+
+    console.log("🔍 allUsers:", allUsers);
+    console.log(
+      "primer usuario:",
+      allUsers[0],
+      "schoolRole:",
+      allUsers[0]?.schoolStatus
+    );
+
     return allUsers
-      .filter((user: UserFromConvex) => user.schoolRole.includes('tutor')) // Solo tutores
+      .filter((user: UserFromConvex) => user.schoolRole.includes("tutor")) // Solo tutores
       .filter((user: UserFromConvex) => {
-        const searchMatch = 
+        const searchMatch =
           user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           user.email.toLowerCase().includes(searchTerm.toLowerCase());
-        
-        const statusMatch = statusFilter === "all" || (user.status || 'active') === statusFilter;
-        
+
+        const statusMatch =
+          statusFilter === "all" ||
+          (user.schoolStatus || "active") === statusFilter;
+
         return searchMatch && statusMatch;
       });
   }, [allUsers, searchTerm, statusFilter]);
@@ -217,38 +297,48 @@ export default function TutorPage() {
   // Funciones CRUD
   const handleCreate = async (formData: Record<string, unknown>) => {
     console.log("Datos recibidos en handleCreate:", formData);
-    
+
     if (!currentSchool?.school?._id) {
       console.error("No hay escuela actual disponible");
       throw new Error("No hay escuela actual disponible");
     }
 
     const email = formData.email as string;
-    
+
     console.log("📋 Creando tutor con email:", email);
-    
+
     try {
       // PASO 1: Buscar si el usuario ya existe en Convex
       console.log("🔍 Buscando usuario existente por email:", email);
-      
+
       const existingUsers = await searchUserByEmailAsync(email);
 
       if (existingUsers && existingUsers.length > 0) {
         // FLUJO A: Usuario existe, solo asignar a escuela
         const existingUser = existingUsers[0];
-        
-        if (!existingUser?.clerkId || !existingUser?.name || !existingUser?.email) {
-          throw new Error("Error al obtener datos completos del usuario existente");
+
+        if (
+          !existingUser?.clerkId ||
+          !existingUser?.name ||
+          !existingUser?.email
+        ) {
+          throw new Error(
+            "Error al obtener datos completos del usuario existente"
+          );
         }
-        
-        console.log("✅ Usuario encontrado:", existingUser.name, existingUser.email);
+
+        console.log(
+          "✅ Usuario encontrado:",
+          existingUser.name,
+          existingUser.email
+        );
         console.log("📋 Asignando usuario existente como tutor...");
 
         await createUserSchoolRelation({
           clerkId: existingUser.clerkId,
           schoolId: currentSchool.school._id,
-          role: ['tutor'], // Solo rol de tutor
-          status: 'active',
+          role: ["tutor"], // Solo rol de tutor
+          status: "active",
           department: undefined, // Los tutores no tienen departamento
         });
 
@@ -258,14 +348,16 @@ export default function TutorPage() {
 
       // FLUJO B: Usuario no existe, crear nuevo en Clerk + asignar
       console.log("👤 Usuario no existe, creando nuevo tutor en Clerk...");
-      
+
       const password = formData.password as string;
-      
+
       // Validación: Si no existe el usuario, la contraseña es obligatoria
       if (!password || password.trim() === "") {
-        throw new Error("La contraseña es requerida para crear un usuario nuevo. Si el usuario ya existe en el sistema, se asignará automáticamente.");
+        throw new Error(
+          "La contraseña es requerida para crear un usuario nuevo. Si el usuario ya existe en el sistema, se asignará automáticamente."
+        );
       }
-      
+
       const createData = {
         email: email,
         password: password,
@@ -274,41 +366,44 @@ export default function TutorPage() {
       };
 
       const result = await userActions.createUser(createData);
-      
+
       if (result.success && result.userId) {
         console.log("✅ Usuario creado en Clerk exitosamente:", result.userId);
-        
+
         try {
           // Esperar sincronización del webhook
           console.log("⏳ Esperando sincronización del webhook...");
-          await new Promise(resolve => setTimeout(resolve, 2000)); // 2 segundos
-          
+          await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 segundos
+
           // Asignar rol de tutor en la escuela actual
           console.log("📋 Asignando nuevo usuario como tutor...");
           await createUserSchoolRelation({
             clerkId: result.userId,
             schoolId: currentSchool.school._id,
-            role: ['tutor'], // Solo rol de tutor
-            status: 'active',
+            role: ["tutor"], // Solo rol de tutor
+            status: "active",
             department: undefined, // Los tutores no tienen departamento
           });
-          
+
           console.log("🎉 Nuevo tutor creado y asignado exitosamente!");
-          
         } catch (error) {
           console.error("❌ Error al asignar usuario como tutor:", error);
-          const errorMessage = `Usuario creado pero error al asignar como tutor: ${error instanceof Error ? error.message : 'Error desconocido'}`;
+          const errorMessage = `Usuario creado pero error al asignar como tutor: ${error instanceof Error ? error.message : "Error desconocido"}`;
           throw new Error(errorMessage);
         }
       } else {
         console.error("❌ Error al crear usuario en Clerk:", result.error);
-        throw new Error(result.error || 'Error al crear usuario en Clerk');
+        throw new Error(result.error || "Error al crear usuario en Clerk");
       }
-
     } catch (error) {
       // Si el error menciona que ya está asignado, dar mensaje más amigable
-      if (error instanceof Error && error.message.includes("ya está asignado")) {
-        throw new Error(`El usuario ${email} ya tiene un rol asignado en esta escuela`);
+      if (
+        error instanceof Error &&
+        error.message.includes("ya está asignado")
+      ) {
+        throw new Error(
+          `El usuario ${email} ya tiene un rol asignado en esta escuela`
+        );
       }
       throw error;
     }
@@ -320,7 +415,7 @@ export default function TutorPage() {
 
     // Combinar datos del formulario con datos originales para tener clerkId
     const combinedData = { ...data, ...formData };
-    
+
     if (!combinedData.clerkId) {
       console.error("Clerk ID de usuario no disponible");
       throw new Error("Clerk ID de usuario no disponible");
@@ -339,28 +434,36 @@ export default function TutorPage() {
         email: combinedData.email as string,
       };
 
-      const userResult = await userActions.updateUser(combinedData.clerkId as string, userUpdateData);
-      
+      const userResult = await userActions.updateUser(
+        combinedData.clerkId as string,
+        userUpdateData
+      );
+
       if (!userResult.success) {
-        console.error("Error al actualizar usuario en Clerk:", userResult.error);
-        throw new Error(userResult.error || 'Error al actualizar información básica del usuario');
+        console.error(
+          "Error al actualizar usuario en Clerk:",
+          userResult.error
+        );
+        throw new Error(
+          userResult.error ||
+            "Error al actualizar información básica del usuario"
+        );
       }
 
       // PASO 2: Actualizar estado en la relación usuario-escuela (mantener rol de tutor)
       console.log("📋 Actualizando información del tutor...", {
         userSchoolId: combinedData.userSchoolId,
-        status: combinedData.status || 'active'
+        status: combinedData.status || "active",
       });
 
       await updateUserSchoolRelation({
         id: combinedData.userSchoolId as Id<"userSchool">,
-        role: ['tutor'], // Mantener siempre rol de tutor
+        role: ["tutor"], // Mantener siempre rol de tutor
         department: null, // Los tutores no tienen departamento
-        status: (combinedData.status as 'active' | 'inactive') || 'active',
+        status: (combinedData.status as "active" | "inactive") || "active",
       });
 
       console.log("✅ Tutor actualizado exitosamente");
-      
     } catch (error) {
       console.error("❌ Error en handleUpdate:", error);
       throw error;
@@ -370,38 +473,41 @@ export default function TutorPage() {
   const handleDelete = async (deleteData: Record<string, unknown>) => {
     console.log("🗑️ handleDelete - deleteData recibido:", deleteData);
     console.log("🗑️ handleDelete - data original:", data);
-    
+
     // Usar los datos originales del diálogo que tienen el userSchoolId
     const targetData = data || deleteData;
-    
+
     if (!targetData.userSchoolId) {
       console.error("UserSchool ID no disponible para eliminación");
       throw new Error("UserSchool ID no disponible para eliminación");
     }
 
-    console.log("🔄 Realizando soft delete - desactivando tutor de la escuela actual...");
-    
+    console.log(
+      "🔄 Realizando soft delete - desactivando tutor de la escuela actual..."
+    );
+
     try {
       // Realizar soft delete: cambiar status a 'inactive' en lugar de eliminar completamente
       await deactivateUserInSchool({
-        userSchoolId: targetData.userSchoolId as Id<"userSchool">
+        userSchoolId: targetData.userSchoolId as Id<"userSchool">,
       });
-      
+
       console.log("✅ Tutor desactivado exitosamente de la escuela actual");
-      
     } catch (error) {
       console.error("❌ Error al desactivar tutor:", error);
-      throw new Error(`Error al desactivar tutor: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      throw new Error(
+        `Error al desactivar tutor: ${error instanceof Error ? error.message : "Error desconocido"}`
+      );
     }
   };
 
   // Funciones de utilidad
   const formatDate = (timestamp?: number) => {
     if (!timestamp) return "No disponible";
-    return new Date(timestamp).toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'short', 
-      day: 'numeric'
+    return new Date(timestamp).toLocaleDateString("es-MX", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -413,7 +519,8 @@ export default function TutorPage() {
 
   // Loading y error states
   const isLoading = schoolLoading || allUsers === undefined;
-  const isCrudLoading = userActions.isCreating || userActions.isUpdating || userActions.isDeleting;
+  const isCrudLoading =
+    userActions.isCreating || userActions.isUpdating || userActions.isDeleting;
 
   // Estadísticas para tutores
   const stats = [
@@ -421,28 +528,35 @@ export default function TutorPage() {
       title: "Total Tutores",
       value: filteredUsers.length.toString(),
       icon: Users,
-      trend: "Tutores activos"
+      trend: "Tutores activos",
     },
     {
       title: "Tutores Activos",
-      value: filteredUsers.filter(user => (user.status || 'active') === 'active').length.toString(),
+      value: filteredUsers
+        .filter((user) => (user.schoolStatus || "active") === "active")
+        .length.toString(),
       icon: CheckCircle,
-      trend: "En servicio"
+      trend: "En servicio",
     },
     {
       title: "Tutores Inactivos",
-      value: filteredUsers.filter(user => user.status === 'inactive').length.toString(),
+      value: filteredUsers
+        .filter((user) => user.schoolStatus === "inactive")
+        .length.toString(),
       icon: AlertCircle,
-      trend: "Suspendidos"
+      trend: "Suspendidos",
     },
     {
       title: "Nuevos este mes",
-      value: filteredUsers.filter(user => {
-        const createdThisMonth = new Date(user.createdAt).getMonth() === new Date().getMonth();
-        return createdThisMonth;
-      }).length.toString(),
+      value: filteredUsers
+        .filter((user) => {
+          const createdThisMonth =
+            new Date(user.createdAt).getMonth() === new Date().getMonth();
+          return createdThisMonth;
+        })
+        .length.toString(),
       icon: GraduationCap,
-      trend: "Incorporaciones"
+      trend: "Incorporaciones",
     },
   ];
 
@@ -459,9 +573,12 @@ export default function TutorPage() {
                   <GraduationCap className="h-8 w-8 text-orange-600" />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-bold tracking-tight">Gestión de Tutores</h1>
+                  <h1 className="text-4xl font-bold tracking-tight">
+                    Gestión de Tutores
+                  </h1>
                   <p className="text-lg text-muted-foreground">
-                    Administra los tutores que tienen acceso a información de alumnos
+                    Administra los tutores que tienen acceso a información de
+                    alumnos
                     {currentSchool?.school && (
                       <span className="block text-sm mt-1">
                         {currentSchool.school.name}
@@ -471,9 +588,9 @@ export default function TutorPage() {
                 </div>
               </div>
             </div>
-            <Button 
-              size="lg" 
-              className="gap-2 bg-orange-600 hover:bg-orange-700" 
+            <Button
+              size="lg"
+              className="gap-2 bg-orange-600 hover:bg-orange-700"
               onClick={handleOpenCreate}
               disabled={isLoading || !currentSchool || isCrudLoading}
             >
@@ -519,7 +636,8 @@ export default function TutorPage() {
         <Alert>
           <CheckCircle className="h-4 w-4" />
           <AlertDescription>
-            {userActions.lastResult.message || "Operación completada exitosamente"}
+            {userActions.lastResult.message ||
+              "Operación completada exitosamente"}
           </AlertDescription>
         </Alert>
       )}
@@ -527,7 +645,10 @@ export default function TutorPage() {
       {/* Estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
-          <Card key={index} className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+          <Card
+            key={index}
+            className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 {stat.title}
@@ -591,7 +712,10 @@ export default function TutorPage() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Lista de Tutores</span>
-            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+            <Badge
+              variant="outline"
+              className="bg-orange-50 text-orange-700 border-orange-200"
+            >
               {filteredUsers.length} tutores
             </Badge>
           </CardTitle>
@@ -607,15 +731,16 @@ export default function TutorPage() {
           ) : filteredUsers.length === 0 ? (
             <div className="text-center py-12">
               <GraduationCap className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No se encontraron tutores</h3>
+              <h3 className="text-lg font-medium mb-2">
+                No se encontraron tutores
+              </h3>
               <p className="text-muted-foreground mb-4">
                 {searchTerm || statusFilter !== "all"
                   ? "Intenta ajustar los filtros para ver más resultados."
-                  : "Aún no hay tutores registrados en esta escuela."
-                }
+                  : "Aún no hay tutores registrados en esta escuela."}
               </p>
-              <Button 
-                onClick={handleOpenCreate} 
+              <Button
+                onClick={handleOpenCreate}
                 className="gap-2 bg-orange-600 hover:bg-orange-700"
                 disabled={!currentSchool || isCrudLoading}
               >
@@ -674,11 +799,21 @@ export default function TutorPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge 
-                          variant={(user.status || 'active') === "active" ? "default" : "secondary"}
-                          className={(user.status || 'active') === "active" ? "bg-green-500 hover:bg-green-600" : ""}
+                        <Badge
+                          variant={
+                            (user.schoolStatus || "active") === "active"
+                              ? "default"
+                              : "secondary"
+                          }
+                          className={
+                            (user.schoolStatus || "active") === "active"
+                              ? "bg-green-500 hover:bg-green-600"
+                              : ""
+                          }
                         >
-                          {(user.status || 'active') === "active" ? "Activo" : "Inactivo"}
+                          {(user.schoolStatus || "active") === "active"
+                            ? "Activo"
+                            : "Inactivo"}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -707,15 +842,17 @@ export default function TutorPage() {
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenDelete(user)}
-                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                            disabled={isCrudLoading}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {user.schoolStatus === "active" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenDelete(user)}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              disabled={isCrudLoading}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -731,22 +868,22 @@ export default function TutorPage() {
       <CrudDialog
         operation={operation}
         title={
-          operation === "create" 
+          operation === "create"
             ? "Agregar Tutor"
             : operation === "edit"
-            ? "Editar Tutor"
-            : operation === "view"
-            ? "Ver Tutor"
-            : "Desactivar Tutor"
+              ? "Editar Tutor"
+              : operation === "view"
+                ? "Ver Tutor"
+                : "Desactivar Tutor"
         }
         description={
           operation === "create"
             ? "Completa la información para agregar un nuevo tutor al sistema"
             : operation === "edit"
-            ? "Modifica la información del tutor"
-            : operation === "view"
-            ? "Información detallada del tutor"
-            : undefined
+              ? "Modifica la información del tutor"
+              : operation === "view"
+                ? "Información detallada del tutor"
+                : undefined
         }
         schema={getSchemaForOperation(operation)}
         data={data}
@@ -769,9 +906,9 @@ export default function TutorPage() {
                 <FormItem>
                   <FormLabel>Nombre *</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
-                      value={field.value as string || ""}
+                    <Input
+                      {...field}
+                      value={(field.value as string) || ""}
                       placeholder="Nombre del tutor"
                       disabled={currentOperation === "view"}
                     />
@@ -780,7 +917,7 @@ export default function TutorPage() {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="lastName"
@@ -788,9 +925,9 @@ export default function TutorPage() {
                 <FormItem>
                   <FormLabel>Apellidos</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
-                      value={field.value as string || ""}
+                    <Input
+                      {...field}
+                      value={(field.value as string) || ""}
                       placeholder="Apellidos"
                       disabled={currentOperation === "view"}
                     />
@@ -807,9 +944,9 @@ export default function TutorPage() {
                 <FormItem>
                   <FormLabel>Email *</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
-                      value={field.value as string || ""}
+                    <Input
+                      {...field}
+                      value={(field.value as string) || ""}
                       type="email"
                       placeholder="email@escuela.edu.mx"
                       disabled={currentOperation === "view"}
@@ -828,9 +965,9 @@ export default function TutorPage() {
                   <FormItem>
                     <FormLabel>Contraseña Temporal (opcional)</FormLabel>
                     <FormControl>
-                      <Input 
-                        {...field} 
-                        value={field.value as string || ""}
+                      <Input
+                        {...field}
+                        value={(field.value as string) || ""}
                         type="password"
                         placeholder="Dejar vacío si el usuario ya existe"
                         disabled={false}
@@ -838,7 +975,8 @@ export default function TutorPage() {
                     </FormControl>
                     <FormMessage />
                     <p className="text-xs text-muted-foreground">
-                      💡 Si el email ya existe en el sistema, se asignará el usuario existente automáticamente
+                      💡 Si el email ya existe en el sistema, se asignará el
+                      usuario existente automáticamente
                     </p>
                   </FormItem>
                 )}
@@ -852,9 +990,9 @@ export default function TutorPage() {
                 <FormItem>
                   <FormLabel>Teléfono</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
-                      value={field.value as string || ""}
+                    <Input
+                      {...field}
+                      value={(field.value as string) || ""}
                       placeholder="+52 555 1234567"
                       disabled={currentOperation === "view"}
                     />
@@ -871,9 +1009,9 @@ export default function TutorPage() {
                 <FormItem className="md:col-span-2">
                   <FormLabel>Dirección</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
-                      value={field.value as string || ""}
+                    <Input
+                      {...field}
+                      value={(field.value as string) || ""}
                       placeholder="Dirección completa"
                       disabled={currentOperation === "view"}
                     />
@@ -890,8 +1028,8 @@ export default function TutorPage() {
                 <FormItem>
                   <FormLabel>Estado</FormLabel>
                   <FormControl>
-                    <Select 
-                      value={field.value as string} 
+                    <Select
+                      value={field.value as string}
                       onValueChange={field.onChange}
                       disabled={currentOperation === "view"}
                     >
@@ -911,18 +1049,26 @@ export default function TutorPage() {
 
             {currentOperation === "view" && data && (
               <div className="md:col-span-2 space-y-4 pt-4 border-t">
-                <h3 className="font-medium text-sm text-muted-foreground">Información adicional</h3>
+                <h3 className="font-medium text-sm text-muted-foreground">
+                  Información adicional
+                </h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-muted-foreground">ID de Usuario:</span>
+                    <span className="text-muted-foreground">
+                      ID de Usuario:
+                    </span>
                     <p className="font-mono">{data._id as string}</p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Fecha de Creación:</span>
+                    <span className="text-muted-foreground">
+                      Fecha de Creación:
+                    </span>
                     <p>{formatDate(data.createdAt as number)}</p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Última Actualización:</span>
+                    <span className="text-muted-foreground">
+                      Última Actualización:
+                    </span>
                     <p>{formatDate(data.updatedAt as number)}</p>
                   </div>
                   <div>
@@ -931,7 +1077,9 @@ export default function TutorPage() {
                   </div>
                   <div className="col-span-2">
                     <span className="text-muted-foreground">Rol:</span>
-                    <p className="text-sm">Tutor - Acceso a información de alumnos</p>
+                    <p className="text-sm">
+                      Tutor - Acceso a información de alumnos
+                    </p>
                   </div>
                 </div>
               </div>
