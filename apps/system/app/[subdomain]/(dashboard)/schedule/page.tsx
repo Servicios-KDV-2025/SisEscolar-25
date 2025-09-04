@@ -317,7 +317,7 @@ export default function SchedulePage() {
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar materia" />
+                          <SelectValue placeholder="Seleccionar desde catalogo de clase" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>

@@ -1,218 +1,23 @@
 import { query, mutation } from "../_generated/server"
 import { v } from "convex/values"
 
-// Obtener asistencia por una studentClass específica
-export const getAttendance = query({
+export const getStudentsByClass = query({
   args: {
-    studentClassId: v.id('studentClass')
+    classCatalogId: v.id("classCatalog"),
   },
   handler: async (ctx, args) => {
-    const studentClass = await ctx.db.get(args.studentClassId)
-    if(!studentClass) {
-      throw new Error('La clase de estudiante especificada no existe.')
-    }
-    return await ctx.db
-      .query('attendance')
-      .withIndex('by_student_class', (q) => q.eq('studentClassId', args.studentClassId))
-      .collect()
-  }
-})
-// Obtener asistencia por ID
-export const getAttendenceById = query({
-  args: {
-    id: v.id('attendance')
-  },
-  handler: async (ctx, args) => {
-    const attendace = await ctx.db.get(args.id)
-    if(!attendace) {
-      throw new Error('Asistencia no encontrada.')
-    }
-    return attendace
-  }
-})
-// Crear una nueva sistencia
-export const createAttendance = mutation({
-  args: {
-    studentClassId: v.id('studentClass'),
-    date: v.number(),
-    present: v.boolean(),
-    justified: v.optional(v.boolean()),
-    comments: v.optional(v.string()),
-    registrationDate: v.number(),
-    createdBy: v.id('user'),
-    updatedBy: v.id('user'),
-    updatedAt: v.number()
-  },
-  handler: async (ctx, args) => {
-    const studentClassExists = await ctx.db.get(args.studentClassId)
-    if(!studentClassExists) {
-      throw new Error ('No se puede crear la asistencia: La clase de estudiante especificada no existe.')
-    }
-    return await ctx.db.insert('attendance', args)
-  }
-})
-// Actualizar una asistencia existente
-export const updateAttendance = mutation({
-  args: {
-    id: v.id('attendance'),
-    studentClassId: v.id('studentClass'),
-    date: v.number(),
-    present: v.boolean(),
-    justified: v.optional(v.boolean()),
-    comments: v.optional(v.string()),
-    registrationDate: v.number(),
-    createdBy: v.id('user'),
-    updatedBy: v.id('user'),
-    updatedAt: v.number()
-  },
-  handler: async (ctx, args) => {
-    const {id, studentClassId, ...data} = args
-    const existingAttendance = await ctx.db.get(id)
-    if(!existingAttendance || existingAttendance.studentClassId !== args.studentClassId) {
-      throw new Error('No se puede actualizar la asistencia: La asistencia especificada no existe o no pertenece a la clase de estudiante indicada.')
-    }
-    await ctx.db.patch(id, data)
-    return await ctx.db.get(id)
-  }
-})
-// Eliminar una asistencia
-export const deleteAttendance = mutation({
-  args: {
-    id: v.id('attendance'),
-    studentClassId: v.id('studentClass')
-  },
-  handler: async (ctx, args) => {
-    const existingAttendance = await ctx.db.get(args.id)
-    if(!existingAttendance || existingAttendance.studentClassId !== args.studentClassId) {
-      throw new Error('No se puede eliminar la asistencia: La asistencia especificada no existe o no pertenece a la clase de estudiante indicada.')
-    }
-    await ctx.db.delete(args.id)
-    return true
-  }
-})
-
-// Obtener registros de asistencia por fecha
-export const getAttendanceByDate = query({
-  args: {date: v.number()},
-  handler: async (ctx, args) => {
-    return await ctx.db.query('attendance').withIndex('by_date', (q) => q.eq('date', args.date)).collect()
-  }
-})
-
-// Obtener registros de asistencia por fecha y clase especifica
-export const getAttendanceByDateandClass = query({
-  args: {
-    date: v.number(),
-    classCatalogId: v.id('classCatalog')
-  },
-  handler: async (ctx, args) => {
-    // Primero obtener todos los studentClass para esta clase
-    const studentClasses = await ctx.db
-      .query('studentClass')
-      .withIndex('by_class_catalog', (q) => q.eq('classCatalogId', args.classCatalogId))
-      .collect()
-
-    const studentClassIds = studentClasses.map(sc => sc._id);
-
-    // Obtener todas las asistencias de la fecha especificada
-    const allAttendance = await ctx.db
-      .query('attendance')
-      .withIndex('by_date', (q) => q.eq('date', args.date))
-      .collect()
-
-    // Filtrar solo las asistencias que pertenecen a esta clase
-    const classAttendance = allAttendance.filter(record => 
-      studentClassIds.includes(record.studentClassId)
-    )
-
-    // Enriquecer con información de estudiantes
-    const attendanceWithStudents = await Promise.all(
-      classAttendance.map(async (record) => {
-        const studentClass = await ctx.db.get(record.studentClassId)
-        if (!studentClass) return null
-
-        const student = await ctx.db.get(studentClass.studentId)
-        const classCatalog = await ctx.db.get(studentClass.classCatalogId);
-
-        return {
-          ...record,
-          student: student || null,
-          className: classCatalog?.name || 'Unknown'
-        }
-      })
-    )
-
-    return attendanceWithStudents.filter(record => record !== null)
-  },
-})
-
-// Obtener registros de asistencia con información de estudiantes
-export const getAttendanceWithStudents = query({
-  args: { 
-    classCatalogId: v.id('classCatalog'),
-    date: v.optional(v.number())
-  },
-  handler: async (ctx, args) => {
-    let attendanceRecords
-
-    // Si se proporciona classCatalogId, filtrar por esa clase
-    if(args.classCatalogId && args.date) {
-      // Optener los estudiantes para esa classe
-      const studentClasses = await ctx.db
-        .query('studentClass')
-        .withIndex('by_class_catalog', (q) => q.eq('classCatalogId', args.classCatalogId!))
-        .collect()
-
-      const studentClassIds = studentClasses.map(sc => sc._id)
-
-      // Obtener asistencias para estos studentClassIds en la fecha específica
-      attendanceRecords = await ctx.db
-        .query("attendance")
-        .withIndex("by_date", (q) => q.eq("date", args.date!))
-        .collect();
-
-      attendanceRecords = attendanceRecords.filter(record => 
-        studentClassIds.includes(record.studentClassId)
-      )
-    } else {
-      attendanceRecords = await ctx.db.query('attendance').collect()
-    }
-
-    const recordsWithStudents = await Promise.all(
-      attendanceRecords.map(async (record) => {
-        const studentClass = await ctx.db.get(record.studentClassId)
-        if(!studentClass) return null
-
-        const student = await ctx.db.get(studentClass.studentId)
-        const classCatalog = await ctx.db.get(studentClass.classCatalogId)
-
-        return {
-          ...record,
-          student: student || null,
-          className: classCatalog?.name || 'Unknown'
-        }
-      })
-    )
-
-    return recordsWithStudents.filter(record => record !== null)
-  },
-})
-
-// Marcar asistencia
-export const markAttendanceSimple = mutation({
-  args: {
-    studentClassId: v.id('studentClass'),
-    date: v.number(),
-    present: v.boolean(),
-    comments: v.optional(v.string())
-  },
-  handler: async (ctx, args) => {
-    // Obtener usuario autenticado
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("No autenticado");
     }
 
+    // Verificar que el usuario es el profesor de esta clase
+    const classCatalog = await ctx.db.get(args.classCatalogId);
+    if (!classCatalog) {
+      throw new Error("Clase no encontrada");
+    }
+
+    // Obtener el usuario por clerkId
     const user = await ctx.db
       .query("user")
       .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
@@ -222,80 +27,356 @@ export const markAttendanceSimple = mutation({
       throw new Error("Usuario no encontrado");
     }
 
-    // Verificar si ya existe un registro para este estudiante en esta fecha
-    const existingRecord = await ctx.db
-      .query('attendance')
-      .withIndex('by_student_class_and_date', (q) => 
-        q.eq('studentClassId', args.studentClassId).eq("date", args.date)
-      )
-      .first();
-
-    const now = Date.now();
-
-    if (existingRecord) {
-      // Actualizar registro existente
-      await ctx.db.patch(existingRecord._id, {
-        present: args.present,
-        justified: args.present ? undefined : false,
-        comments: args.comments,
-        updatedBy: user._id,
-        updatedAt: now,
-      });
-      return existingRecord._id;
-    } else {
-      // Crear nuevo registro
-      return await ctx.db.insert('attendance', {
-        studentClassId: args.studentClassId,
-        date: args.date,
-        present: args.present,
-        justified: args.present ? undefined : false,
-        comments: args.comments,
-        registrationDate: now,
-        createdBy: user._id,
-        updatedBy: user._id,
-        updatedAt: now
-      });
+    // Verificar que el usuario es el profesor asignado a esta clase
+    if (classCatalog.teacherId !== user._id) {
+      throw new Error("No tienes permisos para ver esta clase");
     }
-  }
+
+    // Obtener todos los estudiantes inscritos en esta clase
+    const studentClasses = await ctx.db
+      .query("studentClass")
+      .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", args.classCatalogId))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .collect();
+
+    // Obtener información completa de cada estudiante
+    const studentsWithInfo = await Promise.all(
+      studentClasses.map(async (studentClass) => {
+        const student = await ctx.db.get(studentClass.studentId);
+        return {
+          studentClassId: studentClass._id,
+          studentId: studentClass.studentId,
+          enrollment: student?.enrollment,
+          name: student?.name,
+          lastName: student?.lastName,
+          status: studentClass.status,
+        };
+      })
+    );
+
+    return studentsWithInfo;
+  },
 })
 
-// ======= CLASES ======= //
-
-export const getTeacherClasses = query({
-  handler: async (ctx) => {
-    // Obtener usuario actual basado en clerk
-    const identity = await ctx.auth.getUserIdentity()
-    if(!identity) {
-      throw new Error ('No autenticado')
+export const registerAttendance = mutation({
+  args: {
+    classCatalogId: v.id("classCatalog"),
+    date: v.number(),
+    attendances: v.array(
+      v.object({
+        studentClassId: v.id("studentClass"),
+        present: v.boolean(),
+        justified: v.optional(v.boolean()),
+        comments: v.optional(v.string()),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("No autenticado");
     }
 
-    // Buscar usuario por clerckId
+    // Obtener el usuario por clerkId usando índice
     const user = await ctx.db
-      .query('user')
-      .withIndex('by_clerkId', (q) => q.eq('clerkId', identity.subject))
-      .first()
+      .query("user")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .first();
 
-    if(!user) {
-      throw new Error ('Usuario no encontrado')
+    if (!user) {
+      throw new Error("Usuario no encontrado");
     }
 
-    // Obtener las clases donde el usuario es profesor
-    const classes = await ctx.db
-      .query('classCatalog')
-      .withIndex('by_teacher', (q) => q.eq('teacherId', user._id))
-      .collect()
+    // Verificar permisos del profesor (solo una consulta)
+    const classCatalog = await ctx.db.get(args.classCatalogId);
+    if (!classCatalog || classCatalog.teacherId !== user._id) {
+      throw new Error("No tienes permisos para registrar asistencias");
+    }
 
-    // Obtener información adicional de los grupos
+    const now = Date.now();
+    const results = [];
+
+    // Pre-buscar todas las asistencias existentes de una vez
+    const existingAttendances = await Promise.all(
+      args.attendances.map(async (attendance) => {
+        return await ctx.db
+          .query("attendance")
+          .withIndex("by_student_class_and_date", (q) =>
+            q.eq("studentClassId", attendance.studentClassId).eq("date", args.date)
+          )
+          .first();
+      })
+    );
+
+    // Procesar todas las operaciones
+    for (let i = 0; i < args.attendances.length; i++) {
+      const attendance = args.attendances[i];
+      const existing = existingAttendances[i];
+
+      if (existing) {
+        // Actualizar solo si hay cambios
+        if (
+          existing.present !== attendance.present ||
+          existing.justified !== attendance.justified ||
+          existing.comments !== attendance.comments
+        ) {
+          const updated = await ctx.db.patch(existing._id, {
+            present: attendance.present,
+            justified: attendance.justified,
+            comments: attendance.comments,
+            updatedBy: user._id,
+            updatedAt: now,
+          });
+          results.push(updated);
+        } else {
+          results.push(existing); // Sin cambios
+        }
+      } else {
+        // Crear nueva asistencia
+        const newAttendance = await ctx.db.insert("attendance", {
+          studentClassId: attendance.studentClassId,
+          date: args.date,
+          present: attendance.present,
+          justified: attendance.justified,
+          comments: attendance.comments,
+          registrationDate: now,
+          createdBy: user._id,
+          updatedBy: user._id,
+          updatedAt: now,
+        });
+        results.push(newAttendance);
+      }
+    }
+
+    return results;
+  },
+})
+
+export const getAttendanceByDate = query({
+  args: {
+    classCatalogId: v.id("classCatalog"),
+    date: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("No autenticado");
+    }
+
+    // Obtener el usuario por clerkId
+    const user = await ctx.db
+      .query("user")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) {
+      throw new Error("Usuario no encontrado");
+    }
+
+    // Verificar que el usuario es el profesor de esta clase
+    const classCatalog = await ctx.db.get(args.classCatalogId);
+    if (!classCatalog) {
+      throw new Error("Clase no encontrada");
+    }
+
+    if (classCatalog.teacherId !== user._id) {
+      throw new Error("No tienes permisos para ver las asistencias de esta clase");
+    }
+
+    // Obtener todos los estudiantes de la clase
+    const studentClasses = await ctx.db
+      .query("studentClass")
+      .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", args.classCatalogId))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .collect();
+
+    // Obtener las asistencias para cada estudiante en la fecha especificada
+    const attendanceRecords = await Promise.all(
+      studentClasses.map(async (studentClass) => {
+        const attendance = await ctx.db
+          .query("attendance")
+          .withIndex("by_student_class_and_date", (q) =>
+            q.eq("studentClassId", studentClass._id).eq("date", args.date)
+          )
+          .first();
+
+        const student = await ctx.db.get(studentClass.studentId);
+
+        return {
+          studentClassId: studentClass._id,
+          studentId: studentClass.studentId,
+          enrollment: student?.enrollment,
+          name: student?.name,
+          lastName: student?.lastName,
+          present: attendance?.present ?? null,
+          justified: attendance?.justified ?? null,
+          comments: attendance?.comments ?? "",
+          alreadyRegistered: !!attendance,
+        };
+      })
+    );
+
+    return attendanceRecords;
+  },
+})
+
+export const getStudentAttendanceHistory = query({
+  args: {
+    studentClassId: v.id("studentClass"),
+    startDate: v.number(),
+    endDate: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("No autenticado");
+    }
+
+    // Obtener el usuario por clerkId
+    const user = await ctx.db
+      .query("user")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) {
+      throw new Error("Usuario no encontrado");
+    }
+
+    // Obtener la relación estudiante-clase
+    const studentClass = await ctx.db.get(args.studentClassId);
+    if (!studentClass) {
+      throw new Error("Relación estudiante-clase no encontrada");
+    }
+
+    // Obtener la clase
+    const classCatalog = await ctx.db.get(studentClass.classCatalogId);
+    if (!classCatalog) {
+      throw new Error("Clase no encontrada");
+    }
+
+    // Verificar que el usuario es el profesor de esta clase
+    if (classCatalog.teacherId !== user._id) {
+      throw new Error("No tienes permisos para ver el historial de este estudiante");
+    }
+
+    // Obtener las asistencias del estudiante en el rango de fechas
+    const attendances = await ctx.db
+      .query("attendance")
+      .withIndex("by_student_class", (q) => q.eq("studentClassId", args.studentClassId))
+      .filter((q) =>
+        q.and(
+          q.gte(q.field("date"), args.startDate),
+          q.lte(q.field("date"), args.endDate)
+        )
+      )
+      .order("desc")
+      .collect();
+
+    // Obtener información del estudiante
+    const student = await ctx.db.get(studentClass.studentId);
+
+    return {
+      student: {
+        enrollment: student?.enrollment,
+        name: student?.name,
+        lastName: student?.lastName,
+      },
+      attendances: attendances.map((att) => ({
+        date: att.date,
+        present: att.present,
+        justified: att.justified,
+        comments: att.comments,
+      })),
+      summary: {
+        totalDays: attendances.length,
+        presentDays: attendances.filter((a) => a.present).length,
+        absentDays: attendances.filter((a) => !a.present).length,
+        justifiedAbsences: attendances.filter((a) => !a.present && a.justified).length,
+      },
+    };
+  },
+})
+
+export const deleteAttendance = mutation({
+  args: {
+    attendanceId: v.id("attendance"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("No autenticado");
+    }
+
+    // Obtener el usuario por clerkId
+    const user = await ctx.db
+      .query("user")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) {
+      throw new Error("Usuario no encontrado");
+    }
+
+    // Obtener la asistencia
+    const attendance = await ctx.db.get(args.attendanceId);
+    if (!attendance) {
+      throw new Error("Asistencia no encontrada");
+    }
+
+    // Obtener la relación estudiante-clase
+    const studentClass = await ctx.db.get(attendance.studentClassId);
+    if (!studentClass) {
+      throw new Error("Relación estudiante-clase no encontrada");
+    }
+
+    // Obtener la clase
+    const classCatalog = await ctx.db.get(studentClass.classCatalogId);
+    if (!classCatalog) {
+      throw new Error("Clase no encontrada");
+    }
+
+    // Verificar que el usuario es el profesor de esta clase
+    if (classCatalog.teacherId !== user._id) {
+      throw new Error("No tienes permisos para eliminar esta asistencia");
+    }
+
+    // Eliminar la asistencia
+    await ctx.db.delete(args.attendanceId);
+
+    return { success: true };
+  },
+})
+
+export const getAllActiveClasses = query({
+  handler: async (ctx) => {
+    // Obtener todas las clases activas
+    const classes = await ctx.db
+      .query("classCatalog")
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .collect();
+
+    // Obtener información adicional
     const classesWithDetails = await Promise.all(
       classes.map(async (classItem) => {
-        const grupo = classItem.groupId ? await ctx.db.get(classItem.groupId) : null
+        const [school, subject, group, teacher, schoolCycle] = await Promise.all([
+          ctx.db.get(classItem.schoolId),
+          ctx.db.get(classItem.subjectId),
+          classItem.groupId ? ctx.db.get(classItem.groupId) : null,
+          ctx.db.get(classItem.teacherId),
+          ctx.db.get(classItem.schoolCycleId)
+        ]);
+
         return {
           ...classItem,
-          grupoName: grupo?.name || 'Sin grupo'
-        }
+          schoolName: school?.name || 'Escuela no encontrada',
+          subjectName: subject?.name || 'Materia no encontrada',
+          groupName: group?.name || 'Sin grupo',
+          teacherName: teacher?.name || 'Profesor no encontrado',
+          cycleName: schoolCycle?.name || 'Ciclo no encontrado'
+        };
       })
-    )
+    );
 
-    return classesWithDetails
+    return classesWithDetails;
   },
 })

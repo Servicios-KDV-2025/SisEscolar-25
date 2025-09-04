@@ -27,7 +27,7 @@ export const scheduleSchema =  z.object({
     return startMinutes >= 360 && startMinutes <= 900; // 6:00 = 360 min, 15:00 = 900 min
   },
   {
-    message: 'La hora de inicio debe estar entre 6:00 y 15:00',
+    message: 'La hora de inicio debe estar entre 6:00 a.m. y 3:00 p.m.',
     path: ['startTime']
   }
 ).refine(
@@ -40,7 +40,7 @@ export const scheduleSchema =  z.object({
     return endMinutes >= 360 && endMinutes <= 900; // 6:00 = 360 min, 15:00 = 900 min
   },
   {
-    message: 'La hora de fin debe estar entre 6:00 y 15:00',
+    message: 'La hora de fin debe estar entre 6:00 a.m. y 3:00 p.m.',
     path: ['endTime']
   }
 )

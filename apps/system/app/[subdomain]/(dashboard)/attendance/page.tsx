@@ -1,315 +1,219 @@
 "use client"
 
-import { useState } from "react"
-import { Calendar, Users, AlertCircle, CheckCircle, XCircle } from "@repo/ui/icons"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/shadcn/tabs"
+import { api } from "@repo/convex/convex/_generated/api"
+import { Id } from "@repo/convex/convex/_generated/dataModel"
 import { Button } from "@repo/ui/components/shadcn/button"
-import AttendanceMarking from "components/attendance/attendance-marking"
-import AbsenceJustification from "components/attendance/absence-justification"
-import AttendanceHistory from "components/attendance/attendance-history"
-import StudentManagement from "components/attendance/student-management"
+import { Calendar } from "@repo/ui/components/shadcn/calendar"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
+import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/shadcn/popover"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select"
+import { BookOpen, CalendarIcon, Loader2, Save } from "@repo/ui/icons"
+import AttendanceTable from "components/attendance/attendanceTable"
+import { useMutation, useQuery } from "convex/react"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
+import { useAttendance } from "stores/attendanceStore"
+
+interface Attendance {
+  _id: Id<'attendance'>
+  studentClassId: Id<'studentClass'>,
+  date: number
+  present: boolean
+  justified?: boolean,
+  comments?: string,
+  registrationDate: number,
+  createdBy: Id<"user">,
+  updatedBy: Id<"user">,
+  updatedAt: number
+}
 
 export default function AttendanceDashboard() {
-  const [activeTab, setActiveTab] = useState("dashboard")
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+  const [selectedClass, setSelectedClass] = useState<string>('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+   // Obtener todas las clases activas
+  const allClasses = useQuery(api.functions.attendance.getAllActiveClasses)
+  
+  // Obtener estudiantes y asistencias para la clase seleccionada
+  const attendanceQueryData = useQuery(
+    api.functions.attendance.getAttendanceByDate,
+    selectedClass ? {
+      classCatalogId: selectedClass as any,
+      date: selectedDate.setHours(0, 0, 0, 0)
+    } : 'skip'
+  )
+
+  const { attendanceData, updateAttendance, getAttendanceForSubmit } = useAttendance(attendanceQueryData || [])
+
+  const registerAttendance = useMutation(api.functions.attendance.registerAttendance)
+
+  // Actualizar datos locales cuando cambia la query
+  useEffect(() => {
+    if (attendanceQueryData) {
+      // Resetear el estado local con los datos de la query
+      const newData = attendanceQueryData.map(item => ({
+        ...item,
+        present: item.present ?? false,
+        justified: item.justified ?? false,
+        comments: item.comments || ''
+      }));
+      // Necesitarías actualizar el hook useAttendance aquí
+    }
+  }, [attendanceQueryData])
+
+  const handleSaveAttendance = async () => {
+    if (!selectedClass || !attendanceData.length) return
+
+    setIsSubmitting(true)
+    try{
+      const attendances = attendanceData.map(item => ({
+        studentClassId: item.studentClassId,
+        present: item.present ?? false,
+        justified: item.justified ?? false,
+        comments: item.comments || ''
+      }));
+
+      await registerAttendance({
+        classCatalogId: selectedClass as any,
+        date: selectedDate.setHours(0, 0, 0, 0),
+        attendances
+      });
+
+      toast.success('✅ Asistencias guardadas')
+    }catch (error) {
+      console.error('Error al guardar asistencias:', error);
+      toast.error('❌ Error')
+    }finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const selectedClassInfo = allClasses?.find(cls => cls._id === selectedClass)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto p-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Sistema de Gestión de Asistencia</h1>
-          <p className="text-gray-600 mt-2">Realizar un seguimiento de la asistencia diaria y gestionar las justificaciones de ausencia</p>
-        </div>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 justify-between">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="marking">Marcar Asistencia</TabsTrigger>
-            <TabsTrigger value="justification">Justificar Ausencias</TabsTrigger>
-            <TabsTrigger value="history">Historial</TabsTrigger>
-            <TabsTrigger value="students">Estudiantes</TabsTrigger>
-          </TabsList>
-          <TabsContent value="dashboard" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total de alumnos</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">20</div> {/*MODIFICAR - Estudiantes totales de la clase*/}
-                  <p className="text-xs text-muted-foreground">Alumnos matriculados</p>
-                </CardContent>
-              </Card>
+    <div className="container mx-auto p-6">
+      <div className="flex items-center gap-2">
+        <BookOpen className="h-8 w-8 text-primary" />
+        <h1 className="text-3xl font-bold">Sistema de Asistencias</h1>
+      </div>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Asistencas</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">17</div> {/*MODIFICAR - Estudiantes presentes hoy*/}
-                  <p className="text-xs text-muted-foreground">Alumnos presentes</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Ausencias</CardTitle>
-                  <XCircle className="h-4 w-4 text-red-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">3</div> {/*MODIFICAR - Estudiantes ausentes hoy*/}
-                  <p className="text-xs text-muted-foreground">Alumnos ausentes</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Porsentaje de asistencia</CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">85%</div> {/*MODIFICAR - Porsentaje de asistencia*/}
-                  <p className="text-xs text-muted-foreground">Hoy</p>
-                </CardContent>
-              </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Registro de asistencia</CardTitle>
+          <CardDescription>
+            Selecciona la clase y fecha para registrar las asistencias
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4 md:flex-row md:items-end mb-6">
+            {/* Selector de clase */}
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">Clase</label>
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona una clase" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allClasses?.map((classItem) => (
+                    <SelectItem key={classItem._id} value={classItem._id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{classItem.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {classItem.subjectName} - {classItem.groupName}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* Actividad reciente */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Actividad reciente</CardTitle>
-                <CardDescription>Últimas actualizaciones y acciones de asistencia</CardDescription>
-                <CardContent>
-                  <div className="space-y-4">
-                    
-                  </div>
-                </CardContent>
-              </CardHeader>
-            </Card>
+            {/* Selector de fecha */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Fecha</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? (
+                      format(selectedDate, "PPP", { locale: es })
+                    ) : (
+                      <span>Selecciona una fecha</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => date && setSelectedDate(date)}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
 
-            {/* Alerta de pendientes de justificación */}
-            {/* {pendingJustifications > 0 && ( */}
-            <Card className="border-orange-200 bg-orange-50">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-orange-800">
-                  <AlertCircle className="h-5 w-5" />
-                  <span>Justificaciones pendientes</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-orange-700 mb-4">
-                  Hay 100 {/*{pendingJustifications}*/} justificación de ausencia pendiente de revisión.
-                </p>
-              </CardContent>
+            {/* Botón de guardar */}
+            <div className="flex items-end">
               <Button
-                variant="outline"
-                className="border-orange-300 text-orange-800 hover:bg-orange-100 bg-transparent"
-                onClick={() => setActiveTab("justification")}
+                onClick={handleSaveAttendance}
+                disabled={!selectedClass || !attendanceData.length || isSubmitting}
+                className="w-full"
               >
-                Revisión de justificación
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Guardar Asistencias
+                  </>
+                )}
               </Button>
-            </Card>
-          </TabsContent>
-          <TabsContent value="marking">
-            <AttendanceMarking/>
-          </TabsContent>
-          <TabsContent value="justification">
-            <AbsenceJustification/>
-          </TabsContent>
-          <TabsContent value="history">
-            <AttendanceHistory/>
-          </TabsContent>
-          <TabsContent value="students">
-            <StudentManagement />
-          </TabsContent>
-        </Tabs>
-      </div>
+            </div>
+          </div>
+
+          {/* Información de la clase seleccionada */}
+          {selectedClassInfo && (
+            <div className="bg-muted p-4 rounded-lg mb-6">
+              <h3 className="font-semibold text-lg mb-2">Información de la Clase</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">Materia:</span>
+                  <p>{selectedClassInfo.subjectName}</p>
+                </div>
+                <div>
+                  <span className="font-medium">Grupo:</span>
+                  <p>{selectedClassInfo.groupName}</p>
+                </div>
+                <div>
+                  <span className="font-medium">Profesor:</span>
+                  <p>{selectedClassInfo.teacherName}</p>
+                </div>
+                <div>
+                  <span className="font-medium">Ciclo:</span>
+                  <p>{selectedClassInfo.cycleName}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tabla de asistencias */}
+          {selectedClass && attendanceQueryData && (
+            <AttendanceTable
+              data={attendanceData}
+              selectedDate={selectedDate}
+              onAttendanceChange={updateAttendance}
+            />
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }
-
-// export default function AttendanceDashboard() {
-//   const [activeTab, setActiveTab] = useState("dashboard")
-
-
-//   // Calculate stats
-//   const today = new Date().setHours(0, 0, 0, 0)
-//   const todayRecords = attendanceRecords.filter((record) => {
-//     const recordDate = new Date(record.date).setHours(0, 0, 0, 0)
-//     return recordDate === today
-//   })
-
-//   const totalStudents = studentClasses.length
-//   const presentToday = todayRecords.filter((record) => record.present).length
-//   const absentToday = todayRecords.filter((record) => !record.present).length
-//   const pendingJustifications = attendanceRecords.filter(
-//     (record) => !record.present && record.justified === false,
-//   ).length
-
-//   const attendanceRate = totalStudents > 0 ? (presentToday / totalStudents) * 100 : 0
-
-//   // Recent activity with student details
-//   const recentActivity = attendanceRecords
-//     .slice(-4)
-//     .map((record) => ({
-//       id: record.studentClassId + record.date,
-//       student: record.student?.name || 'Unknown',
-//       action: record.present ? 
-//         'Marked Present' :
-//         record.justified ? 'Absence Justified' : 'Marked Absent',
-//       time: new Date(record.registrationDate).toLocaleTimeString(),
-//       status: record.present ? 'pretent' : record.justified ? 'justified' : 'absent',
-//     }))
-//     .reverse()
-
-//   return (
-//     <div className="min-h-screen bg-gray-50">
-//       <div className="container mx-auto p-6">
-//         <div className="mb-8">
-//           <h1 className="text-3xl font-bold text-gray-900">Sistema de Gestión de Asistencia</h1>
-//           <p className="text-gray-600 mt-2">Realizar un seguimiento de la asistencia diaria y gestionar las justificaciones de ausencia</p>
-//         </div>
-
-//         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-//           <TabsList className="grid w-full grid-cols-5 justify-between">
-//             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-//             <TabsTrigger value="marking">Marcar Asistencia</TabsTrigger>
-//             <TabsTrigger value="justification">Justificar Ausencias</TabsTrigger>
-//             <TabsTrigger value="history">Historial</TabsTrigger>
-//             <TabsTrigger value="students">Estudiantes</TabsTrigger>
-//           </TabsList>
-
-//           <TabsContent value="dashboard" className="space-y-6">
-//             {/* Stats Cards */}
-//             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-//               <Card>
-//                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-//                   <CardTitle className="text-sm font-medium">Total de alumnos</CardTitle>
-//                   <Users className="h-4 w-4 text-muted-foreground" />
-//                 </CardHeader>
-//                 <CardContent>
-//                   <div className="text-2xl font-bold">{totalStudents}</div>
-//                   <p className="text-xs text-muted-foreground">Estudiantes matriculados</p>
-//                 </CardContent>
-//               </Card>
-
-//               <Card>
-//                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-//                   <CardTitle className="text-sm font-medium">Presente hoy</CardTitle>
-//                   <CheckCircle className="h-4 w-4 text-green-600" />
-//                 </CardHeader>
-//                 <CardContent>
-//                   <div className="text-2xl font-bold text-green-600">{presentToday}</div>
-//                   <p className="text-xs text-muted-foreground">Alumnos presentes</p>
-//                 </CardContent>
-//               </Card>
-
-//               <Card>
-//                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-//                   <CardTitle className="text-sm font-medium">Ausente hoy</CardTitle>
-//                   <XCircle className="h-4 w-4 text-red-600" />
-//                 </CardHeader>
-//                 <CardContent>
-//                   <div className="text-2xl font-bold text-red-600">{absentToday}</div>
-//                   <p className="text-xs text-muted-foreground">Alumnos ausentes</p>
-//                 </CardContent>
-//               </Card>
-
-//               <Card>
-//                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-//                   <CardTitle className="text-sm font-medium">Tasa de asistencia</CardTitle>
-//                   <Calendar className="h-4 w-4 text-muted-foreground" />
-//                 </CardHeader>
-//                 <CardContent>
-//                   <div className="text-2xl font-bold">{attendanceRate.toFixed(1)}%</div>
-//                   <p className="text-xs text-muted-foreground">Hoy</p>
-//                 </CardContent>
-//               </Card>
-//             </div>
-
-//             {/* Recent Activity */}
-//             <Card>
-//               <CardHeader>
-//                 <CardTitle>Actividad reciente</CardTitle>
-//                 <CardDescription>Últimas actualizaciones y acciones de asistencia</CardDescription>
-//               </CardHeader>
-//               <CardContent>
-//                 <div className="space-y-4">
-//                   {recentActivity.map((activity) => (
-//                     <div key={activity.id} className="flex items-center justify-between p-3 border rounded-lg">
-//                       <div className="flex items-center space-x-3">
-//                         <div
-//                           className={`w-2 h-2 rounded-full ${
-//                             activity.status === "present"
-//                               ? "bg-green-500"
-//                               : activity.status === "justified"
-//                                 ? "bg-blue-500"
-//                                 : "bg-red-500"
-//                           }`}
-//                         />
-//                         <div>
-//                           <p className="font-medium">{activity.student}</p>
-//                           <p className="text-sm text-gray-600">{activity.action}</p>
-//                         </div>
-//                       </div>
-//                       <div className="text-sm text-gray-500">{activity.time}</div>
-//                     </div>
-//                   ))}
-//                 </div>
-//               </CardContent>
-//             </Card>
-
-//             {/* Pending Justifications Alert */}
-//             {pendingJustifications > 0 && (
-//               <Card className="border-orange-200 bg-orange-50">
-//                 <CardHeader>
-//                   <CardTitle className="flex items-center space-x-2 text-orange-800">
-//                     <AlertCircle className="h-5 w-5" />
-//                     <span>Justificaciones pendientes</span>
-//                   </CardTitle>
-//                 </CardHeader>
-//                 <CardContent>
-//                   <p className="text-orange-700 mb-4">
-//                     Hay {pendingJustifications} justificación de ausencia pendiente de revisión.
-//                   </p>
-//                   <Button
-//                     variant="outline"
-//                     className="border-orange-300 text-orange-800 hover:bg-orange-100 bg-transparent"
-//                     onClick={() => setActiveTab("justification")}
-//                   >
-//                     Revisión de justificaciones 
-//                   </Button>
-//                 </CardContent>
-//               </Card>
-//             )}
-//           </TabsContent>
-
-//           <TabsContent value="marking">
-//             <AttendanceMarking
-//               studentClasses={studentClasses}
-//               attendanceRecords={attendanceRecords}
-//               // setAttendanceRecords={setAttendanceRecords}
-//             />
-//           </TabsContent>
-
-//           <TabsContent value="justification">
-//             <AbsenceJustification
-//               studentClasses={studentClasses}
-//               attendanceRecords={attendanceRecords}
-//               // setAttendanceRecords={setAttendanceRecords}
-//             />
-//           </TabsContent>
-
-//           <TabsContent value="history">
-//             <AttendanceHistory studentClasses={studentClasses} attendanceRecords={attendanceRecords} />
-//           </TabsContent>
-
-//           <TabsContent value="students">
-//             <StudentManagement studentClasses={studentClasses}/>
-//           </TabsContent>
-//         </Tabs>
-//       </div>
-//     </div>
-//   )
-// }
