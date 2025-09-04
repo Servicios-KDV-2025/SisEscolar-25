@@ -204,3 +204,53 @@ export const deleteAverage = mutation({
     return deletedCount;
   },
 });
+
+export const getAnnualAveragesForStudents = query({
+  args: {
+    classCatalogId: v.id("classCatalog"),
+    schoolCycleId: v.id("schoolCycle"),
+  },
+  handler: async (ctx, args) => {
+    // ✨ 1. Obtener todos los estudiantes de la clase
+    const studentClasses = await ctx.db
+      .query("studentClass")
+      .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", args.classCatalogId))
+      .collect();
+
+    // ✨ 2. Obtener todos los periodos del ciclo escolar
+    const terms = await ctx.db
+      .query("term")
+      .withIndex("by_schoolCycleId", (q) => q.eq("schoolCycleId", args.schoolCycleId))
+      .collect();
+
+    // 3. Crear un mapa para buscar el nombre del periodo por su ID
+    const termsMap = new Map(terms.map(t => [t._id, t.name]));
+
+    const studentAverages = new Map<
+      Id<"studentClass">,
+      { termId: Id<"term">; averageScore: number | null; termName: string }[]
+    >();
+
+    // 4. Iterar sobre cada estudiante para encontrar sus promedios
+    for (const student of studentClasses) {
+      const averages = [];
+      for (const term of terms) {
+        const average = await ctx.db
+          .query("termAverage")
+          .withIndex("by_student_term", (q) =>
+            q.eq("studentClassId", student._id).eq("termId", term._id)
+          )
+          .unique();
+        averages.push({
+          termId: term._id,
+          averageScore: average?.averageScore ?? null,
+          termName: termsMap.get(term._id)!,
+        });
+      }
+      studentAverages.set(student._id, averages);
+    }
+    
+    const result = Object.fromEntries(studentAverages);
+    return result;
+  },
+});
