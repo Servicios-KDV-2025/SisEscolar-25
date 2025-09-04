@@ -8,6 +8,7 @@ import { api } from "@repo/convex/convex/_generated/api"; //
 import { Button } from "@repo/ui/components/shadcn/button"
 import { Input } from "@repo/ui/components/shadcn/input"
 import { Label } from "@repo/ui/components/shadcn/label"
+import {Id} from "@repo/convex/convex/_generated/dataModel"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger} from "@repo/ui/components/shadcn/dialog"
@@ -22,13 +23,13 @@ import { useCurrentSchool } from "stores/userSchoolsStore";
 
 
 interface Classroom {
-  id: string
-  name: string
-  capacity: number
-  location: string
-  status: "active" | "inactive"
-  createdAt: number
-  updatedAt: number
+  id: string;
+  name: string;
+  capacity: number;
+  location: string;
+  status: "active" | "inactive";
+  createdAt: number;
+  updatedAt: number;
 }
 
 export default function ClassroomManagement() {
@@ -115,15 +116,17 @@ export default function ClassroomManagement() {
     })
 
   const getUniqueLocations = () => {
-    const locations = (classrooms || []).map((c) => c.location || "")
-    return [...new Set(locations)]
-  }
+  const locations = (classrooms || [])
+    .map((c) => c.location)
+    .filter((location): location is string => Boolean(location?.trim())) 
+  return [...new Set(locations)]
+}
 
   // crear y actualizar aulas
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.capacity || !formData.location || !formData.name) {
+    if (!formData.capacity || !formData.location) {
 
       toast.error("Por favor llena todos los campos obligatorios.")
       return
@@ -131,18 +134,19 @@ export default function ClassroomManagement() {
 
     if (editingClassroom) {
       await updateClassroom({
-        id: editingClassroom.id as any,
-        schoolId: currentSchool!._id,
-        name: formData.name,
+        id: editingClassroom.id as Id<"classroom">,
+        schoolId: currentSchool!.school._id,
+        name: formData.location,
         capacity: Number.parseInt(formData.capacity),
         location: formData.location,
         status: formData.status,
+        updatedAt: Date.now(),
       });
       toast.success("Aula actualizada correctamente.")
     } else {
       await createClassroom({
-        schoolId: currentSchool?.school._id, 
-        name: formData.name,
+        schoolId: currentSchool?.school._id as Id<"school">,
+        name: formData.location,
         capacity: Number.parseInt(formData.capacity),
         location: formData.location,
         status: formData.status,  
@@ -166,7 +170,7 @@ export default function ClassroomManagement() {
   }
 
   const handleDelete = async (id: string) => {
-    await deleteClassroom({id: id as any, schoolId: currentSchool?.school._id})
+    await deleteClassroom({id: id as Id<"classroom">, schoolId: currentSchool?.school._id as Id<"school">} )
     toast.success("Aula eliminada correctamente.")
   }
 
@@ -330,7 +334,7 @@ export default function ClassroomManagement() {
             <MapPin className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{classroom.length}</div>
+            <div className="text-2xl font-bold">{classrooms?.length || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -339,7 +343,7 @@ export default function ClassroomManagement() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{classroom.reduce((sum, room) => sum + room.capacity, 0)}</div>
+            <div className="text-2xl font-bold">{classrooms?.reduce((sum: number, room: Classroom) => sum + room.capacity, 0) || 0}</div>
           </CardContent>
         </Card>
       </div>
@@ -398,7 +402,7 @@ export default function ClassroomManagement() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {classroom.createdAt.toLocaleDateString()}
+                        {new Date(classroom.createdAt).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
