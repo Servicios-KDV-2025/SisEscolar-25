@@ -15,7 +15,6 @@ export function AppSidebarWithData({ ...props }: React.ComponentProps<typeof App
     currentSchool,
     subdomain,
     isLoading: schoolsLoading,
-    error,
   } = useCurrentSchool(currentUser?._id);
 
 
