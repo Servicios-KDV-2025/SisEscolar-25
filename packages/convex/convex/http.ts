@@ -238,7 +238,7 @@ async function handleInvoicePaymentSucceeded(ctx: ActionCtx, invoice: Stripe.Inv
     user,
     invoice,
     currentDate: new Date().toLocaleDateString("es-ES"),
-    serverUrl: process.env.NEXT_PUBLIC_SERVER_URL!
+    serverUrl: process.env.NEXT_EMAIL_SERVER_URL!
   });
   const emailSubject = `¡Bienvenido a ${school.name}! - Pago Confirmado`;
 

@@ -485,7 +485,7 @@ export function paymentSuccessTemplate({
             <div class="cta-section">
                 <h3>🚀 ¡Es hora de comenzar!</h3>
                 <p>Tu plataforma educativa está lista. Accede ahora a todas las herramientas y funcionalidades que <strong>${school.name}</strong> tiene preparadas para ti.</p>
-                <a href="https://${school.subdomain}.${process.env.NEXT_PUBLIC_SERVER_URL}" class="cta-button">
+                <a href="https://${school.subdomain}.${process.env.NEXT_EMAIL_SERVER_URL}" class="cta-button">
                     Acceder a mi Plataforma
                 </a>
             </div>
