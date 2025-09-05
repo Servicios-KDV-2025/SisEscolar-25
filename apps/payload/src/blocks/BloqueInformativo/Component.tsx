@@ -28,7 +28,7 @@ export const BloqueInformativoComponet: React.FC<Props> = ({
       // rounded-lg: esquinas redondeadas
       // p-6: padding interno
       // max-w-4xl mx-auto: limita el ancho y centra horizontalmente
-      className="bg-transparent dark:bg-transparent shadow rounded-lg p-6 max-w-4xl mx-auto"
+      className="bg-transparent dark:bg-transparent shadow rounded-lg p-9 max-w-7xl mx-auto"
     >
       <div className="flex items-start space-x-4">
         {icono?.url && (
@@ -48,7 +48,7 @@ export const BloqueInformativoComponet: React.FC<Props> = ({
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{descripcionCorta}</p>
 
           {/* Descripción larga con espacio para saltos de línea y colores para ambos modos */}
-          <p className="text-sm text-gray-800 dark:text-gray-300 whitespace-pre-line">
+          <p className="text-base text-gray-800 dark:text-gray-300 whitespace-pre-line text-justify">
             {descripcionLarga}
           </p>
         </div>
