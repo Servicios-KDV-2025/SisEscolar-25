@@ -273,13 +273,13 @@ export default function TutorPage() {
   const filteredUsers = useMemo(() => {
     if (!allUsers) return [];
 
-    console.log("🔍 allUsers:", allUsers);
-    console.log(
-      "primer usuario:",
-      allUsers[0],
-      "schoolRole:",
-      allUsers[0]?.schoolStatus
-    );
+    // console.log("🔍 allUsers:", allUsers);
+    // console.log(
+    //   "primer usuario:",
+    //   allUsers[0],
+    //   "schoolRole:",
+    //   allUsers[0]?.schoolStatus
+    // );
 
     return allUsers
       .filter((user: UserFromConvex) => user.schoolRole.includes("tutor")) // Solo tutores
@@ -952,7 +952,7 @@ export default function TutorPage() {
                       value={(field.value as string) || ""}
                       type="email"
                       placeholder="email@escuela.edu.mx"
-                      disabled={currentOperation === "view"}
+                      disabled={currentOperation === "view" || currentOperation === "edit"}
                     />
                   </FormControl>
                   <FormMessage />
