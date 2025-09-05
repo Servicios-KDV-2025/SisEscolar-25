@@ -4,9 +4,12 @@
   "private": true,
   "exports": {
     "./*": "./src/*.tsx",
+    "./hooks/use-mobile": "./src/hooks/use-mobile.ts",
     "./lib/utils": "./src/lib/utils.ts",
     "./postcss.config": "./postcss.config.mjs",
-    "./styles/*": "./src/styles/*"
+    "./styles/*": "./src/styles/*",
+    "./icons": "./src/icons.ts",
+    "./components/dialog": "./src/components/dialog/crud-dialog.tsx"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
@@ -63,7 +66,6 @@
     "react": "^19.1.0",
     "react-day-picker": "^9.8.0",
     "react-dom": "^19.1.0",
-    "react-hook-form": "^7.60.0",
     "react-resizable-panels": "^3.0.3",
     "recharts": "2.15.4",
     "sonner": "^2.0.6",
@@ -72,5 +74,8 @@
     "tw-animate-css": "^1.3.5",
     "vaul": "^1.1.2",
     "zod": "^4.0.5"
+  },
+  "peerDependencies": {
+    "react-hook-form": "7.62.0"
   }
 }
