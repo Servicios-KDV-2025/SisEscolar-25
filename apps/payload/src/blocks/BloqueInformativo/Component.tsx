@@ -41,7 +41,7 @@ export const BloqueInformativoComponet: React.FC<Props> = ({
           />
         )}
         <div>
-          {/* Título con color adaptado al modo oscuro */}
+          {/* Título con color adaptado al modo oscuro  */}
           <h3 className="text-lg font-semibold text-emerald-700 dark:text-emerald-400">{titulo}</h3>
 
           {/* Descripción corta con texto gris adaptable al modo oscuro */}
