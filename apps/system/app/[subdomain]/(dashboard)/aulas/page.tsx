@@ -8,7 +8,6 @@ import { api } from "@repo/convex/convex/_generated/api"; //
 import { Button } from "@repo/ui/components/shadcn/button"
 import { Input } from "@repo/ui/components/shadcn/input"
 import { Label } from "@repo/ui/components/shadcn/label"
-import {Id} from "@repo/convex/convex/_generated/dataModel"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger} from "@repo/ui/components/shadcn/dialog"
@@ -20,16 +19,17 @@ import { toast } from "sonner";
 import {useUser} from "@clerk/nextjs"
 import { useUserWithConvex } from "stores/userStore"
 import { useCurrentSchool } from "stores/userSchoolsStore";
+import { classroomFormSchema, ClassroomFormValues } from "@/types/form/classroomSchema";
 
 
 interface Classroom {
-  id: string;
-  name: string;
-  capacity: number;
-  location: string;
-  status: "active" | "inactive";
-  createdAt: number;
-  updatedAt: number;
+  id: string
+  name: string
+  capacity: number
+  location: string
+  status: "active" | "inactive"
+  createdAt: number
+  updatedAt: number
 }
 
 export default function ClassroomManagement() {
@@ -51,12 +51,7 @@ export default function ClassroomManagement() {
     api.functions.classroom.viewAllClassrooms,
     currentSchool?.school._id? { schoolId: currentSchool.school._id } : "skip"
   ) as Classroom[] | undefined;
-
-
-  //const schoolId = "school" // este es el ID que estamos manejando?????
-
-  //con esto nos traemos las aulas desde convex
-  //const classroom = useQuery(api.classroom.viewAllClassrooms, { schoolId }) || []
+ 
 
   //5. mutations para crear/ actualizar y eliminar aulas de convex
   const createClassroom = useMutation(api.functions.classroom.createClassroom)
@@ -64,23 +59,22 @@ export default function ClassroomManagement() {
   const deleteClassroom = useMutation(api.functions.classroom.deleteClassroom)
 
 
-
   //6. estados UI
   const [searchTerm, setSearchTerm] = useState("")
   const [locationFilter, setLocationFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [sortBy, setSortBy] = useState<"location" | "capacity" | "createdAt">("location")
+  const [sortBy, setSortBy] = useState<"name" | "location" | "capacity" | "createdAt">("location")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingClassroom, setEditingClassroom] = useState<Classroom | null>(null)
-  const [formData, setFormData] = useState({
-    name: "",
-    capacity: "",
-    location: "",
-    status: "active" as "active" | "inactive",
-  })
+  const [formData, setFormData] = useState<ClassroomFormValues>({
+  name: "",
+  capacity: 0,
+  location: "",
+  status: "active",
+})
 
-  const isLoading = !isLoaded || userLoading || schoolLoading || classrooms === undefined;
+  const isLoading = !isLoaded || userLoading || schoolLoading 
   if (isLoading) {
     return <p>Cargando aulas...</p>
   }
@@ -91,6 +85,7 @@ export default function ClassroomManagement() {
   const filteredAndSortedClassrooms = (classrooms || [])
     .filter((c) => {
       const matchesSearch =
+        c.name?.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase()) ||
         c.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.capacity.toString().includes(searchTerm)
 
@@ -100,13 +95,21 @@ export default function ClassroomManagement() {
       return matchesSearch && matchesLocation && matchesStatus
     })
     .sort((a, b) => {
-      let aValue: string | number | null = a[sortBy]
-      let bValue: string | number | null = b[sortBy]
-      //cambio de any por el tipo de varible que es
+      let aValue: any = a[sortBy]
+      let bValue: any = b[sortBy]
 
       if (sortBy === "createdAt") {
         aValue = new Date(aValue).getTime()
         bValue = new Date(bValue).getTime()
+      }
+
+      //comparación para strings (name, location)
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        if (sortOrder === "asc") {
+          return aValue.localeCompare(bValue)
+        } else {
+          return bValue.localeCompare(aValue)
+        }
       }
 
       if (sortOrder === "asc") {
@@ -117,40 +120,72 @@ export default function ClassroomManagement() {
     })
 
   const getUniqueLocations = () => {
-  const locations = (classrooms || [])
-    .map((c) => c.location)
-    .filter((location): location is string => Boolean(location?.trim())) 
-  return [...new Set(locations)]
-}
+    const locations = (classrooms || []).map((c) => c.location || "")
+    return [...new Set(locations)]
+  }
 
   // crear y actualizar aulas
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!formData.capacity) {
+      toast.error("La capacidad es obligatoria.");
+      return;
+    }
 
-    if (!formData.capacity || !formData.location) {
+    // Convertimos capacity a número antes de validar
+    const parsedFormData = {
+      ...formData,
+      capacity: Number(formData.capacity)
+    }
+    // validación con zod
+    const result = classroomFormSchema.safeParse(parsedFormData)
 
-      toast.error("Por favor llena todos los campos obligatorios.")
+    if (!result.success) {
+      //si hay errores, los mostramos y detenemos la función
+      toast.error("Por favor revisa los campos: " + result.error.issues.map(e => e.message).join(", "))
       return
+    }
+
+    //los datos deben ser validos... por lo tanto se continua con: 
+    const validData = result.data
+
+    //validación para que no haya duplicados
+    const existingClassroom = (name: string, location:string) => {
+      return (classrooms || []).some(
+        (c) => c.name.trim().toLowerCase() === name.trim().toLocaleLowerCase() &&
+               c.location.trim().toLowerCase() === location.trim().toLocaleLowerCase()
+      )
+    }
+
+    // en el handleSubmit, antes de crear/editar checamos:
+    if (existingClassroom(formData.name, formData.location) && (!editingClassroom ||
+        (editingClassroom.name !== formData.name || editingClassroom.location !== formData.location))) {
+      toast.error("Ya existe un aula con ese nombre y ubicación.");
+      return;
+    }
+
+    if(!currentSchool?.school._id){
+      toast.error("No se encontró la escuela actual. Refresca e intenta de nuevo.")
     }
 
     if (editingClassroom) {
       await updateClassroom({
-        id: editingClassroom.id as Id<"classroom">,
-        schoolId: currentSchool!.school._id,
-        name: formData.location,
-        capacity: Number.parseInt(formData.capacity),
-        location: formData.location,
-        status: formData.status,
+        id: editingClassroom.id as any,
+        schoolId: currentSchool?.school._id as any, //solucionar esto
+        name: validData.name,
+        capacity: validData.capacity,
+        location: validData.location,
+        status: validData.status,
         updatedAt: Date.now(),
-      });
+      })
       toast.success("Aula actualizada correctamente.")
     } else {
       await createClassroom({
-        schoolId: currentSchool?.school._id as Id<"school">,
-        name: formData.location,
-        capacity: Number.parseInt(formData.capacity),
-        location: formData.location,
-        status: formData.status,  
+        schoolId: currentSchool?.school._id as any, //solucionar esto
+        name: validData.name,
+        capacity: validData.capacity,
+        location: validData.location,
+        status: validData.status,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       })
@@ -163,7 +198,7 @@ export default function ClassroomManagement() {
     setEditingClassroom(c)
     setFormData({
       name: c.name,
-      capacity:c.capacity.toString(),
+      capacity: c.capacity,
       location: c.location || "",
       status: c.status,
     })
@@ -171,17 +206,17 @@ export default function ClassroomManagement() {
   }
 
   const handleDelete = async (id: string) => {
-    await deleteClassroom({id: id as Id<"classroom">, schoolId: currentSchool?.school._id as Id<"school">} )
+    await deleteClassroom({id: id as any, schoolId: currentSchool?.school._id as any}) //solucionar esto
     toast.success("Aula eliminada correctamente.")
   }
 
   const resetForm = () => {
-    setFormData({ name: "", capacity: "", location: "", status: "active"})
+  setFormData({ name: "", capacity: 0, location: "", status: "active" });
     setEditingClassroom(null)
     setIsDialogOpen(false)
   }
   
-  const handleSort = (column: "location" | "capacity" | "createdAt") => {
+  const handleSort = (column: "name" | "location" | "capacity" | "createdAt") => {
     if (sortBy === column) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc")
     } else {
@@ -189,9 +224,6 @@ export default function ClassroomManagement() {
       setSortOrder("asc")
     }
   }
-
-
-
 
   return (
     <div className="space-y-6">
@@ -205,7 +237,7 @@ export default function ClassroomManagement() {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
-              placeholder="Búsqueda por ubicación o capacidad..."
+              placeholder="Búsqueda por nombre, ubicación o capacidad..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -232,14 +264,32 @@ export default function ClassroomManagement() {
               <form onSubmit={handleSubmit}>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
+                    <Label htmlFor="name">Nombre *</Label>
+                    <Input
+                      id="name"
+                      placeholder="Ingresa el nombre del aula"
+                      value={formData.name}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                      required
+                      maxLength={50}
+                    />
+                  </div>
+                  <div className="grid gap-2">
                     <Label htmlFor="capacity">Capacidad *</Label>
                     <Input
                       id="capacity"
                       type="number"
                       min="1"
+                      max="35"
                       placeholder="Ingresa la capacidad"
-                      value={formData.capacity}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, capacity: e.target.value }))}
+                      defaultValue={formData.capacity}
+                      onChange={(e) => {
+                        const value = Number(e.target.value);
+                        setFormData((prev) => ({
+                          ...prev,
+                          capacity: isNaN(value) ? 0 : value,
+                        }));
+                      }}
                       required
                     />
                   </div>
@@ -247,14 +297,15 @@ export default function ClassroomManagement() {
                     <Label htmlFor="location">Ubicación *</Label>
                     <Input
                       id="location"
-                      placeholder="Ingresa la ubicación/nombre"
+                      placeholder="Ingresa la ubicación"
                       value={formData.location}
                       onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
                       required
+                      maxLength={50}
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="status">Estado</Label>
+                    <Label htmlFor="status">Estatus</Label>
                     <Select
                       value={formData.status}
                       onValueChange={(value: "active" | "inactive") =>
@@ -262,7 +313,7 @@ export default function ClassroomManagement() {
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecciona Estado" />
+                        <SelectValue placeholder="Selecciona estatus" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="active">Activo</SelectItem>
@@ -275,7 +326,7 @@ export default function ClassroomManagement() {
                   <Button type="button" variant="outline" onClick={resetForm}>
                     Cancelar
                   </Button>
-                  <Button type="submit">{editingClassroom ? "Actualizar" : "Crear"} Aula</Button>
+                  <Button type="submit">{editingClassroom ? "Editar" : "Crear"} Aula</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -290,15 +341,15 @@ export default function ClassroomManagement() {
 
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex flex-col gap-1">
-              <Label htmlFor="location-filter" className="text-xs text-muted-foreground">
-                Locación
-              </Label>
+              {/*<Label htmlFor="location-filter" className="text-xs text-muted-foreground">
+                Ubicación
+              </Label>*/}
               <Select value={locationFilter} onValueChange={setLocationFilter}>
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Todos las locaciones" />
+                  <SelectValue placeholder="Todas las ubicaciones" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todas las locaciones</SelectItem>
+                  <SelectItem value="all">Total Ubicaciones</SelectItem>
                   {getUniqueLocations().map((location) => (
                     <SelectItem key={location} value={location}>
                       {location}
@@ -309,15 +360,15 @@ export default function ClassroomManagement() {
             </div>
 
             <div className="flex flex-col gap-1">
-              <Label htmlFor="status-filter" className="text-xs text-muted-foreground">
-                Estados
-              </Label>
+              {/*<Label htmlFor="status-filter" className="text-xs text-muted-foreground">
+                Status
+              </Label>*/}
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todas los estados</SelectItem>
+                  <SelectItem value="all">Estatus</SelectItem>
                   <SelectItem value="active">Activo</SelectItem>
                   <SelectItem value="inactive">Inactivo</SelectItem>
                 </SelectContent>
@@ -335,7 +386,7 @@ export default function ClassroomManagement() {
             <MapPin className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{classrooms?.length || 0}</div>
+            <div className="text-2xl font-bold">{classrooms?.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -344,7 +395,7 @@ export default function ClassroomManagement() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{classrooms?.reduce((sum: number, room: Classroom) => sum + room.capacity, 0) || 0}</div>
+            <div className="text-2xl font-bold">{classrooms?.reduce((sum, room) => sum + room.capacity, 0)}</div>
           </CardContent>
         </Card>
       </div>
@@ -353,21 +404,24 @@ export default function ClassroomManagement() {
       <Card>
         <CardHeader>
           <CardTitle>Registro de Aulas</CardTitle>
-          <CardDescription>Administra todas las aulas con su capacidad, ubicación y estado.</CardDescription>
+          <CardDescription>Administra todas las aulas con su nombre, capacidad, ubicación y estado.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("location")}>
+                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("name")}> 
+                    Nombre 
+                  </TableHead>
+                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("location")}> 
                     Ubicación {sortBy === "location" && (sortOrder === "asc" ? "↑" : "↓")}
                   </TableHead>
-                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("capacity")}>
+                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("capacity")}> 
                     Capacidad {sortBy === "capacity" && (sortOrder === "asc" ? "↑" : "↓")}
                   </TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("createdAt")}>
+                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("createdAt")}> 
                     Creado {sortBy === "createdAt" && (sortOrder === "asc" ? "↑" : "↓")}
                   </TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
@@ -376,15 +430,18 @@ export default function ClassroomManagement() {
               <TableBody>
                 {filteredAndSortedClassrooms.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       {searchTerm || locationFilter !== "all" || statusFilter !== "all"
-                        ? "No classrooms found matching your filters."
-                        : "No classrooms registered yet."}
+                        ? "No se encontraron aulas que coincidan con tus filtros."
+                        : "No se encontraron aulas registradas."}
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredAndSortedClassrooms.map((classroom) => (
                     <TableRow key={classroom.id}>
+                      <TableCell className="font-medium">
+                        {classroom.name}
+                      </TableCell>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -394,23 +451,27 @@ export default function ClassroomManagement() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Users className="h-4 w-4 text-muted-foreground" />
-                          {classroom.capacity} estudiantes
+                          {classroom.capacity} students
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className={classroom.status === "active" ? "bg-green-600 px-3" : "bg-red-600"}>
-                          {classroom.status === "active" ? "Activo" : "Inactivo"}
+                        <Badge variant={classroom.status === "active" ? "default" : "secondary"}>
+                          {classroom.status === "active" ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {new Date(classroom.createdAt).toLocaleString()}
+                        {new Date(classroom.createdAt).toLocaleDateString('es-MX', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                        })}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button variant="outline" size="sm" onClick={() => handleEdit(classroom)}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="destructive" size="sm" onClick={() => handleDelete(classroom.id)}>
+                          <Button variant="outline" size="sm" onClick={() => handleDelete(classroom.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
