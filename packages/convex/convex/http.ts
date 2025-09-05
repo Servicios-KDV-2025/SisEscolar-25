@@ -202,8 +202,12 @@ async function handleInvoicePaymentSucceeded(ctx: ActionCtx, invoice: Stripe.Inv
 
   const subscription = subscriptions.data[0];
 
+  if (!subscription?.id) {
+    throw new Error("No se pudo obtener el ID de la suscripción");
+  }
+
   await ctx.runMutation(internal.functions.schoolSubscriptions.updateSubscription, {
-    stripeSubscriptionId: subscription?.id,
+    stripeSubscriptionId: subscription.id,
     status: "active",
   });
 
@@ -221,7 +225,7 @@ async function handleInvoicePaymentSucceeded(ctx: ActionCtx, invoice: Stripe.Inv
   });
 
   const school = await ctx.runQuery(internal.functions.schools.getSchoolById, {
-  schoolId: subscriptionData.schoolId
+    schoolId: subscriptionData.schoolId
   });
 
   if (!user || !school) {
