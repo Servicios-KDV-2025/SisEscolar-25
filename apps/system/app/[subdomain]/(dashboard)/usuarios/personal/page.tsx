@@ -46,6 +46,7 @@ type UserFromConvex = {
   status?: 'active' | 'inactive';
   userSchoolId: Id<"userSchool">;
   schoolRole: Array<'superadmin' | 'admin' | 'auditor' | 'teacher' | 'tutor'>;
+  schoolStatus: 'active' | 'inactive';
   department?: 'secretary' | 'direction' | 'schoolControl' | 'technology';
 };
 
@@ -134,6 +135,7 @@ export default function PersonalPage() {
     api.functions.schools.getUsersBySchoolAndRoles,
     currentSchool?.school?._id ? {
       schoolId: currentSchool.school._id,
+      roles: ['superadmin', 'admin', 'auditor', 'teacher'],
       status: "active"
     } : "skip"
   );
