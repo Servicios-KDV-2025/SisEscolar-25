@@ -10,13 +10,14 @@ import { Input } from "@repo/ui/components/shadcn/input"
 import { Label } from "@repo/ui/components/shadcn/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger} from "@repo/ui/components/shadcn/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@repo/ui/components/shadcn/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select"
 import { Badge } from "@repo/ui/components/shadcn/badge"
 import { Search, Plus, Edit, Trash2, MapPin, Users, Filter } from "lucide-react"
 import { toast } from "sonner";
+import { Id } from "@repo/convex/convex/_generated/dataModel"
 
-import {useUser} from "@clerk/nextjs"
+import { useUser } from "@clerk/nextjs"
 import { useUserWithConvex } from "stores/userStore"
 import { useCurrentSchool } from "stores/userSchoolsStore";
 import { classroomFormSchema, ClassroomFormValues } from "@/types/form/classroomSchema";
@@ -49,9 +50,9 @@ export default function ClassroomManagement() {
   //4. Hacer un query a Convex(para traerse todas las aulas de la escuela actual)
   const classrooms = useQuery(
     api.functions.classroom.viewAllClassrooms,
-    currentSchool?.school._id? { schoolId: currentSchool.school._id } : "skip"
+    currentSchool?.school._id ? { schoolId: currentSchool.school._id } : "skip"
   ) as Classroom[] | undefined;
- 
+
 
   //5. mutations para crear/ actualizar y eliminar aulas de convex
   const createClassroom = useMutation(api.functions.classroom.createClassroom)
@@ -68,20 +69,20 @@ export default function ClassroomManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingClassroom, setEditingClassroom] = useState<Classroom | null>(null)
   const [formData, setFormData] = useState<ClassroomFormValues>({
-  name: "",
-  capacity: 0,
-  location: "",
-  status: "active",
-})
+    name: "",
+    capacity: 0,
+    location: "",
+    status: "active",
+  })
 
-  const isLoading = !isLoaded || userLoading || schoolLoading 
+  const isLoading = !isLoaded || userLoading || schoolLoading
   if (isLoading) {
     return <p>Cargando aulas...</p>
   }
 
 
 
-//esta seccion es para filtrar, buscar y ordenar las aulas 
+  //esta seccion es para filtrar, buscar y ordenar las aulas 
   const filteredAndSortedClassrooms = (classrooms || [])
     .filter((c) => {
       const matchesSearch =
@@ -95,8 +96,8 @@ export default function ClassroomManagement() {
       return matchesSearch && matchesLocation && matchesStatus
     })
     .sort((a, b) => {
-      let aValue: any = a[sortBy]
-      let bValue: any = b[sortBy]
+      let aValue: string | number = a[sortBy]
+      let bValue: string | number = b[sortBy]
 
       if (sortBy === "createdAt") {
         aValue = new Date(aValue).getTime()
@@ -150,28 +151,28 @@ export default function ClassroomManagement() {
     const validData = result.data
 
     //validación para que no haya duplicados
-    const existingClassroom = (name: string, location:string) => {
+    const existingClassroom = (name: string, location: string) => {
       return (classrooms || []).some(
         (c) => c.name.trim().toLowerCase() === name.trim().toLocaleLowerCase() &&
-               c.location.trim().toLowerCase() === location.trim().toLocaleLowerCase()
+          c.location.trim().toLowerCase() === location.trim().toLocaleLowerCase()
       )
     }
 
     // en el handleSubmit, antes de crear/editar checamos:
     if (existingClassroom(formData.name, formData.location) && (!editingClassroom ||
-        (editingClassroom.name !== formData.name || editingClassroom.location !== formData.location))) {
+      (editingClassroom.name !== formData.name || editingClassroom.location !== formData.location))) {
       toast.error("Ya existe un aula con ese nombre y ubicación.");
       return;
     }
 
-    if(!currentSchool?.school._id){
+    if (!currentSchool?.school._id) {
       toast.error("No se encontró la escuela actual. Refresca e intenta de nuevo.")
     }
 
     if (editingClassroom) {
       await updateClassroom({
-        id: editingClassroom.id as any,
-        schoolId: currentSchool?.school._id as any, //solucionar esto
+        id: editingClassroom.id as Id<"classroom">,
+        schoolId: currentSchool?.school._id as Id<"school">,
         name: validData.name,
         capacity: validData.capacity,
         location: validData.location,
@@ -181,7 +182,7 @@ export default function ClassroomManagement() {
       toast.success("Aula actualizada correctamente.")
     } else {
       await createClassroom({
-        schoolId: currentSchool?.school._id as any, //solucionar esto
+        schoolId: currentSchool?.school._id as Id<"school">,
         name: validData.name,
         capacity: validData.capacity,
         location: validData.location,
@@ -206,16 +207,16 @@ export default function ClassroomManagement() {
   }
 
   const handleDelete = async (id: string) => {
-    await deleteClassroom({id: id as any, schoolId: currentSchool?.school._id as any}) //solucionar esto
+    await deleteClassroom({ id: id as Id<"classroom">, schoolId: currentSchool?.school._id as Id<"school"> }) //Listo
     toast.success("Aula eliminada correctamente.")
   }
 
   const resetForm = () => {
-  setFormData({ name: "", capacity: 0, location: "", status: "active" });
+    setFormData({ name: "", capacity: 0, location: "", status: "active" });
     setEditingClassroom(null)
     setIsDialogOpen(false)
   }
-  
+
   const handleSort = (column: "name" | "location" | "capacity" | "createdAt") => {
     if (sortBy === column) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc")
@@ -258,7 +259,7 @@ export default function ClassroomManagement() {
                   {editingClassroom
                     ? "Actualiza la información del aula a continuación."
                     : "Ingresa los detalles para la nueva aula."}
-                
+
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit}>
@@ -411,17 +412,17 @@ export default function ClassroomManagement() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("name")}> 
-                    Nombre 
+                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("name")}>
+                    Nombre
                   </TableHead>
-                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("location")}> 
+                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("location")}>
                     Ubicación {sortBy === "location" && (sortOrder === "asc" ? "↑" : "↓")}
                   </TableHead>
-                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("capacity")}> 
+                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("capacity")}>
                     Capacidad {sortBy === "capacity" && (sortOrder === "asc" ? "↑" : "↓")}
                   </TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("createdAt")}> 
+                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("createdAt")}>
                     Creado {sortBy === "createdAt" && (sortOrder === "asc" ? "↑" : "↓")}
                   </TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
@@ -455,7 +456,8 @@ export default function ClassroomManagement() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={classroom.status === "active" ? "default" : "secondary"}>
+
+                        <Badge className={`text-center text-white font-medium py-1 ${classroom.status === "active" ? "bg-green-600 px-3" : "bg-red-600"}`}>
                           {classroom.status === "active" ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
@@ -471,7 +473,7 @@ export default function ClassroomManagement() {
                           <Button variant="outline" size="sm" onClick={() => handleEdit(classroom)}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="outline" size="sm" onClick={() => handleDelete(classroom.id)}>
+                          <Button variant="destructive" size="sm" onClick={() => handleDelete(classroom.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
