@@ -306,7 +306,7 @@ export default function ClassroomManagement() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="status">Estatus</Label>
+                    <Label htmlFor="status">Estados</Label>
                     <Select
                       value={formData.status}
                       onValueChange={(value: "active" | "inactive") =>
@@ -369,7 +369,7 @@ export default function ClassroomManagement() {
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Estatus</SelectItem>
+                  <SelectItem value="all">Estados</SelectItem>
                   <SelectItem value="active">Activo</SelectItem>
                   <SelectItem value="inactive">Inactivo</SelectItem>
                 </SelectContent>
@@ -458,7 +458,7 @@ export default function ClassroomManagement() {
                       <TableCell>
 
                         <Badge className={`text-center text-white font-medium py-1 ${classroom.status === "active" ? "bg-green-600 px-3" : "bg-red-600"}`}>
-                          {classroom.status === "active" ? "Active" : "Inactive"}
+                          {classroom.status === "active" ? "Activo" : "Inactivo"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
