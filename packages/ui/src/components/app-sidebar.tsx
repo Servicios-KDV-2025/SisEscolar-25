@@ -131,12 +131,6 @@ const defaultNavData = {
       isActive: true,
     },
     {
-      title: "Alumnos",
-      url: `/alumnos`,
-      icon: SquareTerminal,
-      isActive: true,
-    },
-    {
       title: "Evaluacion",
       url: `#`,
       icon: SquareTerminal,
@@ -155,12 +149,6 @@ const defaultNavData = {
           url: `/asignaciones`,
         },
       ],
-    },
-    {
-      title: "Padres",
-      url: `/padres`,
-      icon: SquareTerminal,
-      isActive: true,
     },
     {
       title: "Usuarios",
