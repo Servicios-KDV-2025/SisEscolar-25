@@ -280,9 +280,6 @@ export default function PersonalPage() {
   };
 
   const handleOpenEdit = (user: UserFromConvex) => {
-    console.log("✏️ handleOpenEdit LLAMADO - User data:", user);
-    console.log("✏️ handleOpenEdit - Keys disponibles:", Object.keys(user));
-    console.log("✏️ handleOpenEdit - userSchoolId:", user.userSchoolId);
     userActions.clearErrors();
     userActions.clearLastResult();
 
@@ -294,7 +291,6 @@ export default function PersonalPage() {
       status: user.schoolStatus,
     };
 
-    console.log("✏️ editData preparado:", editData);
     openEdit(editData);
   };
 
@@ -355,7 +351,6 @@ export default function PersonalPage() {
 
   // Funciones CRUD
   const handleCreate = async (formData: Record<string, unknown>) => {
-    console.log("Datos recibidos en handleCreate:", formData);
 
     if (!currentSchool?.school?._id) {
       console.error("No hay escuela actual disponible");
@@ -375,16 +370,9 @@ export default function PersonalPage() {
           : selectedDepartment
         : undefined; // Forzar undefined para roles que no son admin
 
-    console.log(
-      "📋 Creando usuario con rol:",
-      selectedRole,
-      "y departamento:",
-      departmentValue
-    );
 
     try {
       // PASO 1: Buscar si el usuario ya existe en Convex
-      console.log("🔍 Buscando usuario existente por email:", email);
 
       const existingUsers = await searchUserByEmailAsync(email);
 
@@ -402,12 +390,6 @@ export default function PersonalPage() {
           );
         }
 
-        console.log(
-          "✅ Usuario encontrado:",
-          existingUser.name,
-          existingUser.email
-        );
-        console.log("📋 Asignando usuario existente a la escuela actual...");
 
         await createUserSchoolRelation({
           clerkId: existingUser.clerkId,
@@ -429,12 +411,10 @@ export default function PersonalPage() {
             | undefined,
         });
 
-        console.log("🎉 Usuario existente asignado exitosamente!");
         return;
       }
 
       // FLUJO B: Usuario no existe, crear nuevo en Clerk + asignar
-      console.log("👤 Usuario no existe, creando nuevo en Clerk...");
 
       const password = formData.password as string;
 
@@ -455,15 +435,12 @@ export default function PersonalPage() {
       const result = await userActions.createUser(createData);
 
       if (result.success && result.userId) {
-        console.log("✅ Usuario creado en Clerk exitosamente:", result.userId);
 
         try {
           // Esperar sincronización del webhook
-          console.log("⏳ Esperando sincronización del webhook...");
           await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 segundos
 
           // Asignar rol en la escuela actual
-          console.log("📋 Asignando nuevo usuario a la escuela actual...");
           await createUserSchoolRelation({
             clerkId: result.userId,
             schoolId: currentSchool.school._id,
@@ -484,7 +461,6 @@ export default function PersonalPage() {
               | undefined,
           });
 
-          console.log("🎉 Nuevo usuario creado y asignado exitosamente!");
         } catch (error) {
           console.error("❌ Error al asignar usuario a la escuela:", error);
           const errorMessage = `Usuario creado pero error al asignar a la escuela: ${error instanceof Error ? error.message : "Error desconocido"}`;
@@ -509,8 +485,7 @@ export default function PersonalPage() {
   };
 
   const handleUpdate = async (formData: Record<string, unknown>) => {
-    console.log("🔄 handleUpdate LLAMADO - Form data:", formData);
-    console.log("🔄 handleUpdate - Original data:", data);
+
 
     // Combinar datos del formulario con datos originales para tener clerkId
     const combinedData = { ...data, ...formData };
@@ -567,10 +542,7 @@ export default function PersonalPage() {
       } else if (originalRole === "admin") {
         // Cambio DE admin A otro rol: limpiar departamento
         departmentValue = undefined;
-        console.log(
-          "🧹 Limpiando departamento porque cambió de ADMIN a:",
-          selectedRole
-        );
+
       } else {
         // Cambio entre roles no-admin: mantener undefined
         departmentValue = undefined;
@@ -579,14 +551,7 @@ export default function PersonalPage() {
       const finalDepartmentValue =
         departmentValue === undefined ? null : departmentValue;
 
-      console.log("📋 Actualizando rol y departamento...", {
-        userSchoolId: combinedData.userSchoolId,
-        originalRole,
-        newRole: selectedRole,
-        department: departmentValue,
-        finalDepartmentForConvex: finalDepartmentValue,
-        status: combinedData.status || "active",
-      });
+
 
       await updateUserSchoolRelation({
         id: combinedData.userSchoolId as Id<"userSchool">,
@@ -609,7 +574,7 @@ export default function PersonalPage() {
         status: (combinedData.status as "active" | "inactive") || "active",
       });
 
-      console.log("✅ Usuario y relación actualizados exitosamente");
+      
     } catch (error) {
       console.error("❌ Error en handleUpdate:", error);
       throw error;
@@ -617,8 +582,7 @@ export default function PersonalPage() {
   };
 
   const handleDelete = async (deleteData: Record<string, unknown>) => {
-    console.log("🗑️ handleDelete - deleteData recibido:", deleteData);
-    console.log("🗑️ handleDelete - data original:", data);
+
 
     // Usar los datos originales del diálogo que tienen el userSchoolId
     const targetData = data || deleteData;
@@ -628,9 +592,7 @@ export default function PersonalPage() {
       throw new Error("UserSchool ID no disponible para eliminación");
     }
 
-    console.log(
-      "🔄 Realizando soft delete - desactivando usuario de la escuela actual..."
-    );
+
 
     try {
       // Realizar soft delete: cambiar status a 'inactive' en lugar de eliminar completamente
@@ -638,7 +600,6 @@ export default function PersonalPage() {
         userSchoolId: targetData.userSchoolId as Id<"userSchool">,
       });
 
-      console.log("✅ Usuario desactivado exitosamente de la escuela actual");
     } catch (error) {
       console.error("❌ Error al desactivar usuario:", error);
       throw new Error(
@@ -1191,10 +1152,6 @@ export default function PersonalPage() {
 
                         // Solo limpiar departamento si cambiamos DE admin A otro rol
                         if (previousRole === "admin" && value !== "admin") {
-                          console.log(
-                            "🧹 Limpiando campo departamento en formulario: admin →",
-                            value
-                          );
                           form.setValue("department", undefined);
                         }
                       }}

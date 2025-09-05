@@ -232,7 +232,6 @@ export default function TutorPage() {
   };
 
   const handleOpenEdit = (user: UserFromConvex) => {
-    console.log("✏️ handleOpenEdit LLAMADO - User data:", user);
     userActions.clearErrors();
     userActions.clearLastResult();
 
@@ -244,7 +243,6 @@ export default function TutorPage() {
       status: user.schoolStatus, // Usar schoolStatus en lugar del status general
     };
 
-    console.log("✏️ editData preparado:", editData);
     openEdit(editData);
   };
 
@@ -273,14 +271,6 @@ export default function TutorPage() {
   const filteredUsers = useMemo(() => {
     if (!allUsers) return [];
 
-    // console.log("🔍 allUsers:", allUsers);
-    // console.log(
-    //   "primer usuario:",
-    //   allUsers[0],
-    //   "schoolRole:",
-    //   allUsers[0]?.schoolStatus
-    // );
-
     return allUsers
       .filter((user: UserFromConvex) => user.schoolRole.includes("tutor")) // Solo tutores
       .filter((user: UserFromConvex) => {
@@ -299,7 +289,6 @@ export default function TutorPage() {
 
   // Funciones CRUD
   const handleCreate = async (formData: Record<string, unknown>) => {
-    console.log("Datos recibidos en handleCreate:", formData);
 
     if (!currentSchool?.school?._id) {
       console.error("No hay escuela actual disponible");
@@ -308,11 +297,8 @@ export default function TutorPage() {
 
     const email = formData.email as string;
 
-    console.log("📋 Creando tutor con email:", email);
-
     try {
       // PASO 1: Buscar si el usuario ya existe en Convex
-      console.log("🔍 Buscando usuario existente por email:", email);
 
       const existingUsers = await searchUserByEmailAsync(email);
 
@@ -330,12 +316,6 @@ export default function TutorPage() {
           );
         }
 
-        console.log(
-          "✅ Usuario encontrado:",
-          existingUser.name,
-          existingUser.email
-        );
-        console.log("📋 Asignando usuario existente como tutor...");
 
         await createUserSchoolRelation({
           clerkId: existingUser.clerkId,
@@ -345,12 +325,10 @@ export default function TutorPage() {
           department: undefined, // Los tutores no tienen departamento
         });
 
-        console.log("🎉 Usuario existente asignado como tutor exitosamente!");
         return;
       }
 
       // FLUJO B: Usuario no existe, crear nuevo en Clerk + asignar
-      console.log("👤 Usuario no existe, creando nuevo tutor en Clerk...");
 
       const password = formData.password as string;
 
@@ -371,15 +349,12 @@ export default function TutorPage() {
       const result = await userActions.createUser(createData);
 
       if (result.success && result.userId) {
-        console.log("✅ Usuario creado en Clerk exitosamente:", result.userId);
 
         try {
           // Esperar sincronización del webhook
-          console.log("⏳ Esperando sincronización del webhook...");
           await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 segundos
 
           // Asignar rol de tutor en la escuela actual
-          console.log("📋 Asignando nuevo usuario como tutor...");
           await createUserSchoolRelation({
             clerkId: result.userId,
             schoolId: currentSchool.school._id,
@@ -388,7 +363,6 @@ export default function TutorPage() {
             department: undefined, // Los tutores no tienen departamento
           });
 
-          console.log("🎉 Nuevo tutor creado y asignado exitosamente!");
         } catch (error) {
           console.error("❌ Error al asignar usuario como tutor:", error);
           const errorMessage = `Usuario creado pero error al asignar como tutor: ${error instanceof Error ? error.message : "Error desconocido"}`;
@@ -413,9 +387,6 @@ export default function TutorPage() {
   };
 
   const handleUpdate = async (formData: Record<string, unknown>) => {
-    console.log("🔄 handleUpdate LLAMADO - Form data:", formData);
-    console.log("🔄 handleUpdate - Original data:", data);
-
     // Combinar datos del formulario con datos originales para tener clerkId
     const combinedData = { ...data, ...formData };
 
@@ -454,10 +425,6 @@ export default function TutorPage() {
       }
 
       // PASO 2: Actualizar estado en la relación usuario-escuela (mantener rol de tutor)
-      console.log("📋 Actualizando información del tutor...", {
-        userSchoolId: combinedData.userSchoolId,
-        status: combinedData.status || "active",
-      });
 
       await updateUserSchoolRelation({
         id: combinedData.userSchoolId as Id<"userSchool">,
@@ -466,7 +433,6 @@ export default function TutorPage() {
         status: (combinedData.status as "active" | "inactive") || "active",
       });
 
-      console.log("✅ Tutor actualizado exitosamente");
     } catch (error) {
       console.error("❌ Error en handleUpdate:", error);
       throw error;
@@ -474,9 +440,6 @@ export default function TutorPage() {
   };
 
   const handleDelete = async (deleteData: Record<string, unknown>) => {
-    console.log("🗑️ handleDelete - deleteData recibido:", deleteData);
-    console.log("🗑️ handleDelete - data original:", data);
-
     // Usar los datos originales del diálogo que tienen el userSchoolId
     const targetData = data || deleteData;
 
@@ -485,17 +448,12 @@ export default function TutorPage() {
       throw new Error("UserSchool ID no disponible para eliminación");
     }
 
-    console.log(
-      "🔄 Realizando soft delete - desactivando tutor de la escuela actual..."
-    );
-
     try {
       // Realizar soft delete: cambiar status a 'inactive' en lugar de eliminar completamente
       await deactivateUserInSchool({
         userSchoolId: targetData.userSchoolId as Id<"userSchool">,
       });
 
-      console.log("✅ Tutor desactivado exitosamente de la escuela actual");
     } catch (error) {
       console.error("❌ Error al desactivar tutor:", error);
       throw new Error(
