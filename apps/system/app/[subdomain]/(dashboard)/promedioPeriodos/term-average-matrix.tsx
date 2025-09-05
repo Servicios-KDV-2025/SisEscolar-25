@@ -30,8 +30,7 @@ export function TermAverageMatrix({
 }: TermAverageMatrixProps) {
         
   return (
-    <Card >
-      <CardContent className="p-0">
+    
         <div className="overflow-auto max-h-[calc(100vh-300px)]">
           <table className="w-full border-collapse">
             <thead className="sticky top-0 bg-muted z-10">
@@ -93,8 +92,6 @@ export function TermAverageMatrix({
             </tbody>
           </table>
         </div>
-      </CardContent>
-    </Card>
   );
 }
 

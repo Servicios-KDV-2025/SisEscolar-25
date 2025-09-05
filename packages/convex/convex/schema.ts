@@ -175,6 +175,7 @@ const applicationTable = defineSchema({
   //Periodos
   term: defineTable({
     schoolCycleId: v.id("schoolCycle"),
+    schoolId: v.id("school"),
     name: v.string(),
     key: v.string(),
     startDate: v.number(),
@@ -187,6 +188,7 @@ const applicationTable = defineSchema({
     updatedAt: v.optional(v.number()),
   })
   .index("by_schoolCycleId",["schoolCycleId"])
+  .index("by_schoolId", ["schoolId"]) 
   .index("by_status",["status"]),
 
   //Rúbrica de Calificación

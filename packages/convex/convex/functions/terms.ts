@@ -9,11 +9,9 @@ export const createTerm = mutation({
     startDate: v.number(),
     endDate: v.number(),
     schoolCycleId: v.id("schoolCycle"),
-    status: v.optional(v.union(v.literal("active"), v.literal("inactive"), v.literal("closed"))),
-  
+    schoolId: v.id("school"), // Recibir el schoolId
   },
   handler: async (ctx, args) => {
-    const now = Date.now();
     const id = await ctx.db.insert("term", {
       name: args.name,
       key: args.key,
@@ -22,8 +20,22 @@ export const createTerm = mutation({
       status: "active",
       updatedAt: undefined,
       schoolCycleId: args.schoolCycleId,
+      schoolId: args.schoolId, // Guardar el schoolId
     });
     return id;
+  },
+});
+
+
+export const getAllTermsBySchool = query({
+  args: {
+    schoolId: v.id("school"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("term")
+      .withIndex("by_schoolId", (q) => q.eq("schoolId", args.schoolId))
+      .collect();
   },
 });
 
@@ -75,4 +87,4 @@ export const deleteTerm = mutation({
     await ctx.db.delete(args.termId);
     return args.termId;
   },
-});
+}); 
