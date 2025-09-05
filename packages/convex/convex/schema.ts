@@ -297,10 +297,13 @@ const applicationTable = defineSchema({
   attendance: defineTable({
     studentClassId: v.id("studentClass"),
     date: v.number(),
-    present: v.boolean(),
-    justified: v.optional(v.boolean()),
+    attendanceState: v.union(
+      v.literal('present'),
+      v.literal('absent'),
+      v.literal('justified'),
+      v.literal('unjustified'),
+    ),
     comments: v.optional(v.string()),
-    registrationDate: v.number(),
     createdBy: v.id("user"),
     updatedBy: v.id("user"),
     updatedAt: v.number(),
