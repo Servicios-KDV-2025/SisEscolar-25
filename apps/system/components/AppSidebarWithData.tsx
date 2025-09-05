@@ -50,7 +50,7 @@ export function AppSidebarWithData({ ...props }: React.ComponentProps<typeof App
 
   // Preparar datos de la escuela para el sidebar
   const schoolData = React.useMemo(() => {
-    console.log('Preparando schoolData - isLoading:', schoolsLoading, 'currentSchool:', currentSchool);
+    // console.log('Preparando schoolData - isLoading:', schoolsLoading, 'currentSchool:', currentSchool);
     
     // Mostrar loading mientras carga
     if (schoolsLoading || !currentUser || !subdomain) {
@@ -77,7 +77,7 @@ export function AppSidebarWithData({ ...props }: React.ComponentProps<typeof App
       logo: currentSchool.school.imgUrl || "/avatars/default-school.jpg"
     };
     
-    console.log('School data final:', schoolInfo);
+    // console.log('School data final:', schoolInfo);
     return schoolInfo;
   }, [schoolsLoading, currentSchool, currentUser, subdomain]);
 

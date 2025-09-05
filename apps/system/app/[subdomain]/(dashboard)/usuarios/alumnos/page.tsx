@@ -155,7 +155,6 @@ export default function AlumnosPage() {
   // Funciones CRUD reales
   const handleCreate = async (formData: Record<string, unknown>) => {
     if (!currentSchool?.school._id) {
-      console.error("No hay escuela seleccionada");
       throw new Error("No hay escuela seleccionada");
     }
 
@@ -186,7 +185,6 @@ export default function AlumnosPage() {
 
   const handleUpdate = async (formData: Record<string, unknown>) => {
     if (!data?._id) {
-      console.error("No hay estudiante seleccionado para actualizar");
       throw new Error("No hay estudiante seleccionado para actualizar");
     }
 
