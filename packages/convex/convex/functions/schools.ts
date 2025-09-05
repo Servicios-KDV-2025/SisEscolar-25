@@ -710,6 +710,7 @@ export const getUsersBySchoolAndRole = query({
           ...user,
           userSchoolId: userSchool._id,
           schoolRole: userSchool.role,
+          schoolStatus: userSchool.status,
           department: userSchool.department,
         };
       })
@@ -768,6 +769,7 @@ export const getUsersBySchoolAndRoles = query({
                     ...user,
                     userSchoolId: userSchool._id,
                     schoolRole: userSchool.role,
+                    schoolStatus: userSchool.status,
                     department: userSchool.department,
                 };
             })
