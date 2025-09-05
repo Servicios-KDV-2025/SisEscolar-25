@@ -548,9 +548,6 @@ export default function PersonalPage() {
         departmentValue = undefined;
       }
 
-      const finalDepartmentValue =
-        departmentValue === undefined ? null : departmentValue;
-
 
 
       await updateUserSchoolRelation({
