@@ -19,5 +19,12 @@
   },
   "dependencies": {
     "react-hook-form": "7.62.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "sharp",
+      "esbuild",
+      "unrs-resolver"
+    ]
   }
 }
