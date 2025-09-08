@@ -1,4 +1,4 @@
-import { mutation, query, internalMutation } from '../_generated/server';
+import { mutation, query, internalMutation, internalQuery } from '../_generated/server';
 import { v, Validator } from 'convex/values';
 import { UserJSON } from '@clerk/backend';
 import { Doc } from '../_generated/dataModel';
@@ -160,6 +160,18 @@ export const getUserById = query({
     return user;
   },
 });
+
+export const getUserByIdInternal = internalQuery({
+  args: { userId: v.id("user") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("Usuario no encontrado");
+    }
+    return user;
+  },
+});
+
 export const getUsersByIds = query({
   args: {
     userIds: v.array(v.id('user')),

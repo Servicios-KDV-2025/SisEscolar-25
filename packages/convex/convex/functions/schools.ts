@@ -1,4 +1,4 @@
-import { query, mutation } from '../_generated/server';
+import { query, mutation, internalQuery } from '../_generated/server';
 import { v } from 'convex/values';
 
 /*
@@ -777,5 +777,18 @@ export const getUsersBySchoolAndRoles = query({
 
         // Filtrar resultados nulos y retornar
         return usersWithDetails.filter(result => result !== null);
+    }
+}); 
+
+export const getSchoolById = internalQuery({
+    args: { 
+        schoolId: v.id("school"),
+    },
+    handler: async (ctx, args) => {
+        const school = await ctx.db.get(args.schoolId);
+        if (!school) {
+            throw new Error("Escuela no encontrada");
+        }
+        return school;
     }
 }); 

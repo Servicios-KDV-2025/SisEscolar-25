@@ -19,7 +19,6 @@ import type * as functions_attendance from "../functions/attendance.js";
 import type * as functions_calendar from "../functions/calendar.js";
 import type * as functions_classCatalog from "../functions/classCatalog.js";
 import type * as functions_classroom from "../functions/classroom.js";
-import type * as functions_classroom from "../functions/classroom.js";
 import type * as functions_eventType from "../functions/eventType.js";
 import type * as functions_gradeRubrics from "../functions/gradeRubrics.js";
 import type * as functions_grades from "../functions/grades.js";
@@ -52,7 +51,6 @@ declare const fullApi: ApiFromModules<{
   "functions/attendance": typeof functions_attendance;
   "functions/calendar": typeof functions_calendar;
   "functions/classCatalog": typeof functions_classCatalog;
-  "functions/classroom": typeof functions_classroom;
   "functions/classroom": typeof functions_classroom;
   "functions/eventType": typeof functions_eventType;
   "functions/gradeRubrics": typeof functions_gradeRubrics;
