@@ -262,17 +262,20 @@ export default function PeriodsManagement() {
 
   // Obtener badge de estado
   const getStatusBadge = (status: Term["status"]) => {
-    const variants = {
-      active: "default",
-      inactive: "secondary",
-      closed: "outline",
-    } as const;
     const displayText = {
       active: "Activo",
       inactive: "Inactivo",
       closed: "Cerrado",
     };
-    return <Badge variant={variants[status]}>{displayText[status]}</Badge>;
+    let colorClass = "w-16 text-center font-medium py-1";
+    if (status === "active") colorClass += " bg-green-600 text-white";
+    else if (status === "inactive") colorClass += " bg-red-600 text-white";
+    else if (status === "closed") colorClass += " bg-gray-400 text-white";
+    return (
+      <Badge className={colorClass}>
+        {displayText[status]}
+      </Badge>
+    );
   };
 
   return (
@@ -326,8 +329,9 @@ export default function PeriodsManagement() {
                   <Input
                     id="key"
                     value={formData.key}
+                    maxLength={10}
                     onChange={(e) =>
-                      setFormData({ ...formData, key: e.target.value })
+                      setFormData({ ...formData, key: e.target.value.slice(0, 10) })
                     }
                     placeholder="Ej: BIM1-2024"
                   />
