@@ -169,9 +169,9 @@ export const updateStudentStatus = mutation({
 
 // READ (Para tutores - solo sus estudiantes asignados)
 export const getStudentsByTutor = query({
-  args: { 
+  args: {
     schoolId: v.id("school"),
-    tutorId: v.id("user") 
+    tutorId: v.id("user")
   },
   handler: async (ctx, args) => {
     return await ctx.db
@@ -186,16 +186,16 @@ export const getStudentsByTutor = query({
 
 // READ (Para maestros - solo estudiantes de sus materias)
 export const getStudentsByTeacher = query({
-  args: { 
+  args: {
     schoolId: v.id("school"),
-    teacherId: v.id("user") 
+    teacherId: v.id("user")
   },
   handler: async (ctx, args) => {
     // Primero obtenemos las clases del maestro
     const teacherClasses = await ctx.db
       .query("classCatalog")
       .withIndex("by_teacher", (q) => q.eq("teacherId", args.teacherId))
-      .filter((q) => 
+      .filter((q) =>
         q.and(
           q.eq(q.field("schoolId"), args.schoolId),
           q.eq(q.field("status"), "active")
@@ -213,7 +213,7 @@ export const getStudentsByTeacher = query({
     });
 
     const allStudentClasses = (await Promise.all(studentClassPromises)).flat();
-    
+
     // Obtenemos IDs únicos de estudiantes
     const uniqueStudentIds = [...new Set(allStudentClasses.map(sc => sc.studentId))];
 
@@ -223,7 +223,7 @@ export const getStudentsByTeacher = query({
     });
 
     const students = await Promise.all(studentsPromises);
-    
+
     // Filtramos los estudiantes nulos y verificamos que pertenezcan a la escuela
     return students
       .filter((student) => student !== null && student.schoolId === args.schoolId)
@@ -267,7 +267,7 @@ export const getStudentsWithRoleFilter = query({
       const teacherClasses = await ctx.db
         .query("classCatalog")
         .withIndex("by_teacher", (q) => q.eq("teacherId", args.teacherId!))
-        .filter((q) => 
+        .filter((q) =>
           q.and(
             q.eq(q.field("schoolId"), args.schoolId),
             q.eq(q.field("status"), "active")
@@ -285,7 +285,7 @@ export const getStudentsWithRoleFilter = query({
       });
 
       const allStudentClasses = (await Promise.all(studentClassPromises)).flat();
-      
+
       // Obtenemos IDs únicos de estudiantes
       const uniqueStudentIds = [...new Set(allStudentClasses.map(sc => sc.studentId))];
 
@@ -295,7 +295,7 @@ export const getStudentsWithRoleFilter = query({
       });
 
       const students = await Promise.all(studentsPromises);
-      
+
       // Filtramos los estudiantes nulos y verificamos que pertenezcan a la escuela
       return students
         .filter((student) => student !== null && student.schoolId === args.schoolId)
@@ -317,7 +317,7 @@ export const deleteStudent = mutation({
 
 // Obtener estudiantes con informacion de clases
 export const getStudentWithClasses = query({
-  args: {classCatalogId: v.id('classCatalog')},
+  args: { classCatalogId: v.id('classCatalog') },
   handler: async (ctx, args) => {
     // let studentClassesQuery = ctx.db.query('studentClass')
     // // filtrar studentClass por classCatalogId si se proporciona
@@ -329,7 +329,7 @@ export const getStudentWithClasses = query({
 
     let studentClasses;
     // Filtrar studentClass por classCatalogId si se proporciona
-    if(args.classCatalogId) {
+    if (args.classCatalogId) {
       studentClasses = await ctx.db.query('studentClass')
         .withIndex('by_class_catalog', (q) => q.eq('classCatalogId', args.classCatalogId!))
         .collect();
