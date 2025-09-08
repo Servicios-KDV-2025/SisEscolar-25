@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { useCallback, useEffect } from "react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
-import { ClassroomType, SchoolCycleType, TeacherType } from "@/types/temporalSchema";
+import { ClassroomType, CreateBy, SchoolCycleType, TeacherType } from "@/types/temporalSchema";
 import { Subject } from "./subjectStore";
 import { Group } from "./groupStore";
 
@@ -27,8 +27,8 @@ export type ClassCatalogWithDetails = ClassCatalog & {
     classroom?: ClassroomType | null;
     teacher?: TeacherType | null;
     group?: Group | null;
+    createData?: CreateBy | null;
 };
-
 
 export type CreateClassCatalogData = {
     schoolId: string;
@@ -36,7 +36,7 @@ export type CreateClassCatalogData = {
     subjectId: string;
     classroomId: string;
     teacherId: string;
-    groupId?: string;
+    groupId: string;
     name: string;
     status: 'active' | 'inactive';
     createdBy: string;
@@ -160,18 +160,20 @@ export const useClassCatalog = (schoolId?: string) => {
         setCreating(true);
         setCreateError(null);
         try {
+            console.log('Store - Creating class catalog:', data);
             await createClassCatalogMutation({
                 ...data,
                 schoolId: data.schoolId as Id<"school">,
-                schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
-                subjectId: data.subjectId as Id<"subject">,
-                classroomId: data.classroomId as Id<"classroom">,
-                teacherId: data.teacherId as Id<"user">,
-                groupId: data.groupId as Id<"group"> | undefined,
-                createdBy: data.createdBy as Id<"user"> | undefined
+                schoolCycleId: data.schoolCycleId as Id<'schoolCycle'>,
+                subjectId: data.subjectId as Id<'subject'>,
+                classroomId: data.classroomId as Id<'classroom'>,
+                teacherId: data.teacherId as Id<'user'>,
+                groupId: data.groupId as Id<'group'>,
+                createdBy: data.createdBy as Id<'user'>
             });
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Failed to create class catalog';
+            console.error('Store - Creation error:', errorMessage, error);
             setCreateError(errorMessage);
             throw error;
         } finally {
@@ -192,7 +194,7 @@ export const useClassCatalog = (schoolId?: string) => {
                 subjectId: data.subjectId as Id<"subject">,
                 classroomId: data.classroomId as Id<"classroom">,
                 teacherId: data.teacherId as Id<"user">,
-                groupId: data.groupId as Id<"group"> | undefined,
+                groupId: data.groupId as Id<"group">,
                 updatedAt: data.updatedAt,
             });
         } catch (error) {
@@ -231,7 +233,7 @@ export const useClassCatalog = (schoolId?: string) => {
 
     return {
         classCatalogs,
-        classCatalogsWithDetails: classCatalogsQuery || [],
+        classCatalogsWithDetails: (classCatalogsQuery as ClassCatalogWithDetails[]) || [],
         selectedClassCatalog,
         isLoading,
         isCreating,

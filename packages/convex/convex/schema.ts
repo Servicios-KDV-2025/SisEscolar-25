@@ -251,13 +251,12 @@ const applicationTable = defineSchema({
 
     //Clases
     classCatalog: defineTable({
-    termId: v.optional(v.id("term")),
     schoolId: v.id("school"),
     schoolCycleId: v.id("schoolCycle"),
     subjectId: v.id("subject"),
     classroomId: v.id("classroom"),
     teacherId: v.id("user"),
-    groupId: v.optional(v.id("group")),
+    groupId: v.id("group"),
     // scheduleId: v.id("schedule"),
     name: v.string(),
     status: v.union(v.literal("active"), v.literal("inactive")),

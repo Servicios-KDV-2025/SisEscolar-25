@@ -53,7 +53,7 @@ export default function ClassCatalogPage() {
         teacherUserIds.length > 0
             ? {
                 userIds: teacherUserIds,
-                status: 'active' // ← Agregar status o removerlo de la función
+                status: 'active'
             }
             : 'skip'
     );
@@ -90,46 +90,73 @@ export default function ClassCatalogPage() {
 
     const handleSubmit = async (values: Record<string, unknown>) => {
         if (!currentSchool?.school._id || !currentUser?._id) {
+            console.error('Missing required IDs');
             toast.error('Error', { description: 'No se pudo identificar la escuela o usuario' });
             return;
         }
 
         try {
+            console.log('Preparing data for submission...');
+
+            const submissionData = {
+                schoolId: currentSchool.school._id,
+                schoolCycleId: values.schoolCycleId,
+                subjectId: values.subjectId,
+                classroomId: values.classroomId,
+                teacherId: values.teacherId,
+                groupId: values.groupId,
+                name: values.name,
+                status: values.status,
+                createdBy: currentUser._id
+            };
+
+            console.log('Submission data:', submissionData);
+
             if (operation === 'create') {
-                await createClassCatalog({
-                    schoolId: currentSchool.school._id as Id<"school">,
-                    schoolCycleId: values.schoolCycleId as Id<'schoolCycle'>,
-                    subjectId: values.subjectId as Id<'subject'>,
-                    classroomId: values.classroomId as Id<'classroom'>,
-                    teacherId: values.teacherId as Id<'user'>,
-                    groupId: values.groupId as Id<'group'>,
-                    name: values.name as string,
-                    status: values.status as "active" | "inactive",
-                    createdBy: currentUser._id as Id<'user'>
+                console.log('Calling createClassCatalog...');
+                const result = await createClassCatalog({
+                    schoolId: submissionData.schoolId as Id<"school">,
+                    schoolCycleId: submissionData.schoolCycleId as Id<'schoolCycle'>,
+                    subjectId: submissionData.subjectId as Id<'subject'>,
+                    classroomId: submissionData.classroomId as Id<'classroom'>,
+                    teacherId: submissionData.teacherId as Id<'user'>,
+                    groupId: submissionData.groupId as Id<'group'>,
+                    name: submissionData.name as string,
+                    status: submissionData.status as "active" | "inactive",
+                    createdBy: submissionData.createdBy as Id<'user'>
                 });
-                toast.success('Creado correctamente');
+
+                console.log('Create operation completed successfully:', result);
+                toast.success('Clase creada correctamente');
+
             } else if (operation === 'edit' && data?._id) {
+                console.log('Calling updateClassCatalog...');
                 await updateClassCatalog({
                     _id: data._id as Id<"classCatalog">,
-                    schoolId: currentSchool.school._id as Id<"school">,
-                    schoolCycleId: values.schoolCycleId as Id<'schoolCycle'>,
-                    subjectId: values.subjectId as Id<'subject'>,
-                    classroomId: values.classroomId as Id<'classroom'>,
-                    teacherId: values.teacherId as Id<'user'>,
-                    groupId: values.groupId as Id<'group'>,
-                    name: values.name as string,
-                    status: values.status as "active" | "inactive",
-                    updatedAt: new Date().getTime()
+                    schoolId: submissionData.schoolId as Id<"school">,
+                    schoolCycleId: submissionData.schoolCycleId as Id<'schoolCycle'>,
+                    subjectId: submissionData.subjectId as Id<'subject'>,
+                    classroomId: submissionData.classroomId as Id<'classroom'>,
+                    teacherId: submissionData.teacherId as Id<'user'>,
+                    groupId: submissionData.groupId as Id<'group'>,
+                    name: submissionData.name as string,
+                    status: submissionData.status as "active" | "inactive",
+                    updatedAt: Date.now()
                 });
-                toast.success('Actualizado correctamente');
-            } else {
-                console.error('Operación no válida o datos faltantes:', { operation, data });
-                throw new Error('Operación no válida o datos faltantes:');
+
+                console.log('Update operation completed successfully');
+                toast.success('Clase actualizada correctamente');
             }
+
+            // Cerrar el diálogo después de éxito
+            close();
+
         } catch (error) {
-            console.error('Error en la operación de CRUD:', error);
-            toast.error('Error', { description: 'Ocurrió un error al procesar la solicitud' });
-            throw error;
+            // Mostrar mensaje de error específico
+            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+            toast.error('Error', {
+                description: `No se pudo ${operation === 'create' ? 'crear' : 'actualizar'} la clase: ${errorMessage}`
+            });
         }
     }
 
@@ -153,7 +180,7 @@ export default function ClassCatalogPage() {
                 <div className="flex items-center justify-center min-h-[400px]">
                     <div className="space-y-4 text-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                        <p className="text-muted-foreground">Cargando información de las materias...</p>
+                        <p className="text-muted-foreground">Cargando información de catálogo de clases...</p>
                     </div>
                 </div>
             </div>
@@ -237,13 +264,13 @@ export default function ClassCatalogPage() {
                                         <TableCell>{classCat.subject?.name}</TableCell>
                                         <TableCell>{classCat.classroom?.name}</TableCell>
                                         <TableCell>{classCat.teacher?.name} {classCat.teacher?.lastName}</TableCell>
-                                        <TableCell>{classCat.group?.name}</TableCell>
+                                        <TableCell>{classCat.group?.grade} {classCat.group?.name}</TableCell>
                                         <TableCell>
                                             <span className={`${classCat.status === 'active' ? 'bg-green-600' : 'bg-red-600'} text-white rounded-2xl p-2`}>
                                                 {classCat.status === 'active' ? 'Activa' : 'Inactiva'}
                                             </span>
                                         </TableCell>
-                                        <TableCell>{classCat.createdBy}</TableCell>
+                                        <TableCell>{classCat.createData?.name} {classCat.createData?.lastName}</TableCell>
                                         <TableCell className="flex justify-end gap-2">
                                             <Button
                                                 variant="outline"
@@ -315,7 +342,7 @@ export default function ClassCatalogPage() {
                 data={data}
                 isOpen={isOpen}
                 onOpenChange={close}
-                onSubmit={handleSubmit}
+                onSubmit={handleSubmit} // ← Esta es la clave: tu función se pasa aquí
                 onDelete={handleDelete}
             >
                 {(form, operation) => (

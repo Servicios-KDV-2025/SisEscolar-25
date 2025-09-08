@@ -63,3 +63,20 @@ export type GroupType = {
     grade: string;
     status: string;
 };
+
+export type CreateBy = {
+    _id: string;
+    _creationTime: number;
+    lastName?: string | undefined;
+    phone?: string | undefined;
+    address?: string | undefined;
+    birthDate?: number | undefined;
+    admissionDate?: number | undefined;
+    imgUrl?: string | undefined;
+    status?: "active" | "inactive" | undefined;
+    name: string;
+    email: string;
+    clerkId: string;
+    createdAt: number;
+    updatedAt: number;
+}

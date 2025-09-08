@@ -153,7 +153,7 @@ export function ClassCatalogForm({
                             <SelectContent>
                                 {teachers?.map((m) => (
                                     <SelectItem key={m._id} value={m._id}>
-                                        {m.name}
+                                        {m.name} {m.lastName}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -211,6 +211,8 @@ export function ClassCatalogForm({
                                 }}
                                 placeholder="Ej: Matemáticas - Grupo A"
                                 disabled={operation === "view"}
+                                minLength={1}
+                                maxLength={40}
                             />
                         </FormControl>
                         <FormMessage />
