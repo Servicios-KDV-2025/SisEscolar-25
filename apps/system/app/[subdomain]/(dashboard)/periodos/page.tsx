@@ -549,13 +549,13 @@ export default function PeriodsManagement() {
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button
-                              variant="ghost"
+                              variant="destructive"
                               size="sm"
                               onClick={() => {
                                 setSelectedTermId(term._id); // guardamos el id
                                 setConfirmDialogOpen(true); // abrimos el modal
                               }}
-                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              className="h-8 w-8 p-0 "
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
