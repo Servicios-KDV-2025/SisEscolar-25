@@ -1,0 +1,6 @@
+{
+  "version": 2,
+  "rootDirectory": "apps/payload-marketing",
+  "buildCommand": "corepack enable && corepack prepare pnpm@10.12.4 --activate && pnpm install --frozen-lockfile && pnpm build",
+  "installCommand": "corepack enable && corepack prepare pnpm@10.12.4 --activate && pnpm install --frozen-lockfile"
+}
