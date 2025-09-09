@@ -26,8 +26,11 @@ export default function GradeManagementDashboard() {
   const { currentUser, isLoading: userLoading } = useUserWithConvex(
     clerkUser?.id
   );
-  const { currentSchool, isLoading: schoolLoading, error: schoolError } =
-    useCurrentSchool(currentUser?._id);
+  const {
+    currentSchool,
+    isLoading: schoolLoading,
+    error: schoolError,
+  } = useCurrentSchool(currentUser?._id);
 
   // Fetch data with Convex
   const schoolCycles = useQuery(
@@ -111,18 +114,25 @@ export default function GradeManagementDashboard() {
     grades === undefined;
 
   // Show a general loading screen for initial data fetching
-  if (!isLoaded || userLoading || schoolLoading || (currentUser && !currentSchool && !schoolError)) {
-      return (
-          <div className="space-y-8 p-6 max-w-7xl mx-auto">
-              <div className="flex items-center justify-center min-h-[400px]">
-                  <div className="space-y-4 text-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                      <p className="text-muted-foreground">Cargando información de las materias...</p>
-                  </div>
-              </div>
+  if (
+    !isLoaded ||
+    userLoading ||
+    schoolLoading ||
+    (currentUser && !currentSchool && !schoolError)
+  ) {
+    return (
+      <div className="space-y-8 p-6 max-w-7xl mx-auto">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="space-y-4 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">
+              Cargando información de las materias...
+            </p>
           </div>
-      )
-  };
+        </div>
+      </div>
+    );
+  }
 
   // Logic to handle grade updates. This now uses the upsert mutation.
   const handleUpdateGrade = async (
@@ -148,7 +158,7 @@ export default function GradeManagementDashboard() {
   // Logic to calculate the student's weighted average
   const calculateAverage = (studentClassId: string): number | null => {
     if (!assignments || !rubrics || !grades) return null;
-    
+
     const studentGrades = grades.filter(
       (g) => g.studentClassId === studentClassId
     );
@@ -184,7 +194,9 @@ export default function GradeManagementDashboard() {
       const rubric = rubrics.find((r) => r._id === rubricId);
       if (rubric && totals.totalMaxScore > 0) {
         // Calcular el porcentaje de la categoría (ej. 100% en Tareas)
-        const rubricPercentage = Math.round((totals.totalScore / totals.totalMaxScore) * 100);
+        const rubricPercentage = Math.round(
+          (totals.totalScore / totals.totalMaxScore) * 100
+        );
 
         // Multiplicar por el peso de la rúbrica (ej. 10% del total)
         // Asumimos que el peso es un valor decimal (ej. 0.1 para 10%)
@@ -200,8 +212,8 @@ export default function GradeManagementDashboard() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="space-y-4 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-muted-foreground">Cargando datos del periodo...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Cargando datos del periodo...</p>
         </div>
       </div>
     );
@@ -222,9 +234,7 @@ export default function GradeManagementDashboard() {
           <Card>
             <CardContent className="pt-6">
               <div className="text-center p-8">
-                <p className="text-muted-foreground">
-                  Aún no has registrado:
-                </p>
+                <p className="text-muted-foreground">Aún no has registrado:</p>
                 <ul className="list-disc list-inside mt-4 inline-block text-left text-muted-foreground">
                   {!hasSchoolCycles && <li>Ciclos escolares</li>}
                   {!hasClasses && <li>Clases</li>}
@@ -243,82 +253,87 @@ export default function GradeManagementDashboard() {
     <div className="min-h-screen bg-background p-6">
       <div className="mx-auto max-w-7xl space-y-6">
         <h1 className="text-3xl font-bold text-foreground">
-          Matriz de Calificaciones
+          Calificaciones de Asignaciones
         </h1>
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="flex flex-1 gap-4">
-                <Select
-                  value={selectedSchoolCycle}
-                  onValueChange={setSelectedSchoolCycle}
-                >
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Ciclo Escolar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {schoolCycles.map((cycle) => (
-                      <SelectItem key={cycle._id} value={cycle._id as string}>
-                        {cycle.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Clase" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {classes.map((cls) => (
-                      <SelectItem key={cls._id} value={cls._id as string}>
-                        {cls.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={selectedTerm}
-                  onValueChange={setSelectedTerm}
-                  disabled={!selectedSchoolCycle}
-                >
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Periodo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {terms.map((term) => (
-                      <SelectItem key={term._id} value={term._id as string}>
-                        {term.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="text-right">
-                <div className="flex items-center gap-2">
-                  
-                          {/* Display Rubrics Information */}
-        {rubrics && rubrics.length > 0 && (
-            <div
-                className={`grid grid-cols-1 md:grid-cols-2 gap-4 w-full 
-  ${rubrics.length === 1 ? "lg:grid-cols-1" : ""}
-  ${rubrics.length === 2 ? "lg:grid-cols-2" : ""}
-  ${rubrics.length >= 3 ? "lg:grid-cols-3" : ""}
-  
-`}
-              >
-                {rubrics.map((rubric) => (
-                  <div
-                    key={rubric._id}
-                    className="flex justify-center border border-border rounded-md px-2 py-1 bg-secondary/50"
+          <CardContent className="py-0 justify-center">
+            <div className="gap-2 md:flex-row md:items-center md:justify-center">
+              <div className="flex flex-1 gap-4 flex-wrap justify-center py-2">
+                <div>
+                  <label> Ciclo Escolar</label>
+                  <Select
+                    value={selectedSchoolCycle}
+                    onValueChange={setSelectedSchoolCycle}
                   >
-                    <h3 className="font-semibold px-2">{rubric.name}:</h3>
-                    <h3 className="font-semibold">{rubric.weight * 100}%</h3>
-                  </div>
-                ))}
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Ciclo Escolar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {schoolCycles.map((cycle) => (
+                        <SelectItem key={cycle._id} value={cycle._id as string}>
+                          {cycle.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label>Clase</label>
+                  <Select
+                    value={selectedClass}
+                    onValueChange={setSelectedClass}
+                  >
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Clase" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classes.map((cls) => (
+                        <SelectItem key={cls._id} value={cls._id as string}>
+                          {cls.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label>Periodo</label>
+                  <Select
+                    value={selectedTerm}
+                    onValueChange={setSelectedTerm}
+                    disabled={!selectedSchoolCycle}
+                  >
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Periodo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {terms.map((term) => (
+                        <SelectItem key={term._id} value={term._id as string}>
+                          {term.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
               </div>
-        )}
-                  
+              <div className="flex flex-1 gap-4 flex-wrap justify-center">
+                <div className="py-0">
+                  <div className="flex flex-col  md:flex-row md:items-center md:justify-center">
+                    <div className="flex flex-1 gap-4 flex-wrap justify-center">
+                      {/* <p className="flex justify-center  rounded-md px-2 py-1 bg-secondary/50">Rubricas</p> */}
+                      {rubrics.map((rubric) => (
+                        <div
+                          key={rubric._id}
+                          className="flex justify-center  rounded-md px-2 py-1 bg-secondary/50"
+                        >
+                          <h3 className="font-semibold px-2">{rubric.name}:</h3>
+                          <h3 className="font-semibold">
+                            {rubric.weight * 100}%
+                          </h3>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
