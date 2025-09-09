@@ -38,9 +38,12 @@ export default function GradeManagementDashboard() {
     currentSchool ? { escuelaID: currentSchool.school._id } : "skip"
   );
   const classes = useQuery(
-    api.functions.classCatalog.getAllClassCatalog,
-    currentSchool ? { schoolId: currentSchool.school._id } : "skip"
+    api.functions.classCatalog.getClassesBySchoolCycle,
+    currentSchool
+      ? { schoolCycleId: selectedSchoolCycle as Id<"schoolCycle"> }
+      : "skip"
   );
+
   const terms = useQuery(
     api.functions.terms.getTermsByCycleId,
     selectedSchoolCycle
@@ -149,12 +152,12 @@ export default function GradeManagementDashboard() {
   const hasTerms = terms && terms.length > 0;
   const hasStudents = students && students.length > 0;
 
-  if (!hasSchoolCycles || !hasClasses || !hasTerms) {
+  if (!hasSchoolCycles) {
     return (
       <div className="min-h-screen bg-background p-6">
         <div className="mx-auto max-w-7xl space-y-6">
           <h1 className="text-3xl font-bold text-foreground">
-            Matriz de Calificaciones
+            Calificaciones por Periodo
           </h1>
           <Card>
             <CardContent className="pt-6">
@@ -162,8 +165,9 @@ export default function GradeManagementDashboard() {
                 <p className="text-muted-foreground">Aún no has registrado:</p>
                 <ul className="list-disc list-inside mt-4 inline-block text-left text-muted-foreground">
                   {!hasSchoolCycles && <li>Ciclos escolares</li>}
+                  {!hasStudents && <li>Estudiantes en esta clase.</li>}
+                  {!hasTerms && <li>Periodos en este ciclo</li>}
                   {!hasClasses && <li>Clases</li>}
-                  {!hasTerms && <li>Periodos</li>}
                 </ul>
               </div>
             </CardContent>
@@ -186,10 +190,10 @@ export default function GradeManagementDashboard() {
     <div className="min-h-screen bg-background p-6">
       <div className="mx-auto max-w-7xl space-y-6">
         <h1 className="text-3xl font-bold text-foreground">
-          Matriz de Calificaciones
+          Calificaciones por Periodo
         </h1>
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="py-0">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex flex-1 gap-4">
                 <Select
@@ -210,7 +214,7 @@ export default function GradeManagementDashboard() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                  {hasClasses && (<Select value={selectedClass} onValueChange={setSelectedClass}>
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="Clase" />
                   </SelectTrigger>
@@ -221,11 +225,10 @@ export default function GradeManagementDashboard() {
                       </SelectItem>
                     ))}
                   </SelectContent>
-                </Select>
-              </div>
+                </Select>)}
+                
+                
 
-              <div className="text-right">
-                <div className="flex items-center gap-2"></div>
               </div>
             </div>
           </CardContent>
@@ -234,8 +237,8 @@ export default function GradeManagementDashboard() {
         {/* Grade Matrix */}
         <Card>
           <CardContent>
-            {/* Si no hay estudiantes o no hay rubricas, muestra un mensaje */}
-            {hasStudents ? (
+            {/* Si no hay estudiantes o no hay Periodos, muestra un mensaje */}
+            {hasStudents && hasTerms && hasClasses ? (
               <TermAverageMatrix
                 students={students!}
                 terms={terms!}
@@ -244,9 +247,12 @@ export default function GradeManagementDashboard() {
               />
             ) : (
               <div className="text-center text-muted-foreground p-8">
-                {hasStudents === false
-                  ? "No hay estudiantes en esta clase."
-                  : "No hay rúbricas para esta clase y periodo."}
+                <p className="text-muted-foreground">Aún no has registrado:</p>
+                <ul className="list-disc list-inside mt-4 inline-block text-left text-muted-foreground">
+                  {!hasStudents && <li>Estudiantes en esta clase.</li>}
+                  {!hasTerms && <li>Periodos en este ciclo</li>}
+                  {!hasClasses && <li>Clases</li>}
+                </ul>
               </div>
             )}
           </CardContent>
