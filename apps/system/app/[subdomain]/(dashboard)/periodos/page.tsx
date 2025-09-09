@@ -266,11 +266,6 @@ export default function PeriodsManagement() {
 
   // Obtener badge de estado
   const getStatusBadge = (status: Term["status"]) => {
-    const variants = {
-      active: "bg-green-600",
-      inactive: "bg-red-600",
-      closed: "bg-gray-600",
-    } as const;
     const displayText = {
       active: "Activo",
       inactive: "Inactivo",
