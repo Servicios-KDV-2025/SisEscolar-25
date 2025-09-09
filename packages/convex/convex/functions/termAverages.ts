@@ -1,241 +1,59 @@
 // convex/functions/termAverage.ts
 import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
-import { Id } from "../_generated/dataModel";
 
-/**
- * M: Cierra un periodo y calcula el promedio final para cada estudiante.
- * Este promedio es un cálculo ponderado basado en los criterios de la rúbrica.
- */
-export const closeTermAndCalculateAverage = mutation({
+export const upsertTermAverage = mutation({
   args: {
+    studentClassId: v.id("studentClass"),
     termId: v.id("term"),
-    classCatalogId: v.id("classCatalog"),
+    averageScore: v.number(),
+    comment: v.optional(v.string()),
+    registeredById: v.id("user"),
   },
   handler: async (ctx, args) => {
-    // 1. Obtener todos los documentos necesarios para el cálculo
-    const studentClasses = await ctx.db
-      .query("studentClass")
-      .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", args.classCatalogId))
-      .collect();
- 
-    const assignments = await ctx.db
-      .query("assignment")
-      .withIndex("by_classCatalogId_term", (q) =>
-        q.eq("classCatalogId", args.classCatalogId).eq("termId", args.termId)
+    // Verificar si ya existe un promedio para este estudiante y periodo
+    const existing = await ctx.db
+      .query("termAverage")
+      .withIndex("by_student_term", (q) =>
+        q.eq("studentClassId", args.studentClassId).eq("termId", args.termId)
       )
-      .collect();
+      .unique();
 
-    const rubrics = await ctx.db
-      .query("gradeRubric")
-      .withIndex("by_class_term", (q) =>
-        q.eq("classCatalogId", args.classCatalogId).eq("termId", args.termId)
-      )
-      .collect();
-
-    const grades = await ctx.db.query("grade").collect();
-
-    // Crear mapas para un acceso rápido y eficiente a los datos
-    const assignmentsMap = new Map(assignments.map(a => [a._id, a]));
-    const rubricsMap = new Map(rubrics.map(r => [r._id, r]));
-
-    const savedIds: string[] = [];
-    const user = await ctx.auth.getUserIdentity();
-    const userId = user!.subject;
-
-    for (const studentClass of studentClasses) {
-      // 2. Agrupar las calificaciones del estudiante por rúbrica
-      const rubricTotals = new Map<
-        Id<"gradeRubric">,
-        { totalScore: number; totalMaxScore: number }
-      >();
-
-      const studentGrades = grades.filter(g => g.studentClassId === studentClass._id);
-
-      studentGrades.forEach(grade => {
-        const assignment = assignmentsMap.get(grade.assignmentId);
-        if (assignment && grade.score !== null) {
-          const rubricId = assignment.gradeRubricId;
-          const totals = rubricTotals.get(rubricId) || { totalScore: 0, totalMaxScore: 0 };
-          
-          totals.totalScore += grade.score;
-          totals.totalMaxScore += assignment.maxScore;
-          rubricTotals.set(rubricId, totals);
-        }
+    if (existing) {
+      // Si existe, actualizar
+      await ctx.db.patch(existing._id, {
+        averageScore: args.averageScore,
+        comments: args.comment,
+        updatedBy: args.registeredById,
+        updatedAt: Date.now(),
       });
-
-      // 3. Calcular el promedio final ponderado
-      let finalGrade = 0;
-      let totalWeight = 0;
-      
-      rubricTotals.forEach((totals, rubricId) => {
-        const rubric = rubricsMap.get(rubricId);
-        if (rubric && totals.totalMaxScore > 0) {
-          const rubricPercentage = (totals.totalScore / totals.totalMaxScore);
-          finalGrade += rubricPercentage * rubric.weight;
-          totalWeight += rubric.weight;
-        }
-      });
-      
-      const averageScore = totalWeight > 0 ? Math.round((finalGrade / totalWeight) * 100) : 0;
-
-      // 4. Actualizar o insertar el promedio del periodo
-      const existing = await ctx.db
-        .query("termAverage")
-        .withIndex("by_student_term", (q) =>
-          q.eq("studentClassId", studentClass._id).eq("termId", args.termId)
-        )
-        .unique();
-
-      const termAverageData = {
-        studentClassId: studentClass._id,
+      return existing._id;
+    } else {
+      // Si no existe, crear
+      const id = await ctx.db.insert("termAverage", {
+        studentClassId: args.studentClassId,
         termId: args.termId,
-        averageScore,
-      };
-
-      if (existing) {
-        await ctx.db.patch(existing._id, {
-          ...termAverageData,
-          updatedBy: userId as Id<"user">,
-          updatedAt: Date.now(),
-        });
-        savedIds.push(existing._id);
-      } else {
-        const id = await ctx.db.insert("termAverage", {
-          ...termAverageData,
-          createdBy: userId as Id<"user">,
-          updatedBy: undefined,
-          updatedAt: undefined,
-        });
-        savedIds.push(id);
-      }
+        averageScore: args.averageScore,
+        comments: args.comment,
+        createdBy: args.registeredById,
+      });
+      return id;
     }
-    // 5. Marcar el periodo como "cerrado"
-    await ctx.db.patch(args.termId, { status: "closed" });
-
-    return savedIds;
   },
 });
 
-// ---
-
-/**
- * M: Calcula y registra los promedios finales para cada estudiante en una clase,
- * pero no cierra el periodo. Esto permite al maestro ver una actualización
- * en tiempo real de los promedios finales.
- */
-export const calculateAndRegisterTermAverage = mutation({
-  args: {
-    termId: v.id("term"),
-    classCatalogId: v.id("classCatalog"),
-  },
+// R: Obtener promedios de un estudiante en todas sus clases/periodos
+export const getTermAveragesByStudent = query({
+  args: { studentClassId: v.id("studentClass") },
   handler: async (ctx, args) => {
-    // 1. Obtener todos los documentos necesarios para el cálculo
-    const studentClasses = await ctx.db
-      .query("studentClass")
-      .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", args.classCatalogId))
+    return await ctx.db
+      .query("termAverage")
+      .withIndex("by_student_term", (q) => q.eq("studentClassId", args.studentClassId))
       .collect();
- 
-    const assignments = await ctx.db
-      .query("assignment")
-      .withIndex("by_classCatalogId_term", (q) =>
-        q.eq("classCatalogId", args.classCatalogId).eq("termId", args.termId)
-      )
-      .collect();
-
-    const rubrics = await ctx.db
-      .query("gradeRubric")
-      .withIndex("by_class_term", (q) =>
-        q.eq("classCatalogId", args.classCatalogId).eq("termId", args.termId)
-      )
-      .collect();
-
-    const grades = await ctx.db.query("grade").collect();
-
-    // Crear mapas para un acceso rápido y eficiente a los datos
-    const assignmentsMap = new Map(assignments.map(a => [a._id, a]));
-    const rubricsMap = new Map(rubrics.map(r => [r._id, r]));
-
-    const savedIds: string[] = [];
-    const user = await ctx.auth.getUserIdentity();
-    const userId = user!.subject;
-
-    for (const studentClass of studentClasses) {
-      // 2. Agrupar las calificaciones del estudiante por rúbrica
-      const rubricTotals = new Map<
-        Id<"gradeRubric">,
-        { totalScore: number; totalMaxScore: number }
-      >();
-
-      const studentGrades = grades.filter(g => g.studentClassId === studentClass._id);
-
-      studentGrades.forEach(grade => {
-        const assignment = assignmentsMap.get(grade.assignmentId);
-        if (assignment && grade.score !== null) {
-          const rubricId = assignment.gradeRubricId;
-          const totals = rubricTotals.get(rubricId) || { totalScore: 0, totalMaxScore: 0 };
-          
-          totals.totalScore += grade.score;
-          totals.totalMaxScore += assignment.maxScore;
-          rubricTotals.set(rubricId, totals);
-        }
-      });
-
-      // 3. Calcular el promedio final ponderado
-      let finalGrade = 0;
-      let totalWeight = 0;
-      
-      rubricTotals.forEach((totals, rubricId) => {
-        const rubric = rubricsMap.get(rubricId);
-        if (rubric && totals.totalMaxScore > 0) {
-          const rubricPercentage = (totals.totalScore / totals.totalMaxScore);
-          finalGrade += rubricPercentage * rubric.weight;
-          totalWeight += rubric.weight;
-        }
-      });
-      
-      const averageScore = totalWeight > 0 ? Math.round((finalGrade / totalWeight) * 100) : 0;
-
-      // 4. Actualizar o insertar el promedio del periodo
-      const existing = await ctx.db
-        .query("termAverage")
-        .withIndex("by_student_term", (q) =>
-          q.eq("studentClassId", studentClass._id).eq("termId", args.termId)
-        )
-        .unique();
-
-      const termAverageData = {
-        studentClassId: studentClass._id,
-        termId: args.termId,
-        averageScore,
-      };
-
-      if (existing) {
-        await ctx.db.patch(existing._id, {
-          ...termAverageData,
-          updatedBy: userId as Id<"user">,
-          updatedAt: Date.now(),
-        });
-        savedIds.push(existing._id);
-      } else {
-        const id = await ctx.db.insert("termAverage", {
-          ...termAverageData,
-          createdBy: userId as Id<"user">,
-          updatedBy: undefined,
-          updatedAt: undefined,
-        });
-        savedIds.push(id);
-      }
-    }
-    return savedIds;
   },
 });
 
-// ---
-
-/**
- * R: Leer el promedio de un estudiante en un periodo específico.
- */
+// R: Obtener promedio de un estudiante en un periodo específico
 export const getTermAverage = query({
   args: {
     studentClassId: v.id("studentClass"),
@@ -251,88 +69,128 @@ export const getTermAverage = query({
   },
 });
 
-// ---
+// R: Obtener todos los promedios de una clase en un periodo
+export const getTermAveragesByClassAndTerm = query({
+  args: {
+    classCatalogId: v.id("classCatalog"),
+    termId: v.id("term"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("termAverage")
+      .withIndex("by_term", (q) =>
+        q.eq("termId", args.termId)
+      )
+      .collect();
+  },
+});
 
-/**
- * R: Obtener promedios anuales de todos los estudiantes en una clase
- * para un ciclo escolar específico.
- */
+// U: Actualizar promedio ya existente
+export const updateTermAverage = mutation({
+  args: {
+    termAverageId: v.id("termAverage"),
+    data: v.object({
+      averageScore: v.optional(v.number()),
+      comments: v.optional(v.string()),
+    }),
+    updatedBy: v.id("user"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.termAverageId, {
+      ...args.data,
+      updatedBy: args.updatedBy,
+      updatedAt: Date.now(),
+    });
+    return args.termAverageId;
+  },
+});
+
+// D: Eliminar promedio
+export const deleteTermAverage = mutation({
+  args: { termAverageId: v.id("termAverage") },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.termAverageId);
+    return args.termAverageId;
+  },
+});
+
 export const getAnnualAveragesForStudents = query({
+  args: {
+    schoolCycleId: v.id("schoolCycle"),
+    classCatalogId: v.id("classCatalog"),
+  },
+  handler: async (ctx, args) => {
+    // 1. Obtener los IDs de todos los estudiantes en la clase seleccionada
+    const studentClasses = await ctx.db
+      .query("studentClass")
+      // ✅ Usa el índice correcto: "by_class_catalog"
+      .withIndex("by_class_catalog", (q) =>
+        q.eq("classCatalogId", args.classCatalogId)
+      )
+      .collect();
+
+    const studentClassIds = studentClasses.map((sc) => sc._id);
+
+    // 2. Obtener todos los promedios de todos los terminos de estos estudiantes
+    const allAverages = await ctx.db
+      .query("termAverage")
+      .filter((q) => q.or(...studentClassIds.map((id) => q.eq(q.field("studentClassId"), id))))
+      .collect();
+
+    // 3. Agrupar los promedios por el ID del estudiante
+    const groupedAverages: Record<string, typeof allAverages> = {};
+    for (const avg of allAverages) {
+      const id = avg.studentClassId as string;
+      if (!groupedAverages[id]) {
+        groupedAverages[id] = [];
+      }
+      groupedAverages[id].push(avg);
+    }
+
+    return groupedAverages;
+  },
+});
+
+export const getTermAveragesForClassAndCycle = query({
   args: {
     classCatalogId: v.id("classCatalog"),
     schoolCycleId: v.id("schoolCycle"),
   },
   handler: async (ctx, args) => {
+    // 1️⃣ Traer todos los studentClass de la clase
     const studentClasses = await ctx.db
       .query("studentClass")
       .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", args.classCatalogId))
       .collect();
 
-    const terms = await ctx.db
-      .query("term")
-      .withIndex("by_schoolCycleId", (q) => q.eq("schoolCycleId", args.schoolCycleId))
-      .collect();
+    const results = [];
 
-    const termsMap = new Map(terms.map(t => [t._id, t.name]));
+    for (const sc of studentClasses) {
+      // 2️⃣ Traer todos los términos del ciclo
+      const classInfo = await ctx.db.get(args.classCatalogId);
+      if (!classInfo) continue;
 
-    const studentAverages = new Map<
-      Id<"studentClass">,
-      { termId: Id<"term">; averageScore: number | null; termName: string }[]
-    >();
+      const termsInCycle = classInfo.termId ? [classInfo.termId] : [];
 
-    for (const student of studentClasses) {
       const averages = [];
-      for (const term of terms) {
-        const average = await ctx.db
+
+      for (const termId of termsInCycle) {
+        const avg = await ctx.db
           .query("termAverage")
           .withIndex("by_student_term", (q) =>
-            q.eq("studentClassId", student._id).eq("termId", term._id)
+            q.eq("studentClassId", sc._id).eq("termId", termId)
           )
           .unique();
-        averages.push({
-          termId: term._id,
-          averageScore: average?.averageScore ?? null,
-          termName: termsMap.get(term._id)!,
-        });
+        averages.push({ termId, averageScore: avg?.averageScore || null });
       }
-      studentAverages.set(student._id, averages);
+
+      results.push({
+        studentClassId: sc._id,
+        studentId: sc.studentId,
+        termAverages: averages,
+      });
     }
-    
-    const result = Object.fromEntries(studentAverages);
-    return result;
-  },
-});
 
-// ---
-
-/**
- * D: Borra todos los promedios de un periodo específico, por si se necesita
- * recalcularlos o deshacer el cierre.
- */
-export const deleteAverage = mutation({
-  args: {
-    termId: v.id("term"),
-    classCatalogId: v.id("classCatalog"),
-  },
-  handler: async (ctx, args) => {
-    const studentClasses = await ctx.db
-      .query("studentClass")
-      .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", args.classCatalogId))
-      .collect();
-
-    let deletedCount = 0;
-    for (const studentClass of studentClasses) {
-      const average = await ctx.db
-        .query("termAverage")
-        .withIndex("by_student_term", (q) =>
-          q.eq("studentClassId", studentClass._id).eq("termId", args.termId)
-        )
-        .unique();
-      if (average) {
-        await ctx.db.delete(average._id);
-        deletedCount++;
-      }
-    }
-    return deletedCount;
+    return results;
   },
 });

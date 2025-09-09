@@ -49,7 +49,7 @@ const applicationTable = defineSchema({
     .index("by_role", ["role"])
     .index("by_status", ["status"])
     .index("by_department", ["department"]),
-  
+
   //Escuelas
   school: defineTable({
     name: v.string(),
@@ -109,7 +109,6 @@ const applicationTable = defineSchema({
     .index("by_status", ["status"])
     .index("by_school_and_name", ["schoolId", "name"]), // Índice único compuesto
 
-  
   //Materias
   subject: defineTable({
     schoolId: v.id("school"),
@@ -123,7 +122,7 @@ const applicationTable = defineSchema({
     .index("by_school", ["schoolId"])
     .index("by_status", ["status"])
     .index("by_name", ["name"]),
-  
+
   //Aulas
   classroom: defineTable({
     schoolId: v.id("school"),
@@ -136,7 +135,7 @@ const applicationTable = defineSchema({
   })
     .index("by_school", ["schoolId"])
     .index("by_status", ["status"]),
-  
+
   //Grupos
   group: defineTable({
     schoolId: v.id("school"),
@@ -149,27 +148,24 @@ const applicationTable = defineSchema({
     .index("by_school", ["schoolId"])
     .index("by_status", ["status"])
     .index("by_school_name_grade", ["schoolId", "name", "grade"]),
- 
-    //Horarios
-    schedule: defineTable({
-        schoolId: v.id("school"),
-        name: v.string(), //El nombre viene desde el nombre (name) de classCatalog
-        day: v.union(
-          v.literal('lun.'),
-          v.literal('mar.'),
-          v.literal('mié.'),
-          v.literal('jue.'),
-          v.literal('vie.'),
-        ),
-        startTime: v.string(),
-        endTime: v.string(),
-        status: v.union(
-            v.literal('active'),
-            v.literal('inactive')
-        ),
-        updatedAt: v.number(),
-    })
-    .index("by_school_day", ["schoolId","day",])
+
+  //Horarios
+  schedule: defineTable({
+    schoolId: v.id("school"),
+    name: v.string(), //El nombre viene desde el nombre (name) de classCatalog
+    day: v.union(
+      v.literal("lun."),
+      v.literal("mar."),
+      v.literal("mié."),
+      v.literal("jue."),
+      v.literal("vie.")
+    ),
+    startTime: v.string(),
+    endTime: v.string(),
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    updatedAt: v.number(),
+  })
+    .index("by_school_day", ["schoolId", "day"])
     .index("by_status", ["status"]),
 
   //Periodos
@@ -187,9 +183,9 @@ const applicationTable = defineSchema({
     ),
     updatedAt: v.optional(v.number()),
   })
-  .index("by_schoolCycleId",["schoolCycleId"])
-  .index("by_schoolId", ["schoolId"]) 
-  .index("by_status",["status"]),
+    .index("by_schoolCycleId", ["schoolCycleId"])
+    .index("by_schoolId", ["schoolId"])
+    .index("by_status", ["status"]),
 
   //Rúbrica de Calificación
   gradeRubric: defineTable({
@@ -201,13 +197,14 @@ const applicationTable = defineSchema({
     createdBy: v.id("user"),
     updatedAt: v.optional(v.number()),
     status: v.boolean(),
-  }).index("by_status",["status"])
-  .index("by_class_term", ["classCatalogId", "termId"]),
+  })
+    .index("by_status", ["status"])
+    .index("by_class_term", ["classCatalogId", "termId"]),
 
   // Tareas, exámenes o proyectos individuales
   assignment: defineTable({
     classCatalogId: v.id("classCatalog"),
-    termId: v.id("term"),//periodo
+    termId: v.id("term"), //periodo
     gradeRubricId: v.id("gradeRubric"),
     name: v.string(), //Agregar classCatalog, cicloescolar
     description: v.optional(v.string()),
@@ -221,7 +218,7 @@ const applicationTable = defineSchema({
     .index("by_term", ["termId"]) // ✨ Para el tutor y el admin
     .index("by_createdBy", ["createdBy"]) // ✨ Para el maestro
     .index("by_rubric", ["gradeRubricId"]),
-    
+
   //Calificaciones Individuales
   //Calificaciones Individuales
   grade: defineTable({
@@ -237,7 +234,6 @@ const applicationTable = defineSchema({
     .index("by_student_class", ["studentClassId"])
     .index("by_student_assignment", ["studentClassId", "assignmentId"])
     .index("by_assignment", ["assignmentId"]),
- 
 
   //Promedios Calculados
   termAverage: defineTable({
@@ -248,11 +244,13 @@ const applicationTable = defineSchema({
     createdBy: v.id("user"),
     updatedBy: v.optional(v.id("user")),
     updatedAt: v.optional(v.number()),
-  }).index("by_student_term", ["studentClassId", "termId"]),
+  })
+    .index("by_student_term", ["studentClassId", "termId"])
+    .index("by_term", ["termId"]),
   //Fk
 
-    //Clases
-    classCatalog: defineTable({
+  //Clases
+  classCatalog: defineTable({
     termId: v.optional(v.id("term")),
     schoolId: v.id("school"),
     schoolCycleId: v.id("schoolCycle"),
@@ -265,7 +263,8 @@ const applicationTable = defineSchema({
     status: v.union(v.literal("active"), v.literal("inactive")),
     createdBy: v.optional(v.id("user")),
     updatedAt: v.optional(v.number()),
-  }).index("by_term", ["termId"])
+  })
+    .index("by_term", ["termId"])
     .index("by_school", ["schoolId"])
     .index("by_cycle", ["schoolCycleId"])
     .index("by_subject", ["subjectId"])
@@ -282,7 +281,7 @@ const applicationTable = defineSchema({
     .index("by_class_catalog", ["classCatalogId"])
     .index("by_schedule", ["scheduleId"]),
 
-//Relación entre estudiantes y clases
+  //Relación entre estudiantes y clases
   studentClass: defineTable({
     schoolId: v.id("school"),
     classCatalogId: v.id("classCatalog"),
@@ -294,7 +293,7 @@ const applicationTable = defineSchema({
     .index("by_school", ["schoolId"])
     .index("by_class_catalog", ["classCatalogId"])
     .index("by_student", ["studentId"]),
-  
+
   //Asistencia
   attendance: defineTable({
     studentClassId: v.id("studentClass"),
@@ -356,7 +355,7 @@ const applicationTable = defineSchema({
       v.literal("incomplete"),
       v.literal("incomplete_expired"),
       v.literal("unpaid"),
-      v.literal("paused"),
+      v.literal("paused")
     ),
     currentPeriodStart: v.number(),
     currentPeriodEnd: v.number(),
@@ -365,7 +364,7 @@ const applicationTable = defineSchema({
   })
     .index("by_schoolId", ["schoolId"])
     .index("by_stripeSubscriptionId", ["stripeSubscriptionId"])
-    .index("by_status", ["status"])
+    .index("by_status", ["status"]),
 });
 
 export default applicationTable;

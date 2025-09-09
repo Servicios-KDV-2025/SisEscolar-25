@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { toast } from 'sonner'; // ✨ Importa la librería de toast
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table";
 
 // Update types to match your Convex schema
 interface StudentWithClass {
@@ -86,14 +87,14 @@ export function GradeMatrix({
 
   return (
     <div className="overflow-auto max-h-[calc(100vh-300px)]">
-      <table className="w-full border-collapse">
-        <thead className="sticky top-0 bg-muted z-10">
-          <tr>
-            <th className="text-left p-3 border border-border bg-muted font-semibold text-muted-foreground min-w-[200px] sticky left-0">
+      <Table >
+        <TableHeader className="sticky top-0 bg-muted z-10">
+          <TableRow>
+            <TableHead className="text-left p-3 border border-border bg-muted font-semibold text-muted-foreground min-w-[200px] sticky left-0">
               Estudiante
-            </th>
+            </TableHead>
             {assignments!.map((assignment) => (
-              <th
+              <TableHead
                 key={assignment._id}
                 className="text-center p-3 border border-border bg-muted font-semibold text-muted-foreground min-w-[120px]"
               >
@@ -101,31 +102,31 @@ export function GradeMatrix({
                   <div className="font-medium text-sm">{assignment.name}</div>
                   <div className="text-xs text-muted-foreground">Max: {assignment.maxScore}</div>
                 </div>
-              </th>
+              </TableHead>
             ))}
-            <th className="text-center p-3 border border-border bg-muted font-semibold text-muted-foreground min-w-[100px] sticky right-0">
+            <TableHead className="text-center p-3 border border-border bg-muted font-semibold text-muted-foreground min-w-[100px] sticky right-0">
               Promedio
-            </th>
-          </tr>
-        </thead>
-        <tbody>
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {students.map((student) => {
-            if (!student.student) return null; // Salta la fila si el estudiante es nulo
+            if (!student.student) return null;
             
             const average = calculateAverage(student.id);
-
+      
             return (
-              <tr key={student.id} className="hover:bg-muted/50 transition-colors">
-                <td className="p-3 border border-border bg-card sticky left-0">
-                    <div className="font-medium text-card-foreground">{student.student.name}</div>
-                </td>
+              <TableRow key={student.id} className="hover:bg-muted/50 transition-colors">
+                <TableCell className="p-3 border border-border bg-card sticky left-0">
+                  <div className="font-medium text-card-foreground">{student.student.name}</div>
+                </TableCell>
                 {assignments!.map((assignment) => {
                   const grade = getGrade(student.id, assignment._id);
                   const cellId = `${student.id}-${assignment._id}`;
                   const isEditing = editingCell === cellId;
-
+      
                   return (
-                    <td key={assignment._id} className="p-1 border border-border text-center">
+                    <TableCell key={assignment._id} className="p-1 border border-border text-center">
                       {isEditing ? (
                         <Input
                           type="number"
@@ -141,18 +142,20 @@ export function GradeMatrix({
                       ) : (
                         <div
                           onClick={() => handleCellClick(student.id, assignment._id)}
-                           className={grade! > (assignment.maxScore*0.7) ? "text-green-600" : (grade! < (assignment.maxScore*0.7) ? "text-red-700" : "text-gray-700")}
+                          className={`
+                            ${grade! > (assignment.maxScore * 0.7) ? "text-green-600" : (grade! < (assignment.maxScore * 0.7) ? "text-red-700" : "text-gray-700")}
+                            cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-2 rounded
+                          `}
                         >
                           {grade !== undefined ? `${grade}` : "-"}
                         </div>
                       )}
-                    </td>
+                    </TableCell>
                   );
                 })}
-                <td className="p-3 border border-border text-center bg-card sticky right-0">
+                <TableCell className="p-3 border border-border text-center bg-card sticky right-0">
                   {average !== null ? (
                     <p
-                      
                       className={average >= 80 ? "text-green-500" : (average >= 70 ? "text-gray-500" : "text-red-400")}
                     >
                       {average}%
@@ -160,12 +163,12 @@ export function GradeMatrix({
                   ) : (
                     <span className="text-muted-foreground">-</span>
                   )}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

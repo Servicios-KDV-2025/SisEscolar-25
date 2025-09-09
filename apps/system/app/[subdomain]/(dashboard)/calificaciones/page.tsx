@@ -243,10 +243,10 @@ export default function GradeManagementDashboard() {
     <div className="min-h-screen bg-background p-6">
       <div className="mx-auto max-w-7xl space-y-6">
         <h1 className="text-3xl font-bold text-foreground">
-          Calificaciones
+          Matriz de Calificaciones
         </h1>
         <Card>
-          <CardContent>
+          <CardContent className="pt-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex flex-1 gap-4">
                 <Select
@@ -313,7 +313,7 @@ export default function GradeManagementDashboard() {
                     className="flex justify-center border border-border rounded-md px-2 py-1 bg-secondary/50"
                   >
                     <h3 className="font-semibold px-2">{rubric.name}:</h3>
-                    <h3 className="font-semibold">{Math.round(rubric.weight * 100)}%</h3>
+                    <h3 className="font-semibold">{rubric.weight * 100}%</h3>
                   </div>
                 ))}
               </div>
@@ -326,7 +326,9 @@ export default function GradeManagementDashboard() {
         </Card>
 
         {/* Grade Matrix */}
-        {students && students.length === 0 ? (
+        <Card>
+          <CardContent>
+            {students && students.length === 0 ? (
               <div className="text-center text-muted-foreground p-8">
                 No hay estudiantes en esta clase.
               </div>
@@ -343,6 +345,8 @@ export default function GradeManagementDashboard() {
                 calculateAverage={calculateAverage}
               />
             )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
