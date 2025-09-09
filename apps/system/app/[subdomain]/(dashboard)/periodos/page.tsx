@@ -276,7 +276,15 @@ export default function PeriodsManagement() {
       inactive: "Inactivo",
       closed: "Cerrado",
     };
-    return <Badge className={variants[status]}>{displayText[status]}</Badge>;
+    let colorClass = "w-16 text-center font-medium py-1";
+    if (status === "active") colorClass += " bg-green-600 text-white";
+    else if (status === "inactive") colorClass += " bg-red-600 text-white";
+    else if (status === "closed") colorClass += " bg-gray-400 text-white";
+    return (
+      <Badge className={colorClass}>
+        {displayText[status]}
+      </Badge>
+    );
   };
 
   return (
@@ -330,8 +338,9 @@ export default function PeriodsManagement() {
                   <Input
                     id="key"
                     value={formData.key}
+                    maxLength={10}
                     onChange={(e) =>
-                      setFormData({ ...formData, key: e.target.value })
+                      setFormData({ ...formData, key: e.target.value.slice(0, 10) })
                     }
                     placeholder="Ej: BIM1-2024"
                   />
@@ -548,13 +557,13 @@ export default function PeriodsManagement() {
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button
-                              variant="ghost"
+                              variant="destructive"
                               size="sm"
                               onClick={() => {
                                 setSelectedTermId(term._id); // guardamos el id
                                 setConfirmDialogOpen(true); // abrimos el modal
                               }}
-                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              className="h-8 w-8 p-0 "
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
