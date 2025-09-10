@@ -47,15 +47,10 @@ import { cn } from "@repo/ui/lib/utils";
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@repo/ui/components/shadcn/alert";
 
-interface HorariosPorClasePageProps {
-  params: {
-    subdomain: string;
-  };
-}
 
-export default function HorariosPorClasePage({ params }: HorariosPorClasePageProps) {
+export default function HorariosPorClasePage() {
 
-  void params;
+
 
   const { user: clerkUser, isLoaded } = useUser();
   const { currentUser, isLoading: userLoading } = useUserWithConvex(clerkUser?.id);
@@ -114,7 +109,7 @@ export default function HorariosPorClasePage({ params }: HorariosPorClasePagePro
 
   useEffect(() => {
     if (classes) {
-      const filteredClasses = classes.filter((c): c is NonNullable<typeof c> => c !== null) as unknown as ClassItem[];
+      const filteredClasses = classes.filter((c: string): c is NonNullable<typeof c> => c !== null) as unknown as ClassItem[];
       setClasses(filteredClasses);
       // Limpiar duplicados después de establecer las clases
       setTimeout(() => removeDuplicates(), 0);
