@@ -1,7 +1,16 @@
 import React from 'react';
 import RichText from '@/components/RichText';
+import Image from 'next/image';
+import { ImagenConTextoBlock } from '@/payload-types';
 
-const ImagenConTextoComponent: React.FC<any> = ({
+interface ImagenConTextoComponentProps {
+  texto: ImagenConTextoBlock['texto'];
+  imagen: ImagenConTextoBlock['imagen'];
+  posicion?: ImagenConTextoBlock['posicion'];
+  anchoImagen?: ImagenConTextoBlock['anchoImagen'];
+}
+
+const ImagenConTextoComponent: React.FC<ImagenConTextoComponentProps> = ({
   texto,
   imagen,
   posicion = 'izquierda',
@@ -26,8 +35,8 @@ const ImagenConTextoComponent: React.FC<any> = ({
           flexWrap: 'wrap',
         }}
       >
-        {imagen?.url && (
-          <img
+        {typeof imagen === 'object' && imagen?.url && (
+          <Image
             src={imagen.url}
             alt=""
             style={{

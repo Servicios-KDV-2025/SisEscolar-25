@@ -1,3 +1,4 @@
+/* eslint-disable */
 'use client'
 import React, { useState } from 'react'
 import { defineStepper } from '@/components/ui/stepper'

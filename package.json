@@ -13,11 +13,21 @@
     "turbo": "^2.5.5",
     "typescript": "5.8.3"
   },
-  "packageManager": "pnpm@10.12.4",
+  "packageManager": "pnpm@10.15.1",
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
     "react-hook-form": "7.62.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@tailwindcss/oxide",
+      "bufferutil",
+      "esbuild",
+      "sharp",
+      "unrs-resolver",
+      "utf-8-validate"
+    ]
   }
 }

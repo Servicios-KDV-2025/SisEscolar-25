@@ -1,5 +1,5 @@
 
-import { CheckCircle, Download, ArrowRight, Home } from 'lucide-react'
+import { CheckCircle, Download, Home } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -50,11 +50,11 @@ export default function PaymentSuccessBlock({ data }: PaymentSuccessBlockProps) 
     totalAmount,
     currency = '$',
     orderItems,
-    subtotal,
+    // subtotal,
     taxes,
     title = '¡Pago Exitoso!',
     subtitle = 'Tu transacción se ha procesado correctamente',
-    dashboardUrl = '/dashboard',
+    // dashboardUrl = '/dashboard',
     homeUrl = '/',
     supportEmail = 'soporte@tuempresa.com',
     supportPhone = '+1 (234) 567-890',

@@ -9,6 +9,7 @@ import {
   CarouselNext,
 } from '@/components/ui/carousel'
 import { CarouselBlock } from '@/payload-types'
+import Image from 'next/image'
 
 export const Carousel: React.FC<CarouselBlock> = ({ titulo, imagenes }) => {
   return (
@@ -21,7 +22,7 @@ export const Carousel: React.FC<CarouselBlock> = ({ titulo, imagenes }) => {
               imagenes?.map((img, i) => (
                 <CarouselItem key={i} className="flex justify-center items-center min-h-[200px]">
                   <div className="relative w-full max-w-4xl">
-                    <img
+                    <Image
                       src={
                         typeof img.imagen === 'string'
                           ? img.imagen

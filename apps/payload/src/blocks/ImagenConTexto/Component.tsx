@@ -1,6 +1,7 @@
 import React from 'react'
 import RichText from '@/components/RichText'
 import { ImagenConTextoBlock } from '@/payload-types'
+import Image from 'next/image'
 
 export const ImagenConTextoComponent: React.FC<ImagenConTextoBlock> = ({
   texto,
@@ -28,7 +29,7 @@ export const ImagenConTextoComponent: React.FC<ImagenConTextoBlock> = ({
         }}
       >
         {imagen && typeof imagen !== 'number' && imagen?.url && (
-          <img
+          <Image
             src={imagen.url}
             alt=""
             style={{
