@@ -296,13 +296,13 @@ export default function CalendarioEscolar() {
               <CardContent>
                 {datosCalendario.eventosDelDia.length > 0 ? (
                   <div className="space-y-3 max-h-84 overflow-y-auto">
-                    {datosCalendario.eventosDelDia.map((evento, index) => {
+                    {datosCalendario.eventosDelDia.map((evento) => {
                       const tipoEvento = getTipoEventoById(evento.eventTypeId);
                       const config = tipoEvento ? tipoEventoMap[tipoEvento.key] : null;
                       const IconComponent = config?.icono || CalendarIcon;
                       return (
                         <div
-                          key={index}
+                          key={evento._id}
                           className={cn(
                             "p-4 rounded-xl border-l-4 mx-2",
                             config?.bgLight || "bg-gray-50",

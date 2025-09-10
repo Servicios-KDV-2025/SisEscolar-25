@@ -251,20 +251,18 @@ const applicationTable = defineSchema({
 
     //Clases
     classCatalog: defineTable({
-    termId: v.optional(v.id("term")),
     schoolId: v.id("school"),
     schoolCycleId: v.id("schoolCycle"),
     subjectId: v.id("subject"),
     classroomId: v.id("classroom"),
     teacherId: v.id("user"),
-    groupId: v.optional(v.id("group")),
+    groupId: v.id("group"),
     // scheduleId: v.id("schedule"),
     name: v.string(),
     status: v.union(v.literal("active"), v.literal("inactive")),
     createdBy: v.optional(v.id("user")),
     updatedAt: v.optional(v.number()),
-  }).index("by_term", ["termId"])
-    .index("by_school", ["schoolId"])
+  }).index("by_school", ["schoolId"])
     .index("by_cycle", ["schoolCycleId"])
     .index("by_subject", ["subjectId"])
     .index("by_classroom", ["classroomId"])
