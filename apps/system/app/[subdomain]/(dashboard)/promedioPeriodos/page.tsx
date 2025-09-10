@@ -134,17 +134,6 @@ export default function GradeManagementDashboard() {
     }
   };
 
-  // Conditionally render based on data availability
-  if (isDataLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="space-y-4 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Cargando datos del periodo...</p>
-        </div>
-      </div>
-    );
-  }
 
   // Check for missing data and display specific messages
   const hasSchoolCycles = schoolCycles && schoolCycles.length > 0;
@@ -238,7 +227,7 @@ export default function GradeManagementDashboard() {
         <Card>
           <CardContent>
             {/* Si no hay estudiantes o no hay Periodos, muestra un mensaje */}
-            {hasStudents && hasTerms && hasClasses ? (
+            {hasStudents && hasTerms && hasClasses && !isDataLoading ? (
               <TermAverageMatrix
                 students={students!}
                 terms={terms!}

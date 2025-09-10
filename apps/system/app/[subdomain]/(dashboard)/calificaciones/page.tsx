@@ -38,8 +38,10 @@ export default function GradeManagementDashboard() {
     currentSchool ? { escuelaID: currentSchool.school._id } : "skip"
   );
   const classes = useQuery(
-    api.functions.classCatalog.getAllClassCatalog,
-    currentSchool ? { schoolId: currentSchool.school._id } : "skip"
+    api.functions.classCatalog.getClassesBySchoolCycle,
+    currentSchool
+      ? { schoolCycleId: selectedSchoolCycle as Id<"schoolCycle"> }
+      : "skip"
   );
   const terms = useQuery(
     api.functions.terms.getTermsByCycleId,
@@ -111,6 +113,7 @@ export default function GradeManagementDashboard() {
     schoolCycles === undefined ||
     students === undefined ||
     rubrics === undefined ||
+    rubrics!.length  ===0 ||
     grades === undefined;
 
   // Show a general loading screen for initial data fetching
@@ -208,45 +211,35 @@ export default function GradeManagementDashboard() {
   };
 
   // Conditionally render based on data availability
-  if (isDataLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="space-y-4 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Cargando datos del periodo...</p>
-        </div>
-      </div>
-    );
-  }
 
   // Check for missing data and display specific messages
   const hasSchoolCycles = schoolCycles && schoolCycles.length > 0;
   const hasClasses = classes && classes.length > 0;
   const hasTerms = terms && terms.length > 0;
 
-  if (!hasSchoolCycles || !hasClasses || !hasTerms) {
-    return (
-      <div className="min-h-screen bg-background p-6">
-        <div className="mx-auto max-w-7xl space-y-6">
-          <h1 className="text-3xl font-bold text-foreground">
-            Matriz de Calificaciones
-          </h1>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center p-8">
-                <p className="text-muted-foreground">Aún no has registrado:</p>
-                <ul className="list-disc list-inside mt-4 inline-block text-left text-muted-foreground">
-                  {!hasSchoolCycles && <li>Ciclos escolares</li>}
-                  {!hasClasses && <li>Clases</li>}
-                  {!hasTerms && <li>Periodos</li>}
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
+  // if (!hasSchoolCycles || !hasClasses || !hasTerms) {
+  //   return (
+  //     <div className="min-h-screen bg-background p-6">
+  //       <div className="mx-auto max-w-7xl space-y-6">
+  //         <h1 className="text-3xl font-bold text-foreground">
+  //           Calificaciones de Asignaciones
+  //         </h1>
+  //         <Card>
+  //           <CardContent className="pt-6">
+  //             <div className="text-center p-8">
+  //               <p className="text-muted-foreground">Aún no has registrado:</p>
+  //               <ul className="list-disc list-inside mt-4 inline-block text-left text-muted-foreground">
+  //                 {!hasSchoolCycles && <li>Ciclos escolares</li>}
+  //                 {hasClasses && <li>Clases</li>}
+  //                 {!hasTerms && <li>Periodos</li>}
+  //               </ul>
+  //             </div>
+  //           </CardContent>
+  //         </Card>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // Main UI when all data is available
   return (
@@ -269,15 +262,15 @@ export default function GradeManagementDashboard() {
                       <SelectValue placeholder="Ciclo Escolar" />
                     </SelectTrigger>
                     <SelectContent>
-                      {schoolCycles.map((cycle) => (
+                      {hasSchoolCycles &&( schoolCycles.map((cycle) => (
                         <SelectItem key={cycle._id} value={cycle._id as string}>
                           {cycle.name}
                         </SelectItem>
-                      ))}
+                      )))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
+                {hasClasses && (<div>
                   <label>Clase</label>
                   <Select
                     value={selectedClass}
@@ -294,8 +287,8 @@ export default function GradeManagementDashboard() {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-                <div>
+                </div>)}
+                {hasTerms && (<div>
                   <label>Periodo</label>
                   <Select
                     value={selectedTerm}
@@ -306,22 +299,21 @@ export default function GradeManagementDashboard() {
                       <SelectValue placeholder="Periodo" />
                     </SelectTrigger>
                     <SelectContent>
-                      {terms.map((term) => (
+                      {hasTerms && (terms.map((term) => (
                         <SelectItem key={term._id} value={term._id as string}>
                           {term.name}
                         </SelectItem>
-                      ))}
+                      )))}
                     </SelectContent>
                   </Select>
-                </div>
-                
+                </div>)}
               </div>
               <div className="flex flex-1 gap-4 flex-wrap justify-center">
                 <div className="py-0">
                   <div className="flex flex-col  md:flex-row md:items-center md:justify-center">
                     <div className="flex flex-1 gap-4 flex-wrap justify-center">
                       {/* <p className="flex justify-center  rounded-md px-2 py-1 bg-secondary/50">Rubricas</p> */}
-                      {rubrics.map((rubric) => (
+                      {rubrics && rubrics.length > 0 ? (rubrics!.map((rubric) => (
                         <div
                           key={rubric._id}
                           className="flex justify-center  rounded-md px-2 py-1 bg-secondary/50"
@@ -331,7 +323,11 @@ export default function GradeManagementDashboard() {
                             {rubric.weight * 100}%
                           </h3>
                         </div>
-                      ))}
+                      ))): (
+                        <p className="text-muted-foreground">
+                          Aún no has registrado rúbricas.
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -343,13 +339,23 @@ export default function GradeManagementDashboard() {
         {/* Grade Matrix */}
         <Card>
           <CardContent>
-            {students && students.length === 0 ? (
-              <div className="text-center text-muted-foreground p-8">
-                No hay estudiantes en esta clase.
-              </div>
-            ) : rubrics && rubrics.length === 0 ? (
-              <div className="text-center text-muted-foreground p-8">
-                No hay rúbricas para esta clase y periodo.
+            {(isDataLoading ||!hasSchoolCycles || !hasClasses || !hasTerms) ? (
+              <div className="flex justify-center">
+                <div className="space-y-4 text-center">
+                  
+                    <p className="text-muted-foreground">
+                      Aún no has registrado:
+                    </p>
+                    <ul className="list-disc list-inside mt-4 inline-block text-left text-muted-foreground">
+                      {!assignments && <li>Asignaciones en esta clase.</li>}
+                      {!hasTerms && <li>Periodos en este ciclo</li>}
+                      {!hasClasses && <li>Clases en este ciclo</li>}
+                      {!hasSchoolCycles && <li>Ciclos</li>}
+                      {(!rubrics || rubrics.length  ===0) && <li>Rubricas</li>}
+                      {(!students || students.length ===0) && (<li>Clases por alumno</li>)}
+                    </ul>
+                  
+                </div>
               </div>
             ) : (
               <GradeMatrix
