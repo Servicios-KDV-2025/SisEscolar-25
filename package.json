@@ -15,9 +15,19 @@
   },
   "packageManager": "pnpm@10.12.4",
   "engines": {
-    "node": ">=18"
+    "node": "^18.20.2 || >=20.9.0"
   },
   "dependencies": {
     "react-hook-form": "7.62.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@tailwindcss/oxide",
+      "bufferutil",
+      "esbuild",
+      "sharp",
+      "unrs-resolver",
+      "utf-8-validate"
+    ]
   }
 }

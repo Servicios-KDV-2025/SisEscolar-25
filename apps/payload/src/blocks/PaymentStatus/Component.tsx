@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useHideHeader } from "@/hooks/useHideHeader";
+import Link from "next/link";
 
 type Props = {
   status: "success" | "cancelled";
@@ -235,7 +236,7 @@ export const PaymentStatusBlock: React.FC<Props> = ({
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               {button?.url && (
-                <a
+                <Link
                   href={button.url}
                   className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105"
                 >
@@ -243,7 +244,7 @@ export const PaymentStatusBlock: React.FC<Props> = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
                   </svg>
                   {button.label}
-                </a>
+                </Link>
               )}
               
               <button
@@ -276,7 +277,7 @@ export const PaymentStatusBlock: React.FC<Props> = ({
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <a
+                <Link
                   href="/contact"
                   className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105"
                 >
@@ -284,9 +285,9 @@ export const PaymentStatusBlock: React.FC<Props> = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                   Contactar Soporte
-                </a>
+                </Link>
                 
-                <a
+                <Link
                   href="/"
                   className="inline-flex items-center px-8 py-4 bg-gray-600 hover:bg-gray-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105"
                 >
@@ -294,7 +295,7 @@ export const PaymentStatusBlock: React.FC<Props> = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                   </svg>
                   Volver al Inicio
-                </a>
+                </Link>
               </div>
             </div>
           </div>
