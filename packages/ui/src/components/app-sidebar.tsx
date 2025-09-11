@@ -120,7 +120,7 @@ const defaultNavData = {
     },
     {
       title: "Horarios",
-      url: `/schedule`,
+      url: `/horarios`,
       icon: SquareTerminal,
       isActive: true,
     },

@@ -119,7 +119,7 @@ function TaskManagementContent() {
   const handleUpdateTask = async () => {
     try {
       if (!selectedTask) {
-        alert("No hay tarea seleccionada para actualizar");
+        alert("No hay asignación seleccionada para actualizar");
         return;
       }
 
@@ -168,8 +168,8 @@ function TaskManagementContent() {
       // setSelectedTask(null); // This is now managed by the store
       closeEditModal();
     } catch (error) {
-      console.error("Error al actualizar la tarea:", error);
-      alert("Error al actualizar la tarea");
+      console.error("Error al actualizar la asignación:", error);
+      alert("Error al actualizar la asignación");
     }
   };
 
@@ -177,8 +177,8 @@ function TaskManagementContent() {
     try {
       await deleteTask(taskId);
     } catch (error) {
-      console.error("Error al eliminar la tarea:", error);
-      alert("Error al eliminar la tarea");
+      console.error("Error al eliminar la asignación:", error);
+      alert("Error al eliminar la asignación");
     }
   };
 
@@ -302,10 +302,10 @@ function TaskManagementContent() {
             <div className="flex items-center">
               <div>
                 <h1 className="text-4xl font-bold text-gray-900">
-                  Gestión de Tareas
+                  Gestión de Asignaciones
                 </h1>
                 <p className="text-gray-600">
-                  Administra las tareas de tus clases
+                  Administra las asignaciones de tus clases
                 </p>
               </div>
             </div>
@@ -420,7 +420,7 @@ function TaskManagementContent() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="editTaskTitle">Título de la Tarea *</Label>
+              <Label htmlFor="editTaskTitle">Título de la Asignación *</Label>
               <Input
                 id="editTaskTitle"
                 placeholder="Ej: Ejercicios de Álgebra"
@@ -446,7 +446,7 @@ function TaskManagementContent() {
               <Label htmlFor="editTaskDescription">Descripción</Label>
               <Textarea
                 id="editTaskDescription"
-                placeholder="Describe las instrucciones de la tarea..."
+                placeholder="Describe las instrucciones de la asignación..."
                 rows={3}
                 value={formData.description}
                 onChange={(e) => {
@@ -543,7 +543,7 @@ function TaskManagementContent() {
               }
               className="cursor-pointer"
             >
-              {isUpdating ? "Actualizando..." : "Actualizar Tarea"}
+              {isUpdating ? "Actualizando..." : "Actualizar asignación"}
             </Button>
           </div>
         </DialogContent>
@@ -613,9 +613,9 @@ function TaskManagementContent() {
         </div>
         <Card>
           <CardHeader>
-            <CardTitle>Lista de Tareas</CardTitle>
+            <CardTitle>Lista de Asignaciones</CardTitle>
             <CardDescription>
-              Administra las tareas asignadas a tu clase
+              Administra las asignaciones de tu clase
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -685,7 +685,7 @@ function TaskManagementContent() {
                             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                             <AlertDialogDescription>
                               Esta acción no se puede deshacer. Esto eliminará
-                              permanentemente la tarea y afectara los datos
+                              permanentemente la asignación y afectara los datos
                               relacionados a ella.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
@@ -746,7 +746,7 @@ function TaskManagementContent() {
               ))}
               {(!filteredTasks || filteredTasks.length === 0) && (
                 <div className="text-center py-8 text-gray-500">
-                  No hay tareas creadas aún. Crea tu primera tarea usando el
+                  No hay asignaciones creadas aún. Crea tu primera asignación usando el
                   botón &quot;Nueva Asignación&quot;.
                 </div>
               )}
@@ -780,7 +780,7 @@ function TaskManagementContent() {
                   <p className="text-gray-900">
                     {new Date(
                       assignmentDetails.assignment.dueDate
-                    ).toLocaleDateString("es-ES")}
+                    ).toLocaleDateString("es-MX")}
                   </p>
                 </div>
                 <div>

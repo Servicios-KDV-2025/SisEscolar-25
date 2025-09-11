@@ -3,7 +3,7 @@ import { api } from "@repo/convex/convex/_generated/api";
 import { useQuery, useMutation } from "convex/react";
 import { useCallback, useEffect } from "react";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
-import { hasTimeOverlap } from "app/[subdomain]/(dashboard)/schedule/scheduleUtils";
+import { hasTimeOverlap } from "app/[subdomain]/(dashboard)/horarios/scheduleUtils";
 
 // Tipo de HORARIO basado en tu schema de Convex
 export type Schedule = {
