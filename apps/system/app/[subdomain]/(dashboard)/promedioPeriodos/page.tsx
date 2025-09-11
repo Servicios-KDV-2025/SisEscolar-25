@@ -39,7 +39,7 @@ export default function GradeManagementDashboard() {
   );
   const classes = useQuery(
     api.functions.classCatalog.getClassesBySchoolCycle,
-    currentSchool
+    selectedSchoolCycle
       ? { schoolCycleId: selectedSchoolCycle as Id<"schoolCycle"> }
       : "skip"
   );

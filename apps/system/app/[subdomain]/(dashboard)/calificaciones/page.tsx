@@ -16,6 +16,7 @@ import { useQuery, useMutation } from "convex/react";
 import { useUserWithConvex } from "../../../../stores/userStore";
 import { useUser } from "@clerk/nextjs";
 import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
+import { toast } from "sonner";
 
 export default function GradeManagementDashboard() {
   const [selectedSchoolCycle, setSelectedSchoolCycle] = useState<string>("");
@@ -39,7 +40,7 @@ export default function GradeManagementDashboard() {
   );
   const classes = useQuery(
     api.functions.classCatalog.getClassesBySchoolCycle,
-    currentSchool
+    selectedSchoolCycle
       ? { schoolCycleId: selectedSchoolCycle as Id<"schoolCycle"> }
       : "skip"
   );
@@ -112,8 +113,9 @@ export default function GradeManagementDashboard() {
     terms === undefined ||
     schoolCycles === undefined ||
     students === undefined ||
+    students.length === 0 ||
     rubrics === undefined ||
-    rubrics!.length  ===0 ||
+    rubrics.length  ===0 ||
     grades === undefined;
 
   // Show a general loading screen for initial data fetching
@@ -141,7 +143,8 @@ export default function GradeManagementDashboard() {
   const handleUpdateGrade = async (
     studentClassId: string,
     assignmentId: string,
-    score: number | null
+    score: number | null,
+    comments: string // Agrega el argumento de comentario aquí
   ) => {
     // Only proceed if a user is logged in and the score is a number
     if (!currentUser || score === null) return;
@@ -151,10 +154,11 @@ export default function GradeManagementDashboard() {
         studentClassId: studentClassId as Id<"studentClass">,
         assignmentId: assignmentId as Id<"assignment">,
         score: score,
+        comments: comments,
         registeredById: currentUser._id as Id<"user">,
       });
     } catch (error) {
-      console.error("Error al actualizar la calificación:", error);
+      toast.error("Error al actualizar la calificación:" + (error as Error).message);
     }
   };
 
