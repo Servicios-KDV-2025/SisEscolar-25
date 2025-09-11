@@ -16,6 +16,24 @@ import { Header } from './Header/config'
 import { plugins } from './plugins'
 import { defaultLexical } from '@/fields/defaultLexical'
 import { getServerSideURL } from './utilities/getURL'
+import { Archive } from './blocks/ArchiveBlock/config'
+import { Content } from './blocks/Content/config'
+import { CallToAction } from './blocks/CallToAction/config'
+import { MediaBlock } from './blocks/MediaBlock/config'
+import { FormBlock } from './blocks/Form/config'
+import { Acordeon } from './blocks/Acordeon/config'
+import { ImagenConTextoBlock } from './blocks/ImagenConTexto/config'
+import { BloqueInformativo } from './blocks/BloqueInformativo/config'
+import { ContentWithMedia } from './blocks/ContentWithMedia/config'
+import { PriceBlock } from './blocks/PriceBlock/config'
+import { TextBlock } from './blocks/Text/config'
+import { Column } from './blocks/Column/config'
+import { Row } from './blocks/Row/config'
+import { Section } from './blocks/Section/config'
+import { Carousel } from './blocks/Carousel/config'
+import { CarouselAvatar } from './blocks/CarouselAvatar/config'
+import { PaymentStatus } from './blocks/PaymentStatus/config'
+import { Prices } from './collections/Prices'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -64,9 +82,28 @@ export default buildConfig({
       connectionString: process.env.DATABASE_URI || '',
     },
   }),
-  collections: [Pages, Posts, Media, Categories, Users],
+  collections: [Pages, Posts, Media, Categories, Users, Prices],
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer],
+  blocks: [
+    Archive,
+    Content,
+    CallToAction,
+    MediaBlock,
+    FormBlock,
+    Acordeon,
+    ImagenConTextoBlock,
+    BloqueInformativo,
+    ContentWithMedia,
+    PriceBlock,
+    TextBlock,
+    Column,
+    Row,
+    Section,
+    Carousel,
+    CarouselAvatar,
+    PaymentStatus,
+  ],
   plugins: [
     ...plugins,
     // storage-adapter-placeholder
