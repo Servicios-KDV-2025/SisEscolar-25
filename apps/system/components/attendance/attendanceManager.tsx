@@ -110,36 +110,29 @@ export default function AttendanceManager() {
   const updateAttendance = (studentId: string, field: keyof AttendanceRecord, value: string) => {
     setAttendanceRecords((prev) => {
       const currentRecord = prev[studentId] || {
-        studentClassId: studentsInSelectedClass?.find(sc => sc?.student._id === studentId)?._id as Id<'studentClass'>,
-        state: 'present' as AttendanceState,
-        comment: ''
+        studentClassId: studentsInSelectedClass?.find(sc => sc?.student._id === studentId)?._id as Id<"studentClass">,
+        state: "present" as AttendanceState,
+        comments: ""
       }
 
       return {
         ...prev,
         [studentId]: {
-          currentRecord,
+          ...currentRecord,
           [field]: value
         }
       }
-      
     })
   }
 
-  const handleSave = () => {
-    console.log('Guardanda asistencia:', {
-      classId: selectedClass,
-      date: selectedDate,
-      records: Object.values(attendanceRecords)
-    })
-    
+  const handleSave = async () => {
     if(!currentUser?._id) return
 
     setIsSaving(true)
     try {
-      const dateTimestamp = Math.floor(new Date(selectedDate).getTime() / 1000)
+      const dateTimestamp = selectedDate ? Math.floor(new Date(selectedDate).getTime() / 1000) : 0
 
-      const savePromises = Object.values(attendanceRecords).map( async ([studentId, record]) => {
+      const savePromises = Object.values(attendanceRecords).map( async (record) => {
         await createAttendanceMutation({
           studentClassId: record.studentClassId,
           date: dateTimestamp,
