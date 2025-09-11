@@ -458,7 +458,6 @@ export default function PeriodsManagement() {
                   <SelectValue placeholder="Filtrar por estado" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos los estados</SelectItem>
                   <SelectItem value="active">Activo</SelectItem>
                   <SelectItem value="inactive">Inactivo</SelectItem>
                   <SelectItem value="closed">Cerrado</SelectItem>
