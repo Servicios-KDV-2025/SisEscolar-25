@@ -28,7 +28,10 @@
       "bufferutil",
       "utf-8-validate",
       "@tailwindcss/oxide"
-
-    ]
+    ],
+    "overrides": {
+      "@types/react": "19.1.8",
+      "@types/react-dom": "19.1.6"
+    }
   }
 }
