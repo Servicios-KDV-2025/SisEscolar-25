@@ -51,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   "functions/attendance": typeof functions_attendance;
   "functions/calendar": typeof functions_calendar;
   "functions/classCatalog": typeof functions_classCatalog;
+  "functions/classSchedule": typeof functions_classSchedule;
   "functions/classroom": typeof functions_classroom;
   "functions/eventType": typeof functions_eventType;
   "functions/gradeRubrics": typeof functions_gradeRubrics;

@@ -110,4 +110,4 @@ export const deleteSchedule = mutation({
     await ctx.db.delete(args.id);
     return true;
   },
-})
+});
