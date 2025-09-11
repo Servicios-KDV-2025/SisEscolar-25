@@ -7,6 +7,7 @@ import React from 'react'
 import { Search } from '@/search/Component'
 import PageClient from './page.client'
 import { CardPostData } from '@/components/Card'
+import { Button } from '@repo/ui/components/shadcn/button'
 
 type Args = {
   searchParams: Promise<{
@@ -68,6 +69,7 @@ export default async function Page({ searchParams: searchParamsPromise }: Args) 
 
           <div className="max-w-[50rem] mx-auto">
             <Search />
+            <Button className='mt-4'>a</Button>
           </div>
         </div>
       </div>
