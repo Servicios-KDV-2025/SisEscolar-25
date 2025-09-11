@@ -780,7 +780,7 @@ function TaskManagementContent() {
                   <p className="text-gray-900">
                     {new Date(
                       assignmentDetails.assignment.dueDate
-                    ).toLocaleDateString("es-ES")}
+                    ).toLocaleDateString("es-MX")}
                   </p>
                 </div>
                 <div>
