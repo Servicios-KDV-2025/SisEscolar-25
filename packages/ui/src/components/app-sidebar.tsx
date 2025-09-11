@@ -58,11 +58,11 @@ const defaultNavData = {
         },
         {
           title: "Calendario Escolar",
-          url: `/calendar`,
+          url: `/calendario`,
         },
         {
           title: "Clases por Alumno",
-          url: `#`,
+          url: `clasesPorAlumnos`,
         },
         {
           title: "Grupos",
@@ -83,8 +83,8 @@ const defaultNavData = {
       ],
     },
     {
-      title: "Salones",
-      url: `#`,
+      title: "Aulas",
+      url: `/aulas`,
       icon: SquareTerminal,
       isActive: true,
     },
@@ -131,14 +131,8 @@ const defaultNavData = {
       isActive: true,
     },
     {
-      title: "Alumnos",
-      url: `/alumnos`,
-      icon: SquareTerminal,
-      isActive: true,
-    },
-    {
-      title: "Calificaciones",
-      url: `/calificaciones`,
+      title: "Evaluacion",
+      url: `#`,
       icon: SquareTerminal,
       isActive: true,
       items: [
@@ -146,42 +140,32 @@ const defaultNavData = {
           title: "Calificaciones",
           url: `/calificaciones`,
         },
+        {
+          title: "Rúbricas",
+          url: `/RubricaDeCalificaciones`,
+        },
+        {
+          title: "Asignaciones",
+          url: `/asignaciones`,
+        },
       ],
     },
     {
-      title: "Padres",
-      url: `/padres`,
-      icon: SquareTerminal,
-      isActive: true,
-    },
-    {
       title: "Usuarios",
-      url: `#`,
+      url: "#",
       icon: Users,
       isActive: true,
       items: [
         {
-          title: "Super Administrador",
-          url: `/usuarios/super-administrador`,
+          title: "Gestión de Personal",
+          url: `/usuarios/personal`,
         },
         {
-          title: "Administradores",
-          url: `/usuarios/administradores`,
-        },
-        {
-          title: "Docentes",
-          url: `/usuarios/docentes`,
-        },
-        {
-          title: "Auditor",
-          url: `/usuarios/auditores`,
-        },
-        {
-          title: "Tutores",
+          title: "Gestión de Tutores",
           url: `/usuarios/tutores`,
         },
         {
-          title: "Alumnos",
+          title: "Gestión de Alumnos",
           url: `/usuarios/alumnos`,
         },
       ],

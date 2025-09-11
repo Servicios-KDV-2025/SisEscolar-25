@@ -191,7 +191,7 @@ export default function EventTypeDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm font-medium text-gray-700">
-                    name del Tipo de Evento
+                    Nombre del Tipo de Evento
                   </FormLabel>
                   <FormControl>
                     <Input

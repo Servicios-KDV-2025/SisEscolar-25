@@ -109,9 +109,32 @@ export const updateGradeRubric = mutation({
 export const deleteGradeRubric = mutation({
   args: { gradeRubricId: v.id("gradeRubric") },
   handler: async (ctx, args) => {
-    // ⚠️ Importante: Agrega aquí la lógica para verificar si existen
-    // calificaciones (grade) vinculadas a este criterio antes de borrar.
-    await ctx.db.delete(args.gradeRubricId);
-    return args.gradeRubricId;
+    
+    // Buscar el documento antes de intentar eliminarlo
+    const rubric = await ctx.db.get(args.gradeRubricId);
+
+    // Si el documento existe, lo elimina. Si no, no hace nada y evita el error.
+    if (rubric) {
+      await ctx.db.delete(args.gradeRubricId);
+    }
   },
+});
+
+// Obtener rúbricas por clase (para el formulario de tareas)
+export const getGradeRubricsByClass = query({
+  args: {
+    classCatalogId: v.id("classCatalog"),
+    termId: v.id("term"),
+  },
+  handler: async (ctx, args) => {
+    const gradeRubrics = await ctx.db
+      .query("gradeRubric")
+      .withIndex("by_class_term", (q) => 
+        q.eq("classCatalogId", args.classCatalogId).eq("termId", args.termId)
+      )
+      .filter((q) => q.eq(q.field("status"), true))
+      .collect();
+
+    return gradeRubrics;
+  }
 });

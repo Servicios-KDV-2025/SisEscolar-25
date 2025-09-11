@@ -3,7 +3,6 @@ import { z } from '@repo/zod-config/index';
 export const classCatalogSchema = z.object({
   schoolCycleId: z.string(),
   subjectId: z.string(),
-  termId: z.string(),
   classroomId: z.string(),
   teacherId: z.string(),
   groupId: z.string(),

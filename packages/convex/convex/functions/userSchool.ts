@@ -45,12 +45,9 @@ export const getByRole = query({
   },
   handler: async (ctx, args) => {
     const allRelations = await ctx.db.query("userSchool").collect();
-    return allRelations.filter(relation =>
-      relation.role.includes(args.role)
-    );
+    return allRelations.filter((relation) => relation.role.includes(args.role));
   },
 });
-
 
 // Obtener por estado
 export const getByStatus = query({

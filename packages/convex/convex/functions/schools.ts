@@ -1,4 +1,4 @@
-import { query, mutation } from '../_generated/server';
+import { query, mutation, internalQuery } from '../_generated/server';
 import { v } from 'convex/values';
 
 /*
@@ -710,12 +710,85 @@ export const getUsersBySchoolAndRole = query({
           ...user,
           userSchoolId: userSchool._id,
           schoolRole: userSchool.role,
+          schoolStatus: userSchool.status,
           department: userSchool.department,
         };
       })
     );
 
-    // Filtrar resultados nulos y retornar
-    return usersWithDetails.filter((result) => result !== null);
-  },
+        // Filtrar resultados nulos y retornar
+        return usersWithDetails.filter(result => result !== null);
+    }
 });
+
+// Obtener usuarios de una escuela por múltiples roles
+export const getUsersBySchoolAndRoles = query({
+    args: {
+        schoolId: v.id("school"),
+        roles: v.optional(v.array(v.union(
+            v.literal("superadmin"),
+            v.literal("admin"),
+            v.literal("auditor"),
+            v.literal("teacher"),
+            v.literal("tutor")
+        ))),
+        status: v.optional(v.union(
+            v.literal("active"),
+            v.literal("inactive")
+        ))
+    },
+    handler: async (ctx, args) => {
+        // Si no se especifican roles, obtener todos
+        const targetRoles = args.roles || ["superadmin", "admin", "auditor", "teacher", "tutor"];
+        
+        // Obtener todas las relaciones usuario-escuela para la escuela específica
+        const userSchools = await ctx.db
+            .query("userSchool")
+            .filter((q) => 
+                q.and(
+                    q.eq(q.field("schoolId"), args.schoolId),
+                    q.eq(q.field("status"), args.status || "active")
+                )
+            )
+            .collect();
+
+        // Filtrar por roles específicos
+        const filteredUserSchools = userSchools.filter(us => 
+            targetRoles.some(role => us.role.includes(role))
+        );
+
+        // Obtener los detalles de los usuarios
+        const usersWithDetails = await Promise.all(
+            filteredUserSchools.map(async (userSchool) => {
+                const user = await ctx.db.get(userSchool.userId);
+                if (!user || user.status !== "active") {
+                    return null;
+                }
+
+                return {
+                    ...user,
+                    userSchoolId: userSchool._id,
+                    schoolRole: userSchool.role,
+                    schoolStatus: userSchool.status,
+                    department: userSchool.department,
+                };
+            })
+        );
+
+        // Filtrar resultados nulos y retornar
+        return usersWithDetails.filter(result => result !== null);
+    }
+}); 
+
+export const getSchoolById = internalQuery({
+    args: { 
+        schoolId: v.id("school"),
+    },
+    handler: async (ctx, args) => {
+        const school = await ctx.db.get(args.schoolId);
+        if (!school) {
+            throw new Error("Escuela no encontrada");
+        }
+        return school;
+    }
+}); 
