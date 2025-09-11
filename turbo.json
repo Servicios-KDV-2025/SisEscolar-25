@@ -24,7 +24,7 @@
         "CRON_SECRET",
         "PREVIEW_SECRET",
         "RESEND_API_KEY"
-      ]
+      ] 
     },
     "lint": {
       "dependsOn": ["^lint"]
