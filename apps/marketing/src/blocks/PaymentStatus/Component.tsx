@@ -1,6 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { useHideHeader } from '@/hooks/useHideHeader'
+import Link from 'next/link'
 
 type Props = {
   status: 'success' | 'cancelled'
@@ -284,7 +285,7 @@ export const PaymentStatusBlock: React.FC<Props> = ({
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               {button?.url && (
-                <a
+                <Link
                   href={button.url}
                   className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105"
                 >
@@ -302,7 +303,7 @@ export const PaymentStatusBlock: React.FC<Props> = ({
                     />
                   </svg>
                   {button.label}
-                </a>
+                </Link>
               )}
 
               <button
@@ -350,7 +351,7 @@ export const PaymentStatusBlock: React.FC<Props> = ({
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <a
+                <Link
                   href="/contact"
                   className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105"
                 >
@@ -368,9 +369,9 @@ export const PaymentStatusBlock: React.FC<Props> = ({
                     />
                   </svg>
                   Contactar Soporte
-                </a>
+                </Link>
 
-                <a
+                <Link
                   href="/"
                   className="inline-flex items-center px-8 py-4 bg-gray-600 hover:bg-gray-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105"
                 >
@@ -388,7 +389,7 @@ export const PaymentStatusBlock: React.FC<Props> = ({
                     />
                   </svg>
                   Volver al Inicio
-                </a>
+                </Link>
               </div>
             </div>
           </div>
