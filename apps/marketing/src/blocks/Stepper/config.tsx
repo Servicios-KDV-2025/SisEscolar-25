@@ -1,4 +1,3 @@
-import { IconSelectorField } from '@/components/IconPicker/config'
 import { Block } from 'payload'
 
 export const Stepper: Block = {
@@ -16,7 +15,7 @@ export const Stepper: Block = {
       fields: [
         { type: 'text', name: 'titulo', label: 'Título', required: true },
         { type: 'text', name: 'subtitulo', label: 'Subtítulo', required: true },
-        IconSelectorField,
+        //IconSelectorField,
       ],
     },
     {
