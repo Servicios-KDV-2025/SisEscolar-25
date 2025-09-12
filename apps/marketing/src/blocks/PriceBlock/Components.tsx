@@ -7,7 +7,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card'
+} from '@repo/ui/components/shadcn/card'
 import type { PriceBlock } from '@/payload-types'
 import { Check, School } from 'lucide-react'
 import Link from 'next/link'

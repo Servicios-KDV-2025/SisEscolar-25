@@ -1,8 +1,7 @@
-
 import { CheckCircle, Download, ArrowRight, Home } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
+import { Separator } from '@repo/ui/components/shadcn/separator'
 import Link from 'next/link'
 
 export interface PaymentSuccessData {
@@ -94,11 +93,15 @@ export default function PaymentSuccessBlock({ data }: PaymentSuccessBlockProps) 
   const stepsToShow = nextSteps || defaultNextSteps
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${colors.bg} flex items-center justify-center p-4`}>
+    <div
+      className={`min-h-screen bg-gradient-to-br ${colors.bg} flex items-center justify-center p-4`}
+    >
       <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className={`inline-flex items-center justify-center w-20 h-20 ${colors.iconBg} rounded-full mb-6`}>
+          <div
+            className={`inline-flex items-center justify-center w-20 h-20 ${colors.iconBg} rounded-full mb-6`}
+          >
             <CheckCircle className={`w-12 h-12 ${colors.iconColor}`} />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">{title}</h1>
@@ -110,7 +113,9 @@ export default function PaymentSuccessBlock({ data }: PaymentSuccessBlockProps) 
           <CardContent className="p-8">
             <div className="space-y-6">
               <div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Detalles de la Transacción</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                  Detalles de la Transacción
+                </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Número de Orden</p>
@@ -127,7 +132,8 @@ export default function PaymentSuccessBlock({ data }: PaymentSuccessBlockProps) 
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Total Pagado</p>
                     <p className={`text-2xl font-bold ${colors.totalColor}`}>
-                      {currency}{totalAmount}
+                      {currency}
+                      {totalAmount}
                     </p>
                   </div>
                 </div>
@@ -136,22 +142,33 @@ export default function PaymentSuccessBlock({ data }: PaymentSuccessBlockProps) 
               <Separator />
 
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Resumen del Pedido</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                  Resumen del Pedido
+                </h3>
                 <div className="space-y-3">
                   {orderItems.map((item, i) => (
                     <div key={i} className="flex justify-between items-center">
                       <span className="text-gray-600 dark:text-gray-400">{item.name}</span>
-                      <span className="font-medium">{currency}{item.price}</span>
+                      <span className="font-medium">
+                        {currency}
+                        {item.price}
+                      </span>
                     </div>
                   ))}
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600 dark:text-gray-400">Impuestos</span>
-                    <span className="font-medium">{currency}{taxes}</span>
+                    <span className="font-medium">
+                      {currency}
+                      {taxes}
+                    </span>
                   </div>
                   <Separator />
                   <div className="flex justify-between items-center text-lg font-semibold">
                     <span>Total</span>
-                    <span className={colors.totalColor}>{currency}{totalAmount}</span>
+                    <span className={colors.totalColor}>
+                      {currency}
+                      {totalAmount}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -162,7 +179,9 @@ export default function PaymentSuccessBlock({ data }: PaymentSuccessBlockProps) 
         {/* Next steps */}
         <Card className="mb-8">
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">¿Qué sigue?</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              ¿Qué sigue?
+            </h3>
             <div className="space-y-3">
               {stepsToShow.map((step, i) => (
                 <div key={i} className="flex items-start gap-3">
@@ -176,17 +195,25 @@ export default function PaymentSuccessBlock({ data }: PaymentSuccessBlockProps) 
 
         {/* Acciones */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-         
-
           {receiptUrl ? (
-            <Button variant="outline" size="lg" asChild className="flex items-center gap-2 bg-transparent">
+            <Button
+              variant="outline"
+              size="lg"
+              asChild
+              className="flex items-center gap-2 bg-transparent"
+            >
               <Link href={receiptUrl} target="_blank" rel="noreferrer">
                 <Download className="w-4 h-4" />
                 Descargar Recibo
               </Link>
             </Button>
           ) : (
-            <Button variant="outline" size="lg" className="flex items-center gap-2 bg-transparent" disabled>
+            <Button
+              variant="outline"
+              size="lg"
+              className="flex items-center gap-2 bg-transparent"
+              disabled
+            >
               <Download className="w-4 h-4" />
               Descargar Recibo
             </Button>
@@ -204,9 +231,13 @@ export default function PaymentSuccessBlock({ data }: PaymentSuccessBlockProps) 
         <div className="text-center mt-8 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             ¿Necesitas ayuda? Contáctanos en{' '}
-            <a href={`mailto:${supportEmail}`} className={`${colors.linkColor} hover:underline`}>{supportEmail}</a>{' '}
+            <a href={`mailto:${supportEmail}`} className={`${colors.linkColor} hover:underline`}>
+              {supportEmail}
+            </a>{' '}
             o llama al{' '}
-            <a href={`tel:${supportPhone}`} className={`${colors.linkColor} hover:underline`}>{supportPhone}</a>
+            <a href={`tel:${supportPhone}`} className={`${colors.linkColor} hover:underline`}>
+              {supportPhone}
+            </a>
           </p>
         </div>
       </div>

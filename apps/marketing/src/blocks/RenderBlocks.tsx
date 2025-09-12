@@ -7,13 +7,37 @@ import { CallToActionBlock } from '@/blocks/CallToAction/Component'
 import { ContentBlock } from '@/blocks/Content/Component'
 import { FormBlock } from '@/blocks/Form/Component'
 import { MediaBlock } from '@/blocks/MediaBlock/Component'
+import { Acordeon } from './Acordeon/Component'
+import { ImagenConTextoComponent } from './ImagenConTexto/Component'
+import { ContetWithMediaBlock } from './ContentWithMedia/Component'
+import { BloqueInformativoComponet } from './BloqueInformativo/Component'
+import { SectionComponent } from './Section/Component'
+import { TextComponent } from './Text/Component'
+import { PriceBlockComponent } from './PriceBlock/Components'
+import { ColumnComponent } from './Column/Component'
+import { RowComponent } from './Row/Component'
+import { Carousel } from './Carousel/Component'
+import { CarouselAvatar } from './CarouselAvatar/Component'
+import { PaymentStatusBlock } from './PaymentStatus/Component'
 
 const blockComponents = {
   archive: ArchiveBlock,
   content: ContentBlock,
   cta: CallToActionBlock,
-  formBlock: FormBlock,
   mediaBlock: MediaBlock,
+  formBlock: FormBlock,
+  acordeon: Acordeon,
+  imagenConTexto: ImagenConTextoComponent,
+  contentWithMedia: ContetWithMediaBlock,
+  bloqueInformativo: BloqueInformativoComponet,
+  section: SectionComponent,
+  textBlock: TextComponent,
+  priceBlock: PriceBlockComponent,
+  column: ColumnComponent,
+  row: RowComponent,
+  carousel: Carousel,
+  carouselAvatar: CarouselAvatar,
+  paymentStatus: PaymentStatusBlock,
 }
 
 export const RenderBlocks: React.FC<{
