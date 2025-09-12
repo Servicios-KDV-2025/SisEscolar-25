@@ -19,5 +19,19 @@
   },
   "dependencies": {
     "react-hook-form": "7.62.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "sharp",
+      "esbuild",
+      "unrs-resolver",
+      "bufferutil",
+      "utf-8-validate",
+      "@tailwindcss/oxide"
+    ],
+    "overrides": {
+      "@types/react": "19.1.8",
+      "@types/react-dom": "19.1.6"
+    }
   }
 }
