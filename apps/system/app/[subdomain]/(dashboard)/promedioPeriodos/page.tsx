@@ -115,7 +115,8 @@ export default function GradeManagementDashboard() {
   const handleUpdateGrade = async (
     studentClassId: string,
     termId: string,
-    averageScore: number | null
+    averageScore: number | null,
+     comment: string
   ) => {
     // Only proceed if a user is logged in and the score is a number
     if (!currentUser || averageScore === null) return;
@@ -125,6 +126,7 @@ export default function GradeManagementDashboard() {
         studentClassId: studentClassId as Id<"studentClass">,
         termId: termId as Id<"term">,
         averageScore: averageScore,
+        comments: comment,
         registeredById: currentUser._id as Id<"user">,
       });
       toast.success("Promedio actualizado correctamente.");

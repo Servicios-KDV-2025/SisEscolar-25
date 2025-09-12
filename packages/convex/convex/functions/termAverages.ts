@@ -7,7 +7,7 @@ export const upsertTermAverage = mutation({
     studentClassId: v.id("studentClass"),
     termId: v.id("term"),
     averageScore: v.number(),
-    comment: v.optional(v.string()),
+    comments: v.optional(v.string()),
     registeredById: v.id("user"),
   },
   handler: async (ctx, args) => {
@@ -23,7 +23,7 @@ export const upsertTermAverage = mutation({
       // Si existe, actualizar
       await ctx.db.patch(existing._id, {
         averageScore: args.averageScore,
-        comments: args.comment,
+        comments: args.comments,
         updatedBy: args.registeredById,
         updatedAt: Date.now(),
       });
@@ -34,7 +34,7 @@ export const upsertTermAverage = mutation({
         studentClassId: args.studentClassId,
         termId: args.termId,
         averageScore: args.averageScore,
-        comments: args.comment,
+        comments: args.comments,
         createdBy: args.registeredById,
       });
       return id;

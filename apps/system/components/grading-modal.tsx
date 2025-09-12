@@ -1,3 +1,4 @@
+// En grading-modal.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,6 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@repo/ui/components/shadcn/dialog";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Input } from "@repo/ui/components/shadcn/input";
@@ -13,11 +15,14 @@ import { Label } from "@repo/ui/components/shadcn/label";
 import { Textarea } from "@repo/ui/components/shadcn/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/shadcn/avatar";
-import { Save, User, BookOpen, Star } from "lucide-react";
+import { Save, User, BookOpen, Star, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 
-// Tipos de datos
+import { es } from 'date-fns/locale'; // Importa el locale en español
+import { formatDate } from "date-fns";
+
+// Tipos de datos que ya tienes
 interface Student {
   _id: Id<"student">;
   name: string;
@@ -29,42 +34,60 @@ interface StudentClass {
   student: Student | null;
 }
 
-interface Assignment {
+// Ahora usamos interfaces para ambos contextos (Asignación y Promedio)
+interface AssignmentData {
   _id: Id<"assignment">;
   name: string;
   maxScore: number;
 }
 
-interface Grade {
+interface TermData {
+  _id: Id<"term">;
+  name: string;
+  startDate: number;
+  endDate: number;
+}
+
+interface GradeData {
   _id: Id<"grade">;
   studentClassId: Id<"studentClass">;
   assignmentId: Id<"assignment">;
   score: number | null;
-  comments?: string; // Agregué el campo de comentario
+  comments?: string;
 }
 
+interface AverageData {
+  _id: Id<"termAverage">;
+  studentClassId: Id<"studentClass">;
+  termId: Id<"term">;
+  averageScore: number | null;
+  comments?: string;
+}
+
+// ✅ La interfaz del modal ahora es flexible
 interface GradingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  // Ahora el modal recibe los objetos completos del estudiante y la asignación
   studentClass: StudentClass | null;
-  assignment: Assignment | null;
-  grade: Grade | null | undefined;
+  context: "assignment" | "term"; // Para saber qué tipo de datos estamos mostrando
+  data: {
+    item: AssignmentData | TermData | null;
+    grade: GradeData | AverageData | null;
+  };
   onSave: (
     studentClassId: Id<"studentClass">,
-    assignmentId: Id<"assignment">,
+    itemId: Id<"assignment"> | Id<"term">,
     score: number | null,
     comments: string
   ) => void;
 }
+
 const CharacterCounter = ({
     current,
     max,
-    // fieldName,
   }: {
     current: number;
     max: number;
-    fieldName: string;
   }) => {
     const remaining = max - current;
     const isNearLimit = remaining <= 10;
@@ -83,52 +106,76 @@ export function GradingModal({
   isOpen,
   onClose,
   studentClass,
-  assignment,
-  grade,
+  context,
+  data,
   onSave,
 }: GradingModalProps) {
-  // Inicializa el estado con los valores de las props
-  const [currentGradeValue, setCurrentGradeValue] = useState(grade?.score?.toString() || "");
-  const [comment, setComment] = useState(grade?.comments || "");
+  const [currentScoreValue, setCurrentScoreValue] = useState("");
+  const [comment, setComment] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  // Sincroniza el estado local cuando las props cambian (al abrirse el modal para una nueva celda)
   useEffect(() => {
-    setCurrentGradeValue(grade?.score?.toString() || "");
-    setComment(grade?.comments || "");
-  }, [grade]);
+    if (data.grade) {
+      if (context === "assignment") {
+        const gradeData = data.grade as GradeData;
+        setCurrentScoreValue(gradeData.score?.toString() || "");
+        setComment(gradeData.comments || "");
+      } else {
+        const averageData = data.grade as AverageData;
+        setCurrentScoreValue(averageData.averageScore?.toString() || "");
+        setComment(averageData.comments || "");
+      }
+    } else {
+      setCurrentScoreValue("");
+      setComment("");
+    }
+    setError(null);
+  }, [data.grade, context, isOpen]);
 
   const handleSave = () => {
-    if (!studentClass || !assignment) {
-      toast.error("Error: Información del estudiante o la asignación no disponible.");
+    if (!studentClass || !data.item) {
+      toast.error("Error: Información del estudiante o la tarea/período no disponible."+ error);
       return;
     }
 
-    const score = currentGradeValue === "" ? null : Number.parseFloat(currentGradeValue);
+    const score = currentScoreValue === "" ? null : Number.parseFloat(currentScoreValue);
+    
+    // Obtener la puntuación máxima según el contexto
+    const maxScore = context === "assignment"
+      ? (data.item as AssignmentData).maxScore
+      : 100;
 
-    if (score !== null && (isNaN(score) || score < 0 || score > assignment.maxScore)) {
+    if (score !== null && (isNaN(score) || score < 0 || score > maxScore)) {
       toast.error(
-        `La calificación debe ser un número entre 0 y ${assignment.maxScore}.`
+        `La calificación debe ser un número entre 0 y ${maxScore}.`
       );
       return;
     }
 
-    // Llama a la función onSave que se encarga de la lógica de guardado
-    onSave(studentClass.id, assignment._id, score, comment);
+    onSave(studentClass.id, data.item._id as Id<"assignment"> | Id<"term">, score, comment);
     
-    onClose(); // Cierra el modal después de guardar
+    onClose();
   };
 
   const handleClose = () => {
-    // Resetear el estado al cerrar para evitar que la información de la celda anterior se quede
-    setCurrentGradeValue("");
-    setComment("");
     onClose();
   };
   
-  // No renderiza el modal si la información esencial no está disponible
-  if (!studentClass || !studentClass.student || !assignment) {
+  if (!studentClass || !studentClass.student || !data.item) {
     return null;
   }
+
+  const termItem = data.item as TermData;
+  const formattedStartDate = termItem.startDate ? formatDate(termItem.startDate, 'P', { locale: es }) : 'N/A';
+  const formattedEndDate = termItem.endDate ? formatDate(termItem.endDate, 'P', { locale: es }) : 'N/A';
+
+  // ✅ Contenido dinámico según el contexto
+  const isAssignment = context === "assignment";
+  const itemTitle = isAssignment ? "Asignación" : "Período";
+  const scoreLabel = isAssignment ? "Calificación" : "Promedio";
+  const maxScore = isAssignment
+    ? (data.item as AssignmentData).maxScore
+    : 100;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -136,12 +183,11 @@ export function GradingModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Star className="h-5 w-5" />
-            Registrar Calificación
+            {isAssignment ? "Registrar Calificación" : "Registrar Promedio"}
           </DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Panel de información */}
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -166,38 +212,49 @@ export function GradingModal({
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  Detalles de la Asignación
+                  {isAssignment ? <BookOpen className="h-4 w-4" /> : <Calendar className="h-4 w-4" />}
+                  Detalles de la {itemTitle}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <p className="font-medium">{assignment.name}</p>
+                  <p className="font-medium">{(data.item.name).toUpperCase()}</p>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  <p>Puntuación máxima: {assignment.maxScore} puntos</p>
+                  {isAssignment ? (
+            <div className="text-sm text-muted-foreground">
+              <p>Puntuación máxima: {maxScore} puntos</p>
+            </div>
+          ) : (
+            // ✅ Muestra las fechas solo en el contexto de "term"
+            <div className="text-sm text-muted-foreground">
+              <p>Inicio: {formattedStartDate}</p>
+              
+              <p>Fin: {formattedEndDate}</p>
+              
+            </div>
+          )}
                 </div>
               </CardContent>
             </Card>
           </div>
           
-          {/* Formulario de calificación y comentario */}
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="grade">Calificación (0 - {assignment.maxScore})</Label>
+              <Label htmlFor="score">{scoreLabel} (0 - {maxScore})</Label>
               <Input
-                id="grade"
+                id="score"
                 type="number"
                 min="0"
-                max={assignment.maxScore}
-                value={currentGradeValue}
-                onChange={(e) => setCurrentGradeValue(e.target.value)}
+                max={maxScore}
+                value={currentScoreValue}
+                onChange={(e) => setCurrentScoreValue(e.target.value)}
                 placeholder="Ingresa la calificación"
               />
             </div>
-            {currentGradeValue !== "" && (Number(currentGradeValue) < 0 || Number(currentGradeValue) > assignment.maxScore) && (
+            {currentScoreValue !== "" && (Number(currentScoreValue) < 0 || Number(currentScoreValue) > maxScore) && (
               <p className="text-sm text-red-600">
-                La calificación debe estar entre 0 y {assignment.maxScore}.
+                La {scoreLabel.toLowerCase()} debe estar entre 0 y {maxScore}.
               </p>
             )}
             <div className="space-y-2">
@@ -213,15 +270,16 @@ export function GradingModal({
               <CharacterCounter
                 current={comment.length}
                 max={500}
-                fieldName="comment"
+
               />
             </div>
             <Button onClick={handleSave} className="w-full">
               <Save className="h-4 w-4 mr-2" />
-              Guardar Calificación
+              Guardar {scoreLabel}
             </Button>
           </div>
         </div>
+        <DialogFooter className="hidden"></DialogFooter>
       </DialogContent>
     </Dialog>
   );

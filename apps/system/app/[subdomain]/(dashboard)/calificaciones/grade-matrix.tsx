@@ -1,3 +1,4 @@
+// En gradematrix.tsx
 "use client";
 
 import type React from "react";
@@ -13,12 +14,13 @@ import {
   TableHeader,
   TableRow,
 } from "@repo/ui/components/shadcn/table";
-import { GradingModal } from "components/grading-modal";//message-square
+import { GradingModal } from "components/grading-modal";
 import { MessageCircleMore, MessageCircleDashed } from "@repo/ui/icons";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  TooltipProvider
 } from "@repo/ui/components/shadcn/tooltip";
 
 interface StudentWithClass {
@@ -68,13 +70,14 @@ export function GradeMatrix({
   const [tempValue, setTempValue] = useState<string>("");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedStudentClass, setSelectedStudentClass] =
-    useState<StudentWithClass | null>(null);
-  const [selectedAssignment, setSelectedAssignment] =
-    useState<Assignment | null>(null);
-  const [selectedGrade, setSelectedGrade] = useState<Grade | null>(null);
+  const [selectedStudentClass, setSelectedStudentClass] = useState<StudentWithClass | null>(null);
+  
+  // ✅ Usamos un estado único para los datos del modal
+  const [selectedData, setSelectedData] = useState<{
+    item: Assignment | null;
+    grade: Grade | null;
+  }>({ item: null, grade: null });
 
-  // Función para manejar el clic en el ícono y preparar los datos para el modal
   const handleButtonClick = (studentId: string, assignmentId: string) => {
     const studentClassData = students.find((s) => s.id === studentId);
     const assignmentData = assignments?.find((a) => a._id === assignmentId);
@@ -83,28 +86,28 @@ export function GradeMatrix({
     );
 
     setSelectedStudentClass(studentClassData || null);
-    setSelectedAssignment(assignmentData || null);
-    setSelectedGrade(gradeData || null);
+    setSelectedData({
+      item: assignmentData || null,
+      grade: gradeData || null,
+    });
     setIsModalOpen(true);
   };
 
   const handleModalClose = () => {
     setIsModalOpen(false);
     setSelectedStudentClass(null);
-    setSelectedAssignment(null);
-    setSelectedGrade(null);
+    setSelectedData({ item: null, grade: null });
   };
 
-  // Esta función ahora recibe el comentario
+  // ✅ Adaptamos esta función para que reciba el tipo más genérico
   const handleModalSave = (
     studentClassId: Id<"studentClass">,
-    assignmentId: Id<"assignment">,
+    itemId: Id<"assignment"> | Id<"term">, // ✅ Recibe el tipo genérico
     score: number | null,
-    comment: string // Recibes el comentario del modal
+    comment: string
   ) => {
-    // Llama a la única función que ahora se encarga de la calificación y el comentario
-    onGradeUpdate(studentClassId, assignmentId, score, comment);
-
+    // ✅ Usamos una aserción para pasar el tipo correcto a onGradeUpdate
+    onGradeUpdate(studentClassId, itemId as Id<"assignment">, score, comment);
     handleModalClose();
   };
 
@@ -122,7 +125,6 @@ export function GradeMatrix({
     setTempValue(currentGrade?.toString() || "");
   };
 
-  // Implementación única de la función handleCellBlur
   const handleCellBlur = (studentClassId: string, assignmentId: string) => {
     const score = tempValue === "" ? null : Number.parseFloat(tempValue);
 
@@ -162,162 +164,170 @@ export function GradeMatrix({
   };
 
   return (
-    <div className="overflow-auto max-h-[calc(100vh-300px)]">
-      <Table>
-        <TableHeader className="sticky top-0 bg-muted z-10">
-          <TableRow>
-            <TableHead className="text-left p-3 border border-border bg-muted font-semibold text-muted-foreground min-w-[200px] sticky left-0">
-              Estudiante
-            </TableHead>
-            {assignments!.map((assignment) => (
-              <TableHead
-                key={assignment._id}
-                className="text-center p-3 border border-border bg-muted font-semibold text-muted-foreground min-w-[120px]"
-              >
-                <div className="space-y-1">
-                  <div className="font-medium text-sm">{assignment.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    Max: {assignment.maxScore}
-                  </div>
-                </div>
+    <TooltipProvider>
+      <div className="overflow-auto max-h-[calc(100vh-300px)]">
+        <Table>
+          <TableHeader className="sticky top-0 bg-muted z-10">
+            <TableRow>
+              <TableHead className="text-left p-3 border border-border bg-muted font-semibold text-muted-foreground min-w-[200px] sticky left-0">
+                Estudiante
               </TableHead>
-            ))}
-            <TableHead className="text-center p-3 border border-border bg-muted font-semibold text-muted-foreground min-w-[100px] sticky right-0">
-              Promedio
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {students.map((student) => {
-            if (!student.student) return null;
-
-            const average = calculateAverage(student.id);
-
-            return (
-              <TableRow
-                key={student.id}
-                className="hover:bg-muted/50 transition-colors"
-              >
-                <TableCell className="p-3 border border-border bg-card sticky left-0">
-                  <div className="font-medium text-card-foreground">
-                    {student.student.name}
-                  </div>
-                </TableCell>
-                {assignments!.map((assignment) => {
-                  const grade = getGrade(student.id, assignment._id);
-                  const cellId = `${student.id}-${assignment._id}`;
-                  const isEditing = editingCell === cellId;
-                  const gradeData = grades.find(
-                    (g) =>
-                      g.studentClassId === student.id &&
-                      g.assignmentId === assignment._id
-                  );
-                  
-
-                  const commentText = gradeData?.comments
-                  ? gradeData.comments.length > 25
-                    ? `${gradeData.comments.substring(0, 25)}...`
-                    : gradeData.comments
-                  : null;
-
-                  return (
-                    <TableCell
-                      key={assignment._id}
-                      className="p-1 border border-border text-center"
-                    >
-                      <div className="flex items-center justify-center space-x-2">
-                        {isEditing ? (
-                          <Input
-                            type="number"
-                            value={tempValue}
-                            onChange={(e) => setTempValue(e.target.value)}
-                            onBlur={() =>
-                              handleCellBlur(student.id, assignment._id)
-                            }
-                            onKeyDown={(e) =>
-                              handleKeyDown(e, student.id, assignment._id)
-                            }
-                            className="w-full text-center border-accent"
-                            min="0"
-                            max={assignment.maxScore}
-                            autoFocus
-                          />
-                        ) : (
-                          <div
-                            onClick={() =>
-                              handleCellClick(student.id, assignment._id)
-                            }
-                            className={`
-          ${
-            grade! > assignment.maxScore * 0.7
-              ? "text-green-600"
-              : grade! < assignment.maxScore * 0.7
-                ? "text-red-700"
-                : "text-gray-700"
-          }
-          cursor-pointer hover:bg-gray-400 hover:text-white rounded px-2 py-1 min-w-[40px
-        `}
-                          >
-                            {grade !== undefined ? `${grade}` : "-"}
-                          </div>
-                        )}
-                        <Tooltip delayDuration={300}>
-                          <TooltipTrigger asChild>
-                            {commentText ? (<MessageCircleMore
-                              onClick={() => {
-                                handleButtonClick(student.id, assignment._id);
-                              }}
-                              className="h-7.5 w-7.5 rounded-lg  justify-end p-0.5 cursor-pointer hover:bg-gray-400 hover:text-white transition-colors" 
-                            />):(<MessageCircleDashed
-                              onClick={() => {
-                                handleButtonClick(student.id, assignment._id);
-                              }}
-                              className="h-7.5 w-7.5 rounded-lg justify-end p-0.5 cursor-pointer hover:bg-gray-400 hover:text-white transition-colors" 
-                            />)}
-                            
-                          </TooltipTrigger>
-                          <TooltipContent side="right" className="max-w-xs">
-                            {commentText ?(<p>{commentText}</p>):(<p>No hay comentarios</p>)}
-                            
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                    </TableCell>
-                  );
-                })}
-                <TableCell className="p-3 border border-border text-center bg-card sticky right-0">
-                  {average !== null ? (
-                    <div className="flex items-center justify-center space-x-2">
-                      <p
-                        className={
-                          average >= 80
-                            ? "text-green-500"
-                            : average >= 70
-                              ? "text-gray-500"
-                              : "text-red-400"
-                        }
-                      >
-                        {average}%
-                      </p>
+              {assignments!.map((assignment) => (
+                <TableHead
+                  key={assignment._id}
+                  className="text-center p-3 border border-border bg-muted font-semibold text-muted-foreground min-w-[120px]"
+                >
+                  <div className="space-y-1">
+                    <div className="font-medium text-sm">{assignment.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Max: {assignment.maxScore}
                     </div>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+                  </div>
+                </TableHead>
+              ))}
+              <TableHead className="text-center p-3 border border-border bg-muted font-semibold text-muted-foreground min-w-[100px] sticky right-0">
+                Promedio
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {students.map((student) => {
+              if (!student.student) return null;
 
-      <GradingModal
-        isOpen={isModalOpen}
-        onClose={handleModalClose}
-        studentClass={selectedStudentClass}
-        assignment={selectedAssignment}
-        grade={selectedGrade}
-        onSave={handleModalSave}
-      />
-    </div>
+              const average = calculateAverage(student.id);
+
+              return (
+                <TableRow
+                  key={student.id}
+                  className="hover:bg-muted/50 transition-colors"
+                >
+                  <TableCell className="p-3 border border-border bg-card sticky left-0">
+                    <div className="font-medium text-card-foreground">
+                      {student.student.name}
+                    </div>
+                  </TableCell>
+                  {assignments!.map((assignment) => {
+                    const grade = getGrade(student.id, assignment._id);
+                    const cellId = `${student.id}-${assignment._id}`;
+                    const isEditing = editingCell === cellId;
+                    const gradeData = grades.find(
+                      (g) =>
+                        g.studentClassId === student.id &&
+                        g.assignmentId === assignment._id
+                    );
+
+                    const commentText = gradeData?.comments
+                      ? gradeData.comments.length > 25
+                        ? `${gradeData.comments.substring(0, 25)}...`
+                        : gradeData.comments
+                      : null;
+
+                    return (
+                      <TableCell
+                        key={assignment._id}
+                        className="p-1 border border-border text-center"
+                      >
+                        <div className="flex items-center justify-center space-x-2">
+                          {isEditing ? (
+                            <Input
+                              type="number"
+                              value={tempValue}
+                              onChange={(e) => setTempValue(e.target.value)}
+                              onBlur={() =>
+                                handleCellBlur(student.id, assignment._id)
+                              }
+                              onKeyDown={(e) =>
+                                handleKeyDown(e, student.id, assignment._id)
+                              }
+                              className="w-full text-center border-accent"
+                              min="0"
+                              max={assignment.maxScore}
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onClick={() =>
+                                handleCellClick(student.id, assignment._id)
+                              }
+                              className={`
+            ${
+              grade! > assignment.maxScore * 0.7
+                ? "text-green-600"
+                : grade! < assignment.maxScore * 0.7
+                  ? "text-red-700"
+                  : "text-gray-700"
+            }
+            cursor-pointer hover:bg-gray-400 hover:text-white rounded px-2 py-1 min-w-[40px
+          `}
+                            >
+                              {grade !== undefined ? `${grade}` : "-"}
+                            </div>
+                          )}
+                          <Tooltip delayDuration={200}>
+                            <TooltipTrigger asChild>
+                              {commentText ? (
+                                <MessageCircleMore
+                                  onClick={() => {
+                                    handleButtonClick(student.id, assignment._id);
+                                  }}
+                                  className="h-7.5 w-7.5 rounded-lg justify-end p-0.5 cursor-pointer hover:bg-gray-400 hover:text-white transition-colors"
+                                />
+                              ) : (
+                                <MessageCircleDashed
+                                  onClick={() => {
+                                    handleButtonClick(student.id, assignment._id);
+                                  }}
+                                  className="h-7.5 w-7.5 rounded-lg justify-end p-0.5 cursor-pointer hover:bg-gray-400 hover:text-white transition-colors"
+                                />
+                              )}
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-xs">
+                              {commentText ? (
+                                <p>{commentText}</p>
+                              ) : (
+                                <p>No hay comentarios</p>
+                              )}
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TableCell>
+                    );
+                  })}
+                  <TableCell className="p-3 border border-border text-center bg-card sticky right-0">
+                    {average !== null ? (
+                      <div className="flex items-center justify-center space-x-2">
+                        <p
+                          className={
+                            average >= 80
+                              ? "text-green-500"
+                              : average >= 70
+                                ? "text-gray-500"
+                                : "text-red-400"
+                          }
+                        >
+                          {average}%
+                        </p>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+
+        {/* ✅ Modal con el nuevo formato de props */}
+        <GradingModal
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
+          studentClass={selectedStudentClass}
+          context="assignment"
+          data={selectedData}
+          onSave={handleModalSave} // ✅ Pasa la función corregida
+        />
+      </div>
+    </TooltipProvider>
   );
 }

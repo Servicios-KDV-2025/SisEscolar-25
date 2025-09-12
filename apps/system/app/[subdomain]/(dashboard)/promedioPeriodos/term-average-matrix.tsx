@@ -1,4 +1,4 @@
-"use client";
+// En term-average-matrix.tsx
 
 import type React from "react";
 import { useState } from "react";
@@ -6,8 +6,17 @@ import { Input } from "@repo/ui/components/shadcn/input";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { toast } from 'sonner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table";
+import { MessageCircleMore, MessageCircleDashed } from "@repo/ui/icons";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider
+} from "@repo/ui/components/shadcn/tooltip";
 
-// Actualiza los tipos para reflejar el modelo de termAverage
+import { GradingModal } from "components/grading-modal";
+
+// ... (interfaces existentes)
 interface StudentWithClass {
   id: Id<"studentClass">;
   student: {
@@ -19,21 +28,23 @@ interface StudentWithClass {
 interface Term {
   _id: Id<"term">;
   name: string;
+  startDate: number; 
+  endDate: number;   
 }
 
-// Los promedios que recibes tienen esta estructura
 interface StudentTermAverage {
   _id: Id<"termAverage">;
   studentClassId: Id<"studentClass">;
   termId: Id<"term">;
   averageScore: number | null;
+  comments?: string;
 }
 
 interface TermAverageMatrixProps {
   students: StudentWithClass[];
   terms: Term[];
-  averages: Map<string, StudentTermAverage[]>; // Un mapa donde cada valor es un ARRAY de promedios
-  onAverageUpdate: (studentClassId: string, termId: string, score: number | null) => void;
+  averages: Map<string, StudentTermAverage[]>;
+  onAverageUpdate: (studentClassId: string, termId: string, score: number | null, comment: string) => void;
 }
 
 export function TermAverageMatrix({
@@ -44,11 +55,24 @@ export function TermAverageMatrix({
 }: TermAverageMatrixProps) {
   const [editingCell, setEditingCell] = useState<string | null>(null);
   const [tempValue, setTempValue] = useState<string>("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<StudentWithClass | null>(null);
+  const [selectedData, setSelectedData] = useState<{
+    item: Term | null;
+    grade: StudentTermAverage | null;
+  }>({ item: null, grade: null });
+
 
   const getAverageScore = (studentClassId: string, termId: string) => {
     const studentAverages = averages.get(studentClassId);
     return studentAverages?.find((avg) => avg.termId === termId)?.averageScore;
   };
+
+  const getComment = (studentClassId: string, termId: string) => {
+    const studentAverages = averages.get(studentClassId);
+    return studentAverages?.find((avg) => avg.termId === termId)?.comments;
+  };
+
 
   const handleCellClick = (studentClassId: string, termId: string) => {
     const cellId = `${studentClassId}-${termId}`;
@@ -67,7 +91,7 @@ export function TermAverageMatrix({
     }
   
     if (!isNaN(score!)) {
-      onAverageUpdate(studentClassId, termId, score);
+      onAverageUpdate(studentClassId, termId, score, getComment(studentClassId, termId) || "");
     }
     setEditingCell(null);
     setTempValue("");
@@ -82,7 +106,38 @@ export function TermAverageMatrix({
     }
   };
 
-  // ✨ Nueva función para calcular el promedio anual en el frontend
+  const handleButtonClick = (studentId: string, termId: string) => {
+    const studentData = students.find((s) => s.id === studentId);
+    const termData = terms.find((t) => t._id === termId);
+    const averageData = averages
+      .get(studentId)
+      ?.find((avg) => avg.termId === termId);
+
+    setSelectedStudent(studentData || null);
+    setSelectedData({
+      item: termData || null,
+      grade: averageData || null,
+    });
+    setIsModalOpen(true);
+  };
+  
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedStudent(null);
+    setSelectedData({ item: null, grade: null });
+  };
+  
+const handleModalSave = (
+  studentClassId: Id<"studentClass">,
+  itemId: Id<"assignment"> | Id<"term">,
+  score: number | null,
+  comment: string
+) => {
+  onAverageUpdate(studentClassId, itemId as Id<"term">, score, comment);
+  handleModalClose();
+};
+
+
   const calculateAnnualAverage = (studentClassId: string): number | null => {
     const studentAverages = averages.get(studentClassId);
     if (!studentAverages || studentAverages.length === 0) {
@@ -107,6 +162,7 @@ export function TermAverageMatrix({
   };
 
   return (
+    <TooltipProvider>
     <div className="overflow-auto max-h-[calc(100vh-300px)]">
       <Table className="w-full border-collapse">
         <TableHeader className="sticky top-0 bg-muted z-10">
@@ -145,9 +201,11 @@ export function TermAverageMatrix({
                   const average = getAverageScore(student.id, term._id);
                   const cellId = `${student.id}-${term._id}`;
                   const isEditing = editingCell === cellId;
-
+                  
+                  const commentText = getComment(student.id, term._id);
                   return (
                     <TableCell key={term._id} className="p-1 border border-border text-center">
+                      <div className="flex items-center justify-center space-x-2">
                       {isEditing ? (
                         <Input
                           type="number"
@@ -163,11 +221,46 @@ export function TermAverageMatrix({
                       ) : (
                         <div
                           onClick={() => handleCellClick(student.id, term._id)}
-                           className={average !== null && average! > (100 * 0.7) ? "text-green-600" : (average !== null && average! < (100 * 0.7) ? "text-red-700" : "text-gray-700")}
+                           className={`
+                           ${average !== null && average! > (100 * 0.7)
+                              ? "text-green-600"
+                              : average !== null && average! < (100 * 0.7)
+                              ? "text-red-700"
+                              : "text-gray-700"
+                            }
+                           cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-2 rounded
+                         `}
                         >
                           {average !== undefined ? `${average}` : "-"}
                         </div>
                       )}
+                       <Tooltip delayDuration={200}>
+                                                   <TooltipTrigger asChild>
+                                                     {commentText ? (
+                                                       <MessageCircleMore
+                                                         onClick={() => {
+                                                           handleButtonClick(student.id, term._id);
+                                                         }}
+                                                         className="h-7.5 w-7.5 rounded-lg justify-end p-0.5 cursor-pointer hover:bg-gray-400 hover:text-white transition-colors"
+                                                       />
+                                                     ) : (
+                                                       <MessageCircleDashed
+                                                         onClick={() => {
+                                                           handleButtonClick(student.id, term._id);
+                                                         }}
+                                                         className="h-7.5 w-7.5 rounded-lg justify-end p-0.5 cursor-pointer hover:bg-gray-400 hover:text-white transition-colors"
+                                                       />
+                                                     )}
+                                                   </TooltipTrigger>
+                                                   <TooltipContent side="right" className="max-w-xs">
+                                                     {commentText ? (
+                                                       <p>{commentText}</p>
+                                                     ) : (
+                                                       <p>No hay comentarios</p>
+                                                     )}
+                                                   </TooltipContent>
+                                                 </Tooltip>
+                        </div>
                     </TableCell>
                   );
                 })}
@@ -187,6 +280,17 @@ export function TermAverageMatrix({
           })}
         </TableBody>
       </Table>
+      <GradingModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        studentClass={selectedStudent}
+        context="term" // ✅ Contexto "term"
+        data={selectedData}
+        onSave={(studentClassId, itemId, score, comment) =>
+          handleModalSave(studentClassId, itemId, score, comment)
+        }
+      />
     </div>
+    </TooltipProvider>
   );
 }
