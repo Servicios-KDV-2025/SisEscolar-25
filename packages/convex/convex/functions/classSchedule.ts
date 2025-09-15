@@ -17,7 +17,7 @@ export const getClassSchedules = query({
       if (!acc[cs.classCatalogId]) {
         acc[cs.classCatalogId] = [];
       }
-      acc[cs.classCatalogId].push(cs);
+      acc[cs.classCatalogId]!.push(cs);
       return acc;
     }, {} as Record<string, typeof classSchedules>);
 
