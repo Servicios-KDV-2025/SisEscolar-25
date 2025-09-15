@@ -32,6 +32,7 @@
     "@payloadcms/plugin-redirects": "3.55.1",
     "@payloadcms/plugin-search": "3.55.1",
     "@payloadcms/plugin-seo": "3.55.1",
+    "@payloadcms/storage-vercel-blob": "3.55.1",
     "@payloadcms/richtext-lexical": "3.55.1",
     "@payloadcms/ui": "3.55.1",
     "@radix-ui/react-checkbox": "^1.0.4",

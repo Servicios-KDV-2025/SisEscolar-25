@@ -26,6 +26,7 @@ import { default as default_a5bcb2677d9b6ea4efc01e1370828e82 } from 'src/collect
 import { Error as Error_e662cd6d2dc5fe17df92792ba533ad0d } from 'src/components/Admin/Field/Error.tsx'
 import { default as default_1a7510af427896d367a49dbf838d2de6 } from '@/components/BeforeDashboard'
 import { default as default_8a7ab0eb7ab5c511aba12e68480bfe5e } from '@/components/BeforeLogin'
+import { VercelBlobClientUploadHandler as VercelBlobClientUploadHandler_16c82c5e25f430251a3e3ba57219ff4e } from '@payloadcms/storage-vercel-blob/client'
 
 export const importMap = {
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell": RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
@@ -55,5 +56,6 @@ export const importMap = {
   "src/collections/fields/ColumnWidth.tsx#default": default_a5bcb2677d9b6ea4efc01e1370828e82,
   "src/components/Admin/Field/Error.tsx#Error": Error_e662cd6d2dc5fe17df92792ba533ad0d,
   "@/components/BeforeDashboard#default": default_1a7510af427896d367a49dbf838d2de6,
-  "@/components/BeforeLogin#default": default_8a7ab0eb7ab5c511aba12e68480bfe5e
+  "@/components/BeforeLogin#default": default_8a7ab0eb7ab5c511aba12e68480bfe5e,
+  "@payloadcms/storage-vercel-blob/client#VercelBlobClientUploadHandler": VercelBlobClientUploadHandler_16c82c5e25f430251a3e3ba57219ff4e
 }
