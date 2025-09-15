@@ -233,3 +233,48 @@ export const getTermsForClass = query({
     return terms;
   },
 });
+
+// Obtener clases por ciclo escolar
+export const getClassesBySchoolCycle = query({
+  args: {
+    schoolCycleId: v.id("schoolCycle"),
+  },
+  handler: async (ctx, args) => {
+    const classes = await ctx.db
+      .query("classCatalog")
+      .withIndex("by_cycle", (q) => q.eq("schoolCycleId", args.schoolCycleId))
+      .collect();
+
+    return classes;
+  },
+});
+
+// Obtener clases por maestro
+export const getClassesByTeacher = query({
+  args: {
+    teacherId: v.id("user"),
+  },
+  handler: async (ctx, args) => {
+    const classes = await ctx.db
+      .query("classCatalog")
+      .withIndex("by_teacher", (q) => q.eq("teacherId", args.teacherId))
+      .collect();
+
+    return classes;
+  },
+});
+
+// Obtener clases por aula
+export const getClassesByClassroom = query({
+  args: {
+    classroomId: v.id("classroom"),
+  },
+  handler: async (ctx, args) => {
+    const classes = await ctx.db
+      .query("classCatalog")
+      .withIndex("by_classroom", (q) => q.eq("classroomId", args.classroomId))
+      .collect();
+
+    return classes;
+  },
+}); 

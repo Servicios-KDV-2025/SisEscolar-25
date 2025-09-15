@@ -46,15 +46,17 @@ import { z } from "zod";
 import { termFormSchema } from "app/shemas/term";
 
 // Tipos de datos
+
 interface Term {
-  _id: Id<"term">; // El ID de Convex
+  _id: Id<"term">;
   _creationTime: number;
   name: string;
   key: string;
-  startDate: number; // Cambiado a número (timestamp)
-  endDate: number; // Cambiado a número (timestamp)
-  status: "active" | "inactive" | "closed"; // Cambiado a minúsculas
+  startDate: number;
+  endDate: number;
+  status: "active" | "inactive" | "closed";
   schoolCycleId: Id<"schoolCycle">;
+  schoolId: Id<"school">;
 }
 
 export default function PeriodsManagement() {
@@ -72,6 +74,7 @@ export default function PeriodsManagement() {
     endDate: "",
     status: "active",
     schoolCycleId: "",
+    
   });
   // === ESTADO PARA MANEJAR ERRORES DE VALIDACIÓN CON ZOD ===
   const [validationErrors, setValidationErrors] = useState<
@@ -224,6 +227,7 @@ export default function PeriodsManagement() {
           startDate: startDateTimestamp,
           endDate: endDateTimestamp,
           schoolCycleId: schoolCycleId as Id<"schoolCycle">,
+          schoolId: currentSchool!.school._id as Id<"school">, 
         });
       }
       setIsModalOpen(false);
@@ -471,7 +475,6 @@ export default function PeriodsManagement() {
                   <SelectValue placeholder="Filtrar por ciclo escolar" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos los ciclos</SelectItem>
                   {/* Aquí se usa el array de Convex */}
                   {schoolCycles.map((cycle) => (
                     <SelectItem key={cycle._id} value={cycle._id as string}>
