@@ -257,7 +257,7 @@ const applicationTable = defineSchema({
     classroomId: v.id("classroom"),
     teacherId: v.id("user"),
     groupId: v.id("group"),
-    // scheduleId: v.id("schedule"),
+    termId: v.id('term'),
     name: v.string(),
     status: v.union(v.literal("active"), v.literal("inactive")),
     createdBy: v.optional(v.id("user")),

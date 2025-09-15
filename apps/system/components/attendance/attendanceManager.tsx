@@ -1,3 +1,5 @@
+'use client'
+
 import { useUser } from "@clerk/nextjs"
 import { api } from "@repo/convex/convex/_generated/api"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
@@ -9,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@repo/ui/components/shadcn/textarea"
 import { Calendar, Save, Users } from "@repo/ui/icons"
 import { useMutation, useQuery } from "convex/react"
-import { useEffect, useState } from "react"
+import { useState, useMemo } from "react"
 import { useClassCatalog } from "stores/classCatalogStore"
 import { useCurrentSchool } from "stores/userSchoolsStore"
 import { useUserWithConvex } from "stores/userStore"
@@ -30,16 +32,20 @@ export default function AttendanceManager() {
 
   const [selectedClass, setSelectedClass] = useState("")
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]) // Formato YYYY-MM-DD
-  const [attendanceRecords, setAttendanceRecords] = useState<Record<string, AttendanceRecord>>({})
+  // const [attendanceRecords, setAttendanceRecords] = useState<Record<string, AttendanceRecord>>({})
+  const [temporaryUpdates, setTemporaryUpdates] = useState<Record<string, Partial<AttendanceRecord>>>({})
   const [isSaving, setIsSaving] = useState(false)
 
-  const dateTimestamp = selectedDate ? Math.floor(new Date(selectedDate).getTime() / 1000) : 0
-
   const createAttendanceMutation = useMutation(api.functions.attendance.createAttendance)
+
+  // const dateTimestamp = selectedDate ? Math.floor(new Date(selectedDate).getTime() / 1000) : 0
+  const dateTimestamp = useMemo(() => 
+    selectedDate ? Math.floor(new Date(selectedDate).getTime() / 1000) : 0
+  , [selectedDate])
+
   const existingAttendance = useQuery(
     api.functions.attendance.getAttendanceByClassAndDate,
     selectedClass && currentUser?._id ? {
-      studentClassId: selectedClass as Id<'studentClass'>,
       classCatalogId: selectedClass as Id<'classCatalog'>,
       date: dateTimestamp
     } : 'skip'
@@ -50,47 +56,97 @@ export default function AttendanceManager() {
     currentSchool ? { schoolId: currentSchool.school._id as Id<'school'> } : 'skip'
   )
 
-  const studentClassCCId = studentClasses?.map((sc) => sc?.classCatalog._id)
-  const classCatalogId = classCatalogs?.map((cc) => cc._id)
-  const students = studentClasses?.map((sc) => sc?.student)
-
   // Filtrar estudiantes que pertenecen a la clase seleccionada
-  const studentsInSelectedClass = studentClasses?.filter((sc) => 
-    sc?.classCatalog._id === selectedClass
-  )
-
-  const studentsInSelectedClassIds = studentsInSelectedClass?.map((sc) => sc?.student._id)
-  console.log(studentsInSelectedClassIds?.length)
+  // const studentsInSelectedClass = studentClasses?.filter((sc) => 
+  //   sc?.classCatalog._id === selectedClass
+  // )
+  const studentsInSelectedClass = useMemo(() => 
+    studentClasses?.filter((sc) => sc?.classCatalog._id === selectedClass)
+  , [studentClasses, selectedClass])
 
   // Cargar asistencia existente cuando cambia la clase o fecha
-  useEffect(() => {
-    if(existingAttendance && studentsInSelectedClass) {
-      const initialRecords: Record<string, AttendanceRecord> = {}
+  // useEffect(() => {
+  //   if(existingAttendance && studentsInSelectedClass) {
+  //     const initialRecords: Record<string, AttendanceRecord> = {}
 
-      studentsInSelectedClass.forEach((sc) => {
-        if(!sc) return
+  //     studentsInSelectedClass.forEach((sc) => {
+  //       if(!sc) return
 
-        const existingRecord = existingAttendance.find(
-          (record) => record.studentId === sc.student._id
-        )
+  //       const existingRecord = existingAttendance.find(
+  //         (record) => record.studentId === sc.student._id
+  //       )
 
-        if(existingRecord?.attendance) {
-          initialRecords[sc.student._id] = {
-            studentClassId: existingRecord.studentClassId,
-            state: existingRecord.attendance.attendanceState,
-            comments: existingRecord.attendance.comments || ''
-          }
-        } else if(sc._id) {
-          initialRecords[sc.student._id] = {
-            studentClassId: sc._id,
-            state: 'present',
-            comments: ''
+  //       if(existingRecord?.attendance) {
+  //         initialRecords[sc.student._id] = {
+  //           studentClassId: existingRecord.studentClassId,
+  //           state: existingRecord.attendance.attendanceState,
+  //           comments: existingRecord.attendance.comments || ''
+  //         }
+  //       } else if(sc._id) {
+  //         initialRecords[sc.student._id] = {
+  //           studentClassId: sc._id,
+  //           state: 'present',
+  //           comments: ''
+  //         }
+  //       }
+  //     })
+  //     setAttendanceRecords(initialRecords)
+  //   }
+  // }, [existingAttendance, studentsInSelectedClass])
+  const baseAttendanceRecords = useMemo(() => {
+    const records: Record<string, AttendanceRecord> = {}
+    
+    if (!existingAttendance || !studentsInSelectedClass) {
+      return records
+    }
+
+    studentsInSelectedClass.forEach((sc) => {
+      if (!sc) return
+
+      const existingRecord = existingAttendance.find(
+        (record) => record.studentId === sc.student._id
+      )
+
+      if (existingRecord?.attendance) {
+        records[sc.student._id] = {
+          studentClassId: existingRecord.studentClassId,
+          state: existingRecord.attendance.attendanceState,
+          comments: existingRecord.attendance.comments || ''
+        }
+      } else if (sc._id) {
+        records[sc.student._id] = {
+          studentClassId: sc._id,
+          state: 'present',
+          comments: ''
+        }
+      }
+    })
+    
+    return records
+  }, [existingAttendance, studentsInSelectedClass])
+
+  // Combinar registros base con actualizaciones temporales
+  const attendanceRecords = useMemo(() => {
+    const combined: Record<string, AttendanceRecord> = { ...baseAttendanceRecords }
+    
+    Object.entries(temporaryUpdates).forEach(([studentId, updates]) => {
+      if (combined[studentId]) {
+        combined[studentId] = { ...combined[studentId], ...updates }
+      } else if (studentsInSelectedClass) {
+        const studentClass = studentsInSelectedClass.find(sc => sc?.student._id === studentId)
+        if (studentClass?._id) {
+          combined[studentId] = {
+            studentClassId: studentClass._id,
+            state: "present",
+            comments: "",
+            ...updates
           }
         }
-      })
-      setAttendanceRecords(initialRecords)
-    }
-  }, [existingAttendance, studentsInSelectedClass])
+      }
+    })
+    
+    return combined
+  }, [baseAttendanceRecords, temporaryUpdates, studentsInSelectedClass])
 
   const getStateColor = (state: AttendanceState) => {
     switch (state) {
@@ -108,7 +164,7 @@ export default function AttendanceManager() {
   }
 
   const updateAttendance = (studentId: string, field: keyof AttendanceRecord, value: string) => {
-    setAttendanceRecords((prev) => {
+    setTemporaryUpdates((prev) => {
       const currentRecord = prev[studentId] || {
         studentClassId: studentsInSelectedClass?.find(sc => sc?.student._id === studentId)?._id as Id<"studentClass">,
         state: "present" as AttendanceState,
@@ -163,7 +219,7 @@ export default function AttendanceManager() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Configuración de Asistencia
+            Configuración de Asistencia {dateTimestamp}
           </CardTitle>
           <CardDescription>Selecciona la clase y fecha para registrar la asistencia</CardDescription>
         </CardHeader>
