@@ -35,7 +35,12 @@
         "PGUSER",
         "POSTGRES_URL_NO_SSL",
         "POSTGRES_HOST",
-        "NEON_PROJECT_ID"
+        "NEON_PROJECT_ID",
+        "BLOB_READ_WRITE_TOKEN",
+        "POSTGRES_URL",
+        "POSTGRES_PRISMA_URL",
+        "DATABASE_URL_UNPOOLED",
+        "POSTGRES_URL_NON_POOLING"
       ]
     },
     "lint": {
