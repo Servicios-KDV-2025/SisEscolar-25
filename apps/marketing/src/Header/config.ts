@@ -1,6 +1,6 @@
-// config.ts - Versión temporal simplificada
 import type { GlobalConfig } from 'payload'
 import { revalidateHeader } from './hooks/revalidateHeader'
+import { link } from '@/fields/link'
 
 export const Header: GlobalConfig = {
   slug: 'header',
@@ -12,30 +12,17 @@ export const Header: GlobalConfig = {
       name: 'navItems',
       type: 'array',
       fields: [
-        {
-          name: 'label',
-          type: 'text',
-          required: true,
-        },
-        {
-          name: 'url',
-          type: 'text',
-          required: true,
-        },
-        {
-          name: 'isButton',
-          type: 'checkbox',
-          label: 'Mostrar como botón',
-          defaultValue: false,
-        },
-        // Comentamos temporalmente el submenu
-        // {
-        //   name: 'submenu',
-        //   type: 'array',
-        //   // ...
-        // },
+        link({
+          appearances: false,
+        }),
       ],
       maxRows: 6,
+      admin: {
+        initCollapsed: true,
+        components: {
+          RowLabel: '@/Footer/RowLabel#RowLabel',
+        },
+      },
     },
   ],
   hooks: {
