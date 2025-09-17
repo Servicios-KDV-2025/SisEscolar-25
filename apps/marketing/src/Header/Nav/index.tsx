@@ -27,37 +27,37 @@ export const HeaderNav: React.FC<{ data: HeaderType }> = ({ data }) => {
       <NavigationMenu>
         <NavigationMenuList>
           {navItems.map((navItem, i) => {
-            const { link, submenu, isButton, buttonStyle } = navItem
+            const { link } = navItem
 
-            // Si tiene submenú, renderizar con dropdown
-            if (submenu && submenu.length > 0) {
-              return (
-                <NavigationMenuItem key={i}>
-                  <NavigationMenuTrigger className="bg-transparent hover:bg-accent hover:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground transition-colors text-foreground !rounded-xl px-4 py-2">
-                    {link?.label}
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent className="!rounded-xl overflow-hidden">
-                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] bg-popover border border-border shadow-md">
-                      {submenu.map(({ link: subLink }, j) => (
-                        <li key={j}>
-                          <NavigationMenuLink asChild>
-                            <CMSLink
-                              {...subLink}
-                              className="block select-none !rounded-lg p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground text-foreground"
-                            />
-                          </NavigationMenuLink>
-                        </li>
-                      ))}
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              )
-            }
+            // // Si tiene submenú, renderizar con dropdown
+            // if (submenu && submenu.length > 0) {
+            //   return (
+            //     <NavigationMenuItem key={i}>
+            //       <NavigationMenuTrigger className="bg-transparent hover:bg-accent hover:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground transition-colors text-foreground !rounded-xl px-4 py-2">
+            //         {link?.label}
+            //       </NavigationMenuTrigger>
+            //       <NavigationMenuContent className="!rounded-xl overflow-hidden">
+            //         <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] bg-popover border border-border shadow-md">
+            //           {/* {submenu.map(({ link: subLink }, j) => (
+            //             <li key={j}>
+            //               <NavigationMenuLink asChild>
+            //                 <CMSLink
+            //                   {...subLink}
+            //                   className="block select-none !rounded-lg p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground text-foreground"
+            //                 />
+            //               </NavigationMenuLink>
+            //             </li>
+            //           ))} */}
+            //         </ul>
+            //       </NavigationMenuContent>
+            //     </NavigationMenuItem>
+            //   )
+            // }
 
             // Si no tiene submenú, renderizar link normal o botón
             return (
               <NavigationMenuItem key={i}>
-                {isButton ? (
+                {/* {isButton ? (
                   <Button
                     variant={buttonStyle || 'default'}
                     size="sm"
@@ -73,7 +73,7 @@ export const HeaderNav: React.FC<{ data: HeaderType }> = ({ data }) => {
                       className="bg-transparent hover:bg-accent hover:text-accent-foreground text-foreground transition-colors data-[active]:bg-accent data-[active]:text-accent-foreground !rounded-xl px-4 py-2"
                     />
                   </NavigationMenuLink>
-                )}
+                )} */}
               </NavigationMenuItem>
             )
           })}
