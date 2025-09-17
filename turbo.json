@@ -3,7 +3,6 @@
   "ui": "tui",
   "tasks": {
     "build": {
-      
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"],
@@ -23,7 +22,20 @@
         "NEXT_PUBLIC_SERVER_URL",
         "CRON_SECRET",
         "PREVIEW_SECRET",
-        "RESEND_API_KEY"
+        "RESEND_API_KEY",
+        "PGHOST",
+        "POSTGRES_USER",
+        "STACK_SECRET_SERVER_KEY",
+        "DATABASE_URL",
+        "POSTGRES_PASSWORD",
+        "POSTGRES_DATABASE",
+        "PGPASSWORD",
+        "PGDATABASE",
+        "PGHOST_UNPOOLED",
+        "PGUSER",
+        "POSTGRES_URL_NO_SSL",
+        "POSTGRES_HOST",
+        "NEON_PROJECT_ID"
       ]
     },
     "lint": {
