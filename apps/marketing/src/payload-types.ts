@@ -1741,46 +1741,9 @@ export interface Header {
   id: number;
   navItems?:
     | {
-        link: {
-          type?: ('reference' | 'custom') | null;
-          newTab?: boolean | null;
-          reference?:
-            | ({
-                relationTo: 'pages';
-                value: number | Page;
-              } | null)
-            | ({
-                relationTo: 'posts';
-                value: number | Post;
-              } | null);
-          url?: string | null;
-          label: string;
-        };
+        label: string;
+        url: string;
         isButton?: boolean | null;
-        buttonStyle?: ('default' | 'secondary' | 'outline' | 'ghost' | 'link' | 'destructive') | null;
-        /**
-         * Agregue elementos para crear un menú desplegable. No disponible para botones.
-         */
-        submenu?:
-          | {
-              link: {
-                type?: ('reference' | 'custom') | null;
-                newTab?: boolean | null;
-                reference?:
-                  | ({
-                      relationTo: 'pages';
-                      value: number | Page;
-                    } | null)
-                  | ({
-                      relationTo: 'posts';
-                      value: number | Post;
-                    } | null);
-                url?: string | null;
-                label: string;
-              };
-              id?: string | null;
-            }[]
-          | null;
         id?: string | null;
       }[]
     | null;
@@ -1824,31 +1787,9 @@ export interface HeaderSelect<T extends boolean = true> {
   navItems?:
     | T
     | {
-        link?:
-          | T
-          | {
-              type?: T;
-              newTab?: T;
-              reference?: T;
-              url?: T;
-              label?: T;
-            };
+        label?: T;
+        url?: T;
         isButton?: T;
-        buttonStyle?: T;
-        submenu?:
-          | T
-          | {
-              link?:
-                | T
-                | {
-                    type?: T;
-                    newTab?: T;
-                    reference?: T;
-                    url?: T;
-                    label?: T;
-                  };
-              id?: T;
-            };
         id?: T;
       };
   updatedAt?: T;

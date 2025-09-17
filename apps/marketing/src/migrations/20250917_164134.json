@@ -1,5 +1,5 @@
 {
-  "id": "efccfbe5-59af-4753-99ef-5b39e919986d",
+  "id": "cc782b60-37b8-4963-89c7-6dcd19c6a0f7",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -12519,108 +12519,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.header_nav_items_submenu": {
-      "name": "header_nav_items_submenu",
-      "schema": "",
-      "columns": {
-        "_order": {
-          "name": "_order",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "_parent_id": {
-          "name": "_parent_id",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "id": {
-          "name": "id",
-          "type": "varchar",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "link_type": {
-          "name": "link_type",
-          "type": "enum_header_nav_items_submenu_link_type",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'reference'"
-        },
-        "link_new_tab": {
-          "name": "link_new_tab",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "link_url": {
-          "name": "link_url",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "link_label": {
-          "name": "link_label",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "header_nav_items_submenu_order_idx": {
-          "name": "header_nav_items_submenu_order_idx",
-          "columns": [
-            {
-              "expression": "_order",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "header_nav_items_submenu_parent_id_idx": {
-          "name": "header_nav_items_submenu_parent_id_idx",
-          "columns": [
-            {
-              "expression": "_parent_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "header_nav_items_submenu_parent_id_fk": {
-          "name": "header_nav_items_submenu_parent_id_fk",
-          "tableFrom": "header_nav_items_submenu",
-          "tableTo": "header_nav_items",
-          "columnsFrom": [
-            "_parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.header_nav_items": {
       "name": "header_nav_items",
       "schema": "",
@@ -12643,28 +12541,14 @@
           "primaryKey": true,
           "notNull": true
         },
-        "link_type": {
-          "name": "link_type",
-          "type": "enum_header_nav_items_link_type",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'reference'"
-        },
-        "link_new_tab": {
-          "name": "link_new_tab",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "link_url": {
-          "name": "link_url",
+        "label": {
+          "name": "label",
           "type": "varchar",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "link_label": {
-          "name": "link_label",
+        "url": {
+          "name": "url",
           "type": "varchar",
           "primaryKey": false,
           "notNull": true
@@ -12675,13 +12559,6 @@
           "primaryKey": false,
           "notNull": false,
           "default": false
-        },
-        "button_style": {
-          "name": "button_style",
-          "type": "enum_header_nav_items_button_style",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {
@@ -12762,171 +12639,6 @@
       },
       "indexes": {},
       "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.header_rels": {
-      "name": "header_rels",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "order": {
-          "name": "order",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "parent_id": {
-          "name": "parent_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "path": {
-          "name": "path",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "pages_id": {
-          "name": "pages_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "posts_id": {
-          "name": "posts_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "header_rels_order_idx": {
-          "name": "header_rels_order_idx",
-          "columns": [
-            {
-              "expression": "order",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "header_rels_parent_idx": {
-          "name": "header_rels_parent_idx",
-          "columns": [
-            {
-              "expression": "parent_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "header_rels_path_idx": {
-          "name": "header_rels_path_idx",
-          "columns": [
-            {
-              "expression": "path",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "header_rels_pages_id_idx": {
-          "name": "header_rels_pages_id_idx",
-          "columns": [
-            {
-              "expression": "pages_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "header_rels_posts_id_idx": {
-          "name": "header_rels_posts_id_idx",
-          "columns": [
-            {
-              "expression": "posts_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "header_rels_parent_fk": {
-          "name": "header_rels_parent_fk",
-          "tableFrom": "header_rels",
-          "tableTo": "header",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "header_rels_pages_fk": {
-          "name": "header_rels_pages_fk",
-          "tableFrom": "header_rels",
-          "tableTo": "pages",
-          "columnsFrom": [
-            "pages_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "header_rels_posts_fk": {
-          "name": "header_rels_posts_fk",
-          "tableFrom": "header_rels",
-          "tableTo": "posts",
-          "columnsFrom": [
-            "posts_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -13565,34 +13277,6 @@
       "values": [
         "inline",
         "schedulePublish"
-      ]
-    },
-    "public.enum_header_nav_items_submenu_link_type": {
-      "name": "enum_header_nav_items_submenu_link_type",
-      "schema": "public",
-      "values": [
-        "reference",
-        "custom"
-      ]
-    },
-    "public.enum_header_nav_items_link_type": {
-      "name": "enum_header_nav_items_link_type",
-      "schema": "public",
-      "values": [
-        "reference",
-        "custom"
-      ]
-    },
-    "public.enum_header_nav_items_button_style": {
-      "name": "enum_header_nav_items_button_style",
-      "schema": "public",
-      "values": [
-        "default",
-        "secondary",
-        "outline",
-        "ghost",
-        "link",
-        "destructive"
       ]
     },
     "public.enum_footer_nav_items_link_type": {

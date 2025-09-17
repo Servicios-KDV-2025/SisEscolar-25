@@ -6,8 +6,6 @@ import { GeistSans } from 'geist/font/sans'
 import React from 'react'
 
 import { AdminBar } from '@/components/AdminBar'
-import { Footer } from '@/Footer/Component'
-import { Header } from '@/Header/Component'
 import { Providers } from '@/providers'
 import { InitTheme } from '@/providers/Theme/InitTheme'
 import { mergeOpenGraph } from '@/utilities/mergeOpenGraph'
@@ -15,6 +13,10 @@ import { draftMode } from 'next/headers'
 
 import './globals.css'
 import { getServerSideURL } from '@/utilities/getURL'
+
+// Importamos Header y Footer
+import { Header } from '@/Header/Component'
+import { Footer } from '@/Footer/Component'
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { isEnabled } = await draftMode()
@@ -28,14 +30,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         <Providers>
-          <AdminBar
-            adminBarProps={{
-              preview: isEnabled,
-            }}
-          />
+          <AdminBar adminBarProps={{ preview: isEnabled }} />
 
+          {/*  Agregamos Header */}
           <Header />
+
+          {/*  Contenido dinámico de cada página */}
           {children}
+
+          {/*  Agregamos Footer */}
           <Footer />
         </Providers>
       </body>
@@ -43,6 +46,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   )
 }
 
+//  Metadata para SEO y redes sociales
 export const metadata: Metadata = {
   metadataBase: new URL(getServerSideURL()),
   openGraph: mergeOpenGraph(),
