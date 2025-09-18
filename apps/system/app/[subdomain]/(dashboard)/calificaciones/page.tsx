@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "@repo/ui/components/shadcn/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/shadcn/card";
 import {
   Select,
   SelectContent,
@@ -17,6 +23,9 @@ import { useUserWithConvex } from "../../../../stores/userStore";
 import { useUser } from "@clerk/nextjs";
 import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
 import { toast } from "sonner";
+import { Button } from "@repo/ui/components/shadcn/button";
+import { Filter, Plus, Users } from "@repo/ui/icons";
+//import { Badge } from "@repo/ui/components/shadcn/badge";
 
 export default function GradeManagementDashboard() {
   const [selectedSchoolCycle, setSelectedSchoolCycle] = useState<string>("");
@@ -86,6 +95,9 @@ export default function GradeManagementDashboard() {
 
   // Mutations
   const upsertGrade = useMutation(api.functions.grades.upsertGrade);
+  const upsertTermAverage = useMutation(
+    api.functions.termAverages.upsertTermAverage
+  );
 
   // State synchronization and initial value setting
   useEffect(() => {
@@ -106,6 +118,45 @@ export default function GradeManagementDashboard() {
     }
   }, [terms, selectedTerm]);
 
+  const handleSaveAverages = async () => {
+    if (
+      !students ||
+      !selectedTerm ||
+      !assignments ||
+      !rubrics ||
+      !grades ||
+      !currentUser
+    )
+      return;
+
+    // Recorre cada estudiante y guarda su promedio
+    for (const student of students) {
+      if (!student.student) continue;
+
+      const studentClassId = student.id;
+      const newAverage = calculateAverage(studentClassId);
+
+      if (newAverage !== null) {
+        try {
+          // Llama a la mutación para guardar el promedio del periodo
+          await upsertTermAverage({
+            studentClassId: studentClassId as Id<"studentClass">,
+            termId: selectedTerm as Id<"term">,
+            averageScore: newAverage,
+            registeredById: currentUser._id as Id<"user">,
+          });
+        } catch (error) {
+          console.error(
+            `Error guardando promedio para ${student.student.name}:`,
+            error
+          );
+          toast.error(`Error guardando promedio para ${student.student.name}`);
+        }
+      }
+    }
+    toast.success("¡Promedios de todos los alumnos guardados!");
+  };
+
   // Handle loading state
   const isDataLoading =
     assignments === undefined ||
@@ -115,7 +166,7 @@ export default function GradeManagementDashboard() {
     students === undefined ||
     students.length === 0 ||
     rubrics === undefined ||
-    rubrics.length  ===0 ||
+    rubrics.length === 0 ||
     grades === undefined;
 
   // Show a general loading screen for initial data fetching
@@ -157,8 +208,11 @@ export default function GradeManagementDashboard() {
         comments: comments,
         registeredById: currentUser._id as Id<"user">,
       });
+      toast.success("Calificación de asignación actualizada.");
     } catch (error) {
-      toast.error("Error al actualizar la calificación:" + (error as Error).message);
+      toast.error(
+        "Error al actualizar la calificación:" + (error as Error).message
+      );
     }
   };
 
@@ -221,158 +275,154 @@ export default function GradeManagementDashboard() {
   const hasClasses = classes && classes.length > 0;
   const hasTerms = terms && terms.length > 0;
 
-  // if (!hasSchoolCycles || !hasClasses || !hasTerms) {
-  //   return (
-  //     <div className="min-h-screen bg-background p-6">
-  //       <div className="mx-auto max-w-7xl space-y-6">
-  //         <h1 className="text-3xl font-bold text-foreground">
-  //           Calificaciones de Asignaciones
-  //         </h1>
-  //         <Card>
-  //           <CardContent className="pt-6">
-  //             <div className="text-center p-8">
-  //               <p className="text-muted-foreground">Aún no has registrado:</p>
-  //               <ul className="list-disc list-inside mt-4 inline-block text-left text-muted-foreground">
-  //                 {!hasSchoolCycles && <li>Ciclos escolares</li>}
-  //                 {hasClasses && <li>Clases</li>}
-  //                 {!hasTerms && <li>Periodos</li>}
-  //               </ul>
-  //             </div>
-  //           </CardContent>
-  //         </Card>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
   // Main UI when all data is available
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <h1 className="text-3xl font-bold text-foreground">
-          Calificaciones de Asignaciones
-        </h1>
-        <Card>
-          <CardContent className="py-0 justify-center">
-            <div className="gap-2 md:flex-row md:items-center md:justify-center">
-              <div className="flex flex-1 gap-4 flex-wrap justify-center py-2">
-                <div>
-                  <label> Ciclo Escolar</label>
-                  <Select
-                    value={selectedSchoolCycle}
-                    onValueChange={setSelectedSchoolCycle}
-                  >
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Ciclo Escolar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {hasSchoolCycles &&( schoolCycles.map((cycle) => (
-                        <SelectItem key={cycle._id} value={cycle._id as string}>
-                          {cycle.name}
-                        </SelectItem>
-                      )))}
-                    </SelectContent>
-                  </Select>
+    <div className="space-y-8 p-6">
+      {/* Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
+        <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
+        <div className="relative p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-primary/10 rounded-xl">
+                  <Users className="h-8 w-8 text-primary" />
                 </div>
-                {hasClasses && (<div>
-                  <label>Clase</label>
-                  <Select
-                    value={selectedClass}
-                    onValueChange={setSelectedClass}
-                  >
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Clase" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {classes.map((cls) => (
-                        <SelectItem key={cls._id} value={cls._id as string}>
-                          {cls.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>)}
-                {hasTerms && (<div>
-                  <label>Periodo</label>
-                  <Select
-                    value={selectedTerm}
-                    onValueChange={setSelectedTerm}
-                    disabled={!selectedSchoolCycle}
-                  >
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Periodo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {hasTerms && (terms.map((term) => (
-                        <SelectItem key={term._id} value={term._id as string}>
-                          {term.name}
-                        </SelectItem>
-                      )))}
-                    </SelectContent>
-                  </Select>
-                </div>)}
-              </div>
-              <div className="flex flex-1 gap-4 flex-wrap justify-center">
-                <div className="py-0">
-                  <div className="flex flex-col  md:flex-row md:items-center md:justify-center">
-                    <div className="flex flex-1 gap-4 flex-wrap justify-center">
-                      {/* <p className="flex justify-center  rounded-md px-2 py-1 bg-secondary/50">Rubricas</p> */}
-                      {rubrics && rubrics.length > 0 ? (rubrics!.map((rubric) => (
-                        <div
-                          key={rubric._id}
-                          className="flex justify-center  rounded-md px-2 py-1 bg-secondary/50"
-                        >
-                          <h3 className="font-semibold px-2">{rubric.name}:</h3>
-                          <h3 className="font-semibold">
-                            {rubric.weight * 100}%
-                          </h3>
-                        </div>
-                      ))): (
-                        <p className="text-muted-foreground">
-                          Aún no has registrado rúbricas.
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                <div>
+                  <h1 className="text-4xl font-bold tracking-tight">
+                    Gestión de Calificaciones Asignaciones
+                  </h1>
+                  <p className="text-lg text-muted-foreground">
+                    Administra las calificaciones de las asignaciones por grupo
+                    y clase.
+                    {currentSchool?.school && (
+                      <span className="block text-sm mt-1">
+                        {currentSchool.school.name}
+                      </span>
+                    )}
+                  </p>
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Grade Matrix */}
-        <Card>
-          <CardContent>
-            {(isDataLoading ||!hasSchoolCycles || !hasClasses || !hasTerms) ? (
-              <div className="flex justify-center">
-                <div className="space-y-4 text-center">
-                  
-                    <p className="text-muted-foreground">
-                      Aún no has registrado:
-                    </p>
-                    <ul className="list-disc list-inside mt-4 inline-block text-left text-muted-foreground">
-                      {!assignments && <li>Asignaciones en esta clase.</li>}
-                      {!hasTerms && <li>Periodos en este ciclo</li>}
-                      {!hasClasses && <li>Clases en este ciclo</li>}
-                      {!hasSchoolCycles && <li>Ciclos</li>}
-                      {(!rubrics || rubrics.length  ===0) && <li>Rubricas</li>}
-                      {(!students || students.length ===0) && (<li>Clases por alumno</li>)}
-                    </ul>
-                  
-                </div>
-              </div>
-            ) : (
-              <GradeMatrix
-                students={students!}
-                assignments={assignments!}
-                grades={grades!}
-                onGradeUpdate={handleUpdateGrade}
-                calculateAverage={calculateAverage}
-              />
-            )}
-          </CardContent>
-        </Card>
+            <Button
+              size="lg"
+              className="gap-2"
+              // onClick={handleOpenCreate}
+              // disabled={isLoading || !currentSchool || isCrudLoading}
+            >
+              <Plus className="w-4 h-4" />
+              Agregar Asignación
+            </Button>
+          </div>
+        </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                Filtros y Búsqueda
+              </CardTitle>
+              <CardDescription>
+                Filtra las calificaciones por ciclo escolar, clase y periodo.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4">
+            <Select
+              value={selectedSchoolCycle}
+              onValueChange={setSelectedSchoolCycle}
+            >
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Ciclo Escolar" />
+              </SelectTrigger>
+              <SelectContent>
+                {hasSchoolCycles &&
+                  schoolCycles.map((cycle) => (
+                    <SelectItem key={cycle._id} value={cycle._id as string}>
+                      {cycle.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            {hasClasses && (
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Clase" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((cls) => (
+                    <SelectItem key={cls._id} value={cls._id as string}>
+                      {cls.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {hasTerms && (
+              <Select
+                value={selectedTerm}
+                onValueChange={setSelectedTerm}
+                disabled={!selectedSchoolCycle}
+              >
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Periodo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {hasTerms &&
+                    terms.map((term) => (
+                      <SelectItem key={term._id} value={term._id as string}>
+                        {term.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Grade Matrix */}
+
+      <div className="flex justify-end">
+        <Button onClick={handleSaveAverages} disabled={isDataLoading}>
+          Guardar promedios
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent>
+          {isDataLoading || !hasSchoolCycles || !hasClasses || !hasTerms ? (
+            <div className="flex justify-center">
+              <div className="space-y-4 text-center">
+                <p className="text-muted-foreground">Aún no has registrado:</p>
+                <ul className="list-disc list-inside mt-4 inline-block text-left text-muted-foreground">
+                  {!assignments && <li>Asignaciones en esta clase.</li>}
+                  {!hasTerms && <li>Periodos en este ciclo</li>}
+                  {!hasClasses && <li>Clases en este ciclo</li>}
+                  {!hasSchoolCycles && <li>Ciclos</li>}
+                  {(!rubrics || rubrics.length === 0) && <li>Rubricas</li>}
+                  {(!students || students.length === 0) && (
+                    <li>Clases por alumno</li>
+                  )}
+                </ul>
+              </div>
+            </div>
+          ) : (
+            <GradeMatrix
+              students={students!}
+              assignments={assignments!}
+              grades={grades!}
+              onGradeUpdate={handleUpdateGrade}
+              calculateAverage={calculateAverage}
+            />
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

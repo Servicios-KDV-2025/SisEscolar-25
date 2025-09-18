@@ -1,4 +1,3 @@
-// En gradematrix.tsx
 "use client";
 
 import type React from "react";
@@ -167,15 +166,15 @@ export function GradeMatrix({
     <TooltipProvider>
       <div className="overflow-auto max-h-[calc(100vh-300px)]">
         <Table>
-          <TableHeader className="sticky top-0 bg-muted z-10">
+          <TableHeader className="py-4">
             <TableRow>
-              <TableHead className="text-left p-3 border border-border bg-muted font-semibold text-muted-foreground min-w-[200px] sticky left-0">
+              <TableHead className="text-center bg-white min-w-[200px]">
                 Estudiante
               </TableHead>
               {assignments!.map((assignment) => (
                 <TableHead
                   key={assignment._id}
-                  className="text-center p-3 border border-border bg-muted font-semibold text-muted-foreground min-w-[120px]"
+                  className="text-center min-w-[120px]"
                 >
                   <div className="space-y-1">
                     <div className="font-medium text-sm">{assignment.name}</div>
@@ -185,7 +184,7 @@ export function GradeMatrix({
                   </div>
                 </TableHead>
               ))}
-              <TableHead className="text-center p-3 border border-border bg-muted font-semibold text-muted-foreground min-w-[100px] sticky right-0">
+              <TableHead className="">
                 Promedio
               </TableHead>
             </TableRow>
@@ -201,7 +200,7 @@ export function GradeMatrix({
                   key={student.id}
                   className="hover:bg-muted/50 transition-colors"
                 >
-                  <TableCell className="p-3 border border-border bg-card sticky left-0">
+                  <TableCell className="">
                     <div className="font-medium text-card-foreground">
                       {student.student.name}
                     </div>
@@ -225,7 +224,7 @@ export function GradeMatrix({
                     return (
                       <TableCell
                         key={assignment._id}
-                        className="p-1 border border-border text-center"
+                        className="p-1 text-center"
                       >
                         <div className="flex items-center justify-center space-x-2">
                           {isEditing ? (
@@ -293,7 +292,7 @@ export function GradeMatrix({
                       </TableCell>
                     );
                   })}
-                  <TableCell className="p-3 border border-border text-center bg-card sticky right-0">
+                  <TableCell className="p-3 border border-border text-center bg-card">
                     {average !== null ? (
                       <div className="flex items-center justify-center space-x-2">
                         <p
