@@ -44,16 +44,16 @@ export function SubjectCard({ subject, openEdit, openView, openDelete, isUpdatin
     );
 
     return (
-        <Card className="w-full max-w-md hover:shadow-lg transition-shadow duration-200 flex flex-col h-full">
-            <CardHeader className="">
-                <CardTitle className="text-lg font-semibold leading-tight line-clamp-2 break-words flex-1 min-w-0">{subject.name}</CardTitle>
+        <Card className="w-full hover:shadow-lg transition-shadow duration-200 flex flex-col h-full">
+            <CardHeader>
+                <CardTitle className="text-lg font-semibold leading-tight line-clamp-2 break-words">{subject.name}</CardTitle>
             </CardHeader>
 
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 flex-1">
                 <div className="flex items-start gap-2">
                     <Badge
                         variant={subject.status === "active" ? "default" : "secondary"}
-                        className={subject.status === "active" ? "bg-green-100 text-green-800 hover:bg-green-100 flex-shrink-0 ml-2" : "flex-shrink-0 ml-2"}
+                        className={subject.status === "active" ? "bg-green-600 text-white flex-shrink-0 ml-2" : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}
                     >
                         {subject.status === "active" ? 'Activo' : 'Inactivo'}
                     </Badge>
@@ -92,21 +92,22 @@ export function SubjectCard({ subject, openEdit, openView, openDelete, isUpdatin
 
             </CardContent>
 
-            <CardFooter className="flex justify-end items-end gap-2 pt-2 border-t">
+            <CardFooter className="flex justify-end gap-2 pt-2 border-t mt-auto">
                 <Button
-                    variant="outline"
-                    size="icon"
+                    variant="ghost"
+                    size="sm"
                     onClick={(e) => {
                         e.stopPropagation()
                         openView(subject)
                     }}
                     disabled={isUpdatingSubject || isDeletingSubject}
+                    className="hover:scale-105 transition-transform cursor-pointer"
                 >
                     <Eye className="h-4 w-4" />
                 </Button>
                 <Button
-                    variant="outline"
-                    size="icon"
+                    variant="ghost"
+                    size="sm"
                     onClick={(e) => {
                         e.stopPropagation()
                         openEdit({
@@ -119,17 +120,19 @@ export function SubjectCard({ subject, openEdit, openView, openDelete, isUpdatin
                         });
                     }}
                     disabled={isUpdatingSubject || isDeletingSubject}
+                    className="hover:scale-105 transition-transform cursor-pointer"
                 >
                     <Edit className="h-4 w-4" />
                 </Button>
                 <Button
-                    variant="destructive"
-                    size="icon"
+                    variant="ghost"
+                    size="sm"
                     onClick={(e) => {
                         e.stopPropagation()
                         openDelete(subject)
                     }}
                     disabled={isUpdatingSubject || isDeletingSubject}
+                    className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive bg-white"
                 >
                     <Trash2 className="h-4 w-4" />
                 </Button>

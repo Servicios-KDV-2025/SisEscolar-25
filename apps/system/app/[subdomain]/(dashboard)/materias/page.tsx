@@ -9,17 +9,23 @@ import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialo
 import { subjectSchema } from "types/form/subjectSchema";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { Button } from "@repo/ui/components/shadcn/button";
-import { Plus } from "@repo/ui/icons";
+import { AlertCircle, BookOpen, CheckCircle, Filter, Plus, XCircle } from "@repo/ui/icons";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Textarea } from "@repo/ui/components/shadcn/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select";
 import { useState } from "react";
+import { Alert, AlertDescription } from '@repo/ui/components/shadcn/alert';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@repo/ui/components/shadcn/card';
+import { Search } from 'lucide-react';
+import { toast } from 'sonner';
+import { Badge } from '@repo/ui/components/shadcn/badge';
 
 export default function SubjectPage() {
     const { user: clerkUser, isLoaded } = useUser();
     const { currentUser, isLoading: userLoading } = useUserWithConvex(clerkUser?.id);
-    const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
     const {
         currentSchool,
@@ -60,11 +66,10 @@ export default function SubjectPage() {
     });
 
     const filteredSubjects = subjects.filter((subject) => {
-        if (statusFilter === "all") return true
-        return subject.status === statusFilter
+        const matchesSearch = subject.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus = !statusFilter || subject.status === statusFilter;
+        return matchesStatus && matchesSearch;
     });
-
-    const hasSubjects = filteredSubjects.length > 0
 
     const handleSubmit = async (values: Record<string, unknown>) => {
         if (!currentSchool?.school._id || !currentUser?._id) {
@@ -93,14 +98,14 @@ export default function SubjectPage() {
 
     const handleDelete = async (id: string) => {
         await deleteSubject(id);
-        // try {
-        // toast.success("Eliminado correctamente");
-        // } catch (error) {
-        // toast.error("Error al eliminar materia", {
-        //     description: (error as Error).message,
-        // });
-        //     throw error;
-        // }
+        try {
+            toast.success("Eliminado correctamente");
+        } catch (error) {
+            toast.error("Error al eliminar materia", {
+                description: (error as Error).message,
+            });
+            throw error;
+        }
     };
 
     if (isLoading || (currentUser && !currentSchool && !schoolError)) return (
@@ -115,66 +120,66 @@ export default function SubjectPage() {
     );
 
     return (
-        <div className="w-[90%] mx-auto">
-            <h1 className="text-3xl font-bold mb-6">Materias</h1>
-            <p className="text-muted-foreground">
-                Esta página muestra el listado de materias académicas registradas en{" "}
-                {currentSchool?.school?.name}. Cada tarjeta representa una materia con su nombre, descripción, número de
-                créditos y estado actual (activa o inactiva). Desde aquí puedes
-                visualizar, editar o eliminar materias existentes, así como agregar
-                nuevas según sea necesario para el plan de estudios.
-            </p>
-            <div className="flex justify-end items-center mb-6 w-[98%]">
-                <Button
-                    onClick={openCreate}
-                    disabled={isCreatingSubject}
-                    className="flex items-center gap-2"
-                >
-                    <Plus className="h-4 w-4" />
-                    Nueva Materia
-                </Button>
-            </div>
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold">Lista de Materias</h2>
-                <div className="flex gap-2">
-                    <Button
-                        variant={statusFilter === "all" ? "default" : "outline"}
-                        onClick={() => setStatusFilter("all")}
-                        className="text-sm font-bold"
-                    >
-                        Todas las materias ({subjects.length})
-                    </Button>
-                    <Button
-                        variant={statusFilter === "active" ? "default" : "outline"}
-                        onClick={() => setStatusFilter("active")}
-                        className={`text-sm font-bold ${statusFilter === "active" ? "bg-green-100 text-green-800 hover:bg-green-300" : ""}`}
-                    >
-                        Activas ({subjects.filter((s) => s.status === "active").length})
-                    </Button>
-                    <Button
-                        variant={statusFilter === "inactive" ? "default" : "outline"}
-                        onClick={() => setStatusFilter("inactive")}
-                        className={`text-sm font-bold ${statusFilter === "inactive" ? "bg-red-100 text-red-800 hover:bg-red-300" : ""}`}
-                    >
-                        Inactivas ({subjects.filter((s) => s.status === "inactive").length})
-                    </Button>
+        <div className="space-y-8 p-6">
+            {/* Header */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
+                <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
+                <div className="relative p-8">
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 bg-primary/10 rounded-xl">
+                                    <BookOpen className="h-8 w-8 text-primary" />
+                                </div>
+                                <div>
+                                    <h1 className="text-4xl font-bold tracking-tight">Materias</h1>
+                                    <p className="text-lg text-muted-foreground">
+                                        Administra las materias académicas registradas en{" "}
+                                        {currentSchool?.school?.name}.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <Button
+                            size="lg"
+                            className="gap-2"
+                            onClick={openCreate}
+                            disabled={isCreatingSubject}
+                        >
+                            <Plus className="h-4 w-4" />
+                            Nueva Materia
+                        </Button>
+                    </div>
                 </div>
             </div>
 
-            {/* Mostrar errores del store de materias */}
+            {/* Error Alerts */}
             {(createSubjectError || updateSubjectError || deleteSubjectError) && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                    <div className="text-sm text-red-600">
-                        {createSubjectError && (
-                            <div>Error al crear materia: {createSubjectError}</div>
-                        )}
-                        {updateSubjectError && (
-                            <div>Error al actualizar materia: {updateSubjectError}</div>
-                        )}
-                        {deleteSubjectError && (
-                            <div>Error al eliminar materia: {deleteSubjectError}</div>
-                        )}
-                    </div>
+                <div className="space-y-4">
+                    {createSubjectError && (
+                        <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>
+                                Error al crear materia: {createSubjectError}
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                    {updateSubjectError && (
+                        <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>
+                                Error al actualizar materia: {updateSubjectError}
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                    {deleteSubjectError && (
+                        <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>
+                                Error al eliminar materia: {deleteSubjectError}
+                            </AlertDescription>
+                        </Alert>
+                    )}
                     <button
                         onClick={clearSubjectErrors}
                         className="text-xs text-blue-500 underline mt-1"
@@ -183,10 +188,146 @@ export default function SubjectPage() {
                     </button>
                 </div>
             )}
-            {hasSubjects
-                ?
-                (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-9">
+
+            {/* Estadísticas */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card
+                    className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
+                >
+                    <CardHeader
+                        className="flex flex-row items-center justify-between space-y-0 pb-3"
+                    >
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                            Total
+                        </CardTitle>
+                        <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                            <BookOpen className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        <div className="text-3xl font-bold">{subjects.length}</div>
+                    </CardContent>
+                </Card>
+                <Card
+                    className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
+                >
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                            Activas
+                        </CardTitle>
+                        <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                            <CheckCircle className="h-4 w-4" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        <div className="text-3xl font-bold">
+                            {subjects.filter((s) => s.status === "active").length}
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card
+                    className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
+                >
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                            Inactivas
+                        </CardTitle>
+                        <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                            <XCircle className="h-4 w-4" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        <div className="text-3xl font-bold">
+                            {subjects.filter((s) => s.status === "inactive").length}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Filtros y búsqueda */}
+            <Card>
+                <CardHeader>
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                            <CardTitle className="flex items-center gap-2">
+                                <Filter className='h-5 w-5' />
+                                Filtros y Búsqueda
+                            </CardTitle>
+                            <CardDescription>
+                                Encuentra las materias por nombre, activas o inactivas
+                            </CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex flex-col md:flex-row gap-4">
+                        <div className="flex-1">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Buscar por nombre..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="pl-10"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <Select
+                                onValueChange={(v) => setStatusFilter(v === "all" ? null : v)}
+                                value={statusFilter || ""}
+                            >
+                                <SelectTrigger className="w-[160px]">
+                                    <SelectValue placeholder="Filtrar estado" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todas</SelectItem>
+                                    <SelectItem value="active">Activas</SelectItem>
+                                    <SelectItem value="inactive">Inactivas</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Tabla de Materias */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                        <span>Lista de Materias</span>
+                        <Badge variant="outline">{filteredSubjects.length} materias</Badge>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {isLoading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <div className="text-center">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                                <p className="text-muted-foreground">Cargando materias...</p>
+                            </div>
+                        </div>
+                    ) : filteredSubjects.length === 0 ? (
+                        <div className="text-center py-12">
+                            <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                            <h3 className="text-lg font-medium mb-2">
+                                No se encontraron materias
+                            </h3>
+                            <p className="text-muted-foreground mb-4">
+                                Intenta ajustar los filtros o no hay materias registradas.
+                            </p>
+                            <Button
+                                size="lg"
+                                className="gap-2"
+                                onClick={openCreate}
+                                disabled={isCreatingSubject}
+                            >
+                                <Plus className="h-4 w-4" />
+                                Nueva Materia
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-9">
                         {filteredSubjects.map((subject) => (
                             <SubjectCard
                                 key={subject._id}
@@ -199,9 +340,10 @@ export default function SubjectPage() {
                             />
                         ))}
                     </div>
-                )
-                : <p></p>
-            }
+                    )}
+                </CardContent>
+            </Card>
+            
             <CrudDialog
                 operation={operation}
                 title={
