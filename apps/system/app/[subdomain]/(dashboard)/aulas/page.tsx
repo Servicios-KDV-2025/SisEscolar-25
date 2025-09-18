@@ -3,8 +3,8 @@
 //import type React from "react"
 
 import { useState } from "react"
-import { useQuery, useMutation } from "convex/react"  //
-import { api } from "@repo/convex/convex/_generated/api"; //
+import { useQuery, useMutation } from "convex/react"  
+import { api } from "@repo/convex/convex/_generated/api"; 
 import { Button } from "@repo/ui/components/shadcn/button"
 import { Input } from "@repo/ui/components/shadcn/input"
 import { Label } from "@repo/ui/components/shadcn/label"
@@ -13,9 +13,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@repo/ui/components/shadcn/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select"
 import { Badge } from "@repo/ui/components/shadcn/badge"
-import { Search, Plus, Edit, Trash2, MapPin, Users, Filter } from "lucide-react"
+import { Search, Plus, Edit, Trash2, MapPin, Users, Filter, GraduationCap } from "lucide-react"
 import { toast } from "sonner";
 import { Id } from "@repo/convex/convex/_generated/dataModel"
+
 
 import { useUser } from "@clerk/nextjs"
 import { useUserWithConvex } from "stores/userStore"
@@ -138,7 +139,7 @@ export default function ClassroomManagement() {
       ...formData,
       capacity: Number(formData.capacity)
     }
-    // validación con zod
+    // validación con 0
     const result = classroomFormSchema.safeParse(parsedFormData)
 
     if (!result.success) {
@@ -229,155 +230,118 @@ export default function ClassroomManagement() {
   return (
     <div className="space-y-6">
       {/* Header Actions */}
-      <div className="flex flex-col gap-4">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Sistema de creación de Aulas</h1>
-          <p className="text-gray-600 mt-2">Gestionar la creación de aulas con atributos de capacidad, ubicación y estado. </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Búsqueda por nombre, ubicación o capacidad..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => resetForm()}>
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar Aula
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>{editingClassroom ? "Editar Aula" : "Crear Nueva Aula"}</DialogTitle>
-                <DialogDescription>
-                  {editingClassroom
-                    ? "Actualiza la información del aula a continuación."
-                    : "Ingresa los detalles para la nueva aula."}
-
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit}>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="name">Nombre *</Label>
-                    <Input
-                      id="name"
-                      placeholder="Ingresa el nombre del aula"
-                      value={formData.name}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                      required
-                      maxLength={50}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="capacity">Capacidad *</Label>
-                    <Input
-                      id="capacity"
-                      type="number"
-                      min="1"
-                      max="35"
-                      placeholder="Ingresa la capacidad"
-                      defaultValue={formData.capacity}
-                      onChange={(e) => {
-                        const value = Number(e.target.value);
-                        setFormData((prev) => ({
-                          ...prev,
-                          capacity: isNaN(value) ? 0 : value,
-                        }));
-                      }}
-                      required
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="location">Ubicación *</Label>
-                    <Input
-                      id="location"
-                      placeholder="Ingresa la ubicación"
-                      value={formData.location}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
-                      required
-                      maxLength={50}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="status">Estados</Label>
-                    <Select
-                      value={formData.status}
-                      onValueChange={(value: "active" | "inactive") =>
-                        setFormData((prev) => ({ ...prev, status: value }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona estatus" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Activo</SelectItem>
-                        <SelectItem value="inactive">Inactivo</SelectItem>
-                      </SelectContent>
-                    </Select>
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-500/10 via-gray-500/5 to-background border">
+        <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
+        <div className="relative p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-gray-500/10 rounded-xl">
+                  <GraduationCap className="h-8 w-8 text-black-600" />
+                </div>
+                <div>
+                  <div className="relative flex-1  mb-4">
+                    <h1 className="text-4xl font-bold text-gray-900">Sistema de creación de Aulas</h1>
+                    <p className="text-lg text-gray-600 mt-2">Gestionar la creación de aulas con atributos de capacidad, ubicación y estado. </p>
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={resetForm}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit">{editingClassroom ? "Editar" : "Crear"} Aula</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+              </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-muted-foreground">Filtros:</span>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex flex-col gap-1">
-              {/*<Label htmlFor="location-filter" className="text-xs text-muted-foreground">
-                Ubicación
-              </Label>*/}
-              <Select value={locationFilter} onValueChange={setLocationFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Todas las ubicaciones" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Total Ubicaciones</SelectItem>
-                  {getUniqueLocations().map((location) => (
-                    <SelectItem key={location} value={location}>
-                      {location}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
-
-            <div className="flex flex-col gap-1">
-              {/*<Label htmlFor="status-filter" className="text-xs text-muted-foreground">
-                Status
-              </Label>*/}
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Estados</SelectItem>
-                  <SelectItem value="active">Activo</SelectItem>
-                  <SelectItem value="inactive">Inactivo</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Button onClick={isDialogOpen ? () => setIsDialogOpen(false) : () => setIsDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Agregar Aula el regreso del aula
+            </Button>
           </div>
         </div>
       </div>
+
+      {/* dialog para crear alulas */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogTrigger asChild>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{editingClassroom ? "Editar Aula" : "Crear Nueva Aula"}</DialogTitle>
+            <DialogDescription>
+              {editingClassroom
+                ? "Actualiza la información del aula a continuación."
+                : "Ingresa los detalles para la nueva aula."}
+
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Nombre *</Label>
+                <Input
+                  id="name"
+                  placeholder="Ingresa el nombre del aula"
+                  value={formData.name}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                  required
+                  maxLength={50}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="capacity">Capacidad *</Label>
+                <Input
+                  id="capacity"
+                  type="number"
+                  min="1"
+                  max="35"
+                  placeholder="Ingresa la capacidad"
+                  defaultValue={formData.capacity}
+                  onChange={(e) => {
+                    const value = Number(e.target.value);
+                    setFormData((prev) => ({
+                      ...prev,
+                      capacity: isNaN(value) ? 0 : value,
+                    }));
+                  }}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="location">Ubicación *</Label>
+                <Input
+                  id="location"
+                  placeholder="Ingresa la ubicación"
+                  value={formData.location}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
+                  required
+                  maxLength={50}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="status">Estados</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value: "active" | "inactive") =>
+                    setFormData((prev) => ({ ...prev, status: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona estatus" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Activo</SelectItem>
+                    <SelectItem value="inactive">Inactivo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={resetForm}>
+                Cancelar
+              </Button>
+              <Button type="submit">{editingClassroom ? "Editar" : "Crear"} Aula</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -400,6 +364,61 @@ export default function ClassroomManagement() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Filtros y Búsqueda */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                Filtros y Búsqueda
+              </CardTitle>
+              <CardDescription>
+                Encuentra aulas por nombre, ubicación o estado
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nombre, ubicación o capacidad..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <Select value={locationFilter} onValueChange={setLocationFilter}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Ubicación" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Total Ubicaciones</SelectItem>
+                {getUniqueLocations().map((location) => (
+                  <SelectItem key={location} value={location}>
+                    {location}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="active">Activo</SelectItem>
+                <SelectItem value="inactive">Inactivo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Classrooms Table */}
       <Card>
