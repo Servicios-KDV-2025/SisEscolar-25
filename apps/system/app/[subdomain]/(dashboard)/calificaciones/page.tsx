@@ -277,7 +277,7 @@ export default function GradeManagementDashboard() {
 
   // Main UI when all data is available
   return (
-    <div className="space-y-8 p-6 min-w-full 2xl:max-w-7xl max-w-5xl mx-auto">
+    <div className="space-y-8 p-6 min-w-full max-w-5xl mx-auto">
       {/* Header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />

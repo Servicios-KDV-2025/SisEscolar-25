@@ -239,7 +239,7 @@ export function GradeMatrix({
                               onKeyDown={(e) =>
                                 handleKeyDown(e, student.id, assignment._id)
                               }
-                              className="w-full text-center border-accent"
+                              className="w-full text-center "
                               min="0"
                               max={assignment.maxScore}
                               autoFocus
@@ -293,7 +293,7 @@ export function GradeMatrix({
                       </TableCell>
                     );
                   })}
-                  <TableCell className="sticky right-0 z-10 p-3 border border-border text-center bg-card">
+                  <TableCell className="sticky right-0 z-10 p-3 text-center bg-card">
                     {average !== null ? (
                       <div className="flex items-center justify-center space-x-2">
                         <p
