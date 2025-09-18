@@ -128,23 +128,6 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"block_name" varchar
   );
   
-  CREATE TABLE "pages_blocks_acordeon_items" (
-  	"_order" integer NOT NULL,
-  	"_parent_id" varchar NOT NULL,
-  	"id" varchar PRIMARY KEY NOT NULL,
-  	"titulo" varchar,
-  	"contenido" varchar
-  );
-  
-  CREATE TABLE "pages_blocks_acordeon" (
-  	"_order" integer NOT NULL,
-  	"_parent_id" integer NOT NULL,
-  	"_path" text NOT NULL,
-  	"id" varchar PRIMARY KEY NOT NULL,
-  	"titulo" varchar,
-  	"block_name" varchar
-  );
-  
   CREATE TABLE "pages_blocks_imagen_con_texto" (
   	"_order" integer NOT NULL,
   	"_parent_id" integer NOT NULL,
@@ -388,25 +371,6 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	"form_id" integer,
   	"enable_intro" boolean,
   	"intro_content" jsonb,
-  	"_uuid" varchar,
-  	"block_name" varchar
-  );
-  
-  CREATE TABLE "_pages_v_blocks_acordeon_items" (
-  	"_order" integer NOT NULL,
-  	"_parent_id" integer NOT NULL,
-  	"id" serial PRIMARY KEY NOT NULL,
-  	"titulo" varchar,
-  	"contenido" varchar,
-  	"_uuid" varchar
-  );
-  
-  CREATE TABLE "_pages_v_blocks_acordeon" (
-  	"_order" integer NOT NULL,
-  	"_parent_id" integer NOT NULL,
-  	"_path" text NOT NULL,
-  	"id" serial PRIMARY KEY NOT NULL,
-  	"titulo" varchar,
   	"_uuid" varchar,
   	"block_name" varchar
   );
@@ -1115,8 +1079,6 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "pages_blocks_media_block" ADD CONSTRAINT "pages_blocks_media_block_parent_id_fk" FOREIGN KEY ("_parent_id") REFERENCES "public"."pages"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "pages_blocks_form_block" ADD CONSTRAINT "pages_blocks_form_block_form_id_forms_id_fk" FOREIGN KEY ("form_id") REFERENCES "public"."forms"("id") ON DELETE set null ON UPDATE no action;
   ALTER TABLE "pages_blocks_form_block" ADD CONSTRAINT "pages_blocks_form_block_parent_id_fk" FOREIGN KEY ("_parent_id") REFERENCES "public"."pages"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "pages_blocks_acordeon_items" ADD CONSTRAINT "pages_blocks_acordeon_items_parent_id_fk" FOREIGN KEY ("_parent_id") REFERENCES "public"."pages_blocks_acordeon"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "pages_blocks_acordeon" ADD CONSTRAINT "pages_blocks_acordeon_parent_id_fk" FOREIGN KEY ("_parent_id") REFERENCES "public"."pages"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "pages_blocks_imagen_con_texto" ADD CONSTRAINT "pages_blocks_imagen_con_texto_imagen_id_media_id_fk" FOREIGN KEY ("imagen_id") REFERENCES "public"."media"("id") ON DELETE set null ON UPDATE no action;
   ALTER TABLE "pages_blocks_imagen_con_texto" ADD CONSTRAINT "pages_blocks_imagen_con_texto_parent_id_fk" FOREIGN KEY ("_parent_id") REFERENCES "public"."pages"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "pages_blocks_content_with_media" ADD CONSTRAINT "pages_blocks_content_with_media_image_id_media_id_fk" FOREIGN KEY ("image_id") REFERENCES "public"."media"("id") ON DELETE set null ON UPDATE no action;
@@ -1153,8 +1115,6 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "_pages_v_blocks_media_block" ADD CONSTRAINT "_pages_v_blocks_media_block_parent_id_fk" FOREIGN KEY ("_parent_id") REFERENCES "public"."_pages_v"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "_pages_v_blocks_form_block" ADD CONSTRAINT "_pages_v_blocks_form_block_form_id_forms_id_fk" FOREIGN KEY ("form_id") REFERENCES "public"."forms"("id") ON DELETE set null ON UPDATE no action;
   ALTER TABLE "_pages_v_blocks_form_block" ADD CONSTRAINT "_pages_v_blocks_form_block_parent_id_fk" FOREIGN KEY ("_parent_id") REFERENCES "public"."_pages_v"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "_pages_v_blocks_acordeon_items" ADD CONSTRAINT "_pages_v_blocks_acordeon_items_parent_id_fk" FOREIGN KEY ("_parent_id") REFERENCES "public"."_pages_v_blocks_acordeon"("id") ON DELETE cascade ON UPDATE no action;
-  ALTER TABLE "_pages_v_blocks_acordeon" ADD CONSTRAINT "_pages_v_blocks_acordeon_parent_id_fk" FOREIGN KEY ("_parent_id") REFERENCES "public"."_pages_v"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "_pages_v_blocks_imagen_con_texto" ADD CONSTRAINT "_pages_v_blocks_imagen_con_texto_imagen_id_media_id_fk" FOREIGN KEY ("imagen_id") REFERENCES "public"."media"("id") ON DELETE set null ON UPDATE no action;
   ALTER TABLE "_pages_v_blocks_imagen_con_texto" ADD CONSTRAINT "_pages_v_blocks_imagen_con_texto_parent_id_fk" FOREIGN KEY ("_parent_id") REFERENCES "public"."_pages_v"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "_pages_v_blocks_content_with_media" ADD CONSTRAINT "_pages_v_blocks_content_with_media_image_id_media_id_fk" FOREIGN KEY ("image_id") REFERENCES "public"."media"("id") ON DELETE set null ON UPDATE no action;
@@ -1268,11 +1228,6 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE INDEX "pages_blocks_form_block_parent_id_idx" ON "pages_blocks_form_block" USING btree ("_parent_id");
   CREATE INDEX "pages_blocks_form_block_path_idx" ON "pages_blocks_form_block" USING btree ("_path");
   CREATE INDEX "pages_blocks_form_block_form_idx" ON "pages_blocks_form_block" USING btree ("form_id");
-  CREATE INDEX "pages_blocks_acordeon_items_order_idx" ON "pages_blocks_acordeon_items" USING btree ("_order");
-  CREATE INDEX "pages_blocks_acordeon_items_parent_id_idx" ON "pages_blocks_acordeon_items" USING btree ("_parent_id");
-  CREATE INDEX "pages_blocks_acordeon_order_idx" ON "pages_blocks_acordeon" USING btree ("_order");
-  CREATE INDEX "pages_blocks_acordeon_parent_id_idx" ON "pages_blocks_acordeon" USING btree ("_parent_id");
-  CREATE INDEX "pages_blocks_acordeon_path_idx" ON "pages_blocks_acordeon" USING btree ("_path");
   CREATE INDEX "pages_blocks_imagen_con_texto_order_idx" ON "pages_blocks_imagen_con_texto" USING btree ("_order");
   CREATE INDEX "pages_blocks_imagen_con_texto_parent_id_idx" ON "pages_blocks_imagen_con_texto" USING btree ("_parent_id");
   CREATE INDEX "pages_blocks_imagen_con_texto_path_idx" ON "pages_blocks_imagen_con_texto" USING btree ("_path");
@@ -1352,11 +1307,6 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE INDEX "_pages_v_blocks_form_block_parent_id_idx" ON "_pages_v_blocks_form_block" USING btree ("_parent_id");
   CREATE INDEX "_pages_v_blocks_form_block_path_idx" ON "_pages_v_blocks_form_block" USING btree ("_path");
   CREATE INDEX "_pages_v_blocks_form_block_form_idx" ON "_pages_v_blocks_form_block" USING btree ("form_id");
-  CREATE INDEX "_pages_v_blocks_acordeon_items_order_idx" ON "_pages_v_blocks_acordeon_items" USING btree ("_order");
-  CREATE INDEX "_pages_v_blocks_acordeon_items_parent_id_idx" ON "_pages_v_blocks_acordeon_items" USING btree ("_parent_id");
-  CREATE INDEX "_pages_v_blocks_acordeon_order_idx" ON "_pages_v_blocks_acordeon" USING btree ("_order");
-  CREATE INDEX "_pages_v_blocks_acordeon_parent_id_idx" ON "_pages_v_blocks_acordeon" USING btree ("_parent_id");
-  CREATE INDEX "_pages_v_blocks_acordeon_path_idx" ON "_pages_v_blocks_acordeon" USING btree ("_path");
   CREATE INDEX "_pages_v_blocks_imagen_con_texto_order_idx" ON "_pages_v_blocks_imagen_con_texto" USING btree ("_order");
   CREATE INDEX "_pages_v_blocks_imagen_con_texto_parent_id_idx" ON "_pages_v_blocks_imagen_con_texto" USING btree ("_parent_id");
   CREATE INDEX "_pages_v_blocks_imagen_con_texto_path_idx" ON "_pages_v_blocks_imagen_con_texto" USING btree ("_path");
@@ -1596,8 +1546,6 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   DROP TABLE "pages_blocks_cta" CASCADE;
   DROP TABLE "pages_blocks_media_block" CASCADE;
   DROP TABLE "pages_blocks_form_block" CASCADE;
-  DROP TABLE "pages_blocks_acordeon_items" CASCADE;
-  DROP TABLE "pages_blocks_acordeon" CASCADE;
   DROP TABLE "pages_blocks_imagen_con_texto" CASCADE;
   DROP TABLE "pages_blocks_content_with_media" CASCADE;
   DROP TABLE "pages_blocks_bloque_informativo" CASCADE;
@@ -1621,8 +1569,6 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   DROP TABLE "_pages_v_blocks_cta" CASCADE;
   DROP TABLE "_pages_v_blocks_media_block" CASCADE;
   DROP TABLE "_pages_v_blocks_form_block" CASCADE;
-  DROP TABLE "_pages_v_blocks_acordeon_items" CASCADE;
-  DROP TABLE "_pages_v_blocks_acordeon" CASCADE;
   DROP TABLE "_pages_v_blocks_imagen_con_texto" CASCADE;
   DROP TABLE "_pages_v_blocks_content_with_media" CASCADE;
   DROP TABLE "_pages_v_blocks_bloque_informativo" CASCADE;

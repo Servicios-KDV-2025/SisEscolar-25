@@ -82,7 +82,6 @@ export const Pages: CollectionConfig<'pages'> = {
                 'cta',
                 'mediaBlock',
                 'formBlock',
-                'acordeon',
                 'imagenConTexto',
                 'contentWithMedia',
                 'bloqueInformativo',
