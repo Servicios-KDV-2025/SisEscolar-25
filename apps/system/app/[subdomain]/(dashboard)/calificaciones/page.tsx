@@ -277,7 +277,7 @@ export default function GradeManagementDashboard() {
 
   // Main UI when all data is available
   return (
-    <div className="space-y-8 p-6">
+    <div className="space-y-8 p-6 min-w-full max-w-[1582px] mx-auto">
       {/* Header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
@@ -395,7 +395,7 @@ export default function GradeManagementDashboard() {
       </div>
 
       <Card>
-        <CardContent>
+        <CardContent className="w-full" >
           {isDataLoading || !hasSchoolCycles || !hasClasses || !hasTerms ? (
             <div className="flex justify-center">
               <div className="space-y-4 text-center">
@@ -413,13 +413,15 @@ export default function GradeManagementDashboard() {
               </div>
             </div>
           ) : (
-            <GradeMatrix
-              students={students!}
-              assignments={assignments!}
-              grades={grades!}
-              onGradeUpdate={handleUpdateGrade}
-              calculateAverage={calculateAverage}
-            />
+            <div className="w-full">
+              <GradeMatrix
+                students={students!}
+                assignments={assignments!}
+                grades={grades!}
+                onGradeUpdate={handleUpdateGrade}
+                calculateAverage={calculateAverage}
+              />
+            </div>
           )}
         </CardContent>
       </Card>

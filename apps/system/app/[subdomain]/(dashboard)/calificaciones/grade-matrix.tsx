@@ -165,10 +165,11 @@ export function GradeMatrix({
   return (
     <TooltipProvider>
       <div className="overflow-auto max-h-[calc(100vh-300px)]">
-        <Table>
-          <TableHeader className="py-4">
-            <TableRow>
-              <TableHead className="text-center bg-white min-w-[200px]">
+        <Table className="relative">
+          <TableHeader className="">
+ 
+            <TableRow className="">
+              <TableHead className="sticky left-0 z-20 bg-background text-center min-w-[200px]">
                 Estudiante
               </TableHead>
               {assignments!.map((assignment) => (
@@ -184,7 +185,7 @@ export function GradeMatrix({
                   </div>
                 </TableHead>
               ))}
-              <TableHead className="">
+              <TableHead className="sticky right-0 z-20 bg-background text-center">
                 Promedio
               </TableHead>
             </TableRow>
@@ -200,7 +201,7 @@ export function GradeMatrix({
                   key={student.id}
                   className="hover:bg-muted/50 transition-colors"
                 >
-                  <TableCell className="">
+                  <TableCell className="sticky left-0 z-10 bg-card">
                     <div className="font-medium text-card-foreground">
                       {student.student.name}
                     </div>
@@ -292,7 +293,7 @@ export function GradeMatrix({
                       </TableCell>
                     );
                   })}
-                  <TableCell className="p-3 border border-border text-center bg-card">
+                  <TableCell className="sticky right-0 z-10 p-3 border border-border text-center bg-card">
                     {average !== null ? (
                       <div className="flex items-center justify-center space-x-2">
                         <p
