@@ -71,7 +71,6 @@ export interface Config {
     cta: CallToActionBlock;
     mediaBlock: MediaBlock;
     formBlock: FormBlock;
-    imagenConTexto: ImagenConTextoBlock;
     bloqueInformativo: BloqueInformativo;
     contentWithMedia: ContentWithMedia;
     priceBlock: PriceBlock;
@@ -485,7 +484,6 @@ export interface Page {
     | CallToActionBlock
     | MediaBlock
     | FormBlock
-    | ImagenConTextoBlock
     | ContentWithMedia
     | BloqueInformativo
     | SectionBlock
@@ -769,33 +767,6 @@ export interface Form {
     | null;
   updatedAt: string;
   createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "ImagenConTextoBlock".
- */
-export interface ImagenConTextoBlock {
-  texto: {
-    root: {
-      type: string;
-      children: {
-        type: string;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  imagen: number | Media;
-  posicion?: ('izquierda' | 'derecha') | null;
-  anchoImagen?: ('25' | '33' | '50') | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'imagenConTexto';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

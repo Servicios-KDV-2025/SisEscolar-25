@@ -92,7 +92,7 @@ export default buildConfig({
     CallToAction,
     MediaBlock,
     FormBlock,
-    ImagenConTextoBlock,
+    //ImagenConTextoBlock,
     BloqueInformativo,
     ContentWithMedia,
     PriceBlock,

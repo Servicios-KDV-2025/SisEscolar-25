@@ -82,7 +82,7 @@ export const Pages: CollectionConfig<'pages'> = {
                 'cta',
                 'mediaBlock',
                 'formBlock',
-                'imagenConTexto',
+               // 'imagenConTexto',
                 'contentWithMedia',
                 'bloqueInformativo',
                 'section',
