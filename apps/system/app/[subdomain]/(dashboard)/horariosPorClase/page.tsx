@@ -109,7 +109,7 @@ export default function HorariosPorClasePage() {
 
   useEffect(() => {
     if (classes) {
-      const filteredClasses = classes.filter((c: string): c is NonNullable<typeof c> => c !== null) as unknown as ClassItem[];
+      const filteredClasses = classes.filter((c): c is NonNullable<typeof c> => c !== null) as unknown as ClassItem[];
       setClasses(filteredClasses);
       // Limpiar duplicados después de establecer las clases
       setTimeout(() => removeDuplicates(), 0);
@@ -505,7 +505,7 @@ export default function HorariosPorClasePage() {
                 </div>
               </CardContent>
 
-              <CardFooter className="flex justify-between items-end gap-2 pt-2 border-t justify-end">               
+              <CardFooter className="flex items-end gap-2 pt-2 border-t justify-end">               
                 <div className="flex gap-2">
                 <Button
                   variant="outline"
