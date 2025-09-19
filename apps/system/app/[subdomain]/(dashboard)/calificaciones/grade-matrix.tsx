@@ -98,14 +98,12 @@ export function GradeMatrix({
     setSelectedData({ item: null, grade: null });
   };
 
-  // ✅ Adaptamos esta función para que reciba el tipo más genérico
   const handleModalSave = (
     studentClassId: Id<"studentClass">,
-    itemId: Id<"assignment"> | Id<"term">, // ✅ Recibe el tipo genérico
+    itemId: Id<"assignment"> | Id<"term">,
     score: number | null,
     comment: string
   ) => {
-    // ✅ Usamos una aserción para pasar el tipo correcto a onGradeUpdate
     onGradeUpdate(studentClassId, itemId as Id<"assignment">, score, comment);
     handleModalClose();
   };
@@ -166,9 +164,9 @@ export function GradeMatrix({
     <TooltipProvider>
       <div className="overflow-auto max-h-[calc(100vh-300px)]">
         <Table className="relative">
-          <TableHeader className="">
- 
-            <TableRow className="">
+          <TableHeader>
+
+            <TableRow >
               <TableHead className="sticky left-0 z-20 bg-background text-center min-w-[200px]">
                 Estudiante
               </TableHead>
@@ -325,7 +323,7 @@ export function GradeMatrix({
           studentClass={selectedStudentClass}
           context="assignment"
           data={selectedData}
-          onSave={handleModalSave} // ✅ Pasa la función corregida
+          onSave={handleModalSave} 
         />
       </div>
     </TooltipProvider>

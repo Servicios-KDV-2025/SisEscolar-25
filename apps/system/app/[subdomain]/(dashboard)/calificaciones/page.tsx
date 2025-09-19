@@ -24,7 +24,10 @@ import { useUser } from "@clerk/nextjs";
 import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/shadcn/button";
-import { Filter, Plus, Users } from "@repo/ui/icons";
+import { Filter, BookCheck, SaveAll,  } from "@repo/ui/icons";
+import { Skeleton } from "@repo/ui/components/shadcn/skeleton";
+import { TaskCreateForm } from "../../../../components/TaskCreateForm";
+import { SquareStack } from "lucide-react";
 //import { Badge } from "@repo/ui/components/shadcn/badge";
 
 export default function GradeManagementDashboard() {
@@ -286,7 +289,7 @@ export default function GradeManagementDashboard() {
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-primary/10 rounded-xl">
-                  <Users className="h-8 w-8 text-primary" />
+                  <BookCheck className="h-8 w-8 text-primary" />
                 </div>
                 <div>
                   <h1 className="text-4xl font-bold tracking-tight">
@@ -304,17 +307,54 @@ export default function GradeManagementDashboard() {
                 </div>
               </div>
             </div>
-            <Button
-              size="lg"
-              className="gap-2"
-              // onClick={handleOpenCreate}
-              // disabled={isLoading || !currentSchool || isCrudLoading}
-            >
-              <Plus className="w-4 h-4" />
-              Agregar Asignación
-            </Button>
+            <div className="flex flex-col sm:flex-col sm:items-center sm:gap-4 lg:gap-2">
+              <TaskCreateForm  />
+              <Button
+                onClick={handleSaveAverages}
+                size="lg"
+                className="gap-2"
+                // disabled={isLoading || !currentSchool || isCrudLoading}
+              >
+                <SaveAll className="w-4 h-4" />
+                Guardar Promedios
+              </Button>
+            </div>
           </div>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1">
+        
+          <Card className="mb-4 flex flex-row items-center justify-between">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <SquareStack className="h-5 w-5" />
+              Rubricas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {rubrics ? (
+                rubrics.length > 0 ? (
+                  <div className=" flex flex-row gap-4 py-0 flex-wrap justify-center text-xl">
+                    {rubrics.map((rubric) => (
+                      <div key={rubric._id}>
+                        {rubric.name}: {Math.round(rubric.weight * 100)}%
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No hay rúbricas definidas para esta clase y periodo.</p>
+                )
+              ) : (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        
       </div>
 
       <Card>
@@ -387,15 +427,8 @@ export default function GradeManagementDashboard() {
       </Card>
 
       {/* Grade Matrix */}
-
-      <div className="flex justify-end">
-        <Button onClick={handleSaveAverages} disabled={isDataLoading}>
-          Guardar promedios
-        </Button>
-      </div>
-
       <Card>
-        <CardContent className="w-full" >
+        <CardContent className="w-full">
           {isDataLoading || !hasSchoolCycles || !hasClasses || !hasTerms ? (
             <div className="flex justify-center">
               <div className="space-y-4 text-center">
