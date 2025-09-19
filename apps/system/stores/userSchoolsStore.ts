@@ -556,6 +556,8 @@ export const useUserSchoolsStoreOnly = () => {
 export const useCurrentSchool = (userId?: Id<"user">) => {
   const params = useParams();
   const subdomain = params?.subdomain as string;
+  const [error, setError] = React.useState<string | null>(null);
+  const [hasAttempted, setHasAttempted] = React.useState(false);
   
   // Query para obtener la escuela actual por subdominio
   const currentSchool = useQuery(
@@ -563,12 +565,34 @@ export const useCurrentSchool = (userId?: Id<"user">) => {
     userId && subdomain ? { userId, subdomain } : 'skip'
   );
 
+  // Manejar el estado de error con un timeout
+  React.useEffect(() => {
+    if (userId && subdomain && !hasAttempted) {
+      setHasAttempted(true);
+      setError(null);
+      
+      // Timeout para detectar si la query no devuelve nada (probablemente por error)
+      const timeoutId = setTimeout(() => {
+        if (currentSchool === undefined) {
+          setError("Escuela no encontrada o inactiva");
+        }
+      }, 3000); // 3 segundos
+      
+      return () => clearTimeout(timeoutId);
+    }
+    
+    // Si la query devuelve algo, limpiar error
+    if (currentSchool !== undefined) {
+      setError(null);
+    }
+  }, [userId, subdomain, currentSchool, hasAttempted]);
+
   return React.useMemo(() => ({
     currentSchool: currentSchool || null,
     subdomain,
-    isLoading: currentSchool === undefined && !!userId && !!subdomain,
-    error: null, // Convex maneja errores automáticamente
-  }), [currentSchool, userId, subdomain]);
+    isLoading: currentSchool === undefined && !!userId && !!subdomain && !error,
+    error: error,
+  }), [currentSchool, userId, subdomain, error]);
 };
 
 // Hook especializado para obtener la escuela actual por subdominio (versión manual)
