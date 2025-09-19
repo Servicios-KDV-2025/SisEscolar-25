@@ -3,23 +3,53 @@
 import { useUser } from "@clerk/nextjs";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { Button } from "@repo/ui/components/shadcn/button";
-import { Eye, Pencil, Plus, Trash2, CalendarDays, Clock3, AlertCircle, Filter } from "@repo/ui/icons";
+import {
+  Eye,
+  Pencil,
+  Plus,
+  Trash2,
+  CalendarDays,
+  Clock3,
+  AlertCircle,
+  Filter,
+} from "@repo/ui/icons";
 import { useSchedule } from "stores/scheduleStore";
 import { useCurrentSchool } from "stores/userSchoolsStore";
 import { useUserWithConvex } from "stores/userStore";
-import { useCrudDialog, CrudDialog } from "@repo/ui/components/dialog/crud-dialog";
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
+import {
+  useCrudDialog,
+  CrudDialog,
+} from "@repo/ui/components/dialog/crud-dialog";
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@repo/ui/components/shadcn/form";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { toast } from "sonner";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@repo/ui/components/shadcn/select";
-import { ScheduleFormData, scheduleSchema } from "schema/scheduleSchema";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card";
-import { useState, useMemo } from "react"
-import { useClassCatalog } from "stores/classCatalogStore";
 import { Alert, AlertDescription } from '@repo/ui/components/shadcn/alert';
 import { Badge } from '@repo/ui/components/shadcn/badge';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@repo/ui/components/shadcn/select";
+import { ScheduleFormData, scheduleSchema } from "schema/scheduleSchema";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/shadcn/card";
+import { useState, useMemo } from "react";
 
-type FilterType = 'all' | 'active' | 'inactive'
+type FilterType = "all" | "active" | "inactive";
 
 export default function SchedulePage() {
   const { user: clerkUser } = useUser()
@@ -40,12 +70,8 @@ export default function SchedulePage() {
     createError,
     updateError,
     deleteError,
-    clearErrors: clearScheduleErrors
-  } = useSchedule(currentSchool?.school._id as Id<'school'>)
-
-  const {
-    classCatalogs
-  } = useClassCatalog(currentSchool?.school._id as Id<'school'>)
+    clearErrors: clearScheduleErrors,
+  } = useSchedule(currentSchool?.school._id as Id<"school">);
 
   // Filtrar los horarios según el filtro seleccionado
   const filteredSchedules = useMemo(() => {
@@ -68,14 +94,14 @@ export default function SchedulePage() {
     openEdit,
     openView,
     openDelete,
-    close
+    close,
   } = useCrudDialog(scheduleSchema, {
-    name: '',
-    day: '',
-    startTime: '',
-    endTime: '',
-    status: 'active'
-  })
+    name: "",
+    day: "",
+    startTime: "",
+    endTime: "",
+    status: "active",
+  });
 
   // Ejemplo: crear un horario rapido
   const handleSubmit = async (values: Record<string, unknown>) => {
@@ -91,7 +117,7 @@ export default function SchedulePage() {
         await createSchedule({
           schoolId: currentSchool.school._id,
           name: value.name as string,
-          day: value.day as 'lun.' | 'mar.' | 'mié.' | 'jue.' | 'vie.',
+          day: value.day as "lun." | "mar." | "mié." | "jue." | "vie.",
           startTime: value.startTime as string,
           endTime: value.endTime as string,
           status: value.status as 'active' | 'inactive',
@@ -103,35 +129,39 @@ export default function SchedulePage() {
           id: data._id,
           schoolId: currentSchool.school._id,
           name: value.name as string,
-          day: value.day as 'lun.' | 'mar.' | 'mié.' | 'jue.' | 'vie.',
+          day: value.day as "lun." | "mar." | "mié." | "jue." | "vie.",
           startTime: value.startTime as string,
           endTime: value.endTime as string,
-          status: value.status as 'active' | 'inactive',
-          updatedAt: Date.now()
-        })
-        toast.success('Horario actualizado exitosamente')
+          status: value.status as "active" | "inactive",
+          updatedAt: Date.now(),
+        });
+        toast.success("Horario actualizado exitosamente");
       }
     } catch (error) {
-      console.error('Error en operación CRUD:', error)
+      console.error("Error en operación CRUD:", error);
 
-      close()
+      close();
       throw error;
     }
-  }
+  };
 
   const handleDelete = async (id: string) => {
     if (!currentSchool?.school._id) {
-      toast.error('Error: Escuela no seleccionada')
-      return
+      toast.error("Error: Escuela no seleccionada");
+      return;
     }
 
     try {
       await deleteSchedule(id, currentSchool.school._id);
-      toast.success('Eliminado correctamente')
+      toast.success("Eliminado correctamente");
     } catch (error) {
-      console.error('Error al eliminar horario:', error);
+      console.error("Error al eliminar horario:", error);
       throw error;
     }
+  };
+
+  if (isLoading) {
+    return <div className="text-center py-10">Cargando escuela...</div>;
   }
 
   if (isLoading || (currentUser && !currentSchool && !schoolError)) return (
@@ -174,6 +204,7 @@ export default function SchedulePage() {
               className="gap-2"
               onClick={openCreate}
               disabled={isCreating}
+
             >
               <Plus className="h-4 w-4" />
               {isCreating ? 'Creando...' : 'Agregar Horario'}
@@ -390,17 +421,27 @@ export default function SchedulePage() {
 
       <CrudDialog
         operation={operation}
-        title={operation === 'create' ? 'Crear Nuevo Horario' :
-          operation === 'edit' ? 'Editar Horario' : 'Ver Horario'}
-        description={operation === 'create' ? 'Completa la información del nuevo horario' :
-          operation === 'edit' ? 'Modifica la información del horario' : 'Información del horario'}
+        title={
+          operation === "create"
+            ? "Crear Nuevo Horario"
+            : operation === "edit"
+              ? "Editar Horario"
+              : "Ver Horario"
+        }
+        description={
+          operation === "create"
+            ? "Completa la información del nuevo horario"
+            : operation === "edit"
+              ? "Modifica la información del horario"
+              : "Información del horario"
+        }
         schema={scheduleSchema}
         defaultValues={{
           name: "",
-          day: '',
+          day: "",
           startTime: "07:00",
           endTime: "08:00",
-          status: 'active'
+          status: "active",
         }}
         data={data}
         isOpen={isOpen}
@@ -417,26 +458,45 @@ export default function SchedulePage() {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nombre</FormLabel>
+                  <FormLabel>Nombre del horario</FormLabel>
                   <FormControl>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value as string}
-                      disabled={operation === 'view'}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar materia" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {classCatalogs.map((catalog) => (
-                          <SelectItem key={catalog._id} value={catalog.name}>
-                            {catalog.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      type="text"
+                      {...field}
+                      value={(() => {
+                        const day = form.watch("day");
+                        const startTime = form.watch("startTime");
+                        const endTime = form.watch("endTime");
+
+                        const isValidValue = (value: string) =>
+                          value != null &&
+                          value !== "" &&
+                          value.toString().trim() !== "";
+                         const dayMap : {[key: string]: string} = {
+                          "lun.": "Lunes",
+                          "mar.": "Martes",
+                          "mié.": "Miércoles",
+                          "jue.": "Jueves",
+                          "vie.": "Viernes",
+                         }
+
+                        const generatedName =
+                          isValidValue(day as string) &&
+                          isValidValue(startTime as string) &&
+                          isValidValue(endTime as string)
+                            ? `${dayMap[day as keyof typeof dayMap]} ${startTime}-${endTime}`
+                            : "";
+
+                        if (generatedName !== field.value) {
+                          form.setValue(field.name, generatedName);
+                        }
+
+                        return generatedName;
+                      })()}
+                      placeholder="Completa día, hora inicio y fin"
+                      disabled={operation === "view"}
+                      readOnly={true}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -451,8 +511,10 @@ export default function SchedulePage() {
                   <FormControl>
                     <Select
                       onValueChange={field.onChange}
-                      value={field.value as 'lun.' | 'mar.' | 'mié.' | 'jue' | 'vie.'}
-                      disabled={operation === 'view'}
+                      value={
+                        field.value as "lun." | "mar." | "mié." | "jue" | "vie."
+                      }
+                      disabled={operation === "view"}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -483,7 +545,7 @@ export default function SchedulePage() {
                       type="time"
                       {...field}
                       value={field.value as string}
-                      disabled={operation === 'view'}
+                      disabled={operation === "view"}
                     />
                   </FormControl>
                   <FormMessage />
@@ -501,7 +563,7 @@ export default function SchedulePage() {
                       type="time"
                       {...field}
                       value={field.value as string}
-                      disabled={operation === 'view'}
+                      disabled={operation === "view"}
                     />
                   </FormControl>
                   <FormMessage />
@@ -517,8 +579,8 @@ export default function SchedulePage() {
                   <FormControl>
                     <Select
                       onValueChange={field.onChange}
-                      value={field.value as 'active' | 'inactive'}
-                      disabled={operation === 'view'}
+                      value={field.value as "active" | "inactive"}
+                      disabled={operation === "view"}
                     >
                       <FormControl>
                         <SelectTrigger>

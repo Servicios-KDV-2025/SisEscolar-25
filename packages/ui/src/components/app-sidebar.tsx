@@ -62,7 +62,7 @@ const defaultNavData = {
         },
         {
           title: "Clases por Alumno",
-          url: `clasesPorAlumnos`,
+          url: `/clasesPorAlumnos`,
         },
         {
           title: "Grupos",
@@ -120,7 +120,7 @@ const defaultNavData = {
     },
     {
       title: "Horarios",
-      url: `/schedule`,
+      url: `/horarios`,
       icon: SquareTerminal,
       isActive: true,
     },
