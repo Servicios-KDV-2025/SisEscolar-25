@@ -5,18 +5,61 @@ import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle} from "@repo/ui/components/shadcn/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/shadcn/card";
 import { Button } from "@repo/ui/components/shadcn/button";
-import {AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger} from "@repo/ui/components/shadcn/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@repo/ui/components/shadcn/alert-dialog";
 import { Badge } from "@repo/ui/components/shadcn/badge";
-import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "@repo/ui/components/shadcn/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@repo/ui/components/shadcn/dialog";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Label } from "@repo/ui/components/shadcn/label";
 import { Textarea } from "@repo/ui/components/shadcn/textarea";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@repo/ui/components/shadcn/select";
-import {FileText, Calendar, Eye, Edit, Trash2, CheckCircle, XCircle} from "@repo/ui/icons";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@repo/ui/components/shadcn/select";
+import {
+  FileText,
+  Calendar,
+  Eye,
+  Edit,
+  Trash2,
+  CheckCircle,
+  XCircle,
+  Filter,
+  Search,
+  BookText,
+  X
+} from "@repo/ui/icons";
 import Link from "next/link";
-import {validateTaskForm, getValidationErrors} from "../../../../types/form/taskSchema";
+import {
+  validateTaskForm,
+  getValidationErrors,
+} from "../../../../types/form/taskSchema";
 import { useTask } from "../../../../stores/taskStore";
 import { TaskCreateForm } from "../../../../components/TaskCreateForm";
 
@@ -28,7 +71,9 @@ function LoadingComponent() {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Cargando, por favor espere...</p>
+            <p className="text-muted-foreground">
+              Cargando, por favor espere...
+            </p>
           </div>
         </div>
       </div>
@@ -50,9 +95,7 @@ function UnauthenticatedComponent() {
               Necesitas iniciar sesión para acceder a esta página.
             </p>
             <Button asChild>
-              <Link href="/auth/signin">
-                Iniciar Sesión
-              </Link>
+              <Link href="/auth/signin">Iniciar Sesión</Link>
             </Button>
           </div>
         </div>
@@ -94,7 +137,7 @@ function TaskManagementContent() {
   const [termFilter, setTermFilter] = useState<string>("all");
   const [groupFilter, setGroupFilter] = useState<string>("all");
   const [subjectFilter, setSubjectFilter] = useState<string>("all");
-
+  const [searchTermTask, setSearchTermTask] = useState("");
 
   // Estado para el dialog de detalles
   const [detailsDialogOpen, setDetailsDialogOpen] = useState<boolean>(false);
@@ -165,7 +208,6 @@ function TaskManagementContent() {
         gradeRubricId: "",
       });
       setValidationErrors({});
-      // setSelectedTask(null); // This is now managed by the store
       closeEditModal();
     } catch (error) {
       console.error("Error al actualizar la asignación:", error);
@@ -186,7 +228,6 @@ function TaskManagementContent() {
   const CharacterCounter = ({
     current,
     max,
-    // fieldName,
   }: {
     current: number;
     max: number;
@@ -207,8 +248,6 @@ function TaskManagementContent() {
       </div>
     );
   };
-
-
 
   const uniqueRubrics =
     filteredTasks?.reduce(
@@ -270,15 +309,22 @@ function TaskManagementContent() {
 
   const filteredTasksList =
     filteredTasks?.filter((task) => {
-      if (
-        rubricFilter === "all" &&
-        termFilter === "all" &&
-        subjectFilter === "all" &&
-        groupFilter === "all"
-      ) {
-        return true;
+      // Filtro por término de búsqueda
+      const subject = teacherClasses?.find((clase) => clase._id === task.classCatalogId);
+      const searchMatch = searchTermTask === "" || 
+        task.name.toLowerCase().includes(searchTermTask.toLowerCase()) ||
+        task.description?.toLowerCase().includes(searchTermTask.toLowerCase()) ||
+        task.group?.name.toLowerCase().includes(searchTermTask.toLowerCase()) ||
+        task.gradeRubric?.name.toLowerCase().includes(searchTermTask.toLowerCase()) ||
+        subject?.subject.toLowerCase().includes(searchTermTask.toLowerCase()) ||
+        subject?.name.toLowerCase().includes(searchTermTask.toLowerCase());
+
+      // Si hay término de búsqueda y no coincide, excluir la tarea
+      if (searchTermTask !== "" && !searchMatch) {
+        return false;
       }
 
+      // Filtros por selectores
       const rubricMatch =
         rubricFilter === "all" || task.gradeRubric?._id === rubricFilter;
 
@@ -295,29 +341,34 @@ function TaskManagementContent() {
     }) ?? [];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <div>
-                <h1 className="text-4xl font-bold text-gray-900">
-                  Gestión de Asignaciones
-                </h1>
-                <p className="text-gray-600">
-                  Administra las asignaciones de tus clases
-                </p>
+    <div className="space-y-8 p-6">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
+        <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
+        <div className="relative p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-primary/10 rounded-xl">
+                  <BookText className="h-8 w-8 text-primary" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold tracking-tight">
+                    Asignaciones 
+                  </h1>
+                  <p className="text-lg text-muted-foreground">
+                    Administra las asignaciones de los estudiantes 
+                  </p>
+                </div>
               </div>
             </div>
-            {/* Usar el componente reutilizable */}
             <TaskCreateForm />
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Edit Task Dialog - simplificado usando el store */}
       <Dialog open={isEditDialogOpen} onOpenChange={closeEditModal}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="w-[95vw] max-w-[500px] sm:w-full sm:max-w-[600px] lg:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Asignación</DialogTitle>
             <DialogDescription>
@@ -466,7 +517,7 @@ function TaskManagementContent() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="editDueDate">Fecha de Entrega *</Label>
                 <Input
@@ -477,6 +528,7 @@ function TaskManagementContent() {
                     setFormData({ dueDate: e.target.value });
                     clearFieldError("dueDate");
                   }}
+                  className="w-full"
                 />
                 {validationErrors.dueDate && (
                   <p className="text-sm text-red-600">
@@ -494,6 +546,7 @@ function TaskManagementContent() {
                     setFormData({ dueTime: e.target.value });
                     clearFieldError("dueTime");
                   }}
+                  className="w-full"
                 />
                 {validationErrors.dueTime && (
                   <p className="text-sm text-red-600">
@@ -522,14 +575,14 @@ function TaskManagementContent() {
               )}
             </div>
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
             <Button
               variant="outline"
               onClick={() => {
                 setValidationErrors({});
                 closeEditModal();
               }}
-              className="cursor-pointer"
+              className="cursor-pointer w-full sm:w-auto order-2 sm:order-1"
             >
               Cancelar
             </Button>
@@ -541,7 +594,7 @@ function TaskManagementContent() {
                 !formData.termId ||
                 !formData.gradeRubricId
               }
-              className="cursor-pointer"
+              className="cursor-pointer w-full sm:w-auto order-1 sm:order-2"
             >
               {isUpdating ? "Actualizando..." : "Actualizar asignación"}
             </Button>
@@ -549,88 +602,135 @@ function TaskManagementContent() {
         </DialogContent>
       </Dialog>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-4 flex gap-4 items-center">
-          <Label htmlFor="groupFilter">Filtrar por Grupo</Label>
-          <Select value={groupFilter} onValueChange={setGroupFilter}>
-            <SelectTrigger className="w-64 cursor-pointer">
-              <SelectValue placeholder="Selecciona un grupo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los grupos</SelectItem>
-              {uniqueGradeGroups.map((gg) => (
-                <SelectItem key={gg.id} value={gg.id}>
-                  {gg.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                Filtros y Búsqueda
+              </CardTitle>
+              <CardDescription>
+                Encuentra asignaciones por nombre, grupo, materia, rúbrica,
+                periodo o estado
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="relative mb-6 w-full md:w-[50%]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nombre, materia, grupo, rúbrica o descripción..."
+              value={searchTermTask}
+              onChange={(e) => setSearchTermTask(e.target.value)}
+              className="pl-10"
+            />
+            {searchTermTask && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">
+                  {filteredTasksList.length} resultado{filteredTasksList.length !== 1 ? 's' : ''}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSearchTermTask("")}
+                  className="h-6 w-6 p-0 hover:bg-gray-200"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+          </div>
+          <div className="w-full flex flex-col gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="flex flex-col gap-1">
+                <Select value={groupFilter} onValueChange={setGroupFilter}>
+                  <SelectTrigger className="w-full cursor-pointer">
+                    <SelectValue placeholder="Selecciona un grupo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los grupos</SelectItem>
+                    {uniqueGradeGroups.map((gg) => (
+                      <SelectItem key={gg.id} value={gg.id}>
+                        {gg.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Select value={subjectFilter} onValueChange={setSubjectFilter}>
+                  <SelectTrigger className="w-full cursor-pointer">
+                    <SelectValue placeholder="Selecciona una materia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las materias</SelectItem>
+                    {uniqueSubject.map((subject) => (
+                      <SelectItem key={subject._id} value={subject._id}>
+                        {subject.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Select value={rubricFilter} onValueChange={setRubricFilter}>
+                  <SelectTrigger className="w-full cursor-pointer">
+                    <SelectValue placeholder="Selecciona una rúbrica " />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las rúbricas</SelectItem>
+                    {uniqueRubrics.map((rubric) => (
+                      <SelectItem key={rubric._id} value={rubric._id}>
+                        {rubric.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Select value={termFilter} onValueChange={setTermFilter}>
+                  <SelectTrigger className="w-full cursor-pointer">
+                    <SelectValue placeholder="Selecciona un periodo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los periodos</SelectItem>
+                    {uniqueTerm.map((term) => (
+                      <SelectItem key={term._id} value={term._id}>
+                        {term.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-          <Label htmlFor="subjectFilter">Filtrar por Materia</Label>
-          <Select value={subjectFilter} onValueChange={setSubjectFilter}>
-            <SelectTrigger className="w-64 cursor-pointer">
-              <SelectValue placeholder="Selecciona una materia" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las materias</SelectItem>
-              {uniqueSubject.map((subject) => (
-                <SelectItem key={subject._id} value={subject._id}>
-                  {subject.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Label htmlFor="rubricFilter">Filtrar por Rúbrica</Label>
-          <Select value={rubricFilter} onValueChange={setRubricFilter}>
-            <SelectTrigger className="w-64 cursor-pointer">
-              <SelectValue placeholder="Selecciona una rúbrica " />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las rúbricas</SelectItem>
-              {uniqueRubrics.map((rubric) => (
-                <SelectItem key={rubric._id} value={rubric._id}>
-                  {rubric.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Label htmlFor="termFilter">Filtrar por Periodos</Label>
-          <Select value={termFilter} onValueChange={setTermFilter}>
-            <SelectTrigger className="w-64 cursor-pointer">
-              <SelectValue placeholder="Selecciona un periodo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los periodos</SelectItem>
-              {uniqueTerm.map((term) => (
-                <SelectItem key={term._id} value={term._id}>
-                  {term.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Lista de Asignaciones</CardTitle>
-            <CardDescription>
-              Administra las asignaciones de tu clase
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {filteredTasksList
-                ?.sort((a, b) => b._creationTime - a._creationTime) 
-                .map((task) => (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Lista de Asignaciones</span>
+          <Badge variant="outline">{filteredTasksList.length} asignaciones</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {filteredTasksList
+              ?.sort((a, b) => b._creationTime - a._creationTime)
+              .map((task) => (
                 <div
                   key={task._id}
-                  className="border rounded-lg p-4 hover:shadow-md transition-shadow "
+                  className="border rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
-                  <div className="flex justify-between items-start mb-3">
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3 mb-3">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <FileText className="w-5 h-5 text-blue-600" />
+                      <div className="flex flex-col xs:flex-row xs:items-center gap-2 mb-2">
+                        <div className="flex items-center">
+                          <FileText className="w-5 h-5 text-blue-600" />
+                        </div>
                         <Link href={`/teacher/classid/tasks/${task._id}`}>
                           <h3 className="text-lg font-semibold">
                             {task.gradeRubric?.name ?? "Sin rúbrica"} -{" "}
@@ -644,8 +744,8 @@ function TaskManagementContent() {
                           </h3>
                         </Link>
                       </div>
-                      <p className="text-gray-600 mb-2">{task.description}</p>
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <p className="text-gray-600 mb-2 break-words">{task.description}</p>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-500">
                         <span className="flex items-center">
                           <Calendar className="w-4 h-4 mr-1" />
                           Vence: {new Date(task.dueDate).toLocaleDateString()} a
@@ -658,7 +758,7 @@ function TaskManagementContent() {
                         <span>Puntuación máxima: {task.maxScore}</span>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col md:flex-row gap-2 mt-3 md:mt-0">
                       <Button
                         variant="outline"
                         size="sm"
@@ -704,8 +804,8 @@ function TaskManagementContent() {
                       </AlertDialog>
                     </div>
                   </div>
-                  <div className="flex justify-between items-center pt-3 border-t">
-                    <div className="flex items-center gap-4">
+                  <div className="flex flex-col gap-3 pt-3 border-t md:flex-row md:justify-between md:items-center">
+                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
                       <span className="text-sm">
                         <span className="font-medium">
                           {getTaskProgressFromQuery(
@@ -722,7 +822,7 @@ function TaskManagementContent() {
                         </span>{" "}
                         entregas
                       </span>
-                      <div className="w-32 bg-gray-200 rounded-full h-2">
+                      <div className="w-full max-w-xs md:w-32 bg-gray-200 rounded-full h-2">
                         <div
                           className="bg-green-600 h-2 rounded-full"
                           style={{
@@ -732,28 +832,42 @@ function TaskManagementContent() {
                       </div>
                     </div>
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewDetails(task._id)}
-                      className="cursor-pointer"
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      Ver Entregas
-                    </Button>
+                    <div className="mt-2 md:mt-0 flex-shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewDetails(task._id)}
+                        className="cursor-pointer w-full md:w-auto"
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        Ver Entregas
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
-              {(!filteredTasks || filteredTasks.length === 0) && (
-                <div className="text-center py-8 text-gray-500">
-                  No hay asignaciones creadas aún. Crea tu primera asignación usando el
-                  botón &quot;Nueva Asignación&quot;.
+            {(!filteredTasks || filteredTasks.length === 0) && (
+              <div className="text-center py-12">
+              
+                <div className="flex flex-col items-center justify-center space-y-4">
+                 
+                    <BookText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                 
+                  <div className="space-y-2 text-center">
+                    <h3 className="text-lg font-medium text-foreground mb-2">
+                      No se encontraron asignaciones
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      No hay asignaciones creadas. Crea tu primera asignación para comenzar a calificar. 
+                    </p>
+                  </div>
+                  <TaskCreateForm />
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </main>
+                </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
       <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -917,11 +1031,11 @@ export default function TaskManagement() {
       <AuthLoading>
         <LoadingComponent />
       </AuthLoading>
-      
+
       <Unauthenticated>
         <UnauthenticatedComponent />
       </Unauthenticated>
-      
+
       <Authenticated>
         <TaskManagementContent />
       </Authenticated>
