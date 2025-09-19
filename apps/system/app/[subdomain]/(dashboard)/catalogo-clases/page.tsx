@@ -218,7 +218,7 @@ export default function ClassCatalogPage() {
                                 <div>
                                     <h1 className="text-4xl font-bold tracking-tight">Catálogo de Clases</h1>
                                     <p className="text-lg text-muted-foreground">
-                                        Administra el listado de las clases registradas en {currentSchool?.school?.name}.
+                                        Administra el listado de las clases registradas.
                                     </p>
                                 </div>
                             </div>
@@ -230,7 +230,7 @@ export default function ClassCatalogPage() {
                             disabled={isCreatingClassCat}
                         >
                             <Plus className="h-4 w-4" />
-                            Nueva Clase
+                            Agregar Clase
                         </Button>
                     </div>
                 </div>

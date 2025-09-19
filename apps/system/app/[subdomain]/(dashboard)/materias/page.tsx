@@ -134,8 +134,7 @@ export default function SubjectPage() {
                                 <div>
                                     <h1 className="text-4xl font-bold tracking-tight">Materias</h1>
                                     <p className="text-lg text-muted-foreground">
-                                        Administra las materias académicas registradas en{" "}
-                                        {currentSchool?.school?.name}.
+                                        Administra las materias académicas registradas.
                                     </p>
                                 </div>
                             </div>
@@ -147,7 +146,7 @@ export default function SubjectPage() {
                             disabled={isCreatingSubject}
                         >
                             <Plus className="h-4 w-4" />
-                            Nueva Materia
+                            Agregar Materia
                         </Button>
                     </div>
                 </div>

@@ -46,19 +46,18 @@ export function SubjectCard({ subject, openEdit, openView, openDelete, isUpdatin
     return (
         <Card className="w-full hover:shadow-lg transition-shadow duration-200 flex flex-col h-full">
             <CardHeader>
-                <CardTitle className="text-lg font-semibold leading-tight line-clamp-2 break-words">{subject.name}</CardTitle>
-            </CardHeader>
-
-            <CardContent className="space-y-4 flex-1">
-                <div className="flex items-start gap-2">
+                <CardTitle className="text-lg font-semibold leading-tight line-clamp-2 break-words flex justify-between">
+                    <span>{subject.name}</span>
                     <Badge
                         variant={subject.status === "active" ? "default" : "secondary"}
                         className={subject.status === "active" ? "bg-green-600 text-white flex-shrink-0 ml-2" : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}
                     >
                         {subject.status === "active" ? 'Activo' : 'Inactivo'}
                     </Badge>
+                </CardTitle>
+            </CardHeader>
 
-                </div>
+            <CardContent className="space-y-4 flex-1">
                 {subject.description && (
                     <div className="flex items-start gap-2">
                         <BookOpen className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
