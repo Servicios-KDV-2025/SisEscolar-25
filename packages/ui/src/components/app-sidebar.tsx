@@ -141,6 +141,10 @@ const defaultNavData = {
           url: `/calificaciones`,
         },
         {
+          title: "Calificaciones por Periodo",
+          url: `/promedioPeriodos`,
+        },
+        {
           title: "Rúbricas",
           url: `/RubricaDeCalificaciones`,
         },
