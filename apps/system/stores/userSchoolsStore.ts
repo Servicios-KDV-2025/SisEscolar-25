@@ -73,6 +73,10 @@ interface UserSchoolsState {
   deactivateUserInSchool: (userSchoolId: Id<"userSchool">) => Promise<boolean>;
   activateUserInSchool: (userSchoolId: Id<"userSchool">) => Promise<boolean>;
   
+  // Funciones para manejar escuela completa
+  deactivateSchool: (schoolId: Id<"school">) => Promise<boolean>;
+  activateSchool: (schoolId: Id<"school">) => Promise<boolean>;
+  
   // Reset del store
   reset: () => void;
 }
@@ -220,6 +224,38 @@ export const useUserSchoolsStore = create<UserSchoolsState>((set, get) => ({
     }
   },
 
+  // Desactivar escuela completa
+  deactivateSchool: async (schoolId: Id<"school">) => {
+    set({ isLoading: true, error: null });
+    
+    try {
+      // Esta función se implementará usando el hook de Convex
+      // Por ahora retornamos false, se implementará en el componente
+      set({ isLoading: false });
+      return false;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      set({ error: errorMessage, isLoading: false });
+      return false;
+    }
+  },
+
+  // Activar escuela completa
+  activateSchool: async (schoolId: Id<"school">) => {
+    set({ isLoading: true, error: null });
+    
+    try {
+      // Esta función se implementará usando el hook de Convex
+      // Por ahora retornamos false, se implementará en el componente
+      set({ isLoading: false });
+      return false;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      set({ error: errorMessage, isLoading: false });
+      return false;
+    }
+  },
+
   // Reset del store
   reset: () => set({
     userSchools: [],
@@ -250,6 +286,8 @@ export const useUserSchoolsWithConvex = (userId?: Id<"user">) => {
   const removeUserFromSchoolMutation = useMutation(api.functions.schools.removeUserFromSchool);
   const deactivateUserInSchoolMutation = useMutation(api.functions.schools.deactivateUserInSchool);
   const activateUserInSchoolMutation = useMutation(api.functions.schools.activateUserInSchool);
+  const deactivateSchoolMutation = useMutation(api.functions.schools.deactivateSchool);
+  const activateSchoolMutation = useMutation(api.functions.schools.activateSchool);
 
   // Actualizar el store cuando cambien las escuelas
   React.useEffect(() => {
@@ -429,6 +467,44 @@ export const useUserSchoolsWithConvex = (userId?: Id<"user">) => {
     }
   }, [activateUserInSchoolMutation, store]);
 
+  const deactivateSchool = React.useCallback(async (schoolId: Id<"school">) => {
+    try {
+      store.setLoading(true);
+      store.clearError();
+      
+      await deactivateSchoolMutation({
+        schoolId,
+      });
+      
+      store.setLoading(false);
+      return true;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error al desactivar escuela';
+      store.setError(errorMessage);
+      store.setLoading(false);
+      return false;
+    }
+  }, [deactivateSchoolMutation, store]);
+
+  const activateSchool = React.useCallback(async (schoolId: Id<"school">) => {
+    try {
+      store.setLoading(true);
+      store.clearError();
+      
+      await activateSchoolMutation({
+        schoolId,
+      });
+      
+      store.setLoading(false);
+      return true;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error al activar escuela';
+      store.setError(errorMessage);
+      store.setLoading(false);
+      return false;
+    }
+  }, [activateSchoolMutation, store]);
+
   return React.useMemo(() => ({
     // Estado del store
     userSchools: store.userSchools,
@@ -445,6 +521,8 @@ export const useUserSchoolsWithConvex = (userId?: Id<"user">) => {
     removeUserFromSchool,
     deactivateUserInSchool,
     activateUserInSchool,
+    deactivateSchool,
+    activateSchool,
     setSelectedSchool: store.setSelectedSchool,
     clearError: store.clearError,
     reset: store.reset,
@@ -461,6 +539,8 @@ export const useUserSchoolsWithConvex = (userId?: Id<"user">) => {
     removeUserFromSchool,
     deactivateUserInSchool,
     activateUserInSchool,
+    deactivateSchool,
+    activateSchool,
     store.setSelectedSchool,
     store.clearError,
     store.reset,
@@ -476,6 +556,8 @@ export const useUserSchoolsStoreOnly = () => {
 export const useCurrentSchool = (userId?: Id<"user">) => {
   const params = useParams();
   const subdomain = params?.subdomain as string;
+  const [error, setError] = React.useState<string | null>(null);
+  const [hasAttempted, setHasAttempted] = React.useState(false);
   
   // Query para obtener la escuela actual por subdominio
   const currentSchool = useQuery(
@@ -483,12 +565,34 @@ export const useCurrentSchool = (userId?: Id<"user">) => {
     userId && subdomain ? { userId, subdomain } : 'skip'
   );
 
+  // Manejar el estado de error con un timeout
+  React.useEffect(() => {
+    if (userId && subdomain && !hasAttempted) {
+      setHasAttempted(true);
+      setError(null);
+      
+      // Timeout para detectar si la query no devuelve nada (probablemente por error)
+      const timeoutId = setTimeout(() => {
+        if (currentSchool === undefined) {
+          setError("Escuela no encontrada o inactiva");
+        }
+      }, 3000); // 3 segundos
+      
+      return () => clearTimeout(timeoutId);
+    }
+    
+    // Si la query devuelve algo, limpiar error
+    if (currentSchool !== undefined) {
+      setError(null);
+    }
+  }, [userId, subdomain, currentSchool, hasAttempted]);
+
   return React.useMemo(() => ({
     currentSchool: currentSchool || null,
     subdomain,
-    isLoading: currentSchool === undefined && !!userId && !!subdomain,
-    error: null, // Convex maneja errores automáticamente
-  }), [currentSchool, userId, subdomain]);
+    isLoading: currentSchool === undefined && !!userId && !!subdomain && !error,
+    error: error,
+  }), [currentSchool, userId, subdomain, error]);
 };
 
 // Hook especializado para obtener la escuela actual por subdominio (versión manual)
