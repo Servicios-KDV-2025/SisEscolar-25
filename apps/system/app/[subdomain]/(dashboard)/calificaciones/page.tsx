@@ -313,7 +313,7 @@ export default function GradeManagementDashboard() {
                 onClick={handleSaveAverages}
                 size="lg"
                 className="gap-2"
-                // disabled={isLoading || !currentSchool || isCrudLoading}
+                disabled={isDataLoading || !currentSchool || !students || students.length === 0}
               >
                 <SaveAll className="w-4 h-4" />
                 Guardar Promedios

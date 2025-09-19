@@ -78,6 +78,7 @@ export default function GradeManagementDashboard() {
 
   // Mutations
   const upsertGrade = useMutation(api.functions.termAverages.upsertTermAverage);
+  const updateAverage = useMutation(api.functions.studentsClasses.updateStudentClassAverage);
 
   // State synchronization and initial value setting
   useEffect(() => {
@@ -91,6 +92,73 @@ export default function GradeManagementDashboard() {
       setSelectedClass(classes[0]!._id as string);
     }
   }, [classes, selectedClass]);
+// En page.tsx, reemplaza tu función handleSaveAverages existente por esta:
+
+const handleSaveAverages = async () => {
+    if (!students || !currentSchool) {
+      toast.error("Faltan datos de estudiantes o del colegio para guardar.");
+      return;
+    }
+
+    toast.info("Guardando promedios finales...");
+
+    // Recorre cada estudiante para calcular y guardar su promedio final
+    for (const student of students) {
+      // student.id aquí es el studentClassId que necesitamos
+      const studentClassId = student.id; 
+      
+      // Usamos la nueva función para calcular el promedio anual
+      const finalAverage = calculateAnnualAverage(studentClassId);
+
+      if (finalAverage !== null) {
+        try {
+          // Llama a la mutación que creamos para guardar en 'studentClass'
+          await updateAverage({
+            studentClassId: studentClassId as Id<"studentClass">,
+            schoolId: currentSchool.school._id,
+            averageScore: finalAverage,
+          });
+        } catch (error) {
+          console.error(
+            `Error guardando promedio final para el estudiante con ID ${student.student?._id}:`,
+            error
+          );
+          toast.error(`Error al guardar el promedio para ${student.student?.name}.`);
+        }
+      }
+    }
+
+    toast.success("¡Promedios finales de todos los alumnos guardados en su inscripción!");
+};
+
+  const calculateAnnualAverage = (studentClassId: string): number | null => {
+    if (!allTermAverages) return null;
+
+    // 'allTermAverages' viene de tu query y tiene la forma { studentClassId: [avg1, avg2] }
+    const studentAverages = allTermAverages[studentClassId];
+
+    if (!studentAverages || studentAverages.length === 0) {
+      return null;
+    }
+
+    let totalScoreSum = 0;
+    let validTermsCount = 0;
+
+    studentAverages.forEach((avg) => {
+      // Nos aseguramos de promediar solo si hay una calificación
+      if (avg.averageScore !== null && avg.averageScore !== undefined) {
+        totalScoreSum += avg.averageScore;
+        validTermsCount++;
+      }
+    });
+
+    if (validTermsCount === 0) {
+      return null;
+    }
+    
+    // Devolvemos el promedio final redondeado
+    return Math.round(totalScoreSum / validTermsCount);
+};
 
   // Handle loading state
   const isDataLoading =
@@ -213,7 +281,7 @@ export default function GradeManagementDashboard() {
               </div>
             </div>
             <Button
-              // onClick={handleSaveAverages}
+              onClick={handleSaveAverages}
               size="lg"
               className="gap-2"
               // disabled={isLoading || !currentSchool || isCrudLoading}
