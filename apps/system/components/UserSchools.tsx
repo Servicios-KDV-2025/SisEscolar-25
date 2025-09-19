@@ -15,15 +15,11 @@ import { Id } from '../../../packages/convex/convex/_generated/dataModel';
 import { 
   Building2, 
   MapPin, 
-  Phone, 
-  Mail, 
   Users,
   Shield,
   Calendar,
   Globe,
   ExternalLink,
-  CheckCircle,
-  XCircle,
   UserCheck,
   Rocket,
   Ban,
@@ -101,46 +97,22 @@ export const UserSchools: React.FC<UserSchoolsProps> = ({ clerkId }) => {
   const { currentUser } = useUserWithConvex(clerkId);
   const {
     userSchools,
-    // selectedSchool,
     isLoading,
     error,
-    deactivateUserInSchool,
-    activateUserInSchool,
-    removeUserFromSchool,
   } = useUserSchoolsWithConvex(currentUser?._id);
 
-  const [showInactive, setShowInactive] = useState(false);
+  const [showInactive, setShowInactive] = useState(true);
 
-  // Separar escuelas activas e inactivas
-  const activeSchools = userSchools.filter(school => school.status === 'active');
-  const inactiveSchools = userSchools.filter(school => school.status === 'inactive');
+  // Separar escuelas activas e inactivas (basado en el estado de la escuela, no de la relación)
+  const activeSchools = userSchools.filter(userSchool => userSchool.school.status === 'active');
+  const inactiveSchools = userSchools.filter(userSchool => userSchool.school.status === 'inactive');
   
   // Filtrar escuelas según el estado
   const filteredSchools = showInactive 
     ? userSchools 
     : activeSchools;
 
-  const handleToggleStatus = async (userSchoolId: Id<"userSchool">, currentStatus: 'active' | 'inactive') => {
-    try {
-      if (currentStatus === 'active') {
-        await deactivateUserInSchool(userSchoolId);
-      } else {
-        await activateUserInSchool(userSchoolId);
-      }
-    } catch (error) {
-      console.error('Error toggling school status:', error);
-    }
-  };
 
-  const handleRemoveFromSchool = async (userSchoolId: Id<"userSchool">) => {
-    if (confirm('¿Estás seguro de que quieres removerte de esta escuela?')) {
-      try {
-        await removeUserFromSchool(userSchoolId);
-      } catch (error) {
-        console.error('Error removing from school:', error);
-      }
-    }
-  };
 
   const handleGoToDashboard = (subdomain: string) => {
     const dashboardUrl = `http://${subdomain}.localhost:3000/inicio`;
@@ -242,10 +214,10 @@ export const UserSchools: React.FC<UserSchoolsProps> = ({ clerkId }) => {
             </div>
             <div>
               <Button
-                variant={showInactive ? "default" : "outline"}
+                variant={showInactive ? "outline" : "default"}
                 size="lg"
                 onClick={() => setShowInactive(!showInactive)}
-                className="gap-2 cursor-pointer"
+                className="gap-2 cursor-pointer bg-blue-600 hover:bg-blue-700"
               >
                 {showInactive ? "Ocultar inactivas" : "Mostrar inactivas"}
               </Button>
@@ -281,19 +253,20 @@ export const UserSchools: React.FC<UserSchoolsProps> = ({ clerkId }) => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredSchools.map((userSchool) => (
+        <div className="w-full max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredSchools.map((userSchool) => (
             <Card key={userSchool.userSchoolId} className="group hover:shadow-lg transition-all duration-300 relative">
               {/* Badge de estado en la esquina */}
               <div className="absolute top-3 right-3 z-10">
                 <Badge 
-                  variant={userSchool.status === 'active' ? 'default' : 'secondary'}
-                  className={userSchool.status === 'active' 
+                  variant={userSchool.school.status === 'active' ? 'default' : 'secondary'}
+                  className={userSchool.school.status === 'active' 
                     ? 'bg-green-500 hover:bg-green-600 text-white' 
                     : 'bg-red-100 text-red-800 border-red-300'
                   }
                 >
-                  {userSchool.status === 'active' ? 'Activo' : 'Inactivo'}
+                  {userSchool.school.status === 'active' ? 'Activo' : 'Inactivo'}
                 </Badge>
               </div>
 
@@ -355,7 +328,7 @@ export const UserSchools: React.FC<UserSchoolsProps> = ({ clerkId }) => {
                 </div>
 
                 {/* Estadísticas de la escuela */}
-                {userSchool.status === 'active' && (
+                {userSchool.school.status === 'active' && (
                   <>
                     <div className="space-y-2">
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
@@ -369,7 +342,8 @@ export const UserSchools: React.FC<UserSchoolsProps> = ({ clerkId }) => {
                 )}
 
                 {/* Acciones */}
-                {userSchool.status === 'active' ? (
+                {userSchool.school.status === 'active' ? (
+                  <>
                   <Button
                     variant="default"
                     size="sm"
@@ -379,17 +353,7 @@ export const UserSchools: React.FC<UserSchoolsProps> = ({ clerkId }) => {
                     <Rocket className="h-4 w-4" />
                     Ir al Dashboard
                   </Button>
-                ) : (
-                  <div className="text-center py-3">
-                    <Ban className="h-8 w-8 text-red-500 mx-auto mb-2" />
-                    <p className="text-xs text-red-600 font-medium">Escuela Desactivada</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Contacta al administrador de eKardex
-                    </p>
-                  </div>
-                )}
-
-                {/* Información adicional en hover */}
+                                  {/* Información adicional en hover */}
                 <div className="text-xs text-muted-foreground space-y-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <div>
                     <span className="font-medium">Asignado:</span>{' '}
@@ -400,9 +364,23 @@ export const UserSchools: React.FC<UserSchoolsProps> = ({ clerkId }) => {
                     })}
                   </div>
                 </div>
+                  </>
+                ) : (
+                  <div className="text-center py-4 px-3">
+                    <Ban className="h-10 w-10 text-red-500 mx-auto mb-3" />
+                    <p className="text-sm text-red-600 font-semibold mb-2">Escuela Inactiva</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Esta escuela está temporalmente inactiva por falta de pago o un problema técnico. 
+                      Comunícate con la administración de eKardex para más información.
+                    </p>
+                  </div>
+                )}
+
+
               </CardContent>
             </Card>
           ))}
+          </div>
         </div>
       )}
     </div>
