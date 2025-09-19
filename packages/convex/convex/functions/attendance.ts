@@ -248,26 +248,48 @@ export const getAttendanceStatistics = query({
       throw new Error('No autorizado')
     }
 
-    const history = await getAttendanceHistory.handler(ctx, {
-      schoolId: args.schoolId,
-      filters: {
-        classCatalogId: args.classCatalogId,
-        dateForm: args.dateFrom,
-        dateTo: args.dateTo
-      }
-    } as any)
+    // Obtener todos los estidantes de la escuela
+    const allStudentClasses = ctx.db
+      .query('studentClass')
+      .withIndex('by_school', (q) => q.eq('schoolId', args.schoolId))
+      .collect()
 
-    const stats = {
-     total: history.length,
-      present: history.filter(r => r!.attendanceState === 'present').length,
-      absent: history.filter(r => r!.attendanceState === 'absent').length,
-      justified: history.filter(r => r!.attendanceState === 'justified').length,
-      unjustified: history.filter(r => r!.attendanceState === 'unjustified').length
-    };
+    let attendanceQuery = ctx.db.query('attendance')
+
+    // Aplicar filtros
+    const studentClassIds = (await allStudentClasses)
+      .filter(sc => !args.classCatalogId || sc.classCatalogId === args.classCatalogId)
+      .map(sc => sc._id)
+
+    attendanceQuery = attendanceQuery.filter(q => 
+      q.or(...studentClassIds.map(id => q.eq(q.field('studentClassId'), id)))
+    )
+
+    if(args.dateFrom) {
+      attendanceQuery = attendanceQuery.filter(q =>
+        q.gte(q.field('date'), args.dateFrom!)
+      )
+    }
+
+    if(args.dateTo) {
+      attendanceQuery = attendanceQuery.filter(q => 
+        q.lte(q.field('date'), args.dateTo!)
+      )
+    }
+
+    const attendanceRecords = await attendanceQuery.collect()
+
+    const state = {
+      total: attendanceRecords.length,
+      present: attendanceRecords.filter(r => r.attendanceState === 'present').length,
+      absent: attendanceRecords.filter(r => r.attendanceState === 'absent').length,
+      justified: attendanceRecords.filter(r => r.attendanceState === 'justified').length,
+      unjustified: attendanceRecords.filter(r => r.attendanceState === 'unjustified').length
+    }
 
     return {
-      ...stats,
-      attendanceRate: stats.total > 0 ? ((stats.present + stats.justified) / stats.total * 100).toFixed(1) : '0'
+      ...state,
+      attendanceRate: state.total > 0 ? ((state.present + state.justified) / state.total * 100).toFixed(1) : '0'
     }
-  },
+  }
 })
