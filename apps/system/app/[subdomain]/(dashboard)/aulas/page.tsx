@@ -420,9 +420,6 @@ export default function ClassroomManagement() {
               {isTableLoading ? 'Cargando...' : `${filteredAndSortedClassrooms.length} aulas`}
             </Badge>
           </CardTitle>
-          <CardDescription>
-            {isTableLoading ? 'Cargando información de aulas...' : ''}
-          </CardDescription>
         </CardHeader>
         <CardContent>
           {isTableLoading ? (
