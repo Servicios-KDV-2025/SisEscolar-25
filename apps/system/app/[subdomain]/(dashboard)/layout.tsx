@@ -1,7 +1,6 @@
 import { AppSidebarWithData } from "../../../components/AppSidebarWithData";
 import { SidebarInset, SidebarProvider } from "@repo/ui/components/shadcn/sidebar";
 import { Toaster } from "@repo/ui/components/shadcn/sonner";
-import { SiteHeader } from "@repo/ui/components/site-header";
 import { SchoolErrorBoundary } from "../../../components/SchoolErrorBoundary";
 import { SchoolValidator } from "../../../components/SchoolValidator";
 import { ReactNode } from "react";
