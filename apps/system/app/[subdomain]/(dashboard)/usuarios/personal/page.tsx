@@ -687,7 +687,7 @@ export default function PersonalPage() {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-primary/10 rounded-xl">
+                <div className="p-3 bg-primary/10 rounded-xl" >
                   <Users className="h-8 w-8 text-primary" />
                 </div>
                 <div>
