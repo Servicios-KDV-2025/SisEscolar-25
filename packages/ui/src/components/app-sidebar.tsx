@@ -62,7 +62,7 @@ const defaultNavData = {
         },
         {
           title: "Clases por Alumno",
-          url: `clasesPorAlumnos`,
+          url: `/clasesPorAlumnos`,
         },
         {
           title: "Grupos",
