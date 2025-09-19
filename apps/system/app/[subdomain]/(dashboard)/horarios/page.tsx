@@ -384,7 +384,7 @@ export default function SchedulePage() {
                     </p>
                   </CardContent>
 
-                  <CardFooter className="flex justify-end gap-2">
+                  <CardFooter className="flex justify-end gap-2 pt-2 border-t mt-auto">
                     <Button
                       variant='ghost'
                       size='sm'
