@@ -90,7 +90,7 @@ const defaultNavData = {
     },
     {
       title: "Asistencia",
-      url: `/attendance`,
+      url: `/asistencias`,
       icon: SquareTerminal,
       isActive: true,
     },

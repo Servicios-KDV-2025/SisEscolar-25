@@ -239,6 +239,12 @@ export const getAttendanceStatistics = query({
   args: {
     schoolId: v.id('school'),
     classCatalogId: v.optional(v.id('classCatalog')),
+    attendanceState: v.optional(v.union(
+      v.literal('present'),
+      v.literal('absent'),
+      v.literal('justified'),
+      v.literal('unjustified')
+    )),
     dateFrom: v.optional(v.number()),
     dateTo: v.optional(v.number())
   },

@@ -4,13 +4,12 @@ import { useUser } from "@clerk/nextjs"
 import { api } from "@repo/convex/convex/_generated/api"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
 import { Badge } from "@repo/ui/components/shadcn/badge"
-import { Button } from "@repo/ui/components/shadcn/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
 import { Input } from "@repo/ui/components/shadcn/input"
 import { Label } from "@repo/ui/components/shadcn/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table"
-import { Calendar, Download, Filter, Search } from "@repo/ui/icons"
+import { BookOpen, Calendar, CheckCircle, FileCheck, FileX, Filter, Search, XCircle } from "@repo/ui/icons"
 import { useQuery } from "convex/react"
 import { useMemo, useState } from "react"
 import { useClassCatalog } from "stores/classCatalogStore"
@@ -43,14 +42,14 @@ export default function AttendanceHistory() {
   const filters: AttendanceFilters | undefined = useMemo(() => {
     const filters: AttendanceFilters = {}
 
-    if(searchTerm) filters.studentName = searchTerm
-    if(filterClass !== 'all') filters.classCatalogId = filterClass as Id<'classCatalog'>
-    if(filterState !== 'all') filters.attendanceState = filterState as AttendanceState
-    if(dateFrom) filters.dateFrom = Math.floor(new Date(dateFrom).getTime() / 1000)
-    if(dateTo) filters.dateTo = Math.floor(new Date(dateFrom).getTime() / 1000)
+    if (searchTerm) filters.studentName = searchTerm
+    if (filterClass !== 'all') filters.classCatalogId = filterClass as Id<'classCatalog'>
+    if (filterState !== 'all') filters.attendanceState = filterState as AttendanceState
+    if (dateFrom) filters.dateFrom = Math.floor(new Date(dateFrom).getTime() / 1000)
+    if (dateTo) filters.dateTo = Math.floor(new Date(dateFrom).getTime() / 1000)
 
     return Object.keys(filters).length > 0 ? filters : undefined
-  }, [searchTerm, filterClass, filterState, dateFrom, dateTo])
+  }, [filterClass, filterState, dateFrom, dateTo])
 
   // Obtener hisotrial se asistencias
   const attendanceHistory = useQuery(
@@ -65,14 +64,15 @@ export default function AttendanceHistory() {
   const statsFilters = useMemo(() => ({
     classCatalogId: filterClass !== 'all' ? filterClass as Id<'classCatalog'> : undefined,
     dateFrom: dateFrom ? Math.floor(new Date(dateFrom).getTime() / 1000) : undefined,
-    dateTo: dateTo ? Math.floor(new Date(dateFrom).getTime() / 1000) : undefined
+    dateTo: dateTo ? Math.floor(new Date(dateTo).getTime() / 1000) : undefined
   }), [filterClass, dateFrom, dateTo])
 
   // Obtener estadisitcas
-  const attendanceState = useQuery(
+  const attendanceStats = useQuery(
     api.functions.attendance.getAttendanceStatistics,
     currentSchool ? {
-      schoolId: currentSchool.school._id
+      schoolId: currentSchool.school._id,
+      ...statsFilters
     } : 'skip'
   )
 
@@ -116,28 +116,120 @@ export default function AttendanceHistory() {
     }
   }
 
-  if(isLoading) {
+  if (isLoading) {
     return <div className="text-center py-10">Cargando escuala</div>
   }
 
-  return(
+  return (
     <div className="space-y-6">
+      {/* Estadísticas */}
+      {attendanceStats && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 space-x-5">
+          <Card
+            className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
+          >
+            <CardHeader
+              className="flex flex-row items-center justify-between space-y-0 pb-3"
+            >
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total
+              </CardTitle>
+              <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                <BookOpen className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-3xl font-bold">{attendanceStats.total}</div>
+            </CardContent>
+          </Card>
+          <Card
+            className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Activas
+              </CardTitle>
+              <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                <CheckCircle className="h-4 w-4" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-3xl font-bold">
+                {attendanceStats.present}
+              </div>
+            </CardContent>
+          </Card>
+          <Card
+            className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Inactivas
+              </CardTitle>
+              <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                <XCircle className="h-4 w-4" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-3xl font-bold">
+                {attendanceStats.absent}
+              </div>
+            </CardContent>
+          </Card>
+          <Card
+            className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Inactivas
+              </CardTitle>
+              <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                <FileCheck className="h-4 w-4" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-3xl font-bold">
+                {attendanceStats.justified}
+              </div>
+            </CardContent>
+          </Card>
+          <Card
+            className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Inactivas
+              </CardTitle>
+              <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                <FileX className="h-4 w-4" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-3xl font-bold">
+                {attendanceStats.unjustified}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* filtros */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5"/>
+            <Filter className="h-5 w-5" />
             Filtro de busqueda
           </CardTitle>
           <CardDescription>Filtra los registros de asistencia por diferentes criterios</CardDescription>
+
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label htmlFor="search">Buscar estudiante</Label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-0.5 h-4 w-4 text-muted-foreground"/>
-                <Input 
+                <Search className="absolute left-3 top-1/2 transform -translate-y-0.5 h-4 w-4 text-muted-foreground" />
+                <Input
                   id='search'
                   placeholder="Nombre o matricula..."
                   value={searchTerm}
@@ -150,8 +242,8 @@ export default function AttendanceHistory() {
             <div className="space-y-2">
               <Label>Clase</Label>
               <Select value={filterClass} onValueChange={setFilterClass}>
-                <SelectTrigger>
-                  <SelectValue placeholder='Todas las clases'/>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder='Todas las clases' />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas las Clases</SelectItem>
@@ -167,8 +259,8 @@ export default function AttendanceHistory() {
             <div className="space-y-2">
               <Label>Estado</Label>
               <Select value={filterState} onValueChange={setFilterState}>
-                <SelectTrigger>
-                  <SelectValue placeholder='Todos los estados'/>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder='Todos los estados' />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los estados</SelectItem>
@@ -182,53 +274,20 @@ export default function AttendanceHistory() {
 
             <div className="space-y-2">
               <Label htmlFor="date-from" className="flex items-center gap-2">
-                <Calendar className="h-4 w-4"/>
-                Fecha desde:
+                <Calendar className="h-4 w-4" />
+                Seleccionar fecha
               </Label>
-              <Input id="date-to" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}/>
+              <Input id="date-to" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
             </div>
 
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="date-from" className="flex items-center gap-2">
-                <Calendar className="h-4 w-4"/>
+                <Calendar className="h-4 w-4" />
                 Fecha Hasta:
               </Label>
-              <Input id="date-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}/>
-            </div>
-
-            {/* <div className="flex items-end" >
-              <Button variant={'outline'} className="w-full bg-transparent">
-                <Download className="h-5 w-5"/>
-                Exportar
-              </Button>
+              <Input id="date-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
             </div> */}
           </div>
-
-          {/* Estadisticas rápidas */}
-          {attendanceState && (
-            <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-4">
-              <div className="text-center p-3 bg-muted rounded-lg">
-                <div className="text-2xl font-bold">{attendanceState.total}</div>
-                <div className="text-sm text-muted-foreground">Total</div>
-              </div>
-              <div className="text-center p-3 bg-muted rounded-lg">
-                <div className="text-2xl font-bold">{attendanceState.present}</div>
-                <div className="text-sm text-muted-foreground">Presesntes</div>
-              </div>
-              <div className="text-center p-3 bg-muted rounded-lg">
-                <div className="text-2xl font-bold">{attendanceState.absent}</div>
-                <div className="text-sm text-muted-foreground">Ausentes</div>
-              </div>
-              <div className="text-center p-3 bg-muted rounded-lg">
-                <div className="text-2xl font-bold">{attendanceState.justified}</div>
-                <div className="text-sm text-muted-foreground">Justificados</div>
-              </div>
-              <div className="text-center p-3 bg-muted rounded-lg">
-                <div className="text-2xl font-bold">{attendanceState.unjustified}</div>
-                <div className="text-sm text-muted-foreground">Injustificados</div>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -238,14 +297,11 @@ export default function AttendanceHistory() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <Calendar className="h-5 w-5"/>
+            <span className="flex items-center gap-2 font-bold">
               Historial de Asistencia
             </span>
             <Badge variant={'secondary'}>{attendanceHistory?.length || 0} registros</Badge>
           </CardTitle>
-          <CardDescription>Registros de asistencia en formato de tabal</CardDescription>
-            
         </CardHeader>
         <CardContent>
           {attendanceHistory?.length === 0 ? (
@@ -285,7 +341,7 @@ export default function AttendanceHistory() {
                         <TableCell>{record?.comments || '-'}</TableCell>
                         <TableCell>{record?.createdBy}</TableCell>
                         <TableCell>
-                          {record?.updateAt ? formatDate(record.updateAt) : '-'}
+                          {record?.updateAt ? formatDateTime(record.updateAt) : '-'}
                         </TableCell>
                       </TableRow>
                     ))

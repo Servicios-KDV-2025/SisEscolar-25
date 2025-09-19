@@ -9,9 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo
 import { Label } from "@repo/ui/components/shadcn/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select"
 import { Textarea } from "@repo/ui/components/shadcn/textarea"
-import { Calendar, Save, Users } from "@repo/ui/icons"
+import { Save } from "@repo/ui/icons"
 import { useMutation, useQuery } from "convex/react"
 import { useState, useMemo } from "react"
+import { toast } from "sonner"
 import { useClassCatalog } from "stores/classCatalogStore"
 import { useCurrentSchool } from "stores/userSchoolsStore"
 import { useUserWithConvex } from "stores/userStore"
@@ -32,13 +33,11 @@ export default function AttendanceManager() {
 
   const [selectedClass, setSelectedClass] = useState("")
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]) // Formato YYYY-MM-DD
-  // const [attendanceRecords, setAttendanceRecords] = useState<Record<string, AttendanceRecord>>({})
   const [temporaryUpdates, setTemporaryUpdates] = useState<Record<string, Partial<AttendanceRecord>>>({})
   const [isSaving, setIsSaving] = useState(false)
 
   const createAttendanceMutation = useMutation(api.functions.attendance.createAttendance)
 
-  // const dateTimestamp = selectedDate ? Math.floor(new Date(selectedDate).getTime() / 1000) : 0
   const dateTimestamp = useMemo(() => 
     selectedDate ? Math.floor(new Date(selectedDate).getTime() / 1000) : 0
   , [selectedDate])
@@ -56,43 +55,9 @@ export default function AttendanceManager() {
     currentSchool ? { schoolId: currentSchool.school._id as Id<'school'> } : 'skip'
   )
 
-  // Filtrar estudiantes que pertenecen a la clase seleccionada
-  // const studentsInSelectedClass = studentClasses?.filter((sc) => 
-  //   sc?.classCatalog._id === selectedClass
-  // )
   const studentsInSelectedClass = useMemo(() => 
     studentClasses?.filter((sc) => sc?.classCatalog._id === selectedClass)
   , [studentClasses, selectedClass])
-
-  // Cargar asistencia existente cuando cambia la clase o fecha
-  // useEffect(() => {
-  //   if(existingAttendance && studentsInSelectedClass) {
-  //     const initialRecords: Record<string, AttendanceRecord> = {}
-
-  //     studentsInSelectedClass.forEach((sc) => {
-  //       if(!sc) return
-
-  //       const existingRecord = existingAttendance.find(
-  //         (record) => record.studentId === sc.student._id
-  //       )
-
-  //       if(existingRecord?.attendance) {
-  //         initialRecords[sc.student._id] = {
-  //           studentClassId: existingRecord.studentClassId,
-  //           state: existingRecord.attendance.attendanceState,
-  //           comments: existingRecord.attendance.comments || ''
-  //         }
-  //       } else if(sc._id) {
-  //         initialRecords[sc.student._id] = {
-  //           studentClassId: sc._id,
-  //           state: 'present',
-  //           comments: ''
-  //         }
-  //       }
-  //     })
-  //     setAttendanceRecords(initialRecords)
-  //   }
-  // }, [existingAttendance, studentsInSelectedClass])
   const baseAttendanceRecords = useMemo(() => {
     const records: Record<string, AttendanceRecord> = {}
     
@@ -163,6 +128,16 @@ export default function AttendanceManager() {
     }
   }
 
+  const getStateTranslation = (state: AttendanceState) => {
+    switch (state) {
+      case 'present': return 'Presente'
+      case 'absent': return 'Ausente'
+      case 'justified': return 'Justificado'
+      case 'unjustified': return 'Injustificado'
+      default: return state
+    }
+  }
+
   const updateAttendance = (studentId: string, field: keyof AttendanceRecord, value: string) => {
     setTemporaryUpdates((prev) => {
       const currentRecord = prev[studentId] || {
@@ -201,9 +176,9 @@ export default function AttendanceManager() {
 
       await Promise.all(savePromises)
 
-      console.log('Asistencia guardada exitosamente') // Agregar una notificación de exito
+      toast.success('Se registro exitosamente') // Agregar una notificación de exito
     } catch {
-      console.error('Error al guardar la asistencia') // Agregar una notificación de error
+      toast.error('Error al guardar la asistencia') // Agregar una notificación de error
     } finally {
       setIsSaving(false)
     }
@@ -218,8 +193,7 @@ export default function AttendanceManager() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Configuración de Asistencia {dateTimestamp}
+            Configuración de Asistencia
           </CardTitle>
           <CardDescription>Selecciona la clase y fecha para registrar la asistencia</CardDescription>
         </CardHeader>
@@ -227,7 +201,7 @@ export default function AttendanceManager() {
           <div className="space-y-2">
             <Label htmlFor="class-select">Clase</Label>
             <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Selecciona una clase" />
               </SelectTrigger>
               <SelectContent>
@@ -256,12 +230,24 @@ export default function AttendanceManager() {
       {/* Lista de estudiantes */}
       {selectedClass && (
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
+          <CardHeader className="flex items-center justify-between gap-2">
+            <CardTitle className="text-xl font-semibold">
               Lista de Estudiantes
             </CardTitle>
-            <CardDescription>Registra la asistencia de cada estudiante</CardDescription>
+            <CardDescription>
+              {studentsInSelectedClass && studentsInSelectedClass.length > 0 && (
+                <div className="mt-6 flex justify-end">
+                  <Button 
+                    onClick={handleSave} 
+                    disabled={isSaving}
+                    className="flex items-center gap-2"
+                  >
+                    <Save className="h-4 w-4"/>
+                    {isSaving ? 'Guardando...' : 'Guardar Asistencia'}
+                  </Button>
+                </div>
+              )}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -271,19 +257,21 @@ export default function AttendanceManager() {
                   .map((sc) => (
                     <div key={sc!.student._id} className="border rounded-lg p-4 space-y3">
                       <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-medium">{sc!.student.name} {sc!.student.lastName}</h4>
-                          <p className="text-sm text-muted-foreground">Matricula: {sc!.student.enrollment}</p>
+                        <div className="mb-2.5">
+                          <h4 className="text-2xl font-medium">{sc!.student.name} {sc!.student.lastName}</h4>
                         </div>
                         <Badge
                           className={getStateColor(attendanceRecords[sc!.student._id]?.state || 'present')}
                         >
-                          {attendanceRecords[sc!.student._id]?.state || 'Presente'}
+                          {/* {attendanceRecords[sc!.student._id]?.state || 'Presente'} */}
+                          {getStateTranslation(attendanceRecords[sc!.student._id]?.state || 'present')}
                         </Badge>
                       </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="space-y-2">
-                          <Label>Estado de Asistencia</Label>
+                          <p className="text-sm text-muted-foreground">Matricula: {sc!.student.enrollment}</p>
+                          <Label className="text-muted-foreground">Estado de Asistencia</Label>
                           <Select
                             value={attendanceRecords[sc!.student._id]?.state || 'present'}
                             onValueChange={(value) => updateAttendance(sc!.student._id, 'state', value as AttendanceState)}
@@ -316,19 +304,6 @@ export default function AttendanceManager() {
                 <p className="text-center py-4">No hay estudiantes en esta clase.</p>
               )}
             </div>
-
-            {studentsInSelectedClass && studentsInSelectedClass.length > 0 && (
-              <div className="mt-6 flex justify-end">
-                <Button 
-                  onClick={handleSave} 
-                  disabled={isSaving}
-                  className="flex items-center gap-2"
-                >
-                  <Save className="h-4 w-4"/>
-                  {isSaving ? 'Guardando...' : 'Guardar Asistencia'}
-                </Button>
-              </div>
-            )}
           </CardContent>
         </Card>
       )}
