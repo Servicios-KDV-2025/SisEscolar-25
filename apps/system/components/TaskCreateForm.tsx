@@ -115,7 +115,7 @@ export function TaskCreateForm({ triggerButton }: TaskCreateFormProps) {
     <Dialog open={isCreateDialogOpen} onOpenChange={setCreateDialogOpen}>
       <DialogTrigger asChild>
         {triggerButton || (
-          <Button className="cursor-pointer">
+          <Button size="lg" className="gap-2 cursor-pointer">
             <Plus className="w-4 h-4 mr-2" />
             Nueva Asignación
           </Button>
