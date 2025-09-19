@@ -792,3 +792,47 @@ export const getSchoolById = internalQuery({
         return school;
     }
 }); 
+
+// Activar una escuela completa (afecta a todos los usuarios)
+export const activateSchool = mutation({
+  args: {
+    schoolId: v.id('school'),
+  },
+  handler: async (ctx, args) => {
+    // Verificar que la escuela existe
+    const school = await ctx.db.get(args.schoolId);
+    if (!school) {
+      throw new Error('Escuela no encontrada');
+    }
+
+    // Cambiar el status de la escuela a active
+    await ctx.db.patch(args.schoolId, {
+      status: 'active',
+      updatedAt: Date.now(),
+    });
+
+    return args.schoolId;
+  },
+});
+
+// Desactivar una escuela completa (afecta a todos los usuarios)
+export const deactivateSchool = mutation({
+  args: {
+    schoolId: v.id('school'),
+  },
+  handler: async (ctx, args) => {
+    // Verificar que la escuela existe
+    const school = await ctx.db.get(args.schoolId);
+    if (!school) {
+      throw new Error('Escuela no encontrada');
+    }
+
+    // Cambiar el status de la escuela a inactive
+    await ctx.db.patch(args.schoolId, {
+      status: 'inactive',
+      updatedAt: Date.now(),
+    });
+
+    return args.schoolId;
+  },
+});

@@ -34,6 +34,9 @@
       "@/*": [
         "./src/*"
       ],
+      "@repo/ui/*": [
+        "../../packages/ui/src/*"
+      ]
     }
   },
   "include": [

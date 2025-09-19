@@ -4,14 +4,30 @@ import type React from "react";
 import { useState } from "react";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
-import { toast } from 'sonner'; // ✨ Importa la librería de toast
+import { toast } from "sonner";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@repo/ui/components/shadcn/table";
+import { GradingModal } from "components/grading-modal";
+import { MessageCircleMore, MessageCircleDashed } from "@repo/ui/icons";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider
+} from "@repo/ui/components/shadcn/tooltip";
 
-// Update types to match your Convex schema
 interface StudentWithClass {
   id: Id<"studentClass">;
   student: {
     _id: Id<"student">;
     name: string;
+    avatar?: string;
   } | null;
 }
 
@@ -24,15 +40,21 @@ interface Assignment {
 interface Grade {
   _id: Id<"grade">;
   studentClassId: Id<"studentClass">;
-  assignmentId: Id<"assignment">; 
+  assignmentId: Id<"assignment">;
   score: number | null;
+  comments?: string;
 }
 
 interface GradeMatrixProps {
   students: StudentWithClass[];
-  assignments: Assignment[] | undefined; 
+  assignments: Assignment[] | undefined;
   grades: Grade[];
-  onGradeUpdate: (studentClassId: string, assignmentId: string, score: number | null) => void;
+  onGradeUpdate: (
+    studentClassId: string,
+    assignmentId: string,
+    score: number | null,
+    comment: string // <-- New argument
+  ) => void;
   calculateAverage: (studentClassId: string) => number | null;
 }
 
@@ -46,8 +68,51 @@ export function GradeMatrix({
   const [editingCell, setEditingCell] = useState<string | null>(null);
   const [tempValue, setTempValue] = useState<string>("");
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedStudentClass, setSelectedStudentClass] = useState<StudentWithClass | null>(null);
+  
+  // ✅ Usamos un estado único para los datos del modal
+  const [selectedData, setSelectedData] = useState<{
+    item: Assignment | null;
+    grade: Grade | null;
+  }>({ item: null, grade: null });
+
+  const handleButtonClick = (studentId: string, assignmentId: string) => {
+    const studentClassData = students.find((s) => s.id === studentId);
+    const assignmentData = assignments?.find((a) => a._id === assignmentId);
+    const gradeData = grades.find(
+      (g) => g.studentClassId === studentId && g.assignmentId === assignmentId
+    );
+
+    setSelectedStudentClass(studentClassData || null);
+    setSelectedData({
+      item: assignmentData || null,
+      grade: gradeData || null,
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedStudentClass(null);
+    setSelectedData({ item: null, grade: null });
+  };
+
+  const handleModalSave = (
+    studentClassId: Id<"studentClass">,
+    itemId: Id<"assignment"> | Id<"term">,
+    score: number | null,
+    comment: string
+  ) => {
+    onGradeUpdate(studentClassId, itemId as Id<"assignment">, score, comment);
+    handleModalClose();
+  };
+
   const getGrade = (studentClassId: string, assignmentId: string) => {
-    return grades.find((g) => g.studentClassId === studentClassId && g.assignmentId === assignmentId)?.score;
+    return grades.find(
+      (g) =>
+        g.studentClassId === studentClassId && g.assignmentId === assignmentId
+    )?.score;
   };
 
   const handleCellClick = (studentClassId: string, assignmentId: string) => {
@@ -60,22 +125,33 @@ export function GradeMatrix({
   const handleCellBlur = (studentClassId: string, assignmentId: string) => {
     const score = tempValue === "" ? null : Number.parseFloat(tempValue);
 
-    // ✨ Validación para que la calificación no sea mayor que el puntaje máximo
-    const assignment = assignments?.find(a => a._id === assignmentId);
+    const assignment = assignments?.find((a) => a._id === assignmentId);
     if (score !== null && assignment && score > assignment.maxScore) {
-      toast.error(`La calificación no puede ser mayor que el puntaje máximo (${assignment.maxScore}).`);
+      toast.error(
+        `La calificación no puede ser mayor que el puntaje máximo (${assignment.maxScore}).`
+      );
       setEditingCell(null);
-      return; // Detiene la función
+      return;
     }
-  
+
+    const existingGrade = grades.find(
+      (g) =>
+        g.studentClassId === studentClassId && g.assignmentId === assignmentId
+    );
+    const currentComment = existingGrade?.comments || "";
+
     if (!isNaN(score!)) {
-      onGradeUpdate(studentClassId, assignmentId, score);
+      onGradeUpdate(studentClassId, assignmentId, score, currentComment);
     }
     setEditingCell(null);
     setTempValue("");
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent, studentClassId: string, assignmentId: string) => {
+  const handleKeyDown = (
+    e: React.KeyboardEvent,
+    studentClassId: string,
+    assignmentId: string
+  ) => {
     if (e.key === "Enter") {
       handleCellBlur(studentClassId, assignmentId);
     } else if (e.key === "Escape") {
@@ -85,87 +161,171 @@ export function GradeMatrix({
   };
 
   return (
-    <div className="overflow-auto max-h-[calc(100vh-300px)]">
-      <table className="w-full border-collapse">
-        <thead className="sticky top-0 bg-muted z-10">
-          <tr>
-            <th className="text-left p-3 border border-border bg-muted font-semibold text-muted-foreground min-w-[200px] sticky left-0">
-              Estudiante
-            </th>
-            {assignments!.map((assignment) => (
-              <th
-                key={assignment._id}
-                className="text-center p-3 border border-border bg-muted font-semibold text-muted-foreground min-w-[120px]"
-              >
-                <div className="space-y-1">
-                  <div className="font-medium text-sm">{assignment.name}</div>
-                  <div className="text-xs text-muted-foreground">Max: {assignment.maxScore}</div>
-                </div>
-              </th>
-            ))}
-            <th className="text-center p-3 border border-border bg-muted font-semibold text-muted-foreground min-w-[100px] sticky right-0">
-              Promedio
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {students.map((student) => {
-            if (!student.student) return null; // Salta la fila si el estudiante es nulo
-            
-            const average = calculateAverage(student.id);
+    <TooltipProvider>
+      <div className="overflow-auto max-h-[calc(100vh-300px)] border border-border rounded-lg">
+        <Table className="relative">
+          <TableHeader>
 
-            return (
-              <tr key={student.id} className="hover:bg-muted/50 transition-colors">
-                <td className="p-3 border border-border bg-card sticky left-0">
-                    <div className="font-medium text-card-foreground">{student.student.name}</div>
-                </td>
-                {assignments!.map((assignment) => {
-                  const grade = getGrade(student.id, assignment._id);
-                  const cellId = `${student.id}-${assignment._id}`;
-                  const isEditing = editingCell === cellId;
+            <TableRow >
+              <TableHead className="sticky left-0 z-20 bg-background text-center min-w-[200px]">
+                Estudiante
+              </TableHead>
+              {assignments!.map((assignment) => (
+                <TableHead
+                  key={assignment._id}
+                  className="text-center min-w-[120px]"
+                >
+                  <div className="space-y-1">
+                    <div className="font-medium text-sm">{assignment.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Max: {assignment.maxScore}
+                    </div>
+                  </div>
+                </TableHead>
+              ))}
+              <TableHead className="sticky right-0 z-20 bg-background text-center">
+                Promedio
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {students.map((student) => {
+              if (!student.student) return null;
 
-                  return (
-                    <td key={assignment._id} className="p-1 border border-border text-center">
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          value={tempValue}
-                          onChange={(e) => setTempValue(e.target.value)}
-                          onBlur={() => handleCellBlur(student.id, assignment._id)}
-                          onKeyDown={(e) => handleKeyDown(e, student.id, assignment._id)}
-                          className="w-full text-center border-accent"
-                          min="0"
-                          max={assignment.maxScore}
-                          autoFocus
-                        />
-                      ) : (
-                        <div
-                          onClick={() => handleCellClick(student.id, assignment._id)}
-                           className={grade! > (assignment.maxScore*0.7) ? "text-green-600" : (grade! < (assignment.maxScore*0.7) ? "text-red-700" : "text-gray-700")}
-                        >
-                          {grade !== undefined ? `${grade}` : "-"}
+              const average = calculateAverage(student.id);
+
+              return (
+                <TableRow
+                  key={student.id}
+                  className="hover:bg-muted/50 transition-colors"
+                >
+                  <TableCell className="sticky left-0 z-10 bg-card">
+                    <div className="font-medium text-card-foreground">
+                      {student.student.name}
+                    </div>
+                  </TableCell>
+                  {assignments!.map((assignment) => {
+                    const grade = getGrade(student.id, assignment._id);
+                    const cellId = `${student.id}-${assignment._id}`;
+                    const isEditing = editingCell === cellId;
+                    const gradeData = grades.find(
+                      (g) =>
+                        g.studentClassId === student.id &&
+                        g.assignmentId === assignment._id
+                    );
+
+                    const commentText = gradeData?.comments
+                      ? gradeData.comments.length > 25
+                        ? `${gradeData.comments.substring(0, 25)}...`
+                        : gradeData.comments
+                      : null;
+
+                    return (
+                      <TableCell
+                        key={assignment._id}
+                        className="p-1 text-center"
+                      >
+                        <div className="flex items-center justify-center space-x-2">
+                          {isEditing ? (
+                            <Input
+                              type="number"
+                              value={tempValue}
+                              onChange={(e) => setTempValue(e.target.value)}
+                              onBlur={() =>
+                                handleCellBlur(student.id, assignment._id)
+                              }
+                              onKeyDown={(e) =>
+                                handleKeyDown(e, student.id, assignment._id)
+                              }
+                              className="w-full text-center "
+                              min="0"
+                              max={assignment.maxScore}
+                              autoFocus
+                            />
+                          ) : (
+                            <div
+                              onClick={() =>
+                                handleCellClick(student.id, assignment._id)
+                              }
+                              className={`
+            ${
+              grade! > assignment.maxScore * 0.7
+                ? "text-green-600"
+                : grade! < assignment.maxScore * 0.7
+                  ? "text-red-700"
+                  : "text-gray-700"
+            }
+            cursor-pointer hover:bg-gray-400 hover:text-white rounded px-2 py-1 min-w-[40px
+          `}
+                            >
+                              {grade !== undefined ? `${grade}` : "-"}
+                            </div>
+                          )}
+                          <Tooltip delayDuration={200}>
+                            <TooltipTrigger asChild>
+                              {commentText ? (
+                                <MessageCircleMore
+                                  onClick={() => {
+                                    handleButtonClick(student.id, assignment._id);
+                                  }}
+                                  className="h-7.5 w-7.5 rounded-lg justify-end p-0.5 cursor-pointer hover:bg-gray-400 hover:text-white transition-colors"
+                                />
+                              ) : (
+                                <MessageCircleDashed
+                                  onClick={() => {
+                                    handleButtonClick(student.id, assignment._id);
+                                  }}
+                                  className="h-7.5 w-7.5 rounded-lg justify-end p-0.5 cursor-pointer hover:bg-gray-400 hover:text-white transition-colors"
+                                />
+                              )}
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-xs">
+                              {commentText ? (
+                                <p>{commentText}</p>
+                              ) : (
+                                <p>No hay comentarios</p>
+                              )}
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
-                      )}
-                    </td>
-                  );
-                })}
-                <td className="p-3 border border-border text-center bg-card sticky right-0">
-                  {average !== null ? (
-                    <p
-                      
-                      className={average >= 80 ? "text-green-500" : (average >= 70 ? "text-gray-500" : "text-red-400")}
-                    >
-                      {average}%
-                    </p>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+                      </TableCell>
+                    );
+                  })}
+                  <TableCell className="sticky right-0 z-10 p-3 text-center bg-card">
+                    {average !== null ? (
+                      <div className="flex items-center justify-center space-x-2">
+                        <p
+                          className={
+                            average >= 80
+                              ? "text-green-500"
+                              : average >= 70
+                                ? "text-gray-500"
+                                : "text-red-400"
+                          }
+                        >
+                          {average}%
+                        </p>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+
+        {/* ✅ Modal con el nuevo formato de props */}
+        <GradingModal
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
+          studentClass={selectedStudentClass}
+          context="assignment"
+          data={selectedData}
+          onSave={handleModalSave} 
+        />
+      </div>
+    </TooltipProvider>
   );
 }

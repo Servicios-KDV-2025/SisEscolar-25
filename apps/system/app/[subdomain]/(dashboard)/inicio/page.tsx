@@ -4,13 +4,15 @@ import React from "react";
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card";
 import { Badge } from "@repo/ui/components/shadcn/badge";
-import { BookOpen, Users, Calendar, BarChart3, Settings, GraduationCap, MapPin, Shield, Clock, Award } from "@repo/ui/icons";
-import { SignOutButton, useUser } from "@clerk/nextjs";
+import { BookOpen, Users, Calendar, BarChart3, Settings, GraduationCap, MapPin, School } from "@repo/ui/icons";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@repo/ui/components/shadcn/button";
-import { Separator } from "@repo/ui/components/shadcn/separator";
 import { useUserWithConvex } from "../../../../stores/userStore";
 import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
 import { usePermissions } from "../../../../hooks/usePermissions";
+import { useCicloEscolarWithConvex } from "../../../../stores/useSchoolCiclesStore";
+import { useQuery } from "convex/react";
+import { api } from "@repo/convex/convex/_generated/api";
 
 
 export default function EscuelaHome() {
@@ -21,27 +23,112 @@ export default function EscuelaHome() {
   // Get current school information using the subdomain
   const {
     currentSchool,
-    subdomain,
+    // subdomain,
     isLoading: schoolLoading,
     error: schoolError,
   } = useCurrentSchool(currentUser?._id);
 
   // Get user permissions for current school
   const {
-    permissions,
+    // permissions,
     isLoading: permissionsLoading,
-    canCreateUsers,
-    canReadUsers,
-    canUpdateUsers,
-    canDeleteUsers,
-    isSuperAdmin,
-    isAdmin,
-    isTutor,
-    highestRole
+    // canCreateUsers,
+    // canReadUsers,
+    // canUpdateUsers,
+    // canDeleteUsers,
+    // isSuperAdmin,
+    // isAdmin,
+    // isTutor,
+    // highestRole
   } = usePermissions(currentSchool?.school._id);
+
+  // Get school cycles for current school
+  const { ciclosEscolares } = useCicloEscolarWithConvex(currentSchool?.school._id);
+
+  // Get enrollment statistics for current school
+  const enrollmentStats = useQuery(
+    api.functions.studentsClasses.getEnrollmentStatistics,
+    currentSchool?.school._id ? { schoolId: currentSchool.school._id } : "skip"
+  );
+
+  // Get teachers/staff count for current school
+  const teachersData = useQuery(
+    api.functions.schools.getUsersBySchoolAndRoles,
+    currentSchool?.school._id ? { 
+      schoolId: currentSchool.school._id,
+      roles: ["teacher", "admin", "superadmin"],
+      status: "active"
+    } : "skip"
+  );
 
   // Combined loading state
   const isLoading = !isLoaded || userLoading || schoolLoading || permissionsLoading;
+
+  // Calculate real statistics (debe estar antes del return temprano)
+  const stats = React.useMemo(() => {
+    const activeStudents = enrollmentStats?.totalStudents || 0;
+    const teachersCount = teachersData?.length || 0;
+    const totalClasses = enrollmentStats?.totalClasses || 0;
+    const schoolCycles = ciclosEscolares?.length || 0;
+
+    return [
+      {
+        title: "Estudiantes Activos",
+        value: activeStudents.toLocaleString(),
+        icon: GraduationCap,
+        trend: enrollmentStats ? `${enrollmentStats.activeEnrollments} inscripciones activas` : "Cargando..."
+      },
+      {
+        title: "Profesores",
+        value: teachersCount.toString(),
+        icon: Users,
+        trend: teachersCount > 0 ? "Personal activo" : "Sin personal registrado"
+      },
+      {
+        title: "Materias Activas",
+        value: totalClasses.toString(),
+        icon: BookOpen,
+        trend: totalClasses > 0 ? "Clases disponibles" : "Sin clases registradas"
+      },
+      {
+        title: "Ciclos Escolares",
+        value: schoolCycles.toString(),
+        icon: Calendar,
+        trend: schoolCycles > 0 ? `${ciclosEscolares?.filter(c => c.status === 'active').length || 0} activos` : "Sin ciclos registrados"
+      }
+    ];
+  }, [enrollmentStats, teachersData, ciclosEscolares]);
+
+  const quickActions = [
+    {
+      title: "Gestión de Alumnos",
+      description: "Administrar estudiantes y expedientes",
+      icon: Users,
+      href: "/estudiantes",
+      color: "bg-blue-500"
+    },
+    {
+      title: "Calificaciones",
+      description: "Revisar y actualizar calificaciones",
+      icon: BarChart3,
+      href: "/calificaciones",
+      color: "bg-green-500"
+    },
+    {
+      title: "Horarios",
+      description: "Programar clases y eventos",
+      icon: Calendar,
+      href: "/schedule",
+      color: "bg-purple-500"
+    },
+    {
+      title: "Materias",
+      description: "Administrar cursos y materias",
+      icon: BookOpen,
+      href: "/materias",
+      color: "bg-orange-500"
+    }
+  ];
 
   // Prepare school data with loading and error states
   const schoolData = React.useMemo(() => {
@@ -114,100 +201,38 @@ export default function EscuelaHome() {
     );
   }
 
-  const quickActions = [
-    {
-      title: "Gestión de Alumnos",
-      description: "Administrar estudiantes y expedientes",
-      icon: Users,
-      href: "/estudiantes",
-      color: "bg-blue-500"
-    },
-    {
-      title: "Calificaciones",
-      description: "Revisar y actualizar calificaciones",
-      icon: BarChart3,
-      href: "/calificaciones",
-      color: "bg-green-500"
-    },
-    {
-      title: "Horarios",
-      description: "Programar clases y eventos",
-      icon: Calendar,
-      href: "/schedule",
-      color: "bg-purple-500"
-    },
-    {
-      title: "Materias",
-      description: "Administrar cursos y materias",
-      icon: BookOpen,
-      href: "/materias",
-      color: "bg-orange-500"
-    }
-  ];
-
-  const stats = [
-    {
-      title: "Estudiantes Activos",
-      value: "1,247",
-      icon: GraduationCap,
-      trend: "+12% este mes"
-    },
-    {
-      title: "Profesores",
-      value: "86",
-      icon: Users,
-      trend: "Personal completo"
-    },
-    {
-      title: "Materias",
-      value: "42",
-      icon: BookOpen,
-      trend: "Todos los niveles"
-    },
-    {
-      title: "Promedio General",
-      value: "8.7",
-      icon: Award,
-      trend: "+0.3 vs mes anterior"
-    }
-  ];
-
-  // Debug logs (similar to sidebar)
-  console.log('=== INICIO PAGE DEBUG ===');
-  console.log('subdomain (auto-detected):', subdomain);
-  console.log('currentUser:', currentUser);
-  console.log('schoolLoading:', schoolLoading);
-  console.log('currentSchool:', currentSchool);
-  console.log('schoolError:', schoolError);
-
   return (
-    <div className="space-y-8 p-6 max-w-7xl mx-auto">
-      <SignOutButton />
+    <div className="space-y-8 p-6 w-full">
+      
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
         <div className="relative p-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div className="flex items-start gap-6">
-              {schoolData.imgUrl && schoolData.imgUrl !== "/avatars/default-school.jpg" && (
-                <div className="relative shrink-0">
-                  <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl" />
-                  <Image
-                    src={schoolData.imgUrl}
-                    alt="Logo de la escuela"
-                    width={100}
-                    height={100}
-                    className="relative rounded-2xl shadow-lg ring-1 ring-white/20"
-                  />
-                </div>
-              )}
+            <div className="flex items-center gap-6">
+              <div className="relative shrink-0">
+                <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl" />
+                {schoolData.imgUrl && schoolData.imgUrl !== "/avatars/default-school.jpg" ? (
+                  <div className="relative w-[120px] h-[120px] rounded-2xl shadow-lg ring-1 ring-white/20 overflow-hidden">
+                    <Image
+                      src={schoolData.imgUrl}
+                      alt="Logo de la escuela"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="relative w-[100px] h-[100px] bg-primary/10 rounded-2xl shadow-lg ring-1 ring-white/20 flex items-center justify-center">
+                    <School className="w-12 h-12 text-primary/70" />
+                  </div>
+                )}
+              </div>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <h1 className="text-4xl font-bold tracking-tight">{schoolData.name}</h1>
                   <Badge 
                     variant={schoolData.status === 'active' ? 'secondary' : 'destructive'} 
-                    className="text-xs"
+                    className="text-xs bg-green-600 text-white -mb-2"
                   >
-                    <Shield className="w-3 h-3 mr-1" />
                     {schoolData.status === 'active' ? 'Activa' : 'Inactiva'}
                   </Badge>
                 </div>
@@ -228,10 +253,6 @@ export default function EscuelaHome() {
               <Button size="lg" className="gap-2">
                 <Settings className="w-4 h-4" />
                 Configuración
-              </Button>
-              <Button variant="outline" size="lg" className="gap-2">
-                <Clock className="w-4 h-4" />
-                Actividad Reciente
               </Button>
             </div>
           </div>
@@ -287,125 +308,7 @@ export default function EscuelaHome() {
           ))}
         </div>
 
-        {/* Ejemplo de uso del hook usePermissions */}
-        <div className="mt-8 space-y-4">
-          <h3 className="text-xl font-semibold">Gestión de Usuarios</h3>
-          <p className="text-muted-foreground">
-            Acciones disponibles según tus permisos como <Badge variant="outline">{highestRole || 'sin rol'}</Badge>
-          </p>
-          
-          <div className="flex flex-wrap gap-3">
-            {/* Usando permissions directamente - como querías */}
-            {permissions["create:users"] && (
-              <Button className="gap-2">
-                <Users className="w-4 h-4" />
-                Crear Usuario
-              </Button>
-            )}
-
-            {/* Usando las propiedades específicas */}
-            {canReadUsers && (
-              <Button variant="outline" className="gap-2">
-                <Users className="w-4 h-4" />
-                Ver Usuarios
-              </Button>
-            )}
-
-            {canUpdateUsers && (
-              <Button variant="outline" className="gap-2">
-                <Settings className="w-4 h-4" />
-                Editar Usuarios
-              </Button>
-            )}
-
-            {canDeleteUsers && (
-              <Button variant="destructive" className="gap-2">
-                <Users className="w-4 h-4" />
-                Eliminar Usuarios
-              </Button>
-            )}
-
-            {/* Usando roles específicos */}
-            {isSuperAdmin && (
-              <Button variant="secondary" className="gap-2">
-                <Shield className="w-4 h-4" />
-                Panel SuperAdmin
-              </Button>
-            )}
-
-            {isAdmin && (
-              <Button variant="secondary" className="gap-2">
-                <Shield className="w-4 h-4" />
-                Panel Admin
-              </Button>
-            )}
-
-            {isTutor && (
-              <Button variant="secondary" className="gap-2">
-                <GraduationCap className="w-4 h-4" />
-                Panel Tutor
-              </Button>
-            )}
-          </div>
-
-          {/* Información de debug sobre permisos */}
-          <Card className="bg-muted/50">
-            <CardHeader>
-              <CardTitle className="text-sm">Debug: Información de Permisos</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <strong>Rol más alto:</strong> {highestRole || 'Sin rol'}
-                </div>
-                <div>
-                  <strong>Escuela actual:</strong> {currentSchool?.school.name || 'No encontrada'}
-                </div>
-              </div>
-              <div className="space-y-1">
-                <strong>Permisos de usuarios:</strong>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <span className={canCreateUsers ? 'text-green-600' : 'text-red-600'}>
-                    ✓ Crear: {canCreateUsers ? 'Sí' : 'No'}
-                  </span>
-                  <span className={canReadUsers ? 'text-green-600' : 'text-red-600'}>
-                    ✓ Leer: {canReadUsers ? 'Sí' : 'No'}
-                  </span>
-                  <span className={canUpdateUsers ? 'text-green-600' : 'text-red-600'}>
-                    ✓ Actualizar: {canUpdateUsers ? 'Sí' : 'No'}
-                  </span>
-                  <span className={canDeleteUsers ? 'text-green-600' : 'text-red-600'}>
-                    ✓ Eliminar: {canDeleteUsers ? 'Sí' : 'No'}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       </div>
-
-      <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <GraduationCap className="h-5 w-5 text-primary" />
-            Bienvenido a {schoolData.name}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-muted-foreground leading-relaxed">
-            Esta plataforma te permitirá gestionar de manera integral todos los aspectos
-            administrativos y académicos de la institución. Desde el seguimiento de estudiantes
-            hasta la generación de reportes académicos, todo en un solo lugar.
-          </p>
-          <Separator />
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>CCT: <code className="bg-muted px-2 py-1 rounded text-xs">{schoolData.cctCode}</code></span>
-            {schoolData._id && (
-              <span>ID: <code className="bg-muted px-2 py-1 rounded text-xs">{schoolData._id}</code></span>
-            )}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
