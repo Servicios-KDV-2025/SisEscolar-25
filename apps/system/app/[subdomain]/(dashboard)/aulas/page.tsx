@@ -16,13 +16,10 @@ import { Id } from "@repo/convex/convex/_generated/dataModel"
 import { useUser } from "@clerk/nextjs"
 import { useUserWithConvex } from "stores/userStore"
 import { useCurrentSchool } from "stores/userSchoolsStore"
-import { classroomFormSchema } from "@/types/form/classroomSchema"
+import { classroomFormSchema, ClassroomFormValues } from "@/types/form/classroomSchema"
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog"
 import { UseFormReturn } from "react-hook-form"
 import { z } from "zod"
-
-// Definir el tipo inferido del schema
-type ClassroomFormValues = z.infer<typeof classroomFormSchema>
 
 interface Classroom extends Record<string, unknown> {
   _id: Id<"classroom">
