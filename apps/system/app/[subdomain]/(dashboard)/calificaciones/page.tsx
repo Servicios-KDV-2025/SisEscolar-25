@@ -24,12 +24,13 @@ import { useUser } from "@clerk/nextjs";
 import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/shadcn/button";
-import { Filter, BookCheck, SaveAll, Search } from "@repo/ui/icons";
+import { Filter, BookCheck, SaveAll, Search, Plus } from "@repo/ui/icons";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Skeleton } from "@repo/ui/components/shadcn/skeleton";
 import { TaskCreateForm } from "../../../../components/TaskCreateForm";
 import { SquareStack } from "lucide-react";
 import { Input } from "@repo/ui/components/shadcn/input";
+import Link from "next/link";
 
 export default function GradeManagementDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -352,7 +353,7 @@ export default function GradeManagementDashboard() {
       <div className="grid grid-cols-1">
         <Card className=" flex flex-row items-center justify-between">
           <div className="flex items-center gap-3 pl-6 flex-shrink-0">
-            <SquareStack className="h-5 w-5"  />
+            <SquareStack className="h-5 w-5" />
             <h3 className="font-semibold tracking-tight">
               Ponderación del Periodo
             </h3>
@@ -480,17 +481,61 @@ export default function GradeManagementDashboard() {
           {isDataLoading || !hasSchoolCycles || !hasClasses || !hasTerms ? (
             <div className="flex justify-center">
               <div className="space-y-4 text-center">
-                <p className="text-muted-foreground">Aún no has registrado:</p>
-                <ul className="list-disc list-inside mt-4 inline-block text-left text-muted-foreground">
-                  {!assignments && <li>Asignaciones en esta clase.</li>}
-                  {!hasTerms && <li>Periodos en este ciclo</li>}
-                  {!hasClasses && <li>Clases en este ciclo</li>}
-                  {!hasSchoolCycles && <li>Ciclos</li>}
-                  {(!rubrics || rubrics.length === 0) && <li>Rubricas</li>}
-                  {(!students || students.length === 0) && (
-                    <li>Clases por alumno</li>
+                <BookCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">
+                  No se pueden mostrar las calificaciones
+                </h3>
+
+                <p className="">Registra:</p>
+                
+                  {!assignments && (
+                    <Link href={`/asignaciones`}>
+                      <Button>
+                      <Plus className="w-4 h-4" />
+                      Asignaciones en esta clase.
+                      </Button>
+                    </Link>
                   )}
-                </ul>
+                  {!hasTerms && (
+                    <Link href={`/periodos`}>
+                      <Button>
+                        <Plus className="w-4 h-4" />
+                        Periodos en este ciclo
+                      </Button>
+                    </Link>
+                  )}
+                  {!hasClasses && (
+                    <Link href={`/clasesPorAlumnos`}>
+                      <Button>Clases en este ciclo</Button>
+                    </Link>
+                  )}
+                  {!hasSchoolCycles && (
+                    <Link href={`/CiclosEscolares`}>
+                      <Button>
+                        <Plus className="w-4 h-4" />
+                        Ciclos
+                      </Button>
+                    </Link>
+                  )}
+                  {(!rubrics || rubrics.length === 0) && (
+                    <Link href={`/RubricaDeCalificaciones`}>
+                      {" "}
+                      <Button>
+                        <Plus className="w-4 h-4" />
+                        Rubricas
+                      </Button>
+                    </Link>
+                  )}
+                  {(!students || students.length === 0) && (
+                    <Link href={`/clasesPorAlumnos`}>
+                      {" "}
+                      <Button>
+                        <Plus className="w-4 h-4" />
+                        Clases por alumno{" "}
+                      </Button>
+                    </Link>
+                  )}
+                
               </div>
             </div>
           ) : (

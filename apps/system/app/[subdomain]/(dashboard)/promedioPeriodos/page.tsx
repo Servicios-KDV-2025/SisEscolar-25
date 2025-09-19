@@ -15,7 +15,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@repo/ui/components/shadcn/card";
-import { Filter, SaveAll, Search, Star } from "@repo/ui/icons";
+import { Filter, SaveAll, Search, Star, Plus } from "@repo/ui/icons";
+import Link from "next/link";
 import { TermAverageMatrix } from "./term-average-matrix";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { api } from "@repo/convex/convex/_generated/api";
@@ -27,6 +28,7 @@ import { toast } from "sonner";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Badge } from "@repo/ui/components/shadcn/badge";
+import { BookCheck } from "lucide-react";
 
 export default function GradeManagementDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -81,7 +83,9 @@ export default function GradeManagementDashboard() {
 
   // Mutations
   const upsertGrade = useMutation(api.functions.termAverages.upsertTermAverage);
-  const updateAverage = useMutation(api.functions.studentsClasses.updateStudentClassAverage);
+  const updateAverage = useMutation(
+    api.functions.studentsClasses.updateStudentClassAverage
+  );
 
   // State synchronization and initial value setting
   useEffect(() => {
@@ -96,32 +100,32 @@ export default function GradeManagementDashboard() {
     }
   }, [classes, selectedClass]);
 
-const filteredAndSortedStudents = students
-  ? students
-      .filter((student) => {
-        if (!student || !student.student) return false;
-        const fullName = `${student.student.name || ''} ${student.student.lastName || ''}`.toLowerCase();
-        const searchTermLower = searchTerm.toLowerCase();
-        return fullName.includes(searchTermLower);
-      })
-      .sort((a, b) => {
-        // Obtenemos los datos de forma segura, usando '' como fallback
-        const lastNameA = a.student?.name || '';
-        const lastNameB = b.student?.name || '';
-        const nameA = a.student?.name || '';
-        const nameB = b.student?.name || '';
+  const filteredAndSortedStudents = students
+    ? students
+        .filter((student) => {
+          if (!student || !student.student) return false;
+          const fullName =
+            `${student.student.name || ""} ${student.student.lastName || ""}`.toLowerCase();
+          const searchTermLower = searchTerm.toLowerCase();
+          return fullName.includes(searchTermLower);
+        })
+        .sort((a, b) => {
+          // Obtenemos los datos de forma segura, usando '' como fallback
+          const lastNameA = a.student?.name || "";
+          const lastNameB = b.student?.name || "";
+          const nameA = a.student?.name || "";
+          const nameB = b.student?.name || "";
 
-        // La lógica de comparación ahora es segura
-        const lastNameComparison = lastNameA.localeCompare(lastNameB);
-        if (lastNameComparison !== 0) {
-          return lastNameComparison;
-        }
-        return nameA.localeCompare(nameB);
-      })
-  : [];
+          // La lógica de comparación ahora es segura
+          const lastNameComparison = lastNameA.localeCompare(lastNameB);
+          if (lastNameComparison !== 0) {
+            return lastNameComparison;
+          }
+          return nameA.localeCompare(nameB);
+        })
+    : [];
 
-
-const handleSaveAverages = async () => {
+  const handleSaveAverages = async () => {
     if (!students || !currentSchool) {
       toast.error("Faltan datos de estudiantes o del colegio para guardar.");
       return;
@@ -132,8 +136,8 @@ const handleSaveAverages = async () => {
     // Recorre cada estudiante para calcular y guardar su promedio final
     for (const student of students) {
       // student.id aquí es el studentClassId que necesitamos
-      const studentClassId = student.id; 
-      
+      const studentClassId = student.id;
+
       // Usamos la nueva función para calcular el promedio anual
       const finalAverage = calculateAnnualAverage(studentClassId);
 
@@ -150,13 +154,17 @@ const handleSaveAverages = async () => {
             `Error guardando promedio final para el estudiante con ID ${student.student?._id}:`,
             error
           );
-          toast.error(`Error al guardar el promedio para ${student.student?.name}.`);
+          toast.error(
+            `Error al guardar el promedio para ${student.student?.name}.`
+          );
         }
       }
     }
 
-    toast.success("¡Promedios finales de todos los alumnos guardados en su inscripción!");
-};
+    toast.success(
+      "¡Promedios finales de todos los alumnos guardados en su inscripción!"
+    );
+  };
 
   const calculateAnnualAverage = (studentClassId: string): number | null => {
     if (!allTermAverages) return null;
@@ -182,10 +190,10 @@ const handleSaveAverages = async () => {
     if (validTermsCount === 0) {
       return null;
     }
-    
+
     // Devolvemos el promedio final redondeado
     return Math.round(totalScoreSum / validTermsCount);
-};
+  };
 
   // Handle loading state
   const isDataLoading =
@@ -332,16 +340,16 @@ const handleSaveAverages = async () => {
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              placeholder="Buscar por nombre, apellido"
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
-                              className="pl-10"
-                            />
-                          </div>
-                        </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nombre, apellido"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
             <Select
               value={selectedSchoolCycle}
               onValueChange={(value) => {
@@ -382,16 +390,16 @@ const handleSaveAverages = async () => {
       {/* Grade Matrix */}
       <Card>
         <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Calificaciones</span>
-                    <Badge
-                      variant="outline"
-                      className="bg-black-50 text-black-700 border-black-200"
-                    >
-                      {terms?.length} periodos
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Calificaciones</span>
+            <Badge
+              variant="outline"
+              className="bg-black-50 text-black-700 border-black-200"
+            >
+              {terms?.length} periodos
+            </Badge>
+          </CardTitle>
+        </CardHeader>
         <CardContent>
           {/* Si no hay estudiantes o no hay Periodos, muestra un mensaje */}
           {hasStudents && hasTerms && hasClasses && !isDataLoading ? (
@@ -402,13 +410,39 @@ const handleSaveAverages = async () => {
               onAverageUpdate={handleUpdateGrade}
             />
           ) : (
-            <div className="text-center text-muted-foreground p-8">
-              <p className="text-muted-foreground">Aún no has registrado:</p>
-              <ul className="list-disc list-inside mt-4 inline-block text-left text-muted-foreground">
-                {!hasStudents && <li>Estudiantes en esta clase.</li>}
-                {!hasTerms && <li>Periodos en este ciclo</li>}
-                {!hasClasses && <li>Clases</li>}
-              </ul>
+            <div className="flex justify-center">
+              <div className="space-y-4 text-center">
+              <BookCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">
+                No se pueden mostrar las calificaciones
+              </h3>
+              <p className="">Registra:</p>
+
+              {!hasStudents && (
+                <Link href={`/clasesPorAlumnos`}>
+                  <Button>
+                    <Plus className="w-4 h-4" />
+                    Estudiantes en esta clase
+                  </Button>
+                </Link>
+              )}
+              {!hasTerms && (
+                <Link href={`/periodos`}>
+                  <Button>
+                    <Plus className="w-4 h-4" />
+                    Periodos en este ciclo{" "}
+                  </Button>
+                </Link>
+              )}
+              {!hasClasses && (
+                <Link href={`/clasesPorAlumnos`}>
+                  <Button>
+                    <Plus className="w-4 h-4" />
+                    Clases{" "}
+                  </Button>
+                </Link>
+              )}
+            </div>
             </div>
           )}
         </CardContent>
