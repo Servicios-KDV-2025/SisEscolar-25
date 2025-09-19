@@ -4,7 +4,7 @@ import React from "react";
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card";
 import { Badge } from "@repo/ui/components/shadcn/badge";
-import { BookOpen, Users, Calendar, BarChart3, Settings, GraduationCap, MapPin, Shield, Award, School } from "@repo/ui/icons";
+import { BookOpen, Users, Calendar, BarChart3, Settings, GraduationCap, MapPin, School } from "@repo/ui/icons";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { useUserWithConvex } from "../../../../stores/userStore";
@@ -23,23 +23,23 @@ export default function EscuelaHome() {
   // Get current school information using the subdomain
   const {
     currentSchool,
-    subdomain,
+    // subdomain,
     isLoading: schoolLoading,
     error: schoolError,
   } = useCurrentSchool(currentUser?._id);
 
   // Get user permissions for current school
   const {
-    permissions,
+    // permissions,
     isLoading: permissionsLoading,
-    canCreateUsers,
-    canReadUsers,
-    canUpdateUsers,
-    canDeleteUsers,
-    isSuperAdmin,
-    isAdmin,
-    isTutor,
-    highestRole
+    // canCreateUsers,
+    // canReadUsers,
+    // canUpdateUsers,
+    // canDeleteUsers,
+    // isSuperAdmin,
+    // isAdmin,
+    // isTutor,
+    // highestRole
   } = usePermissions(currentSchool?.school._id);
 
   // Get school cycles for current school

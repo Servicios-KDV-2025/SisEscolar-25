@@ -15,9 +15,9 @@ interface SchoolValidatorProps {
 
 export const SchoolValidator: React.FC<SchoolValidatorProps> = ({ children }) => {
   const router = useRouter();
-  const { user: clerkUser, isLoaded } = useUser();
-  const { currentUser, isLoading: userLoading } = useUserWithConvex(clerkUser?.id);
-  const { currentSchool, isLoading: schoolLoading, error: schoolError } = useCurrentSchool(currentUser?._id);
+  const { user: clerkUser } = useUser();
+  const { currentUser } = useUserWithConvex(clerkUser?.id);
+  const { currentSchool, error: schoolError } = useCurrentSchool(currentUser?._id);
   
   const [showErrorDialog, setShowErrorDialog] = React.useState(false);
 
