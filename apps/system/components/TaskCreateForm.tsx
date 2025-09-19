@@ -115,13 +115,14 @@ export function TaskCreateForm({ triggerButton }: TaskCreateFormProps) {
     <Dialog open={isCreateDialogOpen} onOpenChange={setCreateDialogOpen}>
       <DialogTrigger asChild>
         {triggerButton || (
-          <Button className="cursor-pointer">
+          <Button className="cursor-pointer w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" />
-            Nueva Asignación
+            <span className="hidden sm:inline">Agregar Asignación</span>
+            <span className="sm:hidden">Agregar Asignación</span>
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="w-[95vw] max-w-[500px] sm:w-full sm:max-w-[600px] lg:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Crear Nueva Asignación</DialogTitle>
           <DialogDescription>
@@ -261,7 +262,7 @@ export function TaskCreateForm({ triggerButton }: TaskCreateFormProps) {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="dueDate">Fecha de Entrega *</Label>
               <Input
@@ -272,6 +273,7 @@ export function TaskCreateForm({ triggerButton }: TaskCreateFormProps) {
                   setFormData({ dueDate: e.target.value });
                   clearFieldError("dueDate");
                 }}
+                className="w-full"
               />
               {validationErrors.dueDate && (
                 <p className="text-sm text-red-600">
@@ -289,6 +291,7 @@ export function TaskCreateForm({ triggerButton }: TaskCreateFormProps) {
                   setFormData({ dueTime: e.target.value });
                   clearFieldError("dueTime");
                 }}
+                className="w-full"
               />
               {validationErrors.dueTime && (
                 <p className="text-sm text-red-600">
@@ -317,11 +320,11 @@ export function TaskCreateForm({ triggerButton }: TaskCreateFormProps) {
             )}
           </div>
         </div>
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
           <Button
             variant="outline"
             onClick={() => setCreateDialogOpen(false)}
-            className="cursor-pointer"
+            className="cursor-pointer w-full sm:w-auto order-2 sm:order-1"
           >
             Cancelar
           </Button>
@@ -333,7 +336,7 @@ export function TaskCreateForm({ triggerButton }: TaskCreateFormProps) {
               !formData.termId ||
               !formData.gradeRubricId
             }
-            className="cursor-pointer"
+            className="cursor-pointer w-full sm:w-auto order-1 sm:order-2"
           >
             {isCreating ? "Creando..." : "Crear Tarea"}
           </Button>

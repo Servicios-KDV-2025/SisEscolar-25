@@ -1,4 +1,3 @@
-// En gradematrix.tsx
 "use client";
 
 import type React from "react";
@@ -99,14 +98,12 @@ export function GradeMatrix({
     setSelectedData({ item: null, grade: null });
   };
 
-  // ✅ Adaptamos esta función para que reciba el tipo más genérico
   const handleModalSave = (
     studentClassId: Id<"studentClass">,
-    itemId: Id<"assignment"> | Id<"term">, // ✅ Recibe el tipo genérico
+    itemId: Id<"assignment"> | Id<"term">,
     score: number | null,
     comment: string
   ) => {
-    // ✅ Usamos una aserción para pasar el tipo correcto a onGradeUpdate
     onGradeUpdate(studentClassId, itemId as Id<"assignment">, score, comment);
     handleModalClose();
   };
@@ -165,17 +162,18 @@ export function GradeMatrix({
 
   return (
     <TooltipProvider>
-      <div className="overflow-auto max-h-[calc(100vh-300px)]">
-        <Table>
-          <TableHeader className="sticky top-0 bg-muted z-10">
-            <TableRow>
-              <TableHead className="text-left p-3 border border-border bg-muted font-semibold text-muted-foreground min-w-[200px] sticky left-0">
+      <div className="overflow-auto max-h-[calc(100vh-300px)] border border-border rounded-lg">
+        <Table className="relative">
+          <TableHeader>
+
+            <TableRow >
+              <TableHead className="sticky left-0 z-20 bg-background text-center min-w-[200px]">
                 Estudiante
               </TableHead>
               {assignments!.map((assignment) => (
                 <TableHead
                   key={assignment._id}
-                  className="text-center p-3 border border-border bg-muted font-semibold text-muted-foreground min-w-[120px]"
+                  className="text-center min-w-[120px]"
                 >
                   <div className="space-y-1">
                     <div className="font-medium text-sm">{assignment.name}</div>
@@ -185,7 +183,7 @@ export function GradeMatrix({
                   </div>
                 </TableHead>
               ))}
-              <TableHead className="text-center p-3 border border-border bg-muted font-semibold text-muted-foreground min-w-[100px] sticky right-0">
+              <TableHead className="sticky right-0 z-20 bg-background text-center">
                 Promedio
               </TableHead>
             </TableRow>
@@ -201,7 +199,7 @@ export function GradeMatrix({
                   key={student.id}
                   className="hover:bg-muted/50 transition-colors"
                 >
-                  <TableCell className="p-3 border border-border bg-card sticky left-0">
+                  <TableCell className="sticky left-0 z-10 bg-card">
                     <div className="font-medium text-card-foreground">
                       {student.student.name}
                     </div>
@@ -225,7 +223,7 @@ export function GradeMatrix({
                     return (
                       <TableCell
                         key={assignment._id}
-                        className="p-1 border border-border text-center"
+                        className="p-1 text-center"
                       >
                         <div className="flex items-center justify-center space-x-2">
                           {isEditing ? (
@@ -239,7 +237,7 @@ export function GradeMatrix({
                               onKeyDown={(e) =>
                                 handleKeyDown(e, student.id, assignment._id)
                               }
-                              className="w-full text-center border-accent"
+                              className="w-full text-center "
                               min="0"
                               max={assignment.maxScore}
                               autoFocus
@@ -293,7 +291,7 @@ export function GradeMatrix({
                       </TableCell>
                     );
                   })}
-                  <TableCell className="p-3 border border-border text-center bg-card sticky right-0">
+                  <TableCell className="sticky right-0 z-10 p-3 text-center bg-card">
                     {average !== null ? (
                       <div className="flex items-center justify-center space-x-2">
                         <p
@@ -325,7 +323,7 @@ export function GradeMatrix({
           studentClass={selectedStudentClass}
           context="assignment"
           data={selectedData}
-          onSave={handleModalSave} // ✅ Pasa la función corregida
+          onSave={handleModalSave} 
         />
       </div>
     </TooltipProvider>

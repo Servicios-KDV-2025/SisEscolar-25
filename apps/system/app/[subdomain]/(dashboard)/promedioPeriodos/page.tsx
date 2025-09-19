@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "@repo/ui/components/shadcn/card";
 import {
   Select,
   SelectContent,
@@ -9,6 +8,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui/components/shadcn/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/shadcn/card";
+import { Filter, SaveAll, Search, Star, Plus } from "@repo/ui/icons";
+import Link from "next/link";
 import { TermAverageMatrix } from "./term-average-matrix";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { api } from "@repo/convex/convex/_generated/api";
@@ -17,8 +25,13 @@ import { useUserWithConvex } from "../../../../stores/userStore";
 import { useUser } from "@clerk/nextjs";
 import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
 import { toast } from "sonner";
+import { Button } from "@repo/ui/components/shadcn/button";
+import { Input } from "@repo/ui/components/shadcn/input";
+import { Badge } from "@repo/ui/components/shadcn/badge";
+import { BookCheck } from "lucide-react";
 
 export default function GradeManagementDashboard() {
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedSchoolCycle, setSelectedSchoolCycle] = useState<string>("");
   const [selectedClass, setSelectedClass] = useState<string>("");
 
@@ -70,6 +83,9 @@ export default function GradeManagementDashboard() {
 
   // Mutations
   const upsertGrade = useMutation(api.functions.termAverages.upsertTermAverage);
+  const updateAverage = useMutation(
+    api.functions.studentsClasses.updateStudentClassAverage
+  );
 
   // State synchronization and initial value setting
   useEffect(() => {
@@ -83,6 +99,101 @@ export default function GradeManagementDashboard() {
       setSelectedClass(classes[0]!._id as string);
     }
   }, [classes, selectedClass]);
+
+  const filteredAndSortedStudents = students
+    ? students
+        .filter((student) => {
+          if (!student || !student.student) return false;
+          const fullName =
+            `${student.student.name || ""} ${student.student.lastName || ""}`.toLowerCase();
+          const searchTermLower = searchTerm.toLowerCase();
+          return fullName.includes(searchTermLower);
+        })
+        .sort((a, b) => {
+          // Obtenemos los datos de forma segura, usando '' como fallback
+          const lastNameA = a.student?.name || "";
+          const lastNameB = b.student?.name || "";
+          const nameA = a.student?.name || "";
+          const nameB = b.student?.name || "";
+
+          // La lógica de comparación ahora es segura
+          const lastNameComparison = lastNameA.localeCompare(lastNameB);
+          if (lastNameComparison !== 0) {
+            return lastNameComparison;
+          }
+          return nameA.localeCompare(nameB);
+        })
+    : [];
+
+  const handleSaveAverages = async () => {
+    if (!students || !currentSchool) {
+      toast.error("Faltan datos de estudiantes o del colegio para guardar.");
+      return;
+    }
+
+    toast.info("Guardando promedios finales...");
+
+    // Recorre cada estudiante para calcular y guardar su promedio final
+    for (const student of students) {
+      // student.id aquí es el studentClassId que necesitamos
+      const studentClassId = student.id;
+
+      // Usamos la nueva función para calcular el promedio anual
+      const finalAverage = calculateAnnualAverage(studentClassId);
+
+      if (finalAverage !== null) {
+        try {
+          // Llama a la mutación que creamos para guardar en 'studentClass'
+          await updateAverage({
+            studentClassId: studentClassId as Id<"studentClass">,
+            schoolId: currentSchool.school._id,
+            averageScore: finalAverage,
+          });
+        } catch (error) {
+          console.error(
+            `Error guardando promedio final para el estudiante con ID ${student.student?._id}:`,
+            error
+          );
+          toast.error(
+            `Error al guardar el promedio para ${student.student?.name}.`
+          );
+        }
+      }
+    }
+
+    toast.success(
+      "¡Promedios finales de todos los alumnos guardados en su inscripción!"
+    );
+  };
+
+  const calculateAnnualAverage = (studentClassId: string): number | null => {
+    if (!allTermAverages) return null;
+
+    // 'allTermAverages' viene de tu query y tiene la forma { studentClassId: [avg1, avg2] }
+    const studentAverages = allTermAverages[studentClassId];
+
+    if (!studentAverages || studentAverages.length === 0) {
+      return null;
+    }
+
+    let totalScoreSum = 0;
+    let validTermsCount = 0;
+
+    studentAverages.forEach((avg) => {
+      // Nos aseguramos de promediar solo si hay una calificación
+      if (avg.averageScore !== null && avg.averageScore !== undefined) {
+        totalScoreSum += avg.averageScore;
+        validTermsCount++;
+      }
+    });
+
+    if (validTermsCount === 0) {
+      return null;
+    }
+
+    // Devolvemos el promedio final redondeado
+    return Math.round(totalScoreSum / validTermsCount);
+  };
 
   // Handle loading state
   const isDataLoading =
@@ -116,7 +227,7 @@ export default function GradeManagementDashboard() {
     studentClassId: string,
     termId: string,
     averageScore: number | null,
-     comment: string
+    comment: string
   ) => {
     // Only proceed if a user is logged in and the score is a number
     if (!currentUser || averageScore === null) return;
@@ -135,7 +246,6 @@ export default function GradeManagementDashboard() {
       toast.error("Hubo un error al actualizar el promedio.");
     }
   };
-
 
   // Check for missing data and display specific messages
   const hasSchoolCycles = schoolCycles && schoolCycles.length > 0;
@@ -178,77 +288,165 @@ export default function GradeManagementDashboard() {
 
   // Main UI when all data is available
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <h1 className="text-3xl font-bold text-foreground">
-          Calificaciones por Periodo
-        </h1>
-        <Card>
-          <CardContent className="py-0">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="flex flex-1 gap-4">
-                <Select
-                  value={selectedSchoolCycle}
-                  onValueChange={(value) => {
-                    setSelectedSchoolCycle(value);
-                    setSelectedClass("");
-                  }}
-                >
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Ciclo Escolar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {schoolCycles.map((cycle) => (
-                      <SelectItem key={cycle._id} value={cycle._id as string}>
-                        {cycle.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                  {hasClasses && (<Select value={selectedClass} onValueChange={setSelectedClass}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Clase" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {classes.map((cls) => (
-                      <SelectItem key={cls._id} value={cls._id as string}>
-                        {cls.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>)}
-                
-                
-
+    <div className="space-y-8 p-6 min-w-full max-w-5xl mx-auto">
+      {/* Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
+        <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
+        <div className="relative p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-primary/10 rounded-xl">
+                  <Star className="h-8 w-8 text-primary" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold tracking-tight">
+                    Calificaciones por Periodo
+                  </h1>
+                  <p className="text-lg text-muted-foreground">
+                    Administra las calificaciones de los periodos por grupo y
+                    clase.
+                  </p>
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Grade Matrix */}
-        <Card>
-          <CardContent>
-            {/* Si no hay estudiantes o no hay Periodos, muestra un mensaje */}
-            {hasStudents && hasTerms && hasClasses && !isDataLoading ? (
-              <TermAverageMatrix
-                students={students!}
-                terms={terms!}
-                averages={averagesMap} // ✨ PASAMOS EL MAP CORREGIDO
-                onAverageUpdate={handleUpdateGrade}
-              />
-            ) : (
-              <div className="text-center text-muted-foreground p-8">
-                <p className="text-muted-foreground">Aún no has registrado:</p>
-                <ul className="list-disc list-inside mt-4 inline-block text-left text-muted-foreground">
-                  {!hasStudents && <li>Estudiantes en esta clase.</li>}
-                  {!hasTerms && <li>Periodos en este ciclo</li>}
-                  {!hasClasses && <li>Clases</li>}
-                </ul>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            <Button
+              onClick={handleSaveAverages}
+              size="lg"
+              className="gap-2"
+              // disabled={isLoading || !currentSchool || isCrudLoading}
+            >
+              <SaveAll className="w-4 h-4" />
+              Guardar promedios
+            </Button>
+          </div>
+        </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                Filtros y Búsqueda
+              </CardTitle>
+              <CardDescription>
+                Filtra las calificaciones por ciclo escolar, clase y periodo.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nombre, apellido"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <Select
+              value={selectedSchoolCycle}
+              onValueChange={(value) => {
+                setSelectedSchoolCycle(value);
+                setSelectedClass("");
+              }}
+            >
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Ciclo Escolar" />
+              </SelectTrigger>
+              <SelectContent>
+                {hasSchoolCycles &&
+                  schoolCycles.map((cycle) => (
+                    <SelectItem key={cycle._id} value={cycle._id as string}>
+                      {cycle.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            {hasClasses && (
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Clase" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((cls) => (
+                    <SelectItem key={cls._id} value={cls._id as string}>
+                      {cls.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Grade Matrix */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Calificaciones</span>
+            <Badge
+              variant="outline"
+              className="bg-black-50 text-black-700 border-black-200"
+            >
+              {terms?.length} periodos
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Si no hay estudiantes o no hay Periodos, muestra un mensaje */}
+          {hasStudents && hasTerms && hasClasses && !isDataLoading ? (
+            <TermAverageMatrix
+              students={filteredAndSortedStudents}
+              terms={terms!}
+              averages={averagesMap} // ✨ PASAMOS EL MAP CORREGIDO
+              onAverageUpdate={handleUpdateGrade}
+            />
+          ) : (
+            <div className="flex justify-center">
+              <div className="space-y-4 text-center">
+              <BookCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">
+                No se pueden mostrar las calificaciones
+              </h3>
+              <p className="">Registra:</p>
+
+              {!hasStudents && (
+                <Link href={`/clasesPorAlumnos`}>
+                  <Button>
+                    <Plus className="w-4 h-4" />
+                    Estudiantes en esta clase
+                  </Button>
+                </Link>
+              )}
+              {!hasTerms && (
+                <Link href={`/periodos`}>
+                  <Button>
+                    <Plus className="w-4 h-4" />
+                    Periodos en este ciclo{" "}
+                  </Button>
+                </Link>
+              )}
+              {!hasClasses && (
+                <Link href={`/clasesPorAlumnos`}>
+                  <Button>
+                    <Plus className="w-4 h-4" />
+                    Clases{" "}
+                  </Button>
+                </Link>
+              )}
+            </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
