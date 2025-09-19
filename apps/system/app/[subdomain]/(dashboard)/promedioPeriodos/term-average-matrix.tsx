@@ -182,7 +182,7 @@ export function TermAverageMatrix({
 
   return (
     <TooltipProvider>
-      <div className="overflow-auto max-h-[calc(100vh-300px)]">
+      <div className="overflow-auto max-h-[calc(100vh-300px)] border border-border rounded-lg">
         <Table className="relative">
           <TableHeader>
             <TableRow>

@@ -24,13 +24,15 @@ import { useUser } from "@clerk/nextjs";
 import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/shadcn/button";
-import { Filter, BookCheck, SaveAll,  } from "@repo/ui/icons";
+import { Filter, BookCheck, SaveAll, Search } from "@repo/ui/icons";
+import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Skeleton } from "@repo/ui/components/shadcn/skeleton";
 import { TaskCreateForm } from "../../../../components/TaskCreateForm";
 import { SquareStack } from "lucide-react";
-//import { Badge } from "@repo/ui/components/shadcn/badge";
+import { Input } from "@repo/ui/components/shadcn/input";
 
 export default function GradeManagementDashboard() {
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedSchoolCycle, setSelectedSchoolCycle] = useState<string>("");
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [selectedTerm, setSelectedTerm] = useState<string>("");
@@ -120,6 +122,31 @@ export default function GradeManagementDashboard() {
       setSelectedTerm(terms[0]!._id as string);
     }
   }, [terms, selectedTerm]);
+
+  const filteredAndSortedStudents = students
+    ? students
+        .filter((student) => {
+          if (!student || !student.student) return false;
+          const fullName =
+            `${student.student.name || ""} ${student.student.lastName || ""}`.toLowerCase();
+          const searchTermLower = searchTerm.toLowerCase();
+          return fullName.includes(searchTermLower);
+        })
+        .sort((a, b) => {
+          // Obtenemos los datos de forma segura, usando '' como fallback
+          const lastNameA = a.student?.name || "";
+          const lastNameB = b.student?.name || "";
+          const nameA = a.student?.name || "";
+          const nameB = b.student?.name || "";
+
+          // La lógica de comparación ahora es segura
+          const lastNameComparison = lastNameA.localeCompare(lastNameB);
+          if (lastNameComparison !== 0) {
+            return lastNameComparison;
+          }
+          return nameA.localeCompare(nameB);
+        })
+    : [];
 
   const handleSaveAverages = async () => {
     if (
@@ -293,27 +320,26 @@ export default function GradeManagementDashboard() {
                 </div>
                 <div>
                   <h1 className="text-4xl font-bold tracking-tight">
-                    Gestión de Calificaciones Asignaciones
+                    Calificaciones de Asignaciones
                   </h1>
                   <p className="text-lg text-muted-foreground">
-                    Administra las calificaciones de las asignaciones por grupo
-                    y clase.
-                    {currentSchool?.school && (
-                      <span className="block text-sm mt-1">
-                        {currentSchool.school.name}
-                      </span>
-                    )}
+                    Administra las calificaciones de las Asignaciones del curso.
                   </p>
                 </div>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-col sm:items-center sm:gap-4 lg:gap-2">
-              <TaskCreateForm  />
+            <div className="flex flex-col gap-4 sm:flex-col sm:items-center sm:gap-8 lg:gap-2">
+              <TaskCreateForm />
               <Button
                 onClick={handleSaveAverages}
                 size="lg"
                 className="gap-2"
-                disabled={isDataLoading || !currentSchool || !students || students.length === 0}
+                disabled={
+                  isDataLoading ||
+                  !currentSchool ||
+                  !students ||
+                  students.length === 0
+                }
               >
                 <SaveAll className="w-4 h-4" />
                 Guardar Promedios
@@ -324,37 +350,37 @@ export default function GradeManagementDashboard() {
       </div>
 
       <div className="grid grid-cols-1">
-        
-          <Card className="mb-4 flex flex-row items-center justify-between">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <SquareStack className="h-5 w-5" />
-              Rubricas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {rubrics ? (
-                rubrics.length > 0 ? (
-                  <div className=" flex flex-row gap-4 py-0 flex-wrap justify-center text-xl">
-                    {rubrics.map((rubric) => (
-                      <div key={rubric._id}>
-                        {rubric.name}: {Math.round(rubric.weight * 100)}%
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">No hay rúbricas definidas para esta clase y periodo.</p>
-                )
-              ) : (
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-5/6" />
-                  <Skeleton className="h-4 w-3/4" />
+        <Card className=" flex flex-row items-center justify-between">
+          <div className="flex items-center gap-3 pl-6 flex-shrink-0">
+            <SquareStack className="h-5 w-5"  />
+            <h3 className="font-semibold tracking-tight">
+              Ponderación del Periodo
+            </h3>
+          </div>
+          <CardContent>
+            {rubrics ? (
+              rubrics.length > 0 ? (
+                <div className=" flex flex-row gap-4 py-0 flex-wrap justify-center text-xl">
+                  {rubrics.map((rubric) => (
+                    <div key={rubric._id}>
+                      {rubric.name}: {Math.round(rubric.weight * 100)}%
+                    </div>
+                  ))}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        
+              ) : (
+                <p className="text-muted-foreground">
+                  No hay rúbricas definidas para esta clase y periodo.
+                </p>
+              )
+            ) : (
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
@@ -373,6 +399,17 @@ export default function GradeManagementDashboard() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nombre, apellido"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
             <Select
               value={selectedSchoolCycle}
               onValueChange={setSelectedSchoolCycle}
@@ -428,6 +465,17 @@ export default function GradeManagementDashboard() {
 
       {/* Grade Matrix */}
       <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Calificaciones</span>
+            <Badge
+              variant="outline"
+              className="bg-black-50 text-black-700 border-black-200"
+            >
+              {assignments?.length} asignaciones
+            </Badge>
+          </CardTitle>
+        </CardHeader>
         <CardContent className="w-full">
           {isDataLoading || !hasSchoolCycles || !hasClasses || !hasTerms ? (
             <div className="flex justify-center">
@@ -448,7 +496,7 @@ export default function GradeManagementDashboard() {
           ) : (
             <div className="w-full">
               <GradeMatrix
-                students={students!}
+                students={filteredAndSortedStudents}
                 assignments={assignments!}
                 grades={grades!}
                 onGradeUpdate={handleUpdateGrade}

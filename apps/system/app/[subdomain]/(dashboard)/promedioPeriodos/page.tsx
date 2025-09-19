@@ -15,7 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@repo/ui/components/shadcn/card";
-import { Filter, SaveAll, Star } from "@repo/ui/icons";
+import { Filter, SaveAll, Search, Star } from "@repo/ui/icons";
 import { TermAverageMatrix } from "./term-average-matrix";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { api } from "@repo/convex/convex/_generated/api";
@@ -25,8 +25,11 @@ import { useUser } from "@clerk/nextjs";
 import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/shadcn/button";
+import { Input } from "@repo/ui/components/shadcn/input";
+import { Badge } from "@repo/ui/components/shadcn/badge";
 
 export default function GradeManagementDashboard() {
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedSchoolCycle, setSelectedSchoolCycle] = useState<string>("");
   const [selectedClass, setSelectedClass] = useState<string>("");
 
@@ -92,7 +95,31 @@ export default function GradeManagementDashboard() {
       setSelectedClass(classes[0]!._id as string);
     }
   }, [classes, selectedClass]);
-// En page.tsx, reemplaza tu función handleSaveAverages existente por esta:
+
+const filteredAndSortedStudents = students
+  ? students
+      .filter((student) => {
+        if (!student || !student.student) return false;
+        const fullName = `${student.student.name || ''} ${student.student.lastName || ''}`.toLowerCase();
+        const searchTermLower = searchTerm.toLowerCase();
+        return fullName.includes(searchTermLower);
+      })
+      .sort((a, b) => {
+        // Obtenemos los datos de forma segura, usando '' como fallback
+        const lastNameA = a.student?.name || '';
+        const lastNameB = b.student?.name || '';
+        const nameA = a.student?.name || '';
+        const nameB = b.student?.name || '';
+
+        // La lógica de comparación ahora es segura
+        const lastNameComparison = lastNameA.localeCompare(lastNameB);
+        if (lastNameComparison !== 0) {
+          return lastNameComparison;
+        }
+        return nameA.localeCompare(nameB);
+      })
+  : [];
+
 
 const handleSaveAverages = async () => {
     if (!students || !currentSchool) {
@@ -266,16 +293,11 @@ const handleSaveAverages = async () => {
                 </div>
                 <div>
                   <h1 className="text-4xl font-bold tracking-tight">
-                    Gestión de Calificaciones por Periodo
+                    Calificaciones por Periodo
                   </h1>
                   <p className="text-lg text-muted-foreground">
                     Administra las calificaciones de los periodos por grupo y
                     clase.
-                    {currentSchool?.school && (
-                      <span className="block text-sm mt-1">
-                        {currentSchool.school.name}
-                      </span>
-                    )}
                   </p>
                 </div>
               </div>
@@ -309,6 +331,17 @@ const handleSaveAverages = async () => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Buscar por nombre, apellido"
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                              className="pl-10"
+                            />
+                          </div>
+                        </div>
             <Select
               value={selectedSchoolCycle}
               onValueChange={(value) => {
@@ -348,11 +381,22 @@ const handleSaveAverages = async () => {
 
       {/* Grade Matrix */}
       <Card>
+        <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Calificaciones</span>
+                    <Badge
+                      variant="outline"
+                      className="bg-black-50 text-black-700 border-black-200"
+                    >
+                      {terms?.length} periodos
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
         <CardContent>
           {/* Si no hay estudiantes o no hay Periodos, muestra un mensaje */}
           {hasStudents && hasTerms && hasClasses && !isDataLoading ? (
             <TermAverageMatrix
-              students={students!}
+              students={filteredAndSortedStudents}
               terms={terms!}
               averages={averagesMap} // ✨ PASAMOS EL MAP CORREGIDO
               onAverageUpdate={handleUpdateGrade}
