@@ -2,24 +2,27 @@
 
 import { useState } from "react"
 import { useQuery, useMutation } from "convex/react"
-import { api } from "@repo/convex/convex/_generated/api";
+import { api } from "@repo/convex/convex/_generated/api"
 import { Button } from "@repo/ui/components/shadcn/button"
 import { Input } from "@repo/ui/components/shadcn/input"
 import { Label } from "@repo/ui/components/shadcn/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@repo/ui/components/shadcn/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select"
 import { Badge } from "@repo/ui/components/shadcn/badge"
-import { Search, Plus, Edit, Trash2, MapPin, Users, Filter, GraduationCap, CheckCircle, XCircle, Eye } from "lucide-react"
-import { toast } from "sonner";
+import { Search, Plus, Edit, Trash2, MapPin, Users, Filter, GraduationCap, CheckCircle, Eye } from "lucide-react"
+import { toast } from "sonner"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
-
 import { useUser } from "@clerk/nextjs"
 import { useUserWithConvex } from "stores/userStore"
-import { useCurrentSchool } from "stores/userSchoolsStore";
-import { classroomFormSchema, ClassroomFormValues } from "@/types/form/classroomSchema";
-import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
+import { useCurrentSchool } from "stores/userSchoolsStore"
+import { classroomFormSchema } from "@/types/form/classroomSchema"
+import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog"
+import { UseFormReturn } from "react-hook-form"
+import { z } from "zod"
+
+// Definir el tipo inferido del schema
+type ClassroomFormValues = z.infer<typeof classroomFormSchema>
 
 interface Classroom extends Record<string, unknown> {
   _id: Id<"classroom">
@@ -32,13 +35,14 @@ interface Classroom extends Record<string, unknown> {
   updatedAt: number
 }
 
+// Usar el tipo específico para el formulario
 interface ClassroomFormProps {
-  form: any;
-  operation: 'create' | 'edit' | 'view' | 'delete';
+  form: UseFormReturn<ClassroomFormValues>
+  operation: 'create' | 'edit' | 'view' | 'delete'
 }
 
 function ClassroomForm({ form, operation }: ClassroomFormProps) {
-  const isView = operation === 'view';
+  const isView = operation === 'view'
    
   return (
     <div className="grid gap-4 py-4">
@@ -96,26 +100,24 @@ function ClassroomForm({ form, operation }: ClassroomFormProps) {
         </Select>
       </div>
     </div>
-  );
+  )
 }
 
 export default function ClassroomManagement() {
-  const { user: clerkUser, isLoaded } = useUser();
-  const { currentUser, isLoading: userLoading } = useUserWithConvex(clerkUser?.id);
-  const {
-    currentSchool,
-    isLoading: schoolLoading,
-  } = useCurrentSchool(currentUser?._id);
+  const { user: clerkUser } = useUser()
+  const { currentUser } = useUserWithConvex(clerkUser?.id)
+  const { currentSchool } = useCurrentSchool(currentUser?._id)
 
   const classrooms = useQuery(
     api.functions.classroom.viewAllClassrooms,
     currentSchool?.school._id ? { schoolId: currentSchool.school._id } : "skip"
-  ) as Classroom[] | undefined;
+  ) as Classroom[] | undefined
 
   const createClassroom = useMutation(api.functions.classroom.createClassroom)
   const updateClassroom = useMutation(api.functions.classroom.updateClassroom)
   const deleteClassroom = useMutation(api.functions.classroom.deleteClassroom)
 
+  // Quitar el tipo genérico de useCrudDialog
   const {
     isOpen,
     operation,
@@ -123,9 +125,8 @@ export default function ClassroomManagement() {
     openCreate,
     openEdit,
     openView,
-    openDelete,
     close,
-  } = useCrudDialog(classroomFormSchema);
+  } = useCrudDialog(classroomFormSchema)
 
   const [searchTerm, setSearchTerm] = useState("")
   const [locationFilter, setLocationFilter] = useState<string>("all")
@@ -134,7 +135,7 @@ export default function ClassroomManagement() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
 
   // Estado de carga específico para la tabla
-  const isTableLoading = classrooms === undefined;
+  const isTableLoading = classrooms === undefined
 
   // Esta sección es para filtrar, buscar y ordenar las aulas
   const filteredAndSortedClassrooms = (classrooms || [])
@@ -183,7 +184,7 @@ export default function ClassroomManagement() {
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!currentSchool?.school._id) {
       toast.error("No se encontró la escuela actual. Refresca e intenta de nuevo.")
-      return;
+      return
     }
 
     const parsedFormData = {
@@ -214,8 +215,8 @@ export default function ClassroomManagement() {
     // en el handleSubmit, antes de crear/editar checamos:
     if (existingClassroom(validData.name, validData.location) &&
         (operation !== 'edit' || (data && (data.name !== validData.name || data.location !== validData.location)))) {
-      toast.error("Ya existe un aula con ese nombre y ubicación.");
-      return;
+      toast.error("Ya existe un aula con ese nombre y ubicación.")
+      return
     }
 
     try {
@@ -244,22 +245,22 @@ export default function ClassroomManagement() {
       }
       close()
     } catch (error) {
-      toast.error("Error al guardar el aula: " + (error instanceof Error ? error.message : 'Error desconocido'));
+      toast.error("Error al guardar el aula: " + (error instanceof Error ? error.message : 'Error desconocido'))
     }
   }
 
   const handleEdit = (c: Classroom) => {
-    openEdit(c);
+    openEdit(c)
   }
 
   const handleView = (c: Classroom) => {
-    openView(c);
+    openView(c)
   }
 
   const handleDelete = async (id: string) => {
     await deleteClassroom({ id: id as Id<"classroom">, schoolId: currentSchool?.school._id as Id<"school"> })
     toast.success("Aula eliminada correctamente.")
-    close();
+    close()
   }
 
   const handleSort = (column: "name" | "location" | "capacity" | "createdAt") => {
@@ -270,8 +271,6 @@ export default function ClassroomManagement() {
       setSortOrder("asc")
     }
   }
-
-  // Ya no es necesario el if de carga general
 
   return (
     <div className="space-y-8 p-6">
@@ -327,7 +326,7 @@ export default function ClassroomManagement() {
               Aulas Activas
             </CardTitle>
             <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-              <CheckCircle className="h-4 w-4 text-green-600" />
+              <CheckCircle className="h-4 w-4 text-primary" />
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -568,7 +567,7 @@ export default function ClassroomManagement() {
       >
         {(form, operation) => (
           <ClassroomForm
-            form={form}
+            form={form as unknown as UseFormReturn<ClassroomFormValues>}
             operation={operation}
           />
         )}
