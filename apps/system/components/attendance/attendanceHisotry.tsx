@@ -147,7 +147,7 @@ export default function AttendanceHistory() {
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Activas
+                Presentes
               </CardTitle>
               <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
                 <CheckCircle className="h-4 w-4" />
@@ -164,7 +164,7 @@ export default function AttendanceHistory() {
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Inactivas
+                Ausentes
               </CardTitle>
               <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
                 <XCircle className="h-4 w-4" />
@@ -181,7 +181,7 @@ export default function AttendanceHistory() {
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Inactivas
+                Justificados
               </CardTitle>
               <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
                 <FileCheck className="h-4 w-4" />
@@ -198,7 +198,7 @@ export default function AttendanceHistory() {
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Inactivas
+                Injustificados
               </CardTitle>
               <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
                 <FileX className="h-4 w-4" />
@@ -224,14 +224,14 @@ export default function AttendanceHistory() {
 
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="space-y-2">
               <Label htmlFor="search">Buscar estudiante</Label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-0.5 h-4 w-4 text-muted-foreground" />
-                <Input
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+                <Input 
                   id='search'
-                  placeholder="Nombre o matricula..."
+                  placeholder="Nombre o matrícula..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -246,7 +246,7 @@ export default function AttendanceHistory() {
                   <SelectValue placeholder='Todas las clases' />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todas las Clases</SelectItem>
+                  <SelectItem value="all">Todas las clases</SelectItem>
                   {classCatalogs.map((cc) => (
                     <SelectItem key={cc._id} value={cc._id}>
                       {cc.name}
@@ -280,13 +280,13 @@ export default function AttendanceHistory() {
               <Input id="date-to" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
             </div>
 
-            {/* <div className="space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="date-from" className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 Fecha Hasta:
               </Label>
               <Input id="date-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-            </div> */}
+            </div>
           </div>
         </CardContent>
       </Card>
