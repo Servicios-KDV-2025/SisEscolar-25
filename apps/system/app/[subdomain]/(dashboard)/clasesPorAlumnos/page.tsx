@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Search, Eye, Edit, Trash2, School } from "@repo/ui/icons"
+import { Plus, Search, Eye, Trash2, School, Filter, Pencil, BookUser} from "@repo/ui/icons"
 import { useEffect } from "react"
 import { Button } from "@repo/ui/components/shadcn/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
@@ -17,7 +17,6 @@ import { toast } from "sonner"
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog"
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form"
 import { Switch } from "@repo/ui/components/shadcn/switch"
-import Link from "next/link"
 import { useUser } from "@clerk/nextjs"
 import { useUserWithConvex } from "stores/userStore"
 import { useCurrentSchool } from "stores/userSchoolsStore"
@@ -33,7 +32,7 @@ export default function StudentClassesDashboard() {
   const { user: clerkUser } = useUser();
   const { currentUser } = useUserWithConvex(clerkUser?.id)
   const {
-    currentSchool
+    currentSchool, isLoading: schoolLoading
   } = useCurrentSchool(currentUser?._id);
 
 
@@ -163,55 +162,55 @@ export default function StudentClassesDashboard() {
     }
   }
 
-  if (enrollments === undefined) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-center text-gray-600 py-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          Cargando las inscripciones...
-        </div>
-      </div>
-    )
-  }
+  const isLoading = schoolLoading || !schoolYears || !students || !classCatalogs || !enrollments;
 
   return (
-    <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 mx-auto">
-      <div className="space-y-6">
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="space-y-2">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Clases por Alumno</h1>
-              <p className="text-sm sm:text-base text-gray-600">
-                <strong>Gestión completa de inscripciones de alumnos a clases.</strong>
-              </p>
+    <div className="w-full max-w-full space-y-7 p-6">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
+        <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
+        <div className="relative p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-primary/10 rounded-xl">
+                  <BookUser className="h-8 w-8 text-primary" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold tracking-tight">
+                    Incripciones de Clases por Alumnos
+                  </h1>
+                  <p className="text-lg text-muted-foreground">
+                    Gestión completa de inscripciones de alumnos a clases.
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="hidden sm:block">
-            <p className="text-sm text-gray-600">
-              Visualiza todas las relaciones registradas, aplica filtros avanzados y accede a información detallada por alumno.
-              Permite editar o eliminar inscripciones, generar reportes personalizados y exportar datos en múltiples formatos.
-              Ideal para un control académico claro, eficiente y centralizado.
-            </p>
+            <div className="flex flex-col justify-start items-stretch  gap-2">
+              <Button
+                size="lg"
+                className="gap-2"
+                onClick={openCreate}
+                disabled={isLoading || !currentSchool}
+              >
+                <Plus className="w-4 h-4" />
+                Agregar Inscripción
+              </Button>
+              <Button
+                size="lg"
+                className="gap-2"
+                onClick={openCreate}
+                disabled={isLoading || !currentSchool}
+              >
+                <Plus className="w-4 h-4" />
+                Asignar Clases Masivamente
+              </Button>
+            </div>
+
           </div>
         </div>
+      </div>
 
-        <div className="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-2 mb-6">
-          <Button
-            onClick={openCreate}
-            className="flex items-center justify-center gap-2 w-full sm:w-auto"
-          >
-            <Plus className="h-4 w-4" />
-            Nueva Inscripción
-          </Button>
-
-          <Link href={``} className="w-full sm:w-auto">
-            <Button className="flex items-center justify-center gap-2 w-full sm:w-auto">
-              <Plus className="h-4 w-4" />
-              Asignar Clases Masivamente
-            </Button>
-          </Link>
-        </div>
-
+      <div className="space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:grid-cols-2">
             <TabsTrigger value="enrollments" className="text-xs sm:text-sm">
@@ -222,102 +221,129 @@ export default function StudentClassesDashboard() {
             </TabsTrigger>
           </TabsList>
 
-          <Card>
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex flex-col xl:flex-row space-y-4 gap-2">
-                <div className="flex-2 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Buscar por alumno, matrícula o materia..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <div className="flex flex-1 flex-col xl:flex-row gap-3">
-                  <div className="flex flex-1 flex-col sm:flex-row gap-3 justify-center">
-                    <Select value={schoolYearFilter} onValueChange={setSchoolYearFilter}>
-                      <SelectTrigger className="w-full sm:w-40">
-                        <School className="h-4 w-4 mr-2" />
-                        <SelectValue placeholder="Filtrar por ciclo escolar" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos los ciclos Escolares</SelectItem>
-                        {schoolYears?.map((year) => (
-                          <SelectItem key={year.name} value={year.name}>
-                            {year.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select value={gradeFilter} onValueChange={setGradeFilter}>
-                      <SelectTrigger className="w-full sm:w-40">
-                        <SelectValue placeholder="Filtrar por grado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos los grados</SelectItem>
-                        <SelectItem value="1">1° Grado</SelectItem>
-                        <SelectItem value="2">2° Grado</SelectItem>
-                        <SelectItem value="3">3° Grado</SelectItem>
-                        <SelectItem value="4">4° Grado</SelectItem>
-                        <SelectItem value="5">5° Grado</SelectItem>
-                        <SelectItem value="6">6° Grado</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex flex-1 flex-col sm:flex-row gap-3 justify-center">
-                    <Select value={groupFilter} onValueChange={setGroupFilter}>
-                      <SelectTrigger className="w-full sm:w-40">
-                        <SelectValue placeholder="Filtrar por grupo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos los grupos</SelectItem>
-                        <SelectItem value="A">A</SelectItem>
-                        <SelectItem value="B">B</SelectItem>
-                        <SelectItem value="C">C</SelectItem>
-                        <SelectItem value="D">D</SelectItem>
-                        <SelectItem value="E">E</SelectItem>
-                        <SelectItem value="F">F</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-full sm:w-40">
-                        <SelectValue placeholder="Filter by status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos los estados</SelectItem>
-                        <SelectItem value="active">Activo</SelectItem>
-                        <SelectItem value="inactive">Inactivo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           <TabsContent value="enrollments" className="space-y-6">
             <Card>
-              <CardHeader className="pb-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div className="space-y-1">
-                    <CardTitle className="text-lg sm:text-xl">Lista de Inscripciones</CardTitle>
-                    <CardDescription className="text-sm">
-                      Mostrando {filteredEnrollments.length} de {enrollments?.length || 0} inscripciones
+              <CardHeader>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Filter className="h-5 w-5" />
+                      Filtros y Búsqueda
+                    </CardTitle>
+                    <CardDescription>
+                      Encuentra la inscripción por alumno, matrícula, o materia
                     </CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="text-xs sm:text-sm">
-                      Exportar
-                    </Button>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto w-full">
-                  <div className="w-full">
-                    <Table className="w-full table-auto">
+              <CardContent>
+                <div className="flex flex-col xl:flex-row space-y-4 gap-2">
+                  <div className="flex-2 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Buscar por alumno, matrícula o materia..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <div className="flex flex-1 flex-col xl:flex-row gap-3">
+                    <div className="flex flex-1 flex-col sm:flex-row gap-3 justify-center">
+                      <Select value={schoolYearFilter} onValueChange={setSchoolYearFilter}>
+                        <SelectTrigger className="w-full sm:w-40">
+                          <School className="h-4 w-4 mr-2" />
+                          <SelectValue placeholder="Filtrar por ciclo escolar" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos los ciclos Escolares</SelectItem>
+                          {schoolYears?.map((year) => (
+                            <SelectItem key={year.name} value={year.name}>
+                              {year.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select value={gradeFilter} onValueChange={setGradeFilter}>
+                        <SelectTrigger className="w-full sm:w-40">
+                          <SelectValue placeholder="Filtrar por grado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos los grados</SelectItem>
+                          <SelectItem value="1">1° Grado</SelectItem>
+                          <SelectItem value="2">2° Grado</SelectItem>
+                          <SelectItem value="3">3° Grado</SelectItem>
+                          <SelectItem value="4">4° Grado</SelectItem>
+                          <SelectItem value="5">5° Grado</SelectItem>
+                          <SelectItem value="6">6° Grado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex flex-1 flex-col sm:flex-row gap-3 justify-center">
+                      <Select value={groupFilter} onValueChange={setGroupFilter}>
+                        <SelectTrigger className="w-full sm:w-40">
+                          <SelectValue placeholder="Filtrar por grupo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos los grupos</SelectItem>
+                          <SelectItem value="A">A</SelectItem>
+                          <SelectItem value="B">B</SelectItem>
+                          <SelectItem value="C">C</SelectItem>
+                          <SelectItem value="D">D</SelectItem>
+                          <SelectItem value="E">E</SelectItem>
+                          <SelectItem value="F">F</SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="w-full sm:w-40">
+                          <SelectValue placeholder="Filtro por Estatus" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos los estados</SelectItem>
+                          <SelectItem value="active">Activo</SelectItem>
+                          <SelectItem value="inactive">Inactivo</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Lista de Inscripciones</span>
+                  <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                    Exportar
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Cargando Inscripciones...</p>
+                    </div>
+                  </div>
+                ) : filteredEnrollments.length === 0 ? (
+                  <div className="text-center py-12">
+                    <BookUser className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-2">
+                      No se encontraron inscripciones
+                    </h3>
+                    <Button
+                      onClick={openCreate}
+                      className="gap-2"
+                      disabled={!currentSchool}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Agregar Inscripción
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="rounded-md border">
+                    <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-[110px] px-4">Alumno</TableHead>
@@ -375,51 +401,55 @@ export default function StudentClassesDashboard() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex justify-center items-center truncate">
-                                  {enrollment?.averageScore !== undefined ? enrollment.averageScore.toFixed(2) : '-'}
+                                  {enrollment?.averageScore !== undefined ? enrollment.averageScore.toFixed(0) : '-'}
                                 </div>
                               </TableCell>
                               <TableCell className="px-4">
                                 <div className="flex justify-center items-center truncate">
                                   {enrollment?.enrollmentDate
                                     ? new Date(enrollment.enrollmentDate).toISOString().split("T")[0]
-                                    : "No date"}
+                                    : "No disponible"}
                                 </div>
                               </TableCell>
                               <TableCell className="px-4 text-center">
-                                <Badge className={`text-center text-white font-medium py-1 ${enrollment?.status === "active" ? "bg-green-600 px-3" : " bg-red-600 "}`}>
-                                  {enrollment?.status === "active" ? "Active" : "Inactive"}
+                                <Badge
+                                  variant={enrollment?.status === "active" ? "default" : "secondary"}
+                                  className={enrollment?.status === "active" ? "bg-green-600 text-white flex-shrink-0 ml-2" : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}>
+                                  {enrollment?.status === 'active' ? 'Activa' : 'Inactiva'}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="px-4 sticky right-0 bg-white shadow-[-2px_0_5px_rgba(0,0,0,0.1)] z-10">
+                              <TableCell className="text-right">
                                 <div className="flex gap-1 justify-center">
                                   <Button
-                                    variant="outline"
+                                    variant="ghost"
                                     size="sm"
-                                    onClick={() => openView(mapEnrollmentToFormValues(enrollment as unknown as StudentClasses))}
-                                    className="h-8 w-8 p-0"
-                                    title="Editar"
-                                  >
-                                    <Eye className="h-3 w-3" />
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      openView(mapEnrollmentToFormValues(enrollment as unknown as StudentClasses));
+                                    }}
+                                    className="hover:scale-105 transition-transform cursor-pointer">
+                                    <Eye className="h-4 w-4" />
                                   </Button>
                                   <Button
-                                    variant="outline"
+                                    variant="ghost"
                                     size="sm"
-                                    onClick={() => openEdit(mapEnrollmentToFormValues(enrollment as unknown as StudentClasses))}
-                                    className="h-8 w-8 p-0"
-                                    title="Editar"
-                                  >
-                                    <Edit className="h-3 w-3" />
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      openEdit(mapEnrollmentToFormValues(enrollment as unknown as StudentClasses));
+                                    }}
+                                    className="hover:scale-105 transition-transform cursor-pointer">
+                                    <Pencil className="h-4 w-4" />
                                   </Button>
                                   <Button
-                                    variant="destructive"
+                                    variant="ghost"
                                     size="sm"
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                      e.stopPropagation()
                                       openDelete(enrollment as Record<string, unknown>)
                                     }}
-                                    className="h-8 w-8 p-0"
-                                    title="Borrar"
+                                    className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive"
                                   >
-                                    <Trash2 className="h-3 w-3" />
+                                    <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </div>
                               </TableCell>
@@ -429,7 +459,7 @@ export default function StudentClassesDashboard() {
                       </TableBody>
                     </Table>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -445,28 +475,44 @@ export default function StudentClassesDashboard() {
                   {statistics && (
                     <div className="grid grid-cols-2 gap-3 sm:gap-4">
                       <div className="text-center p-3 sm:p-4 border rounded-lg">
-                        <div className="text-xl sm:text-2xl font-bold text-blue-600">
+                        <div className="text-3xl font-bold">
                           {statistics.totalEnrollments}
                         </div>
-                        <div className="text-xs sm:text-sm text-gray-600">Total Inscripciones</div>
+                        <div className="flex flex-row items-center justify-center gap-4 space-y-0 pt-2">
+                          <div className="text-sm font-medium text-muted-foreground">
+                            Total Inscripciones
+                          </div>
+                        </div>
                       </div>
                       <div className="text-center p-3 sm:p-4 border rounded-lg">
-                        <div className="text-xl sm:text-2xl font-bold text-green-600">
+                        <div className="text-3xl font-bold">
                           {statistics.activeEnrollments}
                         </div>
-                        <div className="text-xs sm:text-sm text-gray-600">Inscripciones Activas</div>
+                        <div className="flex flex-row items-center justify-center gap-4 space-y-0 pt-2">
+                          <div className="text-sm font-medium text-muted-foreground">
+                            Inscripciones Activas
+                          </div>
+                        </div>
                       </div>
                       <div className="text-center p-3 sm:p-4 border rounded-lg">
-                        <div className="text-xl sm:text-2xl font-bold text-purple-600">
+                        <div className="text-3xl font-bold">
                           {statistics.totalStudents}
                         </div>
-                        <div className="text-xs sm:text-sm text-gray-600">Total Alumnos</div>
+                        <div className="flex flex-row items-center justify-center gap-4 space-y-0 pt-2">
+                          <div className="text-sm font-medium text-muted-foreground">
+                            Total Alumnos
+                          </div>
+                        </div>
                       </div>
                       <div className="text-center p-3 sm:p-4 border rounded-lg">
-                        <div className="text-xl sm:text-2xl font-bold text-orange-600">
+                        <div className="text-3xl font-bold">
                           {statistics.averageClassesPerStudent}
                         </div>
-                        <div className="text-xs sm:text-sm text-gray-600">Promedio Clases/Alumno</div>
+                        <div className="flex flex-row items-center justify-center gap-4 space-y-0 pt-2">
+                          <div className="text-sm font-medium text-muted-foreground">
+                            Promedio Clases/Alumno
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -649,7 +695,6 @@ export default function StudentClassesDashboard() {
                   )}
                 />
               )}
-
             </div>
           )}
         </CrudDialog>

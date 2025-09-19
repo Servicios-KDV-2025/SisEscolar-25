@@ -62,7 +62,7 @@ const defaultNavData = {
         },
         {
           title: "Clases por Alumno",
-          url: `clasesPorAlumnos`,
+          url: `/clasesPorAlumnos`,
         },
         {
           title: "Grupos",
@@ -139,6 +139,10 @@ const defaultNavData = {
         {
           title: "Calificaciones",
           url: `/calificaciones`,
+        },
+        {
+          title: "Calificaciones por Periodo",
+          url: `/promedioPeriodos`,
         },
         {
           title: "Rúbricas",

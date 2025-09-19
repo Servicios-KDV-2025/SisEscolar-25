@@ -1,29 +1,31 @@
 "use client"
 
-//import type React from "react"
-
 import { useState } from "react"
-import { useQuery, useMutation } from "convex/react"  //
-import { api } from "@repo/convex/convex/_generated/api"; //
+import { useQuery, useMutation } from "convex/react"
+import { api } from "@repo/convex/convex/_generated/api"
 import { Button } from "@repo/ui/components/shadcn/button"
 import { Input } from "@repo/ui/components/shadcn/input"
 import { Label } from "@repo/ui/components/shadcn/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@repo/ui/components/shadcn/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select"
 import { Badge } from "@repo/ui/components/shadcn/badge"
-import { Search, Plus, Edit, Trash2, MapPin, Users, Filter } from "lucide-react"
-import { toast } from "sonner";
+import { Search, Plus, Edit, Trash2, MapPin, Users, Filter, GraduationCap, CheckCircle, Eye } from "lucide-react"
+import { toast } from "sonner"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
-
 import { useUser } from "@clerk/nextjs"
 import { useUserWithConvex } from "stores/userStore"
-import { useCurrentSchool } from "stores/userSchoolsStore";
-import { classroomFormSchema, ClassroomFormValues } from "@/types/form/classroomSchema";
+import { useCurrentSchool } from "stores/userSchoolsStore"
+import { classroomFormSchema } from "@/types/form/classroomSchema"
+import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog"
+import { UseFormReturn } from "react-hook-form"
+import { z } from "zod"
 
+// Definir el tipo inferido del schema
+type ClassroomFormValues = z.infer<typeof classroomFormSchema>
 
-interface Classroom {
+interface Classroom extends Record<string, unknown> {
+  _id: Id<"classroom">
   id: string
   name: string
   capacity: number
@@ -33,56 +35,109 @@ interface Classroom {
   updatedAt: number
 }
 
+// Usar el tipo específico para el formulario
+interface ClassroomFormProps {
+  form: UseFormReturn<ClassroomFormValues>
+  operation: 'create' | 'edit' | 'view' | 'delete'
+}
+
+function ClassroomForm({ form, operation }: ClassroomFormProps) {
+  const isView = operation === 'view'
+   
+  return (
+    <div className="grid gap-4 py-4">
+      <div className="grid gap-2">
+        <Label htmlFor="name">Nombre *</Label>
+        <Input
+          id="name"
+          placeholder="Ingresa el nombre del aula"
+          {...form.register("name")}
+          readOnly={isView}
+          required
+          maxLength={50}
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="capacity">Capacidad *</Label>
+        <Input
+          id="capacity"
+          type="number"
+          min="1"
+          max="35"
+          placeholder="Ingresa la capacidad"
+          {...form.register("capacity", { valueAsNumber: true })}
+          readOnly={isView}
+          required
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="location">Ubicación *</Label>
+        <Input
+          id="location"
+          placeholder="Ingresa la ubicación"
+          {...form.register("location")}
+          readOnly={isView}
+          required
+          maxLength={50}
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="status">Estado</Label>
+        <Select
+          value={form.watch("status")}
+          onValueChange={(value: "active" | "inactive") =>
+            form.setValue("status", value)
+          }
+          disabled={isView}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Selecciona estatus" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">Activo</SelectItem>
+            <SelectItem value="inactive">Inactivo</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  )
+}
+
 export default function ClassroomManagement() {
+  const { user: clerkUser } = useUser()
+  const { currentUser } = useUserWithConvex(clerkUser?.id)
+  const { currentSchool } = useCurrentSchool(currentUser?._id)
 
-  //1. Traerse usuario de clerk 
-  const { user: clerkUser, isLoaded } = useUser();
-
-  //2. Traerse al usuario de convex 
-  const { currentUser, isLoading: userLoading } = useUserWithConvex(clerkUser?.id);
-
-  //3. Conseguir la escuela actual 
-  const {
-    currentSchool,
-    isLoading: schoolLoading,
-  } = useCurrentSchool(currentUser?._id);
-
-  //4. Hacer un query a Convex(para traerse todas las aulas de la escuela actual)
   const classrooms = useQuery(
     api.functions.classroom.viewAllClassrooms,
     currentSchool?.school._id ? { schoolId: currentSchool.school._id } : "skip"
-  ) as Classroom[] | undefined;
+  ) as Classroom[] | undefined
 
-
-  //5. mutations para crear/ actualizar y eliminar aulas de convex
   const createClassroom = useMutation(api.functions.classroom.createClassroom)
   const updateClassroom = useMutation(api.functions.classroom.updateClassroom)
   const deleteClassroom = useMutation(api.functions.classroom.deleteClassroom)
 
+  // Quitar el tipo genérico de useCrudDialog
+  const {
+    isOpen,
+    operation,
+    data,
+    openCreate,
+    openEdit,
+    openView,
+    close,
+  } = useCrudDialog(classroomFormSchema)
 
-  //6. estados UI
   const [searchTerm, setSearchTerm] = useState("")
   const [locationFilter, setLocationFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [sortBy, setSortBy] = useState<"name" | "location" | "capacity" | "createdAt">("location")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editingClassroom, setEditingClassroom] = useState<Classroom | null>(null)
-  const [formData, setFormData] = useState<ClassroomFormValues>({
-    name: "",
-    capacity: 0,
-    location: "",
-    status: "active",
-  })
 
-  const isLoading = !isLoaded || userLoading || schoolLoading
-  if (isLoading) {
-    return <p>Cargando aulas...</p>
-  }
+  // Estado de carga específico para la tabla
+  const isTableLoading = classrooms === undefined
 
-
-
-  //esta seccion es para filtrar, buscar y ordenar las aulas 
+  // Esta sección es para filtrar, buscar y ordenar las aulas
   const filteredAndSortedClassrooms = (classrooms || [])
     .filter((c) => {
       const matchesSearch =
@@ -104,7 +159,7 @@ export default function ClassroomManagement() {
         bValue = new Date(bValue).getTime()
       }
 
-      //comparación para strings (name, location)
+      // comparación para strings (name, location)
       if (typeof aValue === "string" && typeof bValue === "string") {
         if (sortOrder === "asc") {
           return aValue.localeCompare(bValue)
@@ -126,95 +181,86 @@ export default function ClassroomManagement() {
   }
 
   // crear y actualizar aulas
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!formData.capacity) {
-      toast.error("La capacidad es obligatoria.");
-      return;
+  const handleSubmit = async (values: Record<string, unknown>) => {
+    if (!currentSchool?.school._id) {
+      toast.error("No se encontró la escuela actual. Refresca e intenta de nuevo.")
+      return
     }
 
-    // Convertimos capacity a número antes de validar
     const parsedFormData = {
-      ...formData,
-      capacity: Number(formData.capacity)
+      ...values,
+      capacity: Number(values.capacity)
     }
+
     // validación con zod
     const result = classroomFormSchema.safeParse(parsedFormData)
 
     if (!result.success) {
-      //si hay errores, los mostramos y detenemos la función
+      // si hay errores, los mostramos y detenemos la función
       toast.error("Por favor revisa los campos: " + result.error.issues.map(e => e.message).join(", "))
       return
     }
 
-    //los datos deben ser validos... por lo tanto se continua con: 
+    // los datos deben ser válidos... por lo tanto se continúa con:
     const validData = result.data
 
-    //validación para que no haya duplicados
+    // validación para que no haya duplicados
     const existingClassroom = (name: string, location: string) => {
       return (classrooms || []).some(
-        (c) => c.name.trim().toLowerCase() === name.trim().toLocaleLowerCase() &&
-          c.location.trim().toLowerCase() === location.trim().toLocaleLowerCase()
+        (c) => c.name.trim().toLowerCase() === name.trim().toLowerCase() &&
+          c.location.trim().toLowerCase() === location.trim().toLowerCase()
       )
     }
 
     // en el handleSubmit, antes de crear/editar checamos:
-    if (existingClassroom(formData.name, formData.location) && (!editingClassroom ||
-      (editingClassroom.name !== formData.name || editingClassroom.location !== formData.location))) {
-      toast.error("Ya existe un aula con ese nombre y ubicación.");
-      return;
+    if (existingClassroom(validData.name, validData.location) &&
+        (operation !== 'edit' || (data && (data.name !== validData.name || data.location !== validData.location)))) {
+      toast.error("Ya existe un aula con ese nombre y ubicación.")
+      return
     }
 
-    if (!currentSchool?.school._id) {
-      toast.error("No se encontró la escuela actual. Refresca e intenta de nuevo.")
+    try {
+      if (operation === 'edit' && data?.id) {
+        await updateClassroom({
+          id: data.id as Id<"classroom">,
+          schoolId: currentSchool.school._id as Id<"school">,
+          name: validData.name,
+          capacity: validData.capacity,
+          location: validData.location,
+          status: validData.status,
+          updatedAt: Date.now(),
+        })
+        toast.success("Aula actualizada correctamente.")
+      } else if (operation === 'create') {
+        await createClassroom({
+          schoolId: currentSchool.school._id as Id<"school">,
+          name: validData.name,
+          capacity: validData.capacity,
+          location: validData.location,
+          status: validData.status,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        })
+        toast.success("Aula creada correctamente.")
+      }
+      close()
+    } catch (error) {
+      toast.error("Error al guardar el aula: " + (error instanceof Error ? error.message : 'Error desconocido'))
     }
-
-    if (editingClassroom) {
-      await updateClassroom({
-        id: editingClassroom.id as Id<"classroom">,
-        schoolId: currentSchool?.school._id as Id<"school">,
-        name: validData.name,
-        capacity: validData.capacity,
-        location: validData.location,
-        status: validData.status,
-        updatedAt: Date.now(),
-      })
-      toast.success("Aula actualizada correctamente.")
-    } else {
-      await createClassroom({
-        schoolId: currentSchool?.school._id as Id<"school">,
-        name: validData.name,
-        capacity: validData.capacity,
-        location: validData.location,
-        status: validData.status,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      })
-      toast.success("Aula creada correctamente.")
-    }
-    resetForm()
   }
 
   const handleEdit = (c: Classroom) => {
-    setEditingClassroom(c)
-    setFormData({
-      name: c.name,
-      capacity: c.capacity,
-      location: c.location || "",
-      status: c.status,
-    })
-    setIsDialogOpen(true)
+    openEdit(c)
+  }
+
+  const handleView = (c: Classroom) => {
+    openView(c)
   }
 
   const handleDelete = async (id: string) => {
-    await deleteClassroom({ id: id as Id<"classroom">, schoolId: currentSchool?.school._id as Id<"school"> }) //Listo
+    await deleteClassroom({ id: id as Id<"classroom">, schoolId: currentSchool?.school._id as Id<"school"> })
     toast.success("Aula eliminada correctamente.")
-  }
-
-  const resetForm = () => {
-    setFormData({ name: "", capacity: 0, location: "", status: "active" });
-    setEditingClassroom(null)
-    setIsDialogOpen(false)
+    close()
   }
 
   const handleSort = (column: "name" | "location" | "capacity" | "createdAt") => {
@@ -227,130 +273,121 @@ export default function ClassroomManagement() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header Actions */}
-      <div className="flex flex-col gap-4">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Sistema de creación de Aulas</h1>
-          <p className="text-gray-600 mt-2">Gestionar la creación de aulas con atributos de capacidad, ubicación y estado. </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Búsqueda por nombre, ubicación o capacidad..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => resetForm()}>
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar Aula
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>{editingClassroom ? "Editar Aula" : "Crear Nueva Aula"}</DialogTitle>
-                <DialogDescription>
-                  {editingClassroom
-                    ? "Actualiza la información del aula a continuación."
-                    : "Ingresa los detalles para la nueva aula."}
-
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit}>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="name">Nombre *</Label>
-                    <Input
-                      id="name"
-                      placeholder="Ingresa el nombre del aula"
-                      value={formData.name}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                      required
-                      maxLength={50}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="capacity">Capacidad *</Label>
-                    <Input
-                      id="capacity"
-                      type="number"
-                      min="1"
-                      max="35"
-                      placeholder="Ingresa la capacidad"
-                      defaultValue={formData.capacity}
-                      onChange={(e) => {
-                        const value = Number(e.target.value);
-                        setFormData((prev) => ({
-                          ...prev,
-                          capacity: isNaN(value) ? 0 : value,
-                        }));
-                      }}
-                      required
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="location">Ubicación *</Label>
-                    <Input
-                      id="location"
-                      placeholder="Ingresa la ubicación"
-                      value={formData.location}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
-                      required
-                      maxLength={50}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="status">Estados</Label>
-                    <Select
-                      value={formData.status}
-                      onValueChange={(value: "active" | "inactive") =>
-                        setFormData((prev) => ({ ...prev, status: value }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona estatus" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Activo</SelectItem>
-                        <SelectItem value="inactive">Inactivo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+    <div className="space-y-8 p-6">
+      {/* Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
+        <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
+        <div className="relative p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-primary/10 rounded-xl">
+                  <GraduationCap className="h-8 w-8 text-primary" />
                 </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={resetForm}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit">{editingClassroom ? "Editar" : "Crear"} Aula</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-muted-foreground">Filtros:</span>
+                <div>
+                  <h1 className="text-4xl font-bold tracking-tight">Aulas</h1>
+                  <p className="text-lg text-muted-foreground">
+                    Administra las aulas de {currentSchool?.school?.name} con sus atributos de capacidad, ubicación y estado.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <Button
+              size="lg"
+              className="gap-2"
+              onClick={openCreate}
+            >
+              <Plus className="h-4 w-4" />
+              Agregar Aula
+            </Button>
           </div>
+        </div>
+      </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex flex-col gap-1">
-              {/*<Label htmlFor="location-filter" className="text-xs text-muted-foreground">
-                Ubicación
-              </Label>*/}
+      {/* Estadísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total de Aulas
+            </CardTitle>
+            <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+              <MapPin className="h-4 w-4 text-primary" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="text-3xl font-bold">{classrooms?.length || 0}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Aulas Activas
+            </CardTitle>
+            <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+              <CheckCircle className="h-4 w-4 text-primary" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="text-3xl font-bold">
+              {classrooms?.filter(c => c.status === "active").length || 0}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Capacidad Total
+            </CardTitle>
+            <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+              <Users className="h-4 w-4 text-primary" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="text-3xl font-bold">
+              {classrooms?.reduce((sum, room) => sum + room.capacity, 0) || 0}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filtros y Búsqueda */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                Filtros y Búsqueda
+              </CardTitle>
+              <CardDescription>
+                Encuentra aulas por nombre, ubicación, capacidad o estado
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nombre, ubicación o capacidad..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
               <Select value={locationFilter} onValueChange={setLocationFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Todas las ubicaciones" />
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Filtrar ubicación" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Total Ubicaciones</SelectItem>
+                  <SelectItem value="all">Todas las ubicaciones</SelectItem>
                   {getUniqueLocations().map((location) => (
                     <SelectItem key={location} value={location}>
                       {location}
@@ -358,92 +395,87 @@ export default function ClassroomManagement() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              {/*<Label htmlFor="status-filter" className="text-xs text-muted-foreground">
-                Status
-              </Label>*/}
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="All statuses" />
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Filtrar estado" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Estados</SelectItem>
-                  <SelectItem value="active">Activo</SelectItem>
-                  <SelectItem value="inactive">Inactivo</SelectItem>
+                  <SelectItem value="all">Todos los estados</SelectItem>
+                  <SelectItem value="active">Activas</SelectItem>
+                  <SelectItem value="inactive">Inactivas</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Salones</CardTitle>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{classrooms?.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Capacidad Total</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{classrooms?.reduce((sum, room) => sum + room.capacity, 0)}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Classrooms Table */}
+      {/* Tabla de Aulas */}
       <Card>
         <CardHeader>
-          <CardTitle>Registro de Aulas</CardTitle>
-          <CardDescription>Administra todas las aulas con su nombre, capacidad, ubicación y estado.</CardDescription>
+          <CardTitle className="flex items-center justify-between">
+            <span>Lista de Aulas</span>
+            <Badge variant="outline">
+              {isTableLoading ? 'Cargando...' : `${filteredAndSortedClassrooms.length} aulas`}
+            </Badge>
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("name")}>
-                    Nombre
-                  </TableHead>
-                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("location")}>
-                    Ubicación {sortBy === "location" && (sortOrder === "asc" ? "↑" : "↓")}
-                  </TableHead>
-                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("capacity")}>
-                    Capacidad {sortBy === "capacity" && (sortOrder === "asc" ? "↑" : "↓")}
-                  </TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("createdAt")}>
-                    Creado {sortBy === "createdAt" && (sortOrder === "asc" ? "↑" : "↓")}
-                  </TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredAndSortedClassrooms.length === 0 ? (
+          {isTableLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Cargando aulas...</p>
+            </div>
+          ) : filteredAndSortedClassrooms.length === 0 ? (
+            <div className="text-center py-12">
+              <GraduationCap className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">
+                {searchTerm || locationFilter !== "all" || statusFilter !== "all"
+                  ? "No se encontraron aulas"
+                  : "No hay aulas registradas"}
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                {searchTerm || locationFilter !== "all" || statusFilter !== "all"
+                  ? "Intenta ajustar los filtros de búsqueda."
+                  : "Comienza creando tu primera aula."}
+              </p>
+              <Button
+                size="lg"
+                className="gap-2"
+                onClick={openCreate}
+              >
+                <Plus className="h-4 w-4" />
+                agregar Aula
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      {searchTerm || locationFilter !== "all" || statusFilter !== "all"
-                        ? "No se encontraron aulas que coincidan con tus filtros."
-                        : "No se encontraron aulas registradas."}
-                    </TableCell>
+                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("name")}>
+                      Nombre {sortBy === "name" && (sortOrder === "asc" ? "↑" : "↓")}
+                    </TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("location")}>
+                      Ubicación {sortBy === "location" && (sortOrder === "asc" ? "↑" : "↓")}
+                    </TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("capacity")}>
+                      Capacidad {sortBy === "capacity" && (sortOrder === "asc" ? "↑" : "↓")}
+                    </TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("createdAt")}>
+                      Creado {sortBy === "createdAt" && (sortOrder === "asc" ? "↑" : "↓")}
+                    </TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
-                ) : (
-                  filteredAndSortedClassrooms.map((classroom) => (
+                </TableHeader>
+                <TableBody>
+                  {filteredAndSortedClassrooms.map((classroom) => (
                     <TableRow key={classroom.id}>
                       <TableCell className="font-medium">
                         {classroom.name}
                       </TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell>
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4 text-muted-foreground" />
                           {classroom.location}
@@ -452,13 +484,15 @@ export default function ClassroomManagement() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Users className="h-4 w-4 text-muted-foreground" />
-                          {classroom.capacity} students
+                          {classroom.capacity} estudiantes
                         </div>
                       </TableCell>
                       <TableCell>
-
-                        <Badge className={`text-center text-white font-medium py-1 ${classroom.status === "active" ? "bg-green-600 px-3" : "bg-red-600"}`}>
-                          {classroom.status === "active" ? "Activo" : "Inactivo"}
+                        <Badge
+                          variant={classroom.status === "active" ? "default" : "secondary"}
+                          className={classroom.status === "active" ? "bg-green-600 text-white" : "bg-gray-600/70 text-white"}
+                        >
+                          {classroom.status === "active" ? "Activa" : "Inactiva"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
@@ -468,24 +502,76 @@ export default function ClassroomManagement() {
                           year: 'numeric'
                         })}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm" onClick={() => handleEdit(classroom)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="destructive" size="sm" onClick={() => handleDelete(classroom.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                      <TableCell className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleView(classroom)}
+                          className="hover:scale-105 transition-transform cursor-pointer"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(classroom)}
+                          className="hover:scale-105 transition-transform cursor-pointer"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(classroom.id)}
+                          className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* Dialog para CRUD de aulas */}
+      <CrudDialog
+        operation={operation}
+        title={operation === 'create'
+          ? 'Crear Nueva Aula'
+          : operation === 'edit'
+            ? 'Editar Aula'
+            : 'Ver Aula'
+        }
+        description={operation === 'create'
+          ? 'Ingresa los detalles para la nueva aula.'
+          : operation === 'edit'
+            ? 'Actualiza la información del aula a continuación.'
+            : 'Información detallada del aula.'
+        }
+        schema={classroomFormSchema}
+        defaultValues={{
+          name: "",
+          capacity: 0,
+          location: "",
+          status: "active",
+        }}
+        data={data}
+        isOpen={isOpen}
+        onOpenChange={close}
+        onSubmit={handleSubmit}
+        onDelete={handleDelete}
+      >
+        {(form, operation) => (
+          <ClassroomForm
+            form={form as unknown as UseFormReturn<ClassroomFormValues>}
+            operation={operation}
+          />
+        )}
+      </CrudDialog>
     </div>
   )
 }
