@@ -4,7 +4,7 @@ import React from "react";
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card";
 import { Badge } from "@repo/ui/components/shadcn/badge";
-import { BookOpen, Users, Calendar, BarChart3, Settings, GraduationCap, MapPin, Shield, Clock, Award } from "@repo/ui/icons";
+import { BookOpen, Users, Calendar, BarChart3, Settings, GraduationCap, MapPin, Shield, Award, School } from "@repo/ui/icons";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { useUserWithConvex } from "../../../../stores/userStore";
@@ -208,27 +208,31 @@ export default function EscuelaHome() {
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
         <div className="relative p-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div className="flex items-start gap-6">
-              {schoolData.imgUrl && schoolData.imgUrl !== "/avatars/default-school.jpg" && (
-                <div className="relative shrink-0">
-                  <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl" />
-                  <Image
-                    src={schoolData.imgUrl}
-                    alt="Logo de la escuela"
-                    width={100}
-                    height={100}
-                    className="relative rounded-2xl shadow-lg ring-1 ring-white/20"
-                  />
-                </div>
-              )}
+            <div className="flex items-center gap-6">
+              <div className="relative shrink-0">
+                <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl" />
+                {schoolData.imgUrl && schoolData.imgUrl !== "/avatars/default-school.jpg" ? (
+                  <div className="relative w-[120px] h-[120px] rounded-2xl shadow-lg ring-1 ring-white/20 overflow-hidden">
+                    <Image
+                      src={schoolData.imgUrl}
+                      alt="Logo de la escuela"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="relative w-[100px] h-[100px] bg-primary/10 rounded-2xl shadow-lg ring-1 ring-white/20 flex items-center justify-center">
+                    <School className="w-12 h-12 text-primary/70" />
+                  </div>
+                )}
+              </div>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <h1 className="text-4xl font-bold tracking-tight">{schoolData.name}</h1>
                   <Badge 
                     variant={schoolData.status === 'active' ? 'secondary' : 'destructive'} 
-                    className="text-xs"
+                    className="text-xs bg-green-600 text-white -mb-2"
                   >
-                    <Shield className="w-3 h-3 mr-1" />
                     {schoolData.status === 'active' ? 'Activa' : 'Inactiva'}
                   </Badge>
                 </div>
@@ -249,10 +253,6 @@ export default function EscuelaHome() {
               <Button size="lg" className="gap-2">
                 <Settings className="w-4 h-4" />
                 Configuración
-              </Button>
-              <Button variant="outline" size="lg" className="gap-2">
-                <Clock className="w-4 h-4" />
-                Actividad Reciente
               </Button>
             </div>
           </div>
