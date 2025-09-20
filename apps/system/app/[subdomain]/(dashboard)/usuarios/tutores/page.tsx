@@ -51,7 +51,7 @@ import {
   Search,
   Plus,
   Eye,
-  Edit,
+  Pencil,
   Trash2,
   Filter,
   Mail,
@@ -714,17 +714,17 @@ export default function TutorPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Tutor</TableHead>
-                    <TableHead>Contacto</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Fecha de Ingreso</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
+                    <TableHead className="w-[110px] px-4">Tutor</TableHead>
+                    <TableHead className="text-center">Contacto</TableHead>
+                    <TableHead className="text-center">Estado</TableHead>
+                    <TableHead className="text-center">Fecha de Ingreso</TableHead>
+                    <TableHead className="text-center">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredUsers.map((user: UserFromConvex) => (
                     <TableRow key={user._id}>
-                      <TableCell>
+                      <TableCell >
                         <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10">
                             <AvatarImage src={user.imgUrl} alt={user.name} />
@@ -743,7 +743,7 @@ export default function TutorPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <div className="space-y-1">
                           {user.phone && (
                             <div className="text-sm flex items-center gap-1">
@@ -759,59 +759,52 @@ export default function TutorPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <Badge
-                          variant={
-                            (user.schoolStatus || "active") === "active"
-                              ? "default"
-                              : "secondary"
-                          }
-                          className={
-                            (user.schoolStatus || "active") === "active"
-                              ? "bg-green-500 hover:bg-green-600"
-                              : ""
-                          }
+                          variant={(user.schoolStatus || "active") === "active" ? "default" : "secondary"}
+                          className={(user.schoolStatus || "active") === "active"
+                            ? "bg-green-600 text-white flex-shrink-0 ml-2"
+                            : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}
                         >
-                          {(user.schoolStatus || "active") === "active"
-                            ? "Activo"
-                            : "Inactivo"}
+                          {(user.schoolStatus || "active") === "active" ? "Activo" : "Inactivo"}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <div className="flex items-center gap-1 text-sm">
                           <Calendar className="h-3 w-3 text-muted-foreground" />
                           {formatDate(user.admissionDate || user.createdAt)}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleOpenView(user)}
-                            className="h-8 w-8 p-0"
+                            className="hover:scale-105 transition-transform cursor-pointer"
                             disabled={isCrudLoading}
                           >
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-8 w-8 p-0" />
                           </Button>
                           <Button
+                            className= "hover:scale-105 transition-transform cursor-pointer h-8 w-8 p-0"
                             variant="ghost"
                             size="sm"
                             onClick={() => handleOpenEdit(user)}
-                            className="h-8 w-8 p-0"
+                            
                             disabled={isCrudLoading}
                           >
-                            <Edit className="h-4 w-4" />
+                            <Pencil className="h-4 w-4"/>
                           </Button>
                           {user.schoolStatus === "active" && (
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleOpenDelete(user)}
-                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              className="text-destructive hover:text-destructive hover:scale-105 transition-transform cursor-pointer"
                               disabled={isCrudLoading}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-8 w-8 p-0" />
                             </Button>
                           )}
                         </div>
