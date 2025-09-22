@@ -535,16 +535,11 @@ export default function TutorPage() {
                 </div>
                 <div>
                   <h1 className="text-4xl font-bold tracking-tight">
-                    Gestión de Tutores
+                    Tutores
                   </h1>
                   <p className="text-lg text-muted-foreground">
                     Administra los tutores que tienen acceso a información de
                     alumnos
-                    {currentSchool?.school && (
-                      <span className="block text-sm mt-1">
-                        {currentSchool.school.name}
-                      </span>
-                    )}
                   </p>
                 </div>
               </div>

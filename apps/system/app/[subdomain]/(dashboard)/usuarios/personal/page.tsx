@@ -692,16 +692,11 @@ export default function PersonalPage() {
                 </div>
                 <div>
                   <h1 className="text-4xl font-bold tracking-tight">
-                    Gestión de Personal
+                    Personal
                   </h1>
                   <p className="text-lg text-muted-foreground">
                     Administra el personal administrativo y docente (tutores
                     gestionados por separado)
-                    {currentSchool?.school && (
-                      <span className="block text-sm mt-1">
-                        {currentSchool.school.name}
-                      </span>
-                    )}
                   </p>
                 </div>
               </div>
