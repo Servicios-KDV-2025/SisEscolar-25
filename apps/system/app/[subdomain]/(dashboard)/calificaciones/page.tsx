@@ -106,23 +106,32 @@ export default function GradeManagementDashboard() {
   );
 
   // State synchronization and initial value setting
-  useEffect(() => {
-    if (schoolCycles && schoolCycles.length > 0 && !selectedSchoolCycle) {
-      setSelectedSchoolCycle(schoolCycles[0]!._id as string);
-    }
-  }, [schoolCycles, selectedSchoolCycle]);
+useEffect(() => {
+  
+  // Establece el ciclo escolar por defecto si no hay uno seleccionado
+  if (schoolCycles && schoolCycles.length > 0 && !selectedSchoolCycle) {
+    setSelectedSchoolCycle(schoolCycles[0]!._id as string);
+  }
 
-  useEffect(() => {
-    if (classes && classes.length > 0 && !selectedClass) {
-      setSelectedClass(classes[0]!._id as string);
-    }
-  }, [classes, selectedClass]);
+  // Establece la clase por defecto si no hay una seleccionada
+  if (classes && classes.length > 0 && !selectedClass) {
+    setSelectedClass(classes[0]!._id as string);
+  }
 
-  useEffect(() => {
-    if (terms && terms.length > 0 && !selectedTerm) {
-      setSelectedTerm(terms[0]!._id as string);
-    }
-  }, [terms, selectedTerm]);
+  // Establece el periodo por defecto si no hay uno seleccionado
+  if (terms && terms.length > 0 && !selectedTerm) {
+    setSelectedTerm(terms[0]!._id as string);
+  }
+}, [
+  schoolCycles, selectedSchoolCycle,
+  classes, selectedClass,
+  terms, selectedTerm
+]);
+
+useEffect(() => {
+  setSelectedClass("");
+  setSelectedTerm("");
+}, [selectedSchoolCycle]);
 
   const filteredAndSortedStudents = students
     ? students
