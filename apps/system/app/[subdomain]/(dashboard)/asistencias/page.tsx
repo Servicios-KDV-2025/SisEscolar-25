@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import AttendanceManager from "components/attendance/attendanceManager";
-import AttendanceHistory from "components/attendance/attendanceHisotry";
+import AttendanceHistory from "components/attendance/attendanceHistory";
 import { Tabs, TabsList, TabsContent, TabsTrigger } from "@repo/ui/components/shadcn/tabs";
 import { ClipboardList } from "@repo/ui/icons";
 
