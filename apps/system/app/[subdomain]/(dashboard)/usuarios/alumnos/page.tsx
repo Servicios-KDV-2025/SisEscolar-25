@@ -560,7 +560,7 @@ export default function AlumnosPage() {
                         {student.enrollment}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       <Badge variant="secondary">
                         {getGroupInfo(student.groupId)}
                       </Badge>
@@ -578,7 +578,7 @@ export default function AlumnosPage() {
                         {student.status === "active" ? "Activo" : "Inactivo"}
                       </Badge>
                     </TableCell>
-                    <TableCell >
+                    <TableCell className="text-center">
                       <div className="flex items-center gap-1 text-sm">
                         <Calendar className="h-3 w-3 text-muted-foreground" />
                         {formatDate(student.admissionDate)}
@@ -614,13 +614,13 @@ export default function AlumnosPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => openDelete(student as unknown as Record<string, unknown>)}
-                            className="h-8 w-8 p-0 text-destructive"
+                            className="h-8 w-8 p-0 text-destructive hover:scale-105 transition-transform cursor-pointer"
                             disabled={isUpdating || isDeleting}
                           >
                             {isDeleting ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                              <Trash2 className="h-4 w-4 hover:scale-105 transition-transform cursor-pointer" />
+                              <Trash2 className="h-8 w-8 p-0 text-destructive " />
                             )}
                           </Button>
                         )}
