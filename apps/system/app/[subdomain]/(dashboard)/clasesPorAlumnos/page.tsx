@@ -354,9 +354,7 @@ export default function StudentClassesDashboard() {
                           <TableHead className="w-[110px] text-center">Promedio</TableHead>
                           <TableHead className="w-[140px] text-center">Fecha de Inscripción</TableHead>
                           <TableHead className="w-[100px] text-center">Estado</TableHead>
-                          <TableHead className="w-[140px] text-center sticky right-0 bg-white shadow-[-2px_0_5px_rgba(0,0,0,0.1)] z-10">
-                            Acciones
-                          </TableHead>
+                          <TableHead className="w-[140px] text-center sticky right-0 bg-white shadow-[-2px_0_5px_rgba(0,0,0,0.1)] z-10">Acciones</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -379,46 +377,46 @@ export default function StudentClassesDashboard() {
                                   </div>
                                 </div>
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="text-center">
                                 <div className="flex justify-center items-center truncate">
                                   {enrollment?.schoolCycle?.name}
                                 </div>
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="text-center">
                                 <div className="flex justify-center items-center truncate">
                                   {enrollment?.classCatalog.grade} {enrollment?.classCatalog.group}
                                 </div>
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="text-center">
                                 <div className="flex justify-center items-center truncate">
                                   {enrollment?.classCatalog.subject}
                                 </div>
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="text-center">
                                 <div className="flex justify-center items-center truncate">
                                   {enrollment?.classCatalog.teacher}
                                 </div>
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="text-center">
                                 <div className="flex justify-center items-center truncate">
                                   {enrollment?.averageScore !== undefined ? enrollment.averageScore.toFixed(0) : '-'}
                                 </div>
                               </TableCell>
-                              <TableCell className="px-4">
+                              <TableCell className="px-4 text-center">
                                 <div className="flex justify-center items-center truncate">
                                   {enrollment?.enrollmentDate
                                     ? new Date(enrollment.enrollmentDate).toISOString().split("T")[0]
                                     : "No disponible"}
                                 </div>
                               </TableCell>
-                              <TableCell className="px-4 text-center">
+                              <TableCell className="text-center">
                                 <Badge
                                   variant={enrollment?.status === "active" ? "default" : "secondary"}
                                   className={enrollment?.status === "active" ? "bg-green-600 text-white flex-shrink-0 ml-2" : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}>
                                   {enrollment?.status === 'active' ? 'Activa' : 'Inactiva'}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="text-center">
                                 <div className="flex gap-1 justify-center">
                                   <Button
                                     variant="ghost"

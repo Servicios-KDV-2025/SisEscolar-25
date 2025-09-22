@@ -1,194 +1,268 @@
 import { query, mutation } from "../_generated/server"
 import { v } from "convex/values"
 
-// Obtener asistencia por una studentClass específica
-export const getAttendance = query({
-  args: {
-    studentClassId: v.id('studentClass')
-  },
-  handler: async (ctx, args) => {
-    const studentClass = await ctx.db.get(args.studentClassId)
-    if(!studentClass) {
-      throw new Error('La clase de estudiante especificada no existe.')
-    }
-    return await ctx.db
-      .query('attendance')
-      .withIndex('by_student_class', (q) => q.eq('studentClassId', args.studentClassId))
-      .collect()
-  }
-})
-// Obtener asistencia por ID
-export const getAttendenceById = query({
-  args: {
-    id: v.id('attendance')
-  },
-  handler: async (ctx, args) => {
-    const attendace = await ctx.db.get(args.id)
-    if(!attendace) {
-      throw new Error('Asistencia no encontrada.')
-    }
-    return attendace
-  }
-})
-// Crear una nueva sistencia
 export const createAttendance = mutation({
   args: {
     studentClassId: v.id('studentClass'),
     date: v.number(),
-    present: v.boolean(),
-    justified: v.optional(v.boolean()),
+    attendanceState: v.union(
+      v.literal('present'),
+      v.literal('absent'),
+      v.literal('justified'),
+      v.literal('unjustified')
+    ),
     comments: v.optional(v.string()),
-    registrationDate: v.number(),
     createdBy: v.id('user'),
-    updatedBy: v.id('user'),
-    updatedAt: v.number()
+    updatedBy: v.id('user')
   },
   handler: async (ctx, args) => {
-    const studentClassExists = await ctx.db.get(args.studentClassId)
-    if(!studentClassExists) {
-      throw new Error ('No se puede crear la asistencia: La clase de estudiante especificada no existe.')
+    const identity = await ctx.auth.getUserIdentity()
+    if(!identity) {
+      throw new Error('Not authenticated')
     }
-    return await ctx.db.insert('attendance', args)
-  }
-})
-// Actualizar una asistencia existente
-export const updateAttendance = mutation({
-  args: {
-    id: v.id('attendance'),
-    studentClassId: v.id('studentClass'),
-    date: v.number(),
-    present: v.boolean(),
-    justified: v.optional(v.boolean()),
-    comments: v.optional(v.string()),
-    registrationDate: v.number(),
-    createdBy: v.id('user'),
-    updatedBy: v.id('user'),
-    updatedAt: v.number()
-  },
-  handler: async (ctx, args) => {
-    const {id, studentClassId, ...data} = args
-    const existingAttendance = await ctx.db.get(id)
-    if(!existingAttendance || existingAttendance.studentClassId !== args.studentClassId) {
-      throw new Error('No se puede actualizar la asistencia: La asistencia especificada no existe o no pertenece a la clase de estudiante indicada.')
-    }
-    await ctx.db.patch(id, data)
-    return await ctx.db.get(id)
-  }
-})
-// Eliminar una asistencia
-export const deleteAttendance = mutation({
-  args: {
-    id: v.id('attendance'),
-    studentClassId: v.id('studentClass')
-  },
-  handler: async (ctx, args) => {
-    const existingAttendance = await ctx.db.get(args.id)
-    if(!existingAttendance || existingAttendance.studentClassId !== args.studentClassId) {
-      throw new Error('No se puede eliminar la asistencia: La asistencia especificada no existe o no pertenece a la clase de estudiante indicada.')
-    }
-    await ctx.db.delete(args.id)
-    return true
-  }
-})
 
-// Obtener registros de asistencia por fecha
-export const getAttendanceByDate = query({
-  args: {date: v.number()},
-  handler: async (ctx, args) => {
-    return await ctx.db.query('attendance').withIndex('by_date', (q) => q.eq('date', args.date)).collect()
-  }
-})
-
-// Obtener registros de asistencia con información de estudiantes
-export const getAttendanceWithStudents = query({
-  args: { classCatalogId: v.id('classCatalog') },
-  handler: async (ctx, args) => {
-    // let attendanceQuery = ctx.db.query('attendance')
-    let attendanceRecords
-
-    // Si se proporciona classCatalogId, filtrar por esa clase
-    if(args.classCatalogId) {
-      // Optener los estudiantes para esa classe
-      const studentClasses = await ctx.db
-        .query('studentClass')
-        .withIndex('by_class_catalog', (q) => q.eq('classCatalogId', args.classCatalogId!))
-        .collect()
-
-      const studentClassIds = studentClasses.map(sc => sc._id)
-
-      // attendanceQuery = attendanceQuery.filter(q => q.eq('studentClassId', studentClassIds))
-      // Obtener todos los registros de asistencia y filtrar manualmente
-      const allAttendance = await ctx.db.query("attendance").collect();
-      attendanceRecords = allAttendance.filter(record => 
-        studentClassIds.includes(record.studentClassId)
+    // Verificar si ya existe un registro de para la misma clase y fecha
+    const existingAttendance = await ctx.db
+      .query('attendance')
+      .withIndex('by_student_class_and_date', (q) => 
+        q.eq('studentClassId', args.studentClassId).eq('date', args.date)
       )
-    } else {
-      attendanceRecords = await ctx.db.query('attendance').collect()
+      .first()
+
+    if(existingAttendance) {
+      // Actualizar el registro existente
+      return await ctx.db
+        .patch(existingAttendance._id, {
+          attendanceState: args.attendanceState,
+          comments: args.comments,
+          updatedBy: args.updatedBy,
+          updatedAt: Date.now()
+        })
     }
 
-    const recordsWithStudents = await Promise.all(
-      attendanceRecords.map(async (record) => {
-        const studentClass = await ctx.db.get(record.studentClassId)
-        if(!studentClass) return null
+    // Crear un nuevo registro de asistencia
+    return await ctx.db.insert('attendance', {
+      studentClassId: args.studentClassId,
+      date: args.date,
+      attendanceState: args.attendanceState,
+      comments:args.comments,
+      createdBy: args.createdBy,
+      updatedBy: args.updatedBy,
+      updatedAt: Date.now()
+    })
+  },
+})
 
-        const student = await ctx.db.get(studentClass.studentId)
-        const classCatalog = await ctx.db.get(studentClass.classCatalogId)
+export const getAttendanceByClassAndDate = query({
+  args: {
+    classCatalogId: v.id('classCatalog'),
+    date: v.number()
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if(!identity) {
+      throw new Error('Not authenticated')
+    }
+
+    // Obtener todos los studentClass para la clase dada
+    const studentClasses = await ctx.db
+      .query('studentClass')
+      .withIndex('by_class_catalog', (q) => 
+        q.eq('classCatalogId', args.classCatalogId)
+      )
+      .collect()
+
+    // Obtener la asistencia para cada studentClass en la fecha dada
+    const attendanceRecords = await Promise.all(
+      studentClasses.map(async (studentClass) => {
+        const attendance = await ctx.db
+          .query('attendance')
+          .withIndex('by_student_class_and_date', (q) =>
+            q.eq('studentClassId', studentClass._id).eq('date', args.date)
+          )
+          .first()
 
         return {
-          ...record,
-          student: student || null,
-          className: classCatalog?.name || 'Unknown'
+          studentClassId: studentClass._id,
+          studentId: studentClass.studentId,
+          attendance: attendance || null
         }
       })
     )
 
-    return recordsWithStudents.filter(record => record !== null)
+    return attendanceRecords
   },
 })
 
-// Marcar asistencia
-export const markAttendanceSimple = mutation({
+export const getAttendanceByStudentClass = query({
+  args: {studentClassId: v.id('studentClass')},
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if(!identity) {
+      throw new Error('Not authenticated')
+    }
+
+    return await ctx.db
+      .query('attendance')
+      .withIndex('by_student_class', (q) => q.eq('studentClassId', args.studentClassId))
+      .order('desc')
+      .collect()
+  },
+})
+
+export const getAttendanceHistory = query({
   args: {
-    userId: v.id('user'),
-    studentClassId: v.id('studentClass'),
-    date: v.number(),
-    present: v.boolean(),
-    comments: v.optional(v.string())
+    schoolId: v.id('school'),
+    filters: v.optional(v.object({
+      classCatalogId: v.optional(v.id('classCatalog')),
+      attendanceState: v.optional(v.union(
+        v.literal('present'),
+        v.literal('absent'),
+        v.literal('justified'),
+        v.literal('unjustified')
+      )),
+      specificDate: v.optional(v.number()),
+    }))
   },
   handler: async (ctx, args) => {
-    // const existingRecord = await ctx.db.query('attendance')
-    //   .withIndex('by_student_class', (q) => q.eq(
-    //     'studentClassId', args.studentClassId
-    //   ).eq("date", args.date)).first()
-    // Usar el nuevo índice compuesto
-    const existingRecord = await ctx.db.query('attendance')
-      .withIndex('by_student_class_and_date', (q) => 
-        q.eq('studentClassId', args.studentClassId).eq("date", args.date)
-      )
-      .first()
+    const identity = await ctx.auth.getUserIdentity()
+    if(!identity) {
+      throw new Error('No autorizado')
+    }
 
-      const now = Date.now()
+    // Obtener todos los studentClass de la escuela
+    const allStudentClasses = await ctx.db
+      .query('studentClass')
+      .withIndex('by_school', (q) => q.eq('schoolId', args.schoolId))
+      .collect()
 
-      if(existingRecord) {
-        await ctx.db.patch(existingRecord._id, {
-          present: args.present,
-          justified: args.present ? undefined : false,
-          comments: args.comments,
-          updatedBy: args.userId,
-          updatedAt: now,
-        })
-      } else {
-        await ctx.db.insert('attendance', {
-          studentClassId: args.studentClassId,
-          date: args.date,
-          present: args.present,
-          justified: args.present ? undefined : false,
-          comments: args.comments,
-          registrationDate: now,
-          createdBy: args.userId,
-          updatedBy: args.userId,
-          updatedAt: now
-        })
+    let attendanceQuery = ctx.db.query('attendance')
+
+    // Filtrar por studentClassIds de la escuela
+    const studentClassIds = allStudentClasses.map(sc => sc._id)
+    attendanceQuery = attendanceQuery.filter(q => 
+      q.or(...studentClassIds.map(id => q.eq(q.field('studentClassId'), id)))
+    )
+
+    // Aplicar filtros adicionales si existen
+    if(args.filters) {
+      if(args.filters.classCatalogId) {
+        const classStudentClasses = allStudentClasses.filter(sc => 
+          sc.classCatalogId === args.filters?.classCatalogId
+        )
+        const classStudentClassesIds = classStudentClasses.map(sc => sc._id)
+        attendanceQuery = attendanceQuery.filter(q => 
+          q.or(...classStudentClassesIds.map(id => q.eq(q.field('studentClassId'), id)))
+        )
       }
+
+      if(args.filters.specificDate) {
+        attendanceQuery = attendanceQuery.filter(q => 
+          q.eq(q.field('date'), args.filters?.specificDate!)
+        )
+      }
+
+      if(args.filters.attendanceState) {
+        attendanceQuery = attendanceQuery.filter(q =>
+          q.eq(q.field('attendanceState'), args.filters?.attendanceState!)
+        )
+      }
+    }
+
+    const attendanceRecords = await attendanceQuery.order('desc').collect()
+
+    // Enriquecer los datos informacion relacionada
+    const enrichedRecords = await Promise.all(
+      attendanceRecords.map(async (attendance) => {
+        const studentClass = await ctx.db.get(attendance.studentClassId)
+        if(!studentClass) return null
+
+        const [student, classCatalog, createdByUser, updatedByUser] = await Promise.all([
+          ctx.db.get(studentClass.studentId),
+          ctx.db.get(studentClass.classCatalogId),
+          ctx.db.get(attendance.createdBy),
+          ctx.db.get(attendance.updatedBy)
+        ])
+
+        if(!student || !classCatalog) return null
+
+        return {
+          _id: attendance._id,
+          date: attendance.date,
+          attendanceState: attendance.attendanceState,
+          comments: attendance.comments,
+          student: {
+            _id: student._id,
+            name: student.name,
+            lastName: student.lastName,
+            enrollment: student.enrollment
+          },
+          classCatalog: {
+            _id: classCatalog._id,
+            name: classCatalog.name
+          },
+          createdBy: createdByUser ? `${createdByUser.name} ${createdByUser.lastName}` : 'Unknow',
+          updatedBy: updatedByUser ? `${updatedByUser?.name} ${updatedByUser.lastName} ` : 'Unknow',
+          updateAt: attendance.updatedAt
+        }
+      })
+    )
+
+    // Filtrar por nombre del estudiante si existe el filtro
+    let filteredRecords = enrichedRecords.filter((record): record is NonNullable<typeof record> => record !== null)
+
+    return filteredRecords
+  }
+})
+
+export const getAttendanceStatistics = query({
+  args: {
+    schoolId: v.id('school'),
+    classCatalogId: v.optional(v.id('classCatalog')),
+    specificDate: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if(!identity) {
+      throw new Error('No autorizado')
+    }
+
+    // Obtener todos los estidantes de la escuela
+    const allStudentClasses = ctx.db
+      .query('studentClass')
+      .withIndex('by_school', (q) => q.eq('schoolId', args.schoolId))
+      .collect()
+
+    let attendanceQuery = ctx.db.query('attendance')
+
+    // Aplicar filtros
+    const studentClassIds = (await allStudentClasses)
+      .filter(sc => !args.classCatalogId || sc.classCatalogId === args.classCatalogId)
+      .map(sc => sc._id)
+
+    attendanceQuery = attendanceQuery.filter(q => 
+      q.or(...studentClassIds.map(id => q.eq(q.field('studentClassId'), id)))
+    )
+
+    if(args.specificDate) {
+      attendanceQuery = attendanceQuery.filter(q =>
+        q.gte(q.field('date'), args.specificDate!)
+      )
+    }
+
+    const attendanceRecords = await attendanceQuery.collect()
+
+    const state = {
+      total: attendanceRecords.length,
+      present: attendanceRecords.filter(r => r.attendanceState === 'present').length,
+      absent: attendanceRecords.filter(r => r.attendanceState === 'absent').length,
+      justified: attendanceRecords.filter(r => r.attendanceState === 'justified').length,
+      unjustified: attendanceRecords.filter(r => r.attendanceState === 'unjustified').length
+    }
+
+    return {
+      ...state,
+      attendanceRate: state.total > 0 ? ((state.present + state.justified) / state.total * 100).toFixed(1) : '0'
+    }
   }
 })
