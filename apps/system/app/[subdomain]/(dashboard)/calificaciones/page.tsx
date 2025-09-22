@@ -173,7 +173,7 @@ useEffect(() => {
     for (const student of students) {
       if (!student.student) continue;
 
-      const studentClassId = student.id;
+      const studentClassId = student._id;
       const newAverage = calculateAverage(studentClassId);
 
       if (newAverage !== null) {

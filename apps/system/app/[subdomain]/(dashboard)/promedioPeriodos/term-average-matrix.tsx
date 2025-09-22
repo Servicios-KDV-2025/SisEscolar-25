@@ -25,7 +25,7 @@ import { GradingModal } from "components/grading-modal";
 
 // ... (interfaces existentes)
 interface StudentWithClass {
-  id: Id<"studentClass">;
+  _id: Id<"studentClass">;
   student: {
     _id: Id<"student">;
     name: string;
@@ -127,7 +127,7 @@ export function TermAverageMatrix({
   };
 
   const handleButtonClick = (studentId: string, termId: string) => {
-    const studentData = students.find((s) => s.id === studentId);
+    const studentData = students.find((s) => s._id === studentId);
     const termData = terms.find((t) => t._id === termId);
     const averageData = averages
       .get(studentId)
@@ -210,11 +210,11 @@ export function TermAverageMatrix({
             {students.map((student) => {
               if (!student.student) return null;
 
-              const annualAverage = calculateAnnualAverage(student.id);
+              const annualAverage = calculateAnnualAverage(student._id);
 
               return (
                 <TableRow
-                  key={student.id}
+                  key={student._id}
                   className="hover:bg-muted/50 transition-colors"
                 >
                   <TableCell className="sticky left-0 z-10 bg-card">
@@ -223,11 +223,11 @@ export function TermAverageMatrix({
                     </div>
                   </TableCell>
                   {terms.map((term) => {
-                    const average = getAverageScore(student.id, term._id);
-                    const cellId = `${student.id}-${term._id}`;
+                    const average = getAverageScore(student._id, term._id);
+                    const cellId = `${student._id}-${term._id}`;
                     const isEditing = editingCell === cellId;
 
-                    const comText = getComment(student.id, term._id);
+                    const comText = getComment(student._id, term._id);
                     const commentText = comText
                     ? comText.length>25
                     ? comText.substring(0, 25) + '...'
@@ -247,10 +247,10 @@ export function TermAverageMatrix({
                               value={tempValue}
                               onChange={(e) => setTempValue(e.target.value)}
                               onBlur={() =>
-                                handleCellBlur(student.id, term._id)
+                                handleCellBlur(student._id, term._id)
                               }
                               onKeyDown={(e) =>
-                                handleKeyDown(e, student.id, term._id)
+                                handleKeyDown(e, student._id, term._id)
                               }
                               className="w-full text-center border-accent"
                               min="0"
@@ -260,7 +260,7 @@ export function TermAverageMatrix({
                           ) : (
                             <div
                               onClick={() =>
-                                handleCellClick(student.id, term._id)
+                                handleCellClick(student._id, term._id)
                               }
                               className={`
                            ${
@@ -281,14 +281,14 @@ export function TermAverageMatrix({
                               {commentText ? (
                                 <MessageCircleMore
                                   onClick={() => {
-                                    handleButtonClick(student.id, term._id);
+                                    handleButtonClick(student._id, term._id);
                                   }}
                                   className="h-7.5 w-7.5 rounded-lg justify-end p-0.5 cursor-pointer hover:bg-gray-400 hover:text-white transition-colors"
                                 />
                               ) : (
                                 <MessageCircleDashed
                                   onClick={() => {
-                                    handleButtonClick(student.id, term._id);
+                                    handleButtonClick(student._id, term._id);
                                   }}
                                   className="h-7.5 w-7.5 rounded-lg justify-end p-0.5 cursor-pointer hover:bg-gray-400 hover:text-white transition-colors"
                                 />

@@ -329,7 +329,7 @@ export const getStudentWithClasses = query({
 
     let studentClasses;
     // Filtrar studentClass por classCatalogId si se proporciona
-    if (args.classCatalogId) {
+    if(args.classCatalogId) {
       studentClasses = await ctx.db.query('studentClass')
         .withIndex('by_class_catalog', (q) => q.eq('classCatalogId', args.classCatalogId!))
         .collect();
@@ -342,16 +342,14 @@ export const getStudentWithClasses = query({
       studentClasses.map(async (sc) => {
         const student = await ctx.db.get(sc.studentId)
         const classCatalog = await ctx.db.get(sc.classCatalogId)
-
         return {
-          id: sc._id,
-          studentId: sc.studentId,
-          classId: sc.classCatalogId,
-          className: classCatalog?.name || 'Unknown',
-          student: student
+          ...sc,
+          student,
+          className: classCatalog?.name || 'Unknow'
         }
       })
     )
-    return studentsWithDetails.filter(sc => sc.student !== null)
+
+    return studentsWithDetails
   },
 })
