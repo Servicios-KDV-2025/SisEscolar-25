@@ -16,7 +16,7 @@ import { Skeleton } from "@repo/ui/components/shadcn/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/shadcn/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@repo/ui/components/shadcn/command";
 import { 
-   Users, Search, Plus, Eye, Edit, Trash2, Filter, Calendar, UserCheck, UserX, GraduationCap, AlertCircle, Loader2, Check, ChevronsUpDown
+   Users, Search, Plus, Eye, Pencil, Trash2, Filter, Calendar, UserCheck, UserX, GraduationCap, AlertCircle, Loader2, Check, ChevronsUpDown
 } from "@repo/ui/icons";
 import { studentSchema } from "@/types/form/userSchemas";
 import { useStudentsWithPermissions, type CreateStudentData, type UpdateStudentData } from "../../../../../stores/studentStore";
@@ -525,19 +525,19 @@ export default function AlumnosPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Estudiante</TableHead>
-                  <TableHead>Matrícula</TableHead>
-                  <TableHead>Grupo</TableHead>
-                  <TableHead>Tutor</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Fecha de Ingreso</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  <TableHead className="w-[110px] px-4">Estudiante</TableHead>
+                  <TableHead className="text-center">Matrícula</TableHead>
+                  <TableHead className="text-center">Grupo</TableHead>
+                  <TableHead className="text-center">Tutor</TableHead>
+                  <TableHead className="text-center">Estado</TableHead>
+                  <TableHead className="text-center">Fecha de Ingreso</TableHead>
+                  <TableHead className="text-center">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(filteredStudents.length > 0 ? filteredStudents : students).map((student) => (
                   <TableRow key={student._id}>
-                    <TableCell>
+                    <TableCell >
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
                           <AvatarImage src={student.imgUrl} alt={student.name} />
@@ -555,57 +555,57 @@ export default function AlumnosPage() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       <Badge variant="outline" className="font-mono">
                         {student.enrollment}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       <Badge variant="secondary">
                         {getGroupInfo(student.groupId)}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       <div className="text-sm">
                         {getTutorInfo(student.tutorId)}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <Badge 
+                    <TableCell className="text-center">
+                      <Badge
                         variant={student.status === "active" ? "default" : "secondary"}
-                        className={student.status === "active" ? "bg-green-500 hover:bg-green-600" : ""}
+                        className={student.status === "active" ? "bg-green-600 text-white flex-shrink-0 ml-2" : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}
                       >
                         {student.status === "active" ? "Activo" : "Inactivo"}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       <div className="flex items-center gap-1 text-sm">
                         <Calendar className="h-3 w-3 text-muted-foreground" />
                         {formatDate(student.admissionDate)}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => openView(student as unknown as Record<string, unknown>)}
-                          className="h-8 w-8 p-0"
+                          className="hover:scale-105 transition-transform cursor-pointer"
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-8 w-8 p-0" />
                         </Button>
                         {canUpdateUsers && (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => openEdit(student as unknown as Record<string, unknown>)}
-                            className="h-8 w-8 p-0"
+                            className="hover:scale-105 transition-transform cursor-pointer"
                             disabled={isUpdating || isDeleting}
                           >
                             {isUpdating ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                              <Edit className="h-4 w-4" />
+                              <Pencil className="h-8 w-8 p-0" />
                             )}
                           </Button>
                         )}
@@ -614,13 +614,13 @@ export default function AlumnosPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => openDelete(student as unknown as Record<string, unknown>)}
-                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            className="h-8 w-8 p-0 text-destructive hover:scale-105 transition-transform cursor-pointer"
                             disabled={isUpdating || isDeleting}
                           >
                             {isDeleting ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-8 w-8 p-0 text-destructive " />
                             )}
                           </Button>
                         )}
