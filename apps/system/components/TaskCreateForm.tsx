@@ -2,6 +2,9 @@
 "use client";
 
 import { useTask } from "../stores/taskStore";
+import { useCurrentSchool } from "../stores/userSchoolsStore";
+import { useUser } from "@clerk/nextjs";
+import { useUserWithConvex } from "../stores/userStore";
 import {
   validateTaskForm,
   getValidationErrors,
@@ -62,6 +65,9 @@ interface TaskCreateFormProps {
 }
 
 export function TaskCreateForm({ triggerButton }: TaskCreateFormProps) {
+  const { user: clerkUser } = useUser();
+  const { currentUser } = useUserWithConvex(clerkUser?.id);
+  const { currentSchool } = useCurrentSchool(currentUser?._id);
   const {
     formData,
     validationErrors,
@@ -75,7 +81,7 @@ export function TaskCreateForm({ triggerButton }: TaskCreateFormProps) {
     clearFieldError,
     setValidationErrors,
     createTask,
-  } = useTask();
+  } = useTask(currentSchool?.school._id);
 
   const handleCreateTask = async () => {
     try {

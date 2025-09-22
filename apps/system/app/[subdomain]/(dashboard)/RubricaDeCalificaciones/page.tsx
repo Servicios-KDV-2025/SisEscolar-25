@@ -416,7 +416,7 @@ export default function RubricDashboard() {
                       onValueChange={setSelectedSchoolCycle}
                     >
                       <SelectTrigger className="w-full md:w-48">
-                        <SelectValue placeholder="School Cycle" />
+                        <SelectValue placeholder="Ciclo Escolar" />
                       </SelectTrigger>
                       <SelectContent>
                         {schoolCycles.map((cycle) => (

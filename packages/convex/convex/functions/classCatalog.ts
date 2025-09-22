@@ -64,6 +64,7 @@ export const getAllClassCatalog = query({
   handler: async (ctx, args) => {
     const catalog = await ctx.db
       .query("classCatalog")
+      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
       .collect();
 
     if (!catalog || !args.schoolId) return null;
@@ -165,7 +166,10 @@ export const deleteClassCatalog = mutation({
 
 
 export const getTeacherClasses = query({
-  handler: async (ctx) => {
+  args: {
+    schoolId: v.id("school"),
+  },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("No estás autenticado.");
 
@@ -179,6 +183,7 @@ export const getTeacherClasses = query({
     const classes = await ctx.db
       .query("classCatalog")
       .withIndex("by_teacher", (q) => q.eq("teacherId", user._id))
+      .filter((q) => q.eq(q.field("schoolId"), args.schoolId))
       .collect();
 
     // Enriquecer con información adicional
@@ -195,6 +200,7 @@ export const getTeacherClasses = query({
           subject: subject?.name || "Sin asignar",
           group: group?.name || "Sin asignar",
           status: clase.status,
+          schoolCycleId: clase.schoolCycleId,
         };
       })
     );
@@ -205,10 +211,12 @@ export const getTeacherClasses = query({
 
 //  Obtener todos los periodos disponibles
 export const getAllTerms = query({
-  handler: async (ctx) => {
+  args: { schoolId: v.id("school") },
+  handler: async (ctx, args) => {
     const terms = await ctx.db
       .query("term")
       .withIndex("by_status", (q) => q.eq("status", "active"))
+      .filter((q) => q.eq(q.field("schoolId"), args.schoolId))
       .collect();
 
     return terms;
@@ -237,12 +245,14 @@ export const getTermsForClass = query({
 // Obtener clases por ciclo escolar
 export const getClassesBySchoolCycle = query({
   args: {
+    schoolId: v.id("school"),
     schoolCycleId: v.id("schoolCycle"),
   },
   handler: async (ctx, args) => {
     const classes = await ctx.db
       .query("classCatalog")
       .withIndex("by_cycle", (q) => q.eq("schoolCycleId", args.schoolCycleId))
+      .filter((q) => q.eq(q.field("schoolId"), args.schoolId))
       .collect();
 
     return classes;
@@ -252,12 +262,14 @@ export const getClassesBySchoolCycle = query({
 // Obtener clases por maestro
 export const getClassesByTeacher = query({
   args: {
+    schoolId: v.id("school"),
     teacherId: v.id("user"),
   },
   handler: async (ctx, args) => {
     const classes = await ctx.db
       .query("classCatalog")
       .withIndex("by_teacher", (q) => q.eq("teacherId", args.teacherId))
+      .filter((q) => q.eq(q.field("schoolId"), args.schoolId))
       .collect();
 
     return classes;
@@ -267,12 +279,14 @@ export const getClassesByTeacher = query({
 // Obtener clases por aula
 export const getClassesByClassroom = query({
   args: {
+    schoolId: v.id("school"),
     classroomId: v.id("classroom"),
   },
   handler: async (ctx, args) => {
     const classes = await ctx.db
       .query("classCatalog")
       .withIndex("by_classroom", (q) => q.eq("classroomId", args.classroomId))
+      .filter((q) => q.eq(q.field("schoolId"), args.schoolId))
       .collect();
 
     return classes;

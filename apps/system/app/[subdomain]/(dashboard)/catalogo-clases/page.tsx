@@ -144,7 +144,7 @@ export default function ClassCatalogPage() {
 
                 console.log('Create operation completed successfully:', result);
                 toast.success('Clase creada correctamente');
-
+ 
             } else if (operation === 'edit' && data?._id) {
                 console.log('Calling updateClassCatalog...');
                 await updateClassCatalog({
