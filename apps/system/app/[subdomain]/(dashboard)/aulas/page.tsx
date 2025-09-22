@@ -19,7 +19,6 @@ import { useCurrentSchool } from "stores/userSchoolsStore"
 import { classroomFormSchema, ClassroomFormValues } from "@/types/form/classroomSchema"
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog"
 import { UseFormReturn } from "react-hook-form"
-import { z } from "zod"
 
 interface Classroom extends Record<string, unknown> {
   _id: Id<"classroom">

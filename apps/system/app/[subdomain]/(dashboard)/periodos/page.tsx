@@ -188,18 +188,31 @@ function TermForm({
 export default function PeriodsManagement() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [schoolCycleFilter, setSchoolCycleFilter] = useState<string>("all");
+  const [schoolCycleFilter, setSchoolCycleFilter] = useState<string>("current");
 
   // User and school data
-  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
-  const { currentUser, isLoading: isUserLoading } = useUserWithConvex(clerkUser?.id);
-  const { currentSchool, isLoading: isSchoolLoading, error: schoolError } = useCurrentSchool(currentUser?._id);
+  const { user: clerkUser } = useUser();
+  const { currentUser} = useUserWithConvex(clerkUser?.id);
+  const { currentSchool } = useCurrentSchool(currentUser?._id);
 
   // School cycles query
   const schoolCycles = useQuery(
     api.functions.schoolCycles.ObtenerCiclosEscolares,
     currentSchool ? { escuelaID: currentSchool.school._id } : "skip"
   );
+
+  // Active school cycle query
+  const activeSchoolCycle = useQuery(
+    api.functions.schoolCycles.ObtenerCicloActivo,
+    currentSchool ? { escuelaID: currentSchool.school._id } : "skip"
+  );
+
+  // Determine which school cycle ID to use for terms query
+  const effectiveSchoolCycleId = schoolCycleFilter === "current" 
+    ? activeSchoolCycle?._id 
+    : schoolCycleFilter === "all" 
+      ? "all"
+      : schoolCycleFilter;
 
   // Terms data from store
   const {
@@ -215,13 +228,18 @@ export default function PeriodsManagement() {
     updateTerm,
     deleteTerm,
     clearErrors,
-  } = useTerm(schoolCycleFilter, currentSchool?.school._id as Id<"school">);
+  } = useTerm(effectiveSchoolCycleId, currentSchool?.school._id as Id<"school">);
 
   // CRUD Dialog
   const { isOpen, operation, data, openCreate, openEdit, openView, openDelete, close } = useCrudDialog(termSchema);
 
- 
-  
+  // Set active cycle as initial value when component loads
+  useEffect(() => {
+    if (activeSchoolCycle && schoolCycleFilter === "current") {
+      // The filter is already set to "current", so no need to change it
+      // The effectiveSchoolCycleId will automatically use the active cycle
+    }
+  }, [activeSchoolCycle, schoolCycleFilter]);
 
   // Filter terms
   const filteredTerms = terms.filter((term: Term) => {
@@ -323,6 +341,16 @@ export default function PeriodsManagement() {
     }
   };
 
+  // Get cycle name for display
+  const getCycleName = (cycleId: string) => {
+    return schoolCycles?.find(cycle => cycle._id === cycleId)?.name || "—";
+  };
+
+  // Check if a term belongs to the active cycle
+  const isActiveCycle = (cycleId: string) => {
+    return cycleId === activeSchoolCycle?._id;
+  };
+
   return (
     <div className="space-y-8 p-6">
       {/* Header */}
@@ -405,6 +433,13 @@ export default function PeriodsManagement() {
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="text-3xl font-bold">{terms?.length || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              {schoolCycleFilter === "current" && activeSchoolCycle 
+                ? `Ciclo: ${activeSchoolCycle.name}`
+                : schoolCycleFilter === "all" 
+                  ? "Todos los ciclos"
+                  : schoolCycles?.find(c => c._id === schoolCycleFilter)?.name || ""}
+            </p>
           </CardContent>
         </Card>
 
@@ -472,7 +507,7 @@ export default function PeriodsManagement() {
             <div className="flex gap-2">
               <Select
                 onValueChange={(v) => setStatusFilter(v === "all" ? null : v)}
-                value={statusFilter || ""}
+                value={statusFilter || "all"}
               >
                 <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder="Todos los estados" />
@@ -486,14 +521,25 @@ export default function PeriodsManagement() {
               </Select>
 
               <Select onValueChange={setSchoolCycleFilter} value={schoolCycleFilter}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-[220px]">
                   <SelectValue placeholder="Filtrar ciclo escolar" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos los ciclos</SelectItem>
-                  {schoolCycles?.map(cycle => (
-                    <SelectItem key={cycle._id} value={cycle._id}>{cycle.name}</SelectItem>
-                  ))}
+                  <SelectItem value="current">
+                    
+                    {activeSchoolCycle && (
+                      <span className="">
+                        {activeSchoolCycle.name}
+                      </span>
+                    )}
+                  </SelectItem>
+                  {schoolCycles
+                    ?.filter(cycle => cycle._id !== activeSchoolCycle?._id)
+                    .map(cycle => (
+                      <SelectItem key={cycle._id} value={cycle._id}>
+                        {cycle.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -568,7 +614,16 @@ export default function PeriodsManagement() {
                         </div>
                       </TableCell>
                       <TableCell>{getStatusBadge(term.status)}</TableCell>
-                      <TableCell className="font-medium"> {schoolCycles?.find(cycle => cycle._id === term.schoolCycleId)?.name || "—"}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {getCycleName(term.schoolCycleId)}
+                          {isActiveCycle(term.schoolCycleId) && (
+                            <Badge variant="outline" className="text-xs bg-green-100 text-green-800">
+                              Actual
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="flex justify-end gap-2">
                         <Button
                           variant="ghost"
@@ -638,7 +693,11 @@ export default function PeriodsManagement() {
           startDate: '',
           endDate: '',
           status: 'active',
-          schoolCycleId: schoolCycleFilter !== "all" ? schoolCycleFilter : (schoolCycles?.[0]?._id || ''),
+          schoolCycleId: schoolCycleFilter === "current" 
+            ? activeSchoolCycle?._id || ''
+            : schoolCycleFilter !== "all" 
+              ? schoolCycleFilter 
+              : (schoolCycles?.[0]?._id || ''),
         }}
         data={data ? {
           ...data,

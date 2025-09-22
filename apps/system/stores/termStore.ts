@@ -3,6 +3,8 @@ import { useQuery, useMutation } from "convex/react";
 import { useCallback } from "react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
+import { useCurrentSchool } from "./userSchoolsStore";
+
 
 export type Term = {
     _id: string;
