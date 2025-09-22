@@ -23,7 +23,7 @@ import {
 } from "@repo/ui/components/shadcn/tooltip";
 
 interface StudentWithClass {
-  id: Id<"studentClass">;
+  _id: Id<"studentClass">;
   student: {
     _id: Id<"student">;
     name: string;
@@ -78,7 +78,7 @@ export function GradeMatrix({
   }>({ item: null, grade: null });
 
   const handleButtonClick = (studentId: string, assignmentId: string) => {
-    const studentClassData = students.find((s) => s.id === studentId);
+    const studentClassData = students.find((s) => s._id === studentId);
     const assignmentData = assignments?.find((a) => a._id === assignmentId);
     const gradeData = grades.find(
       (g) => g.studentClassId === studentId && g.assignmentId === assignmentId
@@ -192,11 +192,11 @@ export function GradeMatrix({
             {students.map((student) => {
               if (!student.student) return null;
 
-              const average = calculateAverage(student.id);
+              const average = calculateAverage(student._id);
 
               return (
                 <TableRow
-                  key={student.id}
+                  key={student._id}
                   className="hover:bg-muted/50 transition-colors"
                 >
                   <TableCell className="sticky left-0 z-10 bg-card">
@@ -205,12 +205,12 @@ export function GradeMatrix({
                     </div>
                   </TableCell>
                   {assignments!.map((assignment) => {
-                    const grade = getGrade(student.id, assignment._id);
-                    const cellId = `${student.id}-${assignment._id}`;
+                    const grade = getGrade(student._id, assignment._id);
+                    const cellId = `${student._id}-${assignment._id}`;
                     const isEditing = editingCell === cellId;
                     const gradeData = grades.find(
                       (g) =>
-                        g.studentClassId === student.id &&
+                        g.studentClassId === student._id &&
                         g.assignmentId === assignment._id
                     );
 
@@ -232,10 +232,10 @@ export function GradeMatrix({
                               value={tempValue}
                               onChange={(e) => setTempValue(e.target.value)}
                               onBlur={() =>
-                                handleCellBlur(student.id, assignment._id)
+                                handleCellBlur(student._id, assignment._id)
                               }
                               onKeyDown={(e) =>
-                                handleKeyDown(e, student.id, assignment._id)
+                                handleKeyDown(e, student._id, assignment._id)
                               }
                               className="w-full text-center "
                               min="0"
@@ -245,7 +245,7 @@ export function GradeMatrix({
                           ) : (
                             <div
                               onClick={() =>
-                                handleCellClick(student.id, assignment._id)
+                                handleCellClick(student._id, assignment._id)
                               }
                               className={`
             ${
@@ -266,14 +266,14 @@ export function GradeMatrix({
                               {commentText ? (
                                 <MessageCircleMore
                                   onClick={() => {
-                                    handleButtonClick(student.id, assignment._id);
+                                    handleButtonClick(student._id, assignment._id);
                                   }}
                                   className="h-7.5 w-7.5 rounded-lg justify-end p-0.5 cursor-pointer hover:bg-gray-400 hover:text-white transition-colors"
                                 />
                               ) : (
                                 <MessageCircleDashed
                                   onClick={() => {
-                                    handleButtonClick(student.id, assignment._id);
+                                    handleButtonClick(student._id, assignment._id);
                                   }}
                                   className="h-7.5 w-7.5 rounded-lg justify-end p-0.5 cursor-pointer hover:bg-gray-400 hover:text-white transition-colors"
                                 />
