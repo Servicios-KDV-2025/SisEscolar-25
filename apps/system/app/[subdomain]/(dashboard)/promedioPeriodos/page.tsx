@@ -89,6 +89,7 @@ export default function GradeManagementDashboard() {
 
   // State synchronization and initial value setting
   useEffect(() => {
+    setSelectedClass("");
     if (schoolCycles && schoolCycles.length > 0 && !selectedSchoolCycle) {
       setSelectedSchoolCycle(schoolCycles[0]!._id as string);
     }
@@ -99,6 +100,11 @@ export default function GradeManagementDashboard() {
       setSelectedClass(classes[0]!._id as string);
     }
   }, [classes, selectedClass]);
+
+  useEffect(() => {
+    // Al cambiar el ciclo escolar, limpiamos las selecciones de clase y periodo.
+    setSelectedClass("");
+  }, [selectedSchoolCycle]);
 
   const filteredAndSortedStudents = students
     ? students
