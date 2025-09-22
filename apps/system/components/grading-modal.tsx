@@ -30,7 +30,7 @@ interface Student {
 }
 
 interface StudentClass {
-  id: Id<"studentClass">;
+  _id: Id<"studentClass">;
   student: Student | null;
 }
 
@@ -152,7 +152,7 @@ export function GradingModal({
       return;
     }
 
-    onSave(studentClass.id, data.item._id as Id<"assignment"> | Id<"term">, score, comment);
+    onSave(studentClass._id, data.item._id as Id<"assignment"> | Id<"term">, score, comment);
     
     onClose();
   };

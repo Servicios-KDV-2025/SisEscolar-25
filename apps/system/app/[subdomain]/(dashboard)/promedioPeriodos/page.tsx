@@ -142,7 +142,7 @@ export default function GradeManagementDashboard() {
     // Recorre cada estudiante para calcular y guardar su promedio final
     for (const student of students) {
       // student.id aquí es el studentClassId que necesitamos
-      const studentClassId = student.id;
+      const studentClassId = student._id;
 
       // Usamos la nueva función para calcular el promedio anual
       const finalAverage = calculateAnnualAverage(studentClassId);
