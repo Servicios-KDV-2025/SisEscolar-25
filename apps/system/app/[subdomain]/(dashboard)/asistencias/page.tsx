@@ -10,8 +10,8 @@ export default function AttendancePage() {
   const [activeTab, setActiveTab] = useState('register');
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border mb-4">
+    <div className="container mx-auto p-6">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border mb-6">
         <div className="relative p-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="space-y-3">
@@ -31,7 +31,7 @@ export default function AttendancePage() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
         <TabsList  className="w-full bg-muted/50 p-1 rounded-xl border">
           <TabsTrigger 
             value="register"

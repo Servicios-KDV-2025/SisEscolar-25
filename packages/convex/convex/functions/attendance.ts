@@ -114,7 +114,6 @@ export const getAttendanceHistory = query({
   args: {
     schoolId: v.id('school'),
     filters: v.optional(v.object({
-      studentName: v.optional(v.string()),
       classCatalogId: v.optional(v.id('classCatalog')),
       attendanceState: v.optional(v.union(
         v.literal('present'),
@@ -122,8 +121,7 @@ export const getAttendanceHistory = query({
         v.literal('justified'),
         v.literal('unjustified')
       )),
-      dateFrom: v.optional(v.number()),
-      dateTo: v.optional(v.number())
+      specificDate: v.optional(v.number()),
     }))
   },
   handler: async (ctx, args) => {
@@ -132,25 +130,22 @@ export const getAttendanceHistory = query({
       throw new Error('No autorizado')
     }
 
-    // Obtener todas las asistencias de la escuela
+    // Obtener todos los studentClass de la escuela
+    const allStudentClasses = await ctx.db
+      .query('studentClass')
+      .withIndex('by_school', (q) => q.eq('schoolId', args.schoolId))
+      .collect()
+
     let attendanceQuery = ctx.db.query('attendance')
 
-    // Aplicar filtros
+    // Filtrar por studentClassIds de la escuela
+    const studentClassIds = allStudentClasses.map(sc => sc._id)
+    attendanceQuery = attendanceQuery.filter(q => 
+      q.or(...studentClassIds.map(id => q.eq(q.field('studentClassId'), id)))
+    )
+
+    // Aplicar filtros adicionales si existen
     if(args.filters) {
-      // Obtener todos los studentClass de la escuela
-      const allStudentClasses = await ctx.db
-        .query('studentClass')
-        .withIndex('by_school', (q) => q.eq('schoolId', args.schoolId))
-        .collect()
-
-      const studentClassIds = allStudentClasses.map(sc => sc._id)
-
-      // Filtrar por studentClassIds 
-      attendanceQuery = attendanceQuery.filter(q => 
-        q.or(...studentClassIds.map(id => q.eq(q.field('studentClassId'), id)))
-      )
-
-      // Aplicar filtros adicionales
       if(args.filters.classCatalogId) {
         const classStudentClasses = allStudentClasses.filter(sc => 
           sc.classCatalogId === args.filters?.classCatalogId
@@ -161,15 +156,9 @@ export const getAttendanceHistory = query({
         )
       }
 
-      if(args.filters.dateFrom) {
+      if(args.filters.specificDate) {
         attendanceQuery = attendanceQuery.filter(q => 
-          q.gte(q.field('date'), args.filters?.dateFrom!)
-        )
-      }
-
-      if(args.filters.dateTo) {
-        attendanceQuery = attendanceQuery.filter(q =>
-          q.lte(q.field('date'), args.filters?.dateTo!)
+          q.eq(q.field('date'), args.filters?.specificDate!)
         )
       }
 
@@ -220,16 +209,7 @@ export const getAttendanceHistory = query({
     )
 
     // Filtrar por nombre del estudiante si existe el filtro
-    let filteredRecords = enrichedRecords.filter(Boolean)
-
-    if(args.filters?.studentName) {
-      const searchTerm = args.filters.studentName.toLowerCase()
-      filteredRecords = filteredRecords.filter(record => 
-        record?.student.name.toLowerCase().includes(searchTerm) ||
-        record?.student.lastName?.toLowerCase().includes(searchTerm) ||
-        record?.student.enrollment.toLowerCase().includes(searchTerm)
-      )
-    }
+    let filteredRecords = enrichedRecords.filter((record): record is NonNullable<typeof record> => record !== null)
 
     return filteredRecords
   }
@@ -239,8 +219,7 @@ export const getAttendanceStatistics = query({
   args: {
     schoolId: v.id('school'),
     classCatalogId: v.optional(v.id('classCatalog')),
-    dateFrom: v.optional(v.number()),
-    dateTo: v.optional(v.number())
+    specificDate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
@@ -265,15 +244,9 @@ export const getAttendanceStatistics = query({
       q.or(...studentClassIds.map(id => q.eq(q.field('studentClassId'), id)))
     )
 
-    if(args.dateFrom) {
+    if(args.specificDate) {
       attendanceQuery = attendanceQuery.filter(q =>
-        q.gte(q.field('date'), args.dateFrom!)
-      )
-    }
-
-    if(args.dateTo) {
-      attendanceQuery = attendanceQuery.filter(q => 
-        q.lte(q.field('date'), args.dateTo!)
+        q.gte(q.field('date'), args.specificDate!)
       )
     }
 

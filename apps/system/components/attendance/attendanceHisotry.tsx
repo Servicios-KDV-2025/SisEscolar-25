@@ -4,12 +4,13 @@ import { useUser } from "@clerk/nextjs"
 import { api } from "@repo/convex/convex/_generated/api"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
 import { Badge } from "@repo/ui/components/shadcn/badge"
+import { Button } from "@repo/ui/components/shadcn/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
 import { Input } from "@repo/ui/components/shadcn/input"
 import { Label } from "@repo/ui/components/shadcn/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table"
-import { BookOpen, Calendar, CheckCircle, FileCheck, FileX, Filter, Search, XCircle } from "@repo/ui/icons"
+import { BookOpen, CheckCircle, FileCheck, FileX, Filter, X, XCircle } from "@repo/ui/icons"
 import { useQuery } from "convex/react"
 import { useMemo, useState } from "react"
 import { useClassCatalog } from "stores/classCatalogStore"
@@ -19,11 +20,9 @@ import { useUserWithConvex } from "stores/userStore"
 type AttendanceState = 'present' | 'absent' | 'justified' | 'unjustified'
 
 interface AttendanceFilters {
-  studentName?: string
   classCatalogId?: Id<'classCatalog'>
   attendanceState?: AttendanceState
-  dateFrom?: number
-  dateTo?: number
+  specificDate?: number
 }
 
 export default function AttendanceHistory() {
@@ -32,24 +31,20 @@ export default function AttendanceHistory() {
   const { currentSchool, isLoading } = useCurrentSchool(currentUser?._id)
   const { classCatalogs } = useClassCatalog(currentSchool?.school._id)
 
-  const [searchTerm, setSearchTerm] = useState('')
   const [filterClass, setFilterClass] = useState('all')
   const [filterState, setFilterState] = useState('all')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
+  const [specificDate, setSpecificDate] = useState('')
 
   // Preparar filtros para el query
   const filters: AttendanceFilters | undefined = useMemo(() => {
     const filters: AttendanceFilters = {}
 
-    if (searchTerm) filters.studentName = searchTerm
     if (filterClass !== 'all') filters.classCatalogId = filterClass as Id<'classCatalog'>
     if (filterState !== 'all') filters.attendanceState = filterState as AttendanceState
-    if (dateFrom) filters.dateFrom = Math.floor(new Date(dateFrom).getTime() / 1000)
-    if (dateTo) filters.dateTo = Math.floor(new Date(dateFrom).getTime() / 1000)
+    if (specificDate) filters.specificDate = Math.floor(new Date(specificDate).getTime() / 1000)
 
     return Object.keys(filters).length > 0 ? filters : undefined
-  }, [filterClass, filterState, dateFrom, dateTo])
+  }, [filterClass, filterState, specificDate])
 
   // Obtener hisotrial se asistencias
   const attendanceHistory = useQuery(
@@ -63,9 +58,8 @@ export default function AttendanceHistory() {
   // Preparar filtros para estadisticas
   const statsFilters = useMemo(() => ({
     classCatalogId: filterClass !== 'all' ? filterClass as Id<'classCatalog'> : undefined,
-    dateFrom: dateFrom ? Math.floor(new Date(dateFrom).getTime() / 1000) : undefined,
-    dateTo: dateTo ? Math.floor(new Date(dateTo).getTime() / 1000) : undefined
-  }), [filterClass, dateFrom, dateTo])
+    specificDate: specificDate ? Math.floor(new Date(specificDate).getTime() / 1000) : undefined
+  }), [filterClass, specificDate])
 
   // Obtener estadisitcas
   const attendanceStats = useQuery(
@@ -78,22 +72,28 @@ export default function AttendanceHistory() {
 
   // Formatear fecha para mostrar
   const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString('es-ES', {
+    return new Date(timestamp * 1000).toLocaleDateString('es-MX', {
       year: 'numeric',
       month: '2-digit',
-      day: '2-digit'
+      day: '2-digit',
+      timeZone: 'UTC'
     })
   }
 
   // Formatear fecha y hora para últimas actualizaciones
   const formatDateTime = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString('es-ES', {
+    return new Date(timestamp).toLocaleDateString('es-MX', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit'
     })
+  }
+
+   // Limpiar filtro de fecha
+  const clearDateFilter = () => {
+    setSpecificDate('')
   }
 
   const getStateBadgeVariant = (state: AttendanceState) => {
@@ -224,21 +224,7 @@ export default function AttendanceHistory() {
 
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="search">Buscar estudiante</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                <Input 
-                  id='search'
-                  placeholder="Nombre o matrícula..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Clase</Label>
               <Select value={filterClass} onValueChange={setFilterClass}>
@@ -274,18 +260,21 @@ export default function AttendanceHistory() {
 
             <div className="space-y-2">
               <Label htmlFor="date-from" className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Seleccionar fecha
+                Fecha específica
               </Label>
-              <Input id="date-to" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="date-from" className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Fecha Hasta:
-              </Label>
-              <Input id="date-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+              <div className="relative">
+                <Input id="date-to" type="date" value={specificDate} onChange={(e) => setSpecificDate(e.target.value)} />
+                {specificDate && (
+                  <Button
+                    variant='ghost'
+                    size={'icon'}
+                    className="absolute right-1 top-1 h-6 w-6"
+                    onClick={clearDateFilter}
+                  >
+                    <X className="h-3 w-3"/>
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
