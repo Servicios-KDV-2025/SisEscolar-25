@@ -12,11 +12,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/shadcn/
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@repo/ui/components/shadcn/form";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
-import { Skeleton } from "@repo/ui/components/shadcn/skeleton";
+// import { Skeleton } from "@repo/ui/components/shadcn/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/shadcn/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@repo/ui/components/shadcn/command";
-import { 
-   Users, Search, Plus, Eye, Pencil, Trash2, Filter, Calendar, UserCheck, UserX, GraduationCap, AlertCircle, Loader2, Check, ChevronsUpDown
+import {
+  Users, Search, Plus, Eye, Edit, Trash2, Filter, Calendar, UserCheck, UserX, GraduationCap, AlertCircle, Loader2, Check, ChevronsUpDown
 } from "@repo/ui/icons";
 import { studentSchema } from "@/types/form/userSchemas";
 import { useStudentsWithPermissions, type CreateStudentData, type UpdateStudentData } from "../../../../../stores/studentStore";
@@ -46,18 +46,18 @@ export default function AlumnosPage() {
   const { user: clerkUser, isLoaded } = useUser();
   const { currentUser, isLoading: userLoading } = useUserWithConvex(clerkUser?.id);
   const { currentSchool, isLoading: schoolLoading } = useCurrentSchool(currentUser?._id);
-  
+
   // Hook de permisos
-  const { 
-    getStudentFilters, 
-    canCreateUsers, 
-    canUpdateUsers, 
+  const {
+    getStudentFilters,
+    canCreateUsers,
+    canUpdateUsers,
     canDeleteUsers,
     isSuperAdmin,
     isAdmin,
     isTeacher,
     isTutor,
-    isLoading: permissionsLoading 
+    isLoading: permissionsLoading
   } = usePermissions(currentSchool?.school._id);
 
   // Estados locales para filtros
@@ -81,7 +81,7 @@ export default function AlumnosPage() {
     filterStudents,
     clearError,
   } = useStudentsWithPermissions(
-    currentSchool?.school._id as Id<"school">, 
+    currentSchool?.school._id as Id<"school">,
     getStudentFilters
   );
 
@@ -94,7 +94,7 @@ export default function AlumnosPage() {
   // Obtener usuarios con rol de tutor de la escuela actual
   const tutors = useQuery(
     api.functions.schools.getUsersBySchoolAndRole,
-    currentSchool?.school._id ? { 
+    currentSchool?.school._id ? {
       schoolId: currentSchool.school._id as Id<"school">,
       role: "tutor",
       status: "active"
@@ -172,14 +172,14 @@ export default function AlumnosPage() {
     };
 
     const result = await createStudent(studentData);
-    
+
     // Si no hay resultado, significa que hubo un error
     if (!result) {
       // El error ya está establecido en el store, pero necesitamos lanzar una excepción
       // para que el CrudDialog no cierre el modal
       throw new Error(studentsError || "Error al crear el estudiante");
     }
-    
+
     // Si llegamos aquí, la creación fue exitosa y el CrudDialog se cerrará automáticamente
   };
 
@@ -201,14 +201,14 @@ export default function AlumnosPage() {
     };
 
     const result = await updateStudent(data._id as Id<"student">, updateData);
-    
+
     // Si no hay resultado, significa que hubo un error
     if (!result) {
       // El error ya está establecido en el store, pero necesitamos lanzar una excepción
       // para que el CrudDialog no cierre el modal
       throw new Error(studentsError || "Error al actualizar el estudiante");
     }
-    
+
     // Si llegamos aquí, la actualización fue exitosa y el CrudDialog se cerrará automáticamente
   };
 
@@ -230,7 +230,7 @@ export default function AlumnosPage() {
     if (!timestamp) return "No disponible";
     return new Date(timestamp).toLocaleDateString('es-MX', {
       year: 'numeric',
-      month: 'short', 
+      month: 'short',
       day: 'numeric'
     });
   };
@@ -279,7 +279,7 @@ export default function AlumnosPage() {
       trend: "Estado activo"
     },
     {
-      title: "Inactivos", 
+      title: "Inactivos",
       value: students.filter((student) => student.status === "inactive").length.toString(),
       icon: UserX,
       trend: "Estado inactivo"
@@ -287,80 +287,80 @@ export default function AlumnosPage() {
   ];
 
   // Mostrar loading screen para carga inicial
-  if (isLoading) {
-    return (
-      <div className="space-y-8 p-6">
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-background border">
-          <div className="relative p-8">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-indigo-500/10 rounded-xl">
-                    <GraduationCap className="h-8 w-8 text-indigo-600" />
-                  </div>
-                  <div>
-                    <Skeleton className="h-10 w-48 mb-2" />
-                    <Skeleton className="h-6 w-80" />
-                  </div>
-                </div>
-              </div>
-              <Skeleton className="h-12 w-40" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <Card key={i}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-8 w-8 rounded-lg" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-16 mb-2" />
-                <Skeleton className="h-3 w-32" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-48" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex gap-4">
-                <Skeleton className="h-10 flex-1" />
-                <Skeleton className="h-10 w-48" />
-                <Skeleton className="h-10 w-48" />
-              </div>
-              <div className="border rounded-md">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex items-center p-4 border-b last:border-b-0">
-                    <Skeleton className="h-10 w-10 rounded-full mr-3" />
-                    <div className="flex-1">
-                      <Skeleton className="h-4 w-48 mb-2" />
-                      <Skeleton className="h-3 w-24" />
-                    </div>
-                    <Skeleton className="h-8 w-20 mr-4" />
-                    <Skeleton className="h-8 w-16 mr-4" />
-                    <div className="flex gap-2">
-                      <Skeleton className="h-8 w-8" />
-                      <Skeleton className="h-8 w-8" />
-                      <Skeleton className="h-8 w-8" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // if (isLoading) {
+  //   return (
+  //     <div className="space-y-8 p-6">
+  //       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-background border">
+  //         <div className="relative p-8">
+  //           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+  //             <div className="space-y-3">
+  //               <div className="flex items-center gap-3">
+  //                 <div className="p-3 bg-indigo-500/10 rounded-xl">
+  //                   <GraduationCap className="h-8 w-8 text-indigo-600" />
+  //                 </div>
+  //                 <div>
+  //                   <Skeleton className="h-10 w-48 mb-2" />
+  //                   <Skeleton className="h-6 w-80" />
+  //                 </div>
+  //               </div>
+  //             </div>
+  //             <Skeleton className="h-12 w-40" />
+  //           </div>
+  //         </div>
+  //       </div>
+
+  //       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  //         {[1, 2, 3].map((i) => (
+  //           <Card key={i}>
+  //             <CardHeader>
+  //               <div className="flex items-center justify-between">
+  //                 <Skeleton className="h-4 w-24" />
+  //                 <Skeleton className="h-8 w-8 rounded-lg" />
+  //               </div>
+  //             </CardHeader>
+  //             <CardContent>
+  //               <Skeleton className="h-8 w-16 mb-2" />
+  //               <Skeleton className="h-3 w-32" />
+  //             </CardContent>
+  //           </Card>
+  //         ))}
+  //       </div>
+
+  //       <Card>
+  //         <CardHeader>
+  //           <Skeleton className="h-6 w-48" />
+  //         </CardHeader>
+  //         <CardContent>
+  //           <div className="space-y-4">
+  //             <div className="flex gap-4">
+  //               <Skeleton className="h-10 flex-1" />
+  //               <Skeleton className="h-10 w-48" />
+  //               <Skeleton className="h-10 w-48" />
+  //             </div>
+  //             <div className="border rounded-md">
+  //               {[1, 2, 3, 4, 5].map((i) => (
+  //                 <div key={i} className="flex items-center p-4 border-b last:border-b-0">
+  //                   <Skeleton className="h-10 w-10 rounded-full mr-3" />
+  //                   <div className="flex-1">
+  //                     <Skeleton className="h-4 w-48 mb-2" />
+  //                     <Skeleton className="h-3 w-24" />
+  //                   </div>
+  //                   <Skeleton className="h-8 w-20 mr-4" />
+  //                   <Skeleton className="h-8 w-16 mr-4" />
+  //                   <div className="flex gap-2">
+  //                     <Skeleton className="h-8 w-8" />
+  //                     <Skeleton className="h-8 w-8" />
+  //                     <Skeleton className="h-8 w-8" />
+  //                   </div>
+  //                 </div>
+  //               ))}
+  //             </div>
+  //           </div>
+  //         </CardContent>
+  //       </Card>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="space-y-8 p-6">
@@ -370,11 +370,11 @@ export default function AlumnosPage() {
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {!groups?.length && !tutors?.length 
+            {!groups?.length && !tutors?.length
               ? "No se pueden crear estudiantes porque no hay grupos ni tutores disponibles. Debes crear grupos y asignar tutores primero."
-              : !groups?.length 
-              ? "No se pueden crear estudiantes porque no hay grupos disponibles. Debes crear grupos primero."
-              : "No se pueden crear estudiantes porque no hay tutores disponibles. Debes asignar tutores a esta escuela primero."
+              : !groups?.length
+                ? "No se pueden crear estudiantes porque no hay grupos disponibles. Debes crear grupos primero."
+                : "No se pueden crear estudiantes porque no hay tutores disponibles. Debes asignar tutores a esta escuela primero."
             }
           </AlertDescription>
         </Alert>
@@ -410,15 +410,15 @@ export default function AlumnosPage() {
               </div>
             </div>
             {canCreateUsers && (
-              <Button 
-                size="lg" 
-                className="gap-2 bg-blue-600 hover:bg-blue-700" 
+              <Button
+                size="lg"
+                className="gap-2 bg-blue-600 hover:bg-blue-700"
                 onClick={openCreate}
                 disabled={isCreating || !currentSchool || !groups?.length || !tutors?.length}
                 title={
                   !groups?.length ? "No hay grupos disponibles" :
-                  !tutors?.length ? "No hay tutores disponibles" :
-                  !currentSchool ? "No hay escuela seleccionada" : ""
+                    !tutors?.length ? "No hay tutores disponibles" :
+                      !currentSchool ? "No hay escuela seleccionada" : ""
                 }
               >
                 {isCreating ? (
@@ -495,17 +495,17 @@ export default function AlumnosPage() {
               <SelectTrigger className="w-full md:w-48">
                 <SelectValue placeholder="Grupo" />
               </SelectTrigger>
-                              <SelectContent>
+              <SelectContent>
                 <SelectItem value="all">Todos los grupos</SelectItem>
                 {groups?.map((group: Group) => (
                   <SelectItem key={group._id} value={group._id}>
                     {group.grade} - {group.name}
                   </SelectItem>
                 )) || (
-                  <SelectItem value="loading" disabled>
-                    Cargando grupos...
-                  </SelectItem>
-                )}
+                    <SelectItem value="loading" disabled>
+                      Cargando grupos...
+                    </SelectItem>
+                  )}
               </SelectContent>
             </Select>
           </div>
@@ -522,139 +522,144 @@ export default function AlumnosPage() {
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[110px] px-4">Estudiante</TableHead>
-                  <TableHead className="text-center">Matrícula</TableHead>
-                  <TableHead className="text-center">Grupo</TableHead>
-                  <TableHead className="text-center">Tutor</TableHead>
-                  <TableHead className="text-center">Estado</TableHead>
-                  <TableHead className="text-center">Fecha de Ingreso</TableHead>
-                  <TableHead className="text-center">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(filteredStudents.length > 0 ? filteredStudents : students).map((student) => (
-                  <TableRow key={student._id}>
-                    <TableCell >
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={student.imgUrl} alt={student.name} />
-                          <AvatarFallback className="bg-indigo-500/10">
-                            {getInitials(student.name, student.lastName)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium">
-                            {student.name} {student.lastName}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {calculateAge(student.birthDate)}
+            {isLoading ? (
+              <div className="space-y-4 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="text-muted-foreground">Cargando asignaciones...</p>
+              </div>
+            ) : (filteredStudents.length === 0 && students.length === 0 && isLoading) ? (
+              <div className="text-center py-12">
+                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No se encontraron alumnos</h3>
+                <p className="text-muted-foreground mb-4">
+                  Intenta ajustar los filtros o agregar un nuevo alumno.
+                </p>
+                {canCreateUsers && (
+                  <Button
+                    onClick={openCreate}
+                    className="gap-2 bg-blue-600 hover:bg-blue-700"
+                    disabled={!groups?.length || !tutors?.length}
+                    title={
+                      !groups?.length ? "No hay grupos disponibles" :
+                        !tutors?.length ? "No hay tutores disponibles" : ""
+                    }
+                  >
+                    <Plus className="w-4 h-4" />
+                    Agregar Alumno
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Estudiante</TableHead>
+                    <TableHead>Matrícula</TableHead>
+                    <TableHead>Grupo</TableHead>
+                    <TableHead>Tutor</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Fecha de Ingreso</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(filteredStudents.length > 0 ? filteredStudents : students).map((student) => (
+                    <TableRow key={student._id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={student.imgUrl} alt={student.name} />
+                            <AvatarFallback className="bg-indigo-500/10">
+                              {getInitials(student.name, student.lastName)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">
+                              {student.name} {student.lastName}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {calculateAge(student.birthDate)}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="outline" className="font-mono">
-                        {student.enrollment}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="secondary">
-                        {getGroupInfo(student.groupId)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="text-sm">
-                        {getTutorInfo(student.tutorId)}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        variant={student.status === "active" ? "default" : "secondary"}
-                        className={student.status === "active" ? "bg-green-600 text-white flex-shrink-0 ml-2" : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}
-                      >
-                        {student.status === "active" ? "Activo" : "Inactivo"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center gap-1 text-sm">
-                        <Calendar className="h-3 w-3 text-muted-foreground" />
-                        {formatDate(student.admissionDate)}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openView(student as unknown as Record<string, unknown>)}
-                          className="hover:scale-105 transition-transform cursor-pointer"
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono">
+                          {student.enrollment}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {getGroupInfo(student.groupId)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {getTutorInfo(student.tutorId)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={student.status === "active" ? "default" : "secondary"}
+                          className={student.status === "active" ? "bg-green-500 hover:bg-green-600" : ""}
                         >
-                          <Eye className="h-8 w-8 p-0" />
-                        </Button>
-                        {canUpdateUsers && (
+                          {student.status === "active" ? "Activo" : "Inactivo"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1 text-sm">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          {formatDate(student.admissionDate)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => openEdit(student as unknown as Record<string, unknown>)}
+                            onClick={() => openView(student as unknown as Record<string, unknown>)}
                             className="hover:scale-105 transition-transform cursor-pointer"
-                            disabled={isUpdating || isDeleting}
                           >
-                            {isUpdating ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Pencil className="h-8 w-8 p-0" />
-                            )}
+                            <Eye className="h-4 w-4" />
                           </Button>
-                        )}
-                        {canDeleteUsers && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openDelete(student as unknown as Record<string, unknown>)}
-                            className="h-8 w-8 p-0 text-destructive hover:scale-105 transition-transform cursor-pointer"
-                            disabled={isUpdating || isDeleting}
-                          >
-                            {isDeleting ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-8 w-8 p-0 text-destructive " />
-                            )}
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                          {canUpdateUsers && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openEdit(student as unknown as Record<string, unknown>)}
+                              className="hover:scale-105 transition-transform cursor-pointer"
+                              disabled={isUpdating || isDeleting}
+                            >
+                              {isUpdating ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Edit className="h-4 w-4" />
+                              )}
+                            </Button>
+                          )}
+                          {canDeleteUsers && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openDelete(student as unknown as Record<string, unknown>)}
+                              className="hover:scale-105 transition-transform text-destructive hover:text-destructive cursor-pointer"
+                              disabled={isUpdating || isDeleting}
+                            >
+                              {isDeleting ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </div>
-          
-          {(filteredStudents.length === 0 && students.length === 0) && (
-            <div className="text-center py-12">
-              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No se encontraron alumnos</h3>
-              <p className="text-muted-foreground mb-4">
-                Intenta ajustar los filtros o agregar un nuevo alumno.
-              </p>
-              {canCreateUsers && (
-                <Button 
-                  onClick={openCreate} 
-                  className="gap-2 bg-blue-600 hover:bg-blue-700"
-                  disabled={!groups?.length || !tutors?.length}
-                  title={
-                    !groups?.length ? "No hay grupos disponibles" :
-                    !tutors?.length ? "No hay tutores disponibles" : ""
-                  }
-                >
-                  <Plus className="w-4 h-4" />
-                  Agregar Alumno
-                </Button>
-              )}
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -662,22 +667,22 @@ export default function AlumnosPage() {
       <CrudDialog
         operation={operation}
         title={
-          operation === "create" 
+          operation === "create"
             ? "Agregar Alumno"
             : operation === "edit"
-            ? "Editar Alumno"
-            : operation === "view"
-            ? "Ver Alumno"
-            : "Eliminar Alumno"
+              ? "Editar Alumno"
+              : operation === "view"
+                ? "Ver Alumno"
+                : "Eliminar Alumno"
         }
         description={
           operation === "create"
             ? "Completa la información para agregar un nuevo alumno"
             : operation === "edit"
-            ? "Modifica la información del alumno"
-            : operation === "view"
-            ? "Información detallada del alumno"
-            : undefined
+              ? "Modifica la información del alumno"
+              : operation === "view"
+                ? "Información detallada del alumno"
+                : undefined
         }
         schema={studentSchema}
         defaultValues={defaultValues}
@@ -704,256 +709,255 @@ export default function AlumnosPage() {
                 </AlertDescription>
               </Alert>
             )}
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Campo oculto para schoolId */}
-            <FormField
-              control={form.control}
-              name="schoolId"
-              render={({ field }) => (
-                <input 
-                  {...field} 
-                  type="hidden" 
-                  value={currentSchool?.school._id || ""} 
-                />
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nombre *</FormLabel>
-                  <FormControl>
-                    <Input 
-                      {...field} 
-                      value={field.value as string || ""}
-                      placeholder="Nombre del alumno"
-                      disabled={currentOperation === "view"}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="lastName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Apellidos</FormLabel>
-                  <FormControl>
-                    <Input 
-                      {...field} 
-                      value={field.value as string || ""}
-                      placeholder="Apellidos"
-                      disabled={currentOperation === "view"}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              {/* Campo oculto para schoolId */}
+              <FormField
+                control={form.control}
+                name="schoolId"
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="hidden"
+                    value={currentSchool?.school._id || ""}
+                  />
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre *</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        value={field.value as string || ""}
+                        placeholder="Nombre del alumno"
+                        disabled={currentOperation === "view"}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="enrollment"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Matrícula *</FormLabel>
-                  <FormControl>
-                    <Input 
-                      {...field} 
-                      value={field.value as string || ""}
-                      placeholder="2024-001"
-                      disabled={currentOperation === "view"}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        // Limpiar error cuando el usuario empiece a escribir
-                        if (studentsError) {
-                          clearError();
-                        }
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="lastName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Apellidos</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        value={field.value as string || ""}
+                        placeholder="Apellidos"
+                        disabled={currentOperation === "view"}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Estado</FormLabel>
-                  <FormControl>
-                    <Select 
-                      value={field.value as string} 
-                      onValueChange={field.onChange}
-                      disabled={currentOperation === "view"}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar estado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Activo</SelectItem>
-                        <SelectItem value="inactive">Inactivo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="enrollment"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Matrícula *</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        value={field.value as string || ""}
+                        placeholder="2024-001"
+                        disabled={currentOperation === "view"}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          // Limpiar error cuando el usuario empiece a escribir
+                          if (studentsError) {
+                            clearError();
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="groupId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Grupo *</FormLabel>
-                  <FormControl>
-                    <Select 
-                      value={field.value as string} 
-                      onValueChange={field.onChange}
-                      disabled={currentOperation === "view"}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar grupo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {groups && groups.length > 0 ? (
-                          groups.map((group: Group) => (
-                            <SelectItem key={group._id} value={group._id}>
-                              {group.grade} - {group.name}
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Estado</FormLabel>
+                    <FormControl>
+                      <Select
+                        value={field.value as string}
+                        onValueChange={field.onChange}
+                        disabled={currentOperation === "view"}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar estado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Activo</SelectItem>
+                          <SelectItem value="inactive">Inactivo</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="groupId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Grupo *</FormLabel>
+                    <FormControl>
+                      <Select
+                        value={field.value as string}
+                        onValueChange={field.onChange}
+                        disabled={currentOperation === "view"}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar grupo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {groups && groups.length > 0 ? (
+                            groups.map((group: Group) => (
+                              <SelectItem key={group._id} value={group._id}>
+                                {group.grade} - {group.name}
+                              </SelectItem>
+                            ))
+                          ) : groups === undefined ? (
+                            <SelectItem value="loading" disabled>
+                              Cargando grupos...
                             </SelectItem>
-                          ))
-                        ) : groups === undefined ? (
-                          <SelectItem value="loading" disabled>
-                            Cargando grupos...
-                          </SelectItem>
-                        ) : (
-                          <SelectItem value="no-groups" disabled>
-                            No hay grupos disponibles
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                          ) : (
+                            <SelectItem value="no-groups" disabled>
+                              No hay grupos disponibles
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="tutorId"
-              render={({ field }) => {
-                const selectedTutor = tutors?.find((tutor: Tutor) => tutor._id === field.value);
-                
-                return (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Tutor *</FormLabel>
-                    <Popover open={tutorPopoverOpen} onOpenChange={setTutorPopoverOpen}>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className={`w-full justify-between ${!field.value && "text-muted-foreground"}`}
-                            disabled={currentOperation === "view"}
-                          >
-                            {selectedTutor 
-                              ? `${selectedTutor.name} ${selectedTutor.lastName || ''}`
-                              : "Seleccionar tutor"
-                            }
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                    <PopoverContent className="w-[400px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Buscar tutor..." className="h-9" />
-                        <CommandList>
-                          <CommandEmpty>
-                            {tutors && tutors.length === 0 
-                              ? "No hay tutores disponibles en esta escuela."
-                              : "No se encontró ningún tutor."
-                            }
-                          </CommandEmpty>
-                          <CommandGroup>
-                            {tutors && tutors.length > 0 ? (
-                              tutors.map((tutor: Tutor) => (
-                                <CommandItem
-                                  value={`${tutor.name} ${tutor.lastName || ''}`}
-                                  key={tutor._id}
-                                  onSelect={() => {
-                                    field.onChange(tutor._id);
-                                    setTutorPopoverOpen(false);
-                                  }}
-                                >
-                                  <div className="flex flex-col">
-                                    <span className="font-medium">
-                                      {tutor.name} {tutor.lastName || ''}
-                                    </span>
-                                    <span className="text-sm text-muted-foreground">
-                                      {tutor.email}
-                                    </span>
-                                  </div>
-                                  <Check
-                                    className={`ml-auto h-4 w-4 ${
-                                      tutor._id === field.value
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    }`}
-                                  />
-                                </CommandItem>
-                              ))
-                            ) : tutors === undefined ? (
-                              <CommandItem disabled>
-                                Cargando tutores...
-                              </CommandItem>
-                            ) : (
-                              <CommandItem disabled>
-                                No hay tutores disponibles
-                              </CommandItem>
-                            )}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-                );
-              }}
-            />
+              <FormField
+                control={form.control}
+                name="tutorId"
+                render={({ field }) => {
+                  const selectedTutor = tutors?.find((tutor: Tutor) => tutor._id === field.value);
 
-            {currentOperation === "view" && data && (
-              <div className="md:col-span-2 space-y-4 pt-4 border-t">
-                <h3 className="font-medium text-sm text-muted-foreground">Información adicional</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">ID de Estudiante:</span>
-                    <p className="font-mono">{data._id as string}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Fecha de Creación:</span>
-                    <p>{formatDate(data.createdAt as number)}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Última Actualización:</span>
-                    <p>{formatDate(data.updatedAt as number)}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">ID de Escuela:</span>
-                    <p className="font-mono">{data.schoolId as string}</p>
+                  return (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Tutor *</FormLabel>
+                      <Popover open={tutorPopoverOpen} onOpenChange={setTutorPopoverOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={`w-full justify-between ${!field.value && "text-muted-foreground"}`}
+                              disabled={currentOperation === "view"}
+                            >
+                              {selectedTutor
+                                ? `${selectedTutor.name} ${selectedTutor.lastName || ''}`
+                                : "Seleccionar tutor"
+                              }
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0">
+                          <Command>
+                            <CommandInput placeholder="Buscar tutor..." className="h-9" />
+                            <CommandList>
+                              <CommandEmpty>
+                                {tutors && tutors.length === 0
+                                  ? "No hay tutores disponibles en esta escuela."
+                                  : "No se encontró ningún tutor."
+                                }
+                              </CommandEmpty>
+                              <CommandGroup>
+                                {tutors && tutors.length > 0 ? (
+                                  tutors.map((tutor: Tutor) => (
+                                    <CommandItem
+                                      value={`${tutor.name} ${tutor.lastName || ''}`}
+                                      key={tutor._id}
+                                      onSelect={() => {
+                                        field.onChange(tutor._id);
+                                        setTutorPopoverOpen(false);
+                                      }}
+                                    >
+                                      <div className="flex flex-col">
+                                        <span className="font-medium">
+                                          {tutor.name} {tutor.lastName || ''}
+                                        </span>
+                                        <span className="text-sm text-muted-foreground">
+                                          {tutor.email}
+                                        </span>
+                                      </div>
+                                      <Check
+                                        className={`ml-auto h-4 w-4 ${tutor._id === field.value
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                          }`}
+                                      />
+                                    </CommandItem>
+                                  ))
+                                ) : tutors === undefined ? (
+                                  <CommandItem disabled>
+                                    Cargando tutores...
+                                  </CommandItem>
+                                ) : (
+                                  <CommandItem disabled>
+                                    No hay tutores disponibles
+                                  </CommandItem>
+                                )}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+
+              {currentOperation === "view" && data && (
+                <div className="md:col-span-2 space-y-4 pt-4 border-t">
+                  <h3 className="font-medium text-sm text-muted-foreground">Información adicional</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">ID de Estudiante:</span>
+                      <p className="font-mono">{data._id as string}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Fecha de Creación:</span>
+                      <p>{formatDate(data.createdAt as number)}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Última Actualización:</span>
+                      <p>{formatDate(data.updatedAt as number)}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">ID de Escuela:</span>
+                      <p className="font-mono">{data.schoolId as string}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
             </div>
           </div>
         )}

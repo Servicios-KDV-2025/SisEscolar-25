@@ -127,10 +127,15 @@ export default function RubricDashboard() {
     currentSchool ? { escuelaID: currentSchool.school._id } : "skip"
   );
 
+  console.log(currentUser?._id);
+  console.log(currentSchool?.school._id);
+
   const classes = useQuery(
     api.functions.classCatalog.getAllClassCatalog,
-    currentSchool ? { schoolId: currentSchool.school._id } : "skip"
+    currentSchool ? { schoolId: currentSchool?.school._id as Id<'school'> } : 'skip'
   );
+
+  console.log(classes);
 
   const terms = useQuery(
     api.functions.terms.getTermsByCycleId,
@@ -144,9 +149,9 @@ export default function RubricDashboard() {
     api.functions.gradeRubrics.getAllGradeRubricsBySchool,
     currentSchool && selectedSchoolCycle
       ? {
-          schoolId: currentSchool.school._id,
-          schoolCycleId: selectedSchoolCycle as Id<"schoolCycle">,
-        }
+        schoolId: currentSchool.school._id,
+        schoolCycleId: selectedSchoolCycle as Id<"schoolCycle">,
+      }
       : "skip"
   );
 
@@ -155,9 +160,9 @@ export default function RubricDashboard() {
     api.functions.gradeRubrics.getGradeRubricByClassAndTerm,
     selectedClass && selectedTerm
       ? {
-          classCatalogId: selectedClass as Id<"classCatalog">,
-          termId: selectedTerm as Id<"term">,
-        }
+        classCatalogId: selectedClass as Id<"classCatalog">,
+        termId: selectedTerm as Id<"term">,
+      }
       : "skip"
   );
 
@@ -166,9 +171,9 @@ export default function RubricDashboard() {
     api.functions.gradeRubrics.getRubricPercentageByClassAndTerm,
     selectedClass && selectedTerm
       ? {
-          classCatalogId: selectedClass as Id<"classCatalog">,
-          termId: selectedTerm as Id<"term">,
-        }
+        classCatalogId: selectedClass as Id<"classCatalog">,
+        termId: selectedTerm as Id<"term">,
+      }
       : "skip"
   );
 
@@ -252,19 +257,6 @@ export default function RubricDashboard() {
     schoolCycles
   );
 
-  if (
-    schoolLoading ||
-    rubrics === undefined ||
-    classes === undefined ||
-    schoolCycles === undefined
-  ) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        Cargando rúbricas...
-      </div>
-    );
-  }
-
   const handleOpenModal = (rubric?: RubricWithDetails) => {
     if (rubric) {
       setEditingRubric(rubric);
@@ -289,7 +281,7 @@ export default function RubricDashboard() {
     // Si se está intentando activar (currentStatus es false)
     if (!currentStatus) {
       const rubricToActivate = rubrics.find((r) => r._id === rubricId);
-      if (!rubricToActivate) return;    
+      if (!rubricToActivate) return;
     }
 
     await updateGradeRubric({
@@ -363,36 +355,36 @@ export default function RubricDashboard() {
       <div className="space-y-8 p-6">
         {/* Encabezado */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
-        <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
-        <div className="relative p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-primary/10 rounded-xl" >
-                  <ClipboardPenLine className="h-8 w-8 text-primary" />
-                </div>
-                <div>
-                  <h1 className="text-4xl font-bold tracking-tight">
-                   Rubricas
-                  </h1>
-                  <p className="text-lg text-muted-foreground">
-                    Administra las rúbricas de calificaciones                   
-                  </p>
+          <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
+          <div className="relative p-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-primary/10 rounded-xl" >
+                    <ClipboardPenLine className="h-8 w-8 text-primary" />
+                  </div>
+                  <div>
+                    <h1 className="text-4xl font-bold tracking-tight">
+                      Rubricas
+                    </h1>
+                    <p className="text-lg text-muted-foreground">
+                      Administra las rúbricas de calificaciones
+                    </p>
+                  </div>
                 </div>
               </div>
+              <Button
+                onClick={() => handleOpenModal()}
+                className="gap-2 cursor-pointer"
+                disabled={false}
+              >
+                <Plus className="w-4 h-4" />
+                Agregar Rubrica
+              </Button>
             </div>
-            <Button
-              onClick={() => handleOpenModal()}
-              className="gap-2 cursor-pointer"
-              disabled={false}
-            >
-              <Plus className="w-4 h-4" />
-              Agregar Rubrica
-            </Button>
           </div>
         </div>
-        </div>
-      
+
 
         {/* Filtros  */}
         <Card>
@@ -419,7 +411,7 @@ export default function RubricDashboard() {
                         <SelectValue placeholder="School Cycle" />
                       </SelectTrigger>
                       <SelectContent>
-                        {schoolCycles.map((cycle) => (
+                        {schoolCycles?.map((cycle) => (
                           <SelectItem key={cycle._id} value={cycle._id as string}>
                             {cycle.name}
                           </SelectItem>
@@ -505,7 +497,7 @@ export default function RubricDashboard() {
             ) : rubricPercentage.totalPercentage >= 90 ? (
               <Card className="py-3">
                 <CardContent className="text-muted-foreground text-sm font-semibold flex flex-row gap-2 justify-center">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600" />            
+                  <AlertTriangle className="h-5 w-5 text-yellow-600" />
                   <p>
                     Cerca del límite: <Badge variant="outline" className="font-semibold bg-yellow-600 text-white">{rubricPercentage.totalPercentage}%</Badge>
                     <span className="ml-2">(quedan <Badge variant="outline" className="font-semibold bg-yellow-600 text-white">{rubricPercentage.availablePercentage}%</Badge>)</span>
@@ -543,144 +535,156 @@ export default function RubricDashboard() {
 
         {/* Rubrics Table */}
         <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Lista de Rubricas</span>
-            <Badge variant="outline">{rubrics.length} rubricas</Badge>
-          </CardTitle>
-        </CardHeader>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Lista de Rubricas</span>
+              <Badge variant="outline">{rubrics.length} rubricas</Badge>
+            </CardTitle>
+          </CardHeader>
           <CardContent>
-            <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Ciclo Escolar</TableHead>
-                  <TableHead>Clase</TableHead>
-                  <TableHead>Periodo</TableHead>
-                  <TableHead>Porcentaje</TableHead>
-                  <TableHead>Calificacion Maxima</TableHead>
-                  <TableHead>Estado</TableHead>
-                  {/* <TableHead className="text-right">Acciones</TableHead> */}
-                  {rubrics.some((r) => r.schoolCycleStatus === "active") && (
-                    <TableHead className="text-right">Acciones</TableHead>
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rubrics.length > 0 ? (
-                  rubrics.map((rubric) => (
-                    <TableRow key={rubric._id}>
-                      <TableCell className="font-medium">
-                        {rubric.name}
-                      </TableCell>
-                      <TableCell>
-                        {(rubric as RubricWithDetails).schoolCycleName || "—"}
-                      </TableCell>
-                      <TableCell>{rubric.classCatalogName || "—"}</TableCell>
-                      <TableCell>{rubric.termName || "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {Math.round(rubric.weight * 100)}%
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{rubric.maxScore}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={rubric.status}
-                            onCheckedChange={() =>
-                              handleToggleStatus(rubric._id, rubric.status)
-                            }
-                            disabled={
-                              (!rubric.status &&
-                                !canActivateRubric(rubric._id)) ||
-                              (rubric as RubricWithDetails)
-                                .schoolCycleStatus !== "active"
-                            }
-                          />
-                          {!rubric.status && !canActivateRubric(rubric._id) && (
-                            <div className="relative group">
-                              <AlertTriangle className="h-4 w-4 text-destructive cursor-help" />
-                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                                No se puede activar: excedería el 100%
-                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                              </div>
+            {(
+              schoolLoading ||
+              rubrics === undefined ||
+              classes === undefined ||
+              schoolCycles === undefined
+            ) ? (
+              <div className="space-y-4 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="text-muted-foreground">Cargando rúbricas...</p>
+              </div>
+            ) :
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nombre</TableHead>
+                      <TableHead>Ciclo Escolar</TableHead>
+                      <TableHead>Clase</TableHead>
+                      <TableHead>Periodo</TableHead>
+                      <TableHead>Porcentaje</TableHead>
+                      <TableHead>Calificacion Maxima</TableHead>
+                      <TableHead>Estado</TableHead>
+                      {/* <TableHead className="text-right">Acciones</TableHead> */}
+                      {rubrics.some((r) => r.schoolCycleStatus === "active") && (
+                        <TableHead className="text-right">Acciones</TableHead>
+                      )}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rubrics.length > 0 ? (
+                      rubrics.map((rubric) => (
+                        <TableRow key={rubric._id}>
+                          <TableCell className="font-medium">
+                            {rubric.name}
+                          </TableCell>
+                          <TableCell>
+                            {(rubric as RubricWithDetails).schoolCycleName || "—"}
+                          </TableCell>
+                          <TableCell>{rubric.classCatalogName || "—"}</TableCell>
+                          <TableCell>{rubric.termName || "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {Math.round(rubric.weight * 100)}%
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{rubric.maxScore}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                checked={rubric.status}
+                                onCheckedChange={() =>
+                                  handleToggleStatus(rubric._id, rubric.status)
+                                }
+                                disabled={
+                                  (!rubric.status &&
+                                    !canActivateRubric(rubric._id)) ||
+                                  (rubric as RubricWithDetails)
+                                    .schoolCycleStatus !== "active"
+                                }
+                              />
+                              {!rubric.status && !canActivateRubric(rubric._id) && (
+                                <div className="relative group">
+                                  <AlertTriangle className="h-4 w-4 text-destructive cursor-help" />
+                                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                                    No se puede activar: excedería el 100%
+                                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                                  </div>
+                                </div>
+                              )}
+                              {(rubric as RubricWithDetails).schoolCycleStatus !==
+                                "active" && (
+                                  <div className="relative group">
+                                    <AlertTriangle className="h-4 w-4 text-muted-foreground cursor-help" />
+                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                                      Ciclo escolar inactivo
+                                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                                    </div>
+                                  </div>
+                                )}
                             </div>
-                          )}
-                          {(rubric as RubricWithDetails).schoolCycleStatus !==
+                          </TableCell>
+                          {(rubric as RubricWithDetails).schoolCycleStatus ===
                             "active" && (
-                            <div className="relative group">
-                              <AlertTriangle className="h-4 w-4 text-muted-foreground cursor-help" />
-                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                                Ciclo escolar inactivo
-                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                              </div>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleOpenModal(rubric as RubricWithDetails)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteRubric(rubric._id)}
+                                    className="text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            )}
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell
+                          colSpan={
+                            rubrics.some((r) => r.schoolCycleStatus === "active")
+                              ? 8
+                              : 7
+                          }
+                          className="text-center py-12"
+                        >
+                          <div className="flex flex-col items-center justify-center space-y-4">
+
+                            <ClipboardPenLine className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+
+                            <div className="space-y-2 text-center">
+                              <h3 className="text-lg font-medium text-foreground mb-2">
+                                No se encontraron rúbricas
+                              </h3>
+                              <p className="text-muted-foreground mb-4">
+                                No hay rúbricas creadas. Crea tu primera rúbrica para comenzar a calificar.
+                              </p>
                             </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      {(rubric as RubricWithDetails).schoolCycleStatus ===
-                        "active" && (
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
                             <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleOpenModal(rubric as RubricWithDetails)}
+                              onClick={() => setModalOpen(true)}
+                              className="gap-2"
+                              disabled={false}
                             >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteRubric(rubric._id)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
+                              <Plus className="h-4 w-4" />
+                              Agregar Rúbrica
                             </Button>
                           </div>
                         </TableCell>
-                      )}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={
-                        rubrics.some((r) => r.schoolCycleStatus === "active")
-                          ? 8
-                          : 7
-                      }
-                      className="text-center py-12"
-                      >
-                        <div className="flex flex-col items-center justify-center space-y-4">
-                         
-                            <ClipboardPenLine className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                         
-                          <div className="space-y-2 text-center">
-                            <h3 className="text-lg font-medium text-foreground mb-2">
-                              No se encontraron rúbricas
-                            </h3>
-                            <p className="text-muted-foreground mb-4">
-                              No hay rúbricas creadas. Crea tu primera rúbrica para comenzar a calificar. 
-                            </p>
-                          </div>
-                          <Button
-                            onClick={() => setModalOpen(true)}
-                            className="gap-2"
-                            disabled={false}
-                          >
-                            <Plus className="h-4 w-4" />
-                            Agregar Rúbrica
-                          </Button>
-                        </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-            </div>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            }
           </CardContent>
         </Card>
 
@@ -706,11 +710,11 @@ export default function RubricDashboard() {
                 {nameDuplicate && (
                   <div className="text-sm text-destructive p-1 flex justify-center items-center gap-2">
                     <div className="text-center flex flex-col gap-2 justify-center items-center">
-                    <AlertTriangle className="h-5 w-5" />
+                      <AlertTriangle className="h-5 w-5" />
                       <p>Ya existe una rúbrica con este nombre en la misma clase y período.</p>
                       {duplicateInfo.duplicateRubric && (
                         <p className="text-xs text-muted-foreground mt-1 text-center">
-                          Rúbrica existente: {duplicateInfo.duplicateRubric.name} 
+                          Rúbrica existente: {duplicateInfo.duplicateRubric.name}
                           {duplicateInfo.duplicateRubric.classCatalogName && ` (${duplicateInfo.duplicateRubric.classCatalogName})`}
                           {duplicateInfo.duplicateRubric.termName && ` - ${duplicateInfo.duplicateRubric.termName}`}
                         </p>
@@ -724,7 +728,7 @@ export default function RubricDashboard() {
                   <Label htmlFor="schoolCycle">Ciclo Escolar</Label>
                   <Input
                     value={
-                      formData.schoolCycle || 
+                      formData.schoolCycle ||
                       (formData.class ? selectedClassSchoolCycleName : "Ciclo Escolar")
                     }
                     readOnly={true}
@@ -892,13 +896,12 @@ export default function RubricDashboard() {
                         </div>
                         {validationMessage && (
                           <div
-                            className={`text-center text-sm mt-2 ${
-                              validationMessage.includes("No se puede")
-                                ? "text-destructive"
-                                : validationMessage.includes("⚠️")
-                                  ? "text-yellow-600" 
-                                  : "text-blue-600"
-                            }`}
+                            className={`text-center text-sm mt-2 ${validationMessage.includes("No se puede")
+                              ? "text-destructive"
+                              : validationMessage.includes("⚠️")
+                                ? "text-yellow-600"
+                                : "text-blue-600"
+                              }`}
                           >
                             {validationMessage}
                           </div>
