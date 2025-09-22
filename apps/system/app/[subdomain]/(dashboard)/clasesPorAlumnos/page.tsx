@@ -399,7 +399,7 @@ export default function StudentClassesDashboard() {
                               </TableCell>
                               <TableCell className="text-center">
                                 <div className="flex justify-center items-center truncate">
-                                  {enrollment?.averageScore !== undefined ? enrollment.averageScore.toFixed(2) : '-'}
+                                  {enrollment?.averageScore !== undefined ? enrollment.averageScore.toFixed(0) : '-'}
                                 </div>
                               </TableCell>
                               <TableCell className="px-4 text-center">

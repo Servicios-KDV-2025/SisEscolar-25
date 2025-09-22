@@ -10,7 +10,7 @@ export const createStudentClass = mutation({
         status: v.union(v.literal("active"), v.literal("inactive")),
         averageScore: v.optional(v.number()),
     },
-    handler: async (ctx, args) => {
+    handler: async (ctx, args) => { 
         const exists = await ctx.db
             .query("studentClass")
             .withIndex("by_student", q => q.eq("studentId", args.studentId))
@@ -318,4 +318,28 @@ export const getEnrollmentStatistics = query({
             averageClassesPerStudent: totalStudents > 0 ? (activeEnrollments / totalStudents).toFixed(1) : "0",
         };
     },
+});
+
+/**
+ * Actualiza únicamente el promedio de un estudiante en una clase específica.
+ */
+export const updateStudentClassAverage = mutation({
+  args: {
+    studentClassId: v.id("studentClass"),
+    averageScore: v.number(),
+    schoolId: v.id("school"),
+  },
+  handler: async (ctx, args) => {
+    const studentClass = await ctx.db.get(args.studentClassId);
+    if (!studentClass) {
+      throw new Error("La inscripción del estudiante no fue encontrada.");
+    }
+    if (studentClass.schoolId !== args.schoolId) {
+      throw new Error("No tienes permiso para actualizar esta inscripción.");
+    }
+    await ctx.db.patch(args.studentClassId, {
+      averageScore: args.averageScore,
+    });
+    return { success: true };
+  },
 });

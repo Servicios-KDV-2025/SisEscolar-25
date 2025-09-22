@@ -32,13 +32,13 @@ export function SchoolCycleCard({
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
-        return "bg-green-100 text-green-800 hover:bg-green-100"
+        return "flex-shrink-0 ml-2 bg-green-600 text-white"
       case "archived":
-        return "bg-gray-100 text-gray-800 hover:bg-gray-100"
+        return "flex-shrink-0 ml-2 bg-blue-600 text-white"
       case "inactive":
-        return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+        return "flex-shrink-0 ml-2 bg-gray-600/70 text-white"
       default:
-        return "bg-gray-100 text-gray-800 hover:bg-gray-100"
+        return "flex-shrink-0 ml-2 bg-gray-600/70 text-white"
     }
   }
 
@@ -61,7 +61,7 @@ export function SchoolCycleCard({
   }
 
   return (
-    <Card className="hover:shadow-md transition-shadow duration-200">
+    <Card className="w-full hover:shadow-lg transition-shadow duration-200 flex flex-col h-full">
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="space-y-1 flex items-center gap-2">
@@ -107,35 +107,38 @@ export function SchoolCycleCard({
 
       <CardFooter className="flex justify-end items-end gap-2 pt-2 border-t">
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
           onClick={(e) => {
             e.stopPropagation()
             openView(ciclo)
           }}
           disabled={isUpdating || isDeleting}
+          className="hover:scale-105 transition-transform cursor-pointer"
         >
           <Eye className="h-4 w-4" />
         </Button>
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
           onClick={(e) => {
             e.stopPropagation()
             openEdit(ciclo)
           }}
           disabled={isUpdating || isDeleting}
+          className="hover:scale-105 transition-transform cursor-pointer"
         >
           <Edit className="h-4 w-4" />
         </Button>
         <Button
-          variant="destructive"
+          variant="ghost"
           size="icon"
           onClick={(e) => {
             e.stopPropagation()
             openDelete(ciclo)
           }}
           disabled={isUpdating || isDeleting}
+          className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive bg-white"
         >
           <Trash2 className="h-4 w-4" />
         </Button>
