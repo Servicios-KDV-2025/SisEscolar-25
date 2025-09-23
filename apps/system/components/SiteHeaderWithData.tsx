@@ -3,9 +3,9 @@
 import React from 'react';
 import { useUser } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
-import { SiteHeader } from '@repo/ui/components/site-header';
 import { useUserWithConvex } from '../stores/userStore';
 import { useCurrentSchool } from '../stores/userSchoolsStore';
+import { SiteHeader } from 'components/menu/site-header';
 
 export function SiteHeaderWithData() {
   const { user: clerkUser, isLoaded } = useUser();
