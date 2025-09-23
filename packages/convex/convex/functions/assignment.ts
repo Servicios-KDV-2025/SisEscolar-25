@@ -100,7 +100,8 @@ export const getAssignmentsForTutor = query({
  * Maestro: Obtiene todas las tareas creadas por el usuario autenticado.
  */
 export const getTeacherAssignments = query({
-  handler: async (ctx) => {
+  args: { schoolId: v.id("school") },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("No estás autenticado.");
 
@@ -110,11 +111,24 @@ export const getTeacherAssignments = query({
       .unique();
     if (!user) throw new Error("Usuario no encontrado.");
 
-    // Buscamos las tareas por el ID del usuario creador
-    const assignments = await ctx.db
+    // Primero obtener todas las clases de la escuela
+    const schoolClasses = await ctx.db
+      .query("classCatalog")
+      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+      .collect();
+
+    const schoolClassIds = schoolClasses.map(c => c._id);
+
+    // Buscamos las tareas por el ID del usuario creador que pertenecen a clases de la escuela
+    const allAssignments = await ctx.db
       .query("assignment")
       .withIndex("by_createdBy", (q) => q.eq("createdBy", user._id))
       .collect();
+
+    // Filtrar solo las tareas que pertenecen a clases de la escuela
+    const assignments = allAssignments.filter(a => 
+      schoolClassIds.includes(a.classCatalogId)
+    );
 
     // Enriquecer cada tarea con la rúbrica de calificación y la información del grupo
     const enriched = await Promise.all(
@@ -188,7 +202,8 @@ export const getAdminAssignmentsByClass = query({
  * Retorna información básica de progreso para cada tarea.
  */
 export const getTeacherAssignmentsProgress = query({
-  handler: async (ctx) => {
+  args: { schoolId: v.id("school") },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("No estás autenticado.");
 
@@ -198,11 +213,24 @@ export const getTeacherAssignmentsProgress = query({
       .unique();
     if (!user) throw new Error("Usuario no encontrado.");
 
+    // Primero obtener todas las clases de la escuela
+    const schoolClasses = await ctx.db
+      .query("classCatalog")
+      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+      .collect();
+
+    const schoolClassIds = schoolClasses.map(c => c._id);
+
     // Obtener todas las tareas del profesor
-    const assignments = await ctx.db
+    const allAssignments = await ctx.db
       .query("assignment")
       .withIndex("by_createdBy", (q) => q.eq("createdBy", user._id))
       .collect();
+
+    // Filtrar solo las tareas que pertenecen a clases de la escuela
+    const assignments = allAssignments.filter(a => 
+      schoolClassIds.includes(a.classCatalogId)
+    );
 
     // Para cada tarea, obtener el progreso de entregas
     const assignmentsWithProgress = await Promise.all(

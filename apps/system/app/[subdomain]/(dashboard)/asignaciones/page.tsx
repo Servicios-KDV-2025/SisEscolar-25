@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
+import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
+import { useUser } from "@clerk/nextjs";
+import { useUserWithConvex } from "../../../../stores/userStore";
 import {
   Card,
   CardContent,
@@ -60,9 +63,55 @@ import {
   getValidationErrors,
 } from "../../../../types/form/taskSchema";
 import { useTask } from "../../../../stores/taskStore";
+import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
 import { TaskCreateForm } from "../../../../components/TaskCreateForm";
 
-export default function AsignacionesPage() {
+// Componente de carga
+function LoadingComponent() {
+  return (
+    <div className="min-h-screen bg-background p-6">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">
+              Cargando, por favor espere...
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Componente para usuarios no autenticados
+function UnauthenticatedComponent() {
+  return (
+    <div className="min-h-screen bg-background p-6">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-foreground mb-4">
+              Acceso Requerido
+            </h1>
+            <p className="text-muted-foreground mb-6">
+              Necesitas iniciar sesión para acceder a esta página.
+            </p>
+            <Button asChild>
+              <Link href="/auth/signin">Iniciar Sesión</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Componente principal de contenido (solo se ejecuta cuando está autenticado)
+function TaskManagementContent() {
+  const { user: clerkUser } = useUser();
+  const { currentUser } = useUserWithConvex(clerkUser?.id);
+  const { currentSchool } = useCurrentSchool(currentUser?._id);
   const {
     // Estado del store
     selectedTask,
@@ -87,7 +136,7 @@ export default function AsignacionesPage() {
     updateTask,
     deleteTask,
     getTaskProgressFromQuery,
-  } = useTask();
+  } = useTask(currentSchool?.school._id);
 
   // Estados para filtros (estos se mantienen locales)
   const [rubricFilter, setRubricFilter] = useState<string>("all");

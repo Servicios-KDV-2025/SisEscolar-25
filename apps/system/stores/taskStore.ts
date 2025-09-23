@@ -239,14 +239,42 @@ export const useTaskStore = create<TaskStoreState & TaskStoreActions>((set, get)
 }));
 
 // Hook personalizado para usar el store con Convex
-export const useTask = () => {
+export const useTask = (schoolId?: string) => {
   const store = useTaskStore();
   
+  // Obtener el ciclo escolar activo
+  const activeCycle = useQuery(
+    api.functions.schoolCycles.ObtenerCicloActivo,
+    schoolId ? { escuelaID: schoolId as Id<"school"> } : "skip"
+  );
+
   // Queries
-  const teacherAssignments = useQuery(api.functions.assignment.getTeacherAssignments);
-  const teacherClasses = useQuery(api.functions.classCatalog.getTeacherClasses);
-  const allTerms = useQuery(api.functions.classCatalog.getAllTerms);
-  const assignmentsProgress = useQuery(api.functions.assignment.getTeacherAssignmentsProgress);
+  const teacherAssignments = useQuery(
+    api.functions.assignment.getTeacherAssignments,
+    schoolId ? { schoolId: schoolId as Id<"school"> } : "skip"
+  );
+  // Obtener todas las clases del maestro y luego filtrar por ciclo activo
+  const allTeacherClasses = useQuery(
+    api.functions.classCatalog.getTeacherClasses,
+    schoolId ? { schoolId: schoolId as Id<"school"> } : "skip"
+  );
+
+  // Filtrar las clases del maestro por el ciclo escolar activo
+  const teacherClasses = allTeacherClasses?.filter(
+    (classCatalog) => {
+      // Forzar el tipo para acceder a schoolCycleId
+      const classWithCycle = classCatalog as typeof classCatalog & { schoolCycleId: string };
+      return classWithCycle.schoolCycleId === activeCycle?._id;
+    }
+  );
+  const allTerms = useQuery(
+    api.functions.terms.getTermsByCycleId,
+    activeCycle ? { schoolCycleId: activeCycle._id } : "skip"
+  );
+  const assignmentsProgress = useQuery(
+    api.functions.assignment.getTeacherAssignmentsProgress,
+    schoolId ? { schoolId: schoolId as Id<"school"> } : "skip"
+  );
   
   // Obtener las rúbricas de calificación para la clase y término seleccionados
   const gradeRubrics = useQuery(
