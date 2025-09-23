@@ -54,7 +54,9 @@ type FilterType = "all" | "active" | "inactive";
 export default function SchedulePage() {
   const { user: clerkUser } = useUser()
   const { currentUser } = useUserWithConvex(clerkUser?.id)
-  const { currentSchool, isLoading, error: schoolError } = useCurrentSchool(currentUser?._id)
+  const { currentSchool,
+     isLoading,
+    } = useCurrentSchool(currentUser?._id)
   // Estado para el filtro
   const [filter, setFilter] = useState<FilterType>('all')
   const [dayFilter, setDayFilter] = useState<string>('all')
@@ -67,6 +69,7 @@ export default function SchedulePage() {
     isCreating,
     isUpdating,
     isDeleting,
+    isLoading: scheduleLoading, // Renombrar para evitar conflicto
     createError,
     updateError,
     deleteError,
@@ -85,6 +88,9 @@ export default function SchedulePage() {
       return matchesStatus && matchesDay
     })
   }, [schedule, filter, dayFilter])
+
+  // Usar ambos estados de carga
+  const isDataLoading = isLoading || scheduleLoading;
 
   const {
     isOpen,
@@ -164,20 +170,6 @@ export default function SchedulePage() {
     return <div className="text-center py-10">Cargando escuela...</div>;
   }
 
-  if (isLoading || (currentUser && !currentSchool && !schoolError)) return (
-    <div className="space-y-8 p-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="space-y-4 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Cargando información de los horarios...</p>
-        </div>
-      </div>
-    </div>
-  )
-
-  if (!currentSchool) {
-    return <div className="text-center">No se encontro la escuela</div>
-  }
 
   return (
     <div className="space-y-8 p-6">
@@ -327,7 +319,7 @@ export default function SchedulePage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {isDataLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
