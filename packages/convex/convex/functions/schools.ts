@@ -836,3 +836,52 @@ export const deactivateSchool = mutation({
     return args.schoolId;
   },
 });
+
+export const updateSchoolDetails = mutation({
+  args: {
+    // CAMBIO 1: Añadimos el clerkId del usuario que hace la petición
+    clerkId: v.string(),
+    schoolId: v.id('school'),
+    name: v.optional(v.string()),
+    shortName: v.optional(v.string()),
+    cctCode: v.optional(v.string()),
+    address: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    email: v.optional(v.string()),
+    description: v.optional(v.string()),
+    imgUrl: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // CAMBIO 2: Buscamos al usuario de Convex usando el clerkId
+    const user = await ctx.db
+      .query('user')
+      .withIndex('by_clerkId', (q) => q.eq('clerkId', args.clerkId))
+      .unique();
+
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
+
+    // CAMBIO 3: La verificación de permisos usa el ID interno (user._id)
+    const userSchoolLink = await ctx.db
+      .query('userSchool')
+      .withIndex('by_user_and_school', q => 
+        q.eq('userId', user._id).eq('schoolId', args.schoolId)
+      )
+      .unique();
+    
+    const hasPermission =
+      userSchoolLink &&
+      (userSchoolLink.role.includes('admin') || userSchoolLink.role.includes('superadmin'));
+
+    if (!hasPermission) {
+      throw new Error('No tienes permisos para editar esta escuela.');
+    }
+
+    const { schoolId, clerkId, ...rest } = args;
+    
+    await ctx.db.patch(schoolId, { ...rest, updatedAt: Date.now() });
+
+    return { success: true };
+  },
+});
