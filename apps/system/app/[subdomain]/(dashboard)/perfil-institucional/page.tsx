@@ -13,85 +13,63 @@ import { Textarea } from "@repo/ui/components/shadcn/textarea";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Edit, GraduationCap, Loader2, Save, X } from "@repo/ui/icons";
-
-// CAMBIO: Importamos el nuevo hook del store y la api de Clerk para el usuario
-import { useCurrentSchool } from "stores/userSchoolsStore";
 import { useUser } from "@clerk/nextjs";
-import { useUserWithConvex } from "stores/userStore";
-
-// CAMBIO: Importamos la mutación y la api desde la nueva ruta
+import { useCurrentSchool } from "stores/userSchoolsStore";
 import { useMutation } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
-import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { toast } from "sonner";
-
-// Tipo para los datos del formulario
-type SchoolFormData = {
-  name: string;
-  shortName: string;
-  cctCode: string;
-  address: string;
-  phone: string;
-  email: string;
-  description: string;
-  imgUrl: string;
-};
+import { useForm, UseFormRegister, FieldError } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Id } from "@repo/convex/convex/_generated/dataModel";
+import {
+  schoolValidationSchema,
+  SchoolValidationSchema,
+} from "schema/perfilIns";
+import { useUserWithConvex } from "stores/userStore";
 
 export default function ConfiguracionPage() {
   const [isEditing, setIsEditing] = useState(false);
-
+  const [isSaving, setIsSaving] = useState(false);
   const { user: clerkUser } = useUser();
-  // Obtenemos el usuario de Clerk para pasarlo al hook
+
   const { currentUser } = useUserWithConvex(clerkUser?.id);
 
-  // CAMBIO: Usamos el hook centralizado del store para obtener los datos
   const { currentSchool, isLoading, error } = useCurrentSchool(
     currentUser?._id as Id<"user">
   );
-
-  const [isSaving, setIsSaving] = useState(false);
-
-  // CAMBIO: Usamos la ruta correcta para la mutación
   const updateSchool = useMutation(api.functions.schools.updateSchoolDetails);
 
-  // Estado para manejar los datos del formulario
-  const [editData, setEditData] = useState<Partial<SchoolFormData>>({});
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    watch,
+  } = useForm<SchoolValidationSchema>({
+    resolver: zodResolver(schoolValidationSchema),
+  });
 
-  // Cuando los datos del store cargan, actualizamos el estado del formulario
+  const imgUrlValue = watch("imgUrl");
+
   useEffect(() => {
     if (currentSchool) {
-      setEditData(currentSchool.school);
+      reset(currentSchool.school);
     }
-  }, [currentSchool]);
+  }, [currentSchool, reset]);
 
-  const handleTextChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setEditData((prevData) => ({ ...prevData, [name]: value }));
-  };
-
-  const handleSave = async () => {
+  const handleSave = async (data: SchoolValidationSchema) => {
     if (!currentSchool || !clerkUser) return;
-
     setIsSaving(true);
-
     try {
       await updateSchool({
         clerkId: clerkUser.id,
         schoolId: currentSchool.school._id,
-        name: editData.name,
-        shortName: editData.shortName,
-        cctCode: editData.cctCode,
-        address: editData.address,
-        phone: editData.phone,
-        email: editData.email,
-        description: editData.description,
-        imgUrl: editData.imgUrl,
+        ...data,
       });
       setIsEditing(false);
+      toast.success("Perfil de la institución actualizado con éxito.");
     } catch (err) {
-      toast.error("Error al guardar: " + err);
+      toast.error("Error al guardar los cambios." + err);
     } finally {
       setIsSaving(false);
     }
@@ -99,7 +77,7 @@ export default function ConfiguracionPage() {
 
   const handleCancel = () => {
     if (currentSchool) {
-      setEditData(currentSchool.school);
+      reset(currentSchool.school);
     }
     setIsEditing(false);
   };
@@ -111,19 +89,15 @@ export default function ConfiguracionPage() {
       </div>
     );
   }
-
-  // Manejo de error centralizado desde el hook
   if (error) {
-    return <div>Error: {error}</div>;
+    return <div>Error al cargar los datos: {error}</div>;
   }
-
   if (!currentSchool) {
-    return <div>No se encontró la escuela.</div>;
+    return <div>No se encontró la escuela o no tienes acceso.</div>;
   }
 
   return (
     <div className="space-y-8 p-6">
-      {/* Header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-500/10 via-gray-500/5 to-background border">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,gray)]" />
         <div className="relative p-8">
@@ -134,7 +108,7 @@ export default function ConfiguracionPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold tracking-tight">
-                  Configuración de la Institución
+                  Perfil Institucional
                 </h1>
                 <p className="text-muted-foreground">
                   Gestión de la información principal de la escuela.
@@ -156,7 +130,7 @@ export default function ConfiguracionPage() {
                   <Button
                     size="lg"
                     className="gap-2"
-                    onClick={handleSave}
+                    onClick={handleSubmit(handleSave)}
                     disabled={isSaving}
                   >
                     {isSaving ? (
@@ -181,90 +155,90 @@ export default function ConfiguracionPage() {
         </div>
       </div>
 
-      {/* Card con la información */}
       <Card>
         <CardHeader>
           <CardTitle>Información General</CardTitle>
         </CardHeader>
-
-        <CardContent className="p-6 grid md:grid-cols-3 gap-10">
-          {/* Columna 1: Imagen */}
-          <div className="col-span-1 space-y-4">
-            <FormField
+        <CardContent className="p-6 grid md:grid-cols-3 gap-8">
+          <div className="col-span-1 space-y-2">
+            <Label>Logo Institucional</Label>
+            <div className="relative aspect-square max-w-[220px] rounded-2xl shadow-lg overflow-hidden">
+              {imgUrlValue && (
+                <Image
+                  src={imgUrlValue}
+                  alt="Logo de la escuela"
+                  fill
+                  className="object-cover"
+                />
+              )}
+            </div>
+            {isEditing && (<FormField
               label="URL del Logo"
               name="imgUrl"
-              value={editData.imgUrl || ""}
               isEditing={isEditing}
-              onChange={handleTextChange}
-            />
-            <div className="w-full flex">
-              <div className="relative aspect-square max-w-full w-full  rounded-2xl shadow-lg overflow-hidden">
-                {editData.imgUrl && (
-                  <Image
-                    src={editData.imgUrl}
-                    alt="Logo de la escuela" 
-                    fill
-                    className="object-cover"
-                  />
-                )}
-              </div>
-            </div>
+              register={register}
+              error={errors.imgUrl}
+              readOnlyValue={currentSchool?.school?.name ?? ""}
+            />)}
           </div>
-
-          {/* Columna 2 */}
-          <div className="col-span-1 space-y-4 ">
+          <div className="col-span-1 space-y-4">
             <FormField
               label="Nombre"
               name="name"
-              value={editData.name || ""}
               isEditing={isEditing}
-              onChange={handleTextChange}
+              register={register}
+              error={errors.name}
+              readOnlyValue={currentSchool.school.name}
             />
             <FormField
               label="Nombre Corto"
               name="shortName"
-              value={editData.shortName || ""}
               isEditing={isEditing}
-              onChange={handleTextChange}
+              register={register}
+              error={errors.shortName}
+              readOnlyValue={currentSchool.school.shortName}
             />
             <FormField
               label="Código CCT"
               name="cctCode"
-              value={editData.cctCode || ""}
               isEditing={isEditing}
-              onChange={handleTextChange}
+              register={register}
+              error={errors.cctCode}
+              readOnlyValue={currentSchool.school.cctCode}
             />
             <FormField
               label="Dirección"
               name="address"
-              value={editData.address || ""}
               isEditing={isEditing}
-              onChange={handleTextChange}
+              register={register}
+              error={errors.address}
+              readOnlyValue={currentSchool.school.address}
             />
           </div>
-
-          {/* Columna 3 */}
           <div className="col-span-1 space-y-4">
             <FormField
               label="Teléfono"
               name="phone"
-              value={editData.phone || ""}
               isEditing={isEditing}
-              onChange={handleTextChange}
+              register={register}
+              error={errors.phone}
+              readOnlyValue={currentSchool.school.phone}
             />
             <FormField
               label="Email"
               name="email"
-              value={editData.email || ""}
               isEditing={isEditing}
-              onChange={handleTextChange}
+              register={register}
+              error={errors.email}
+              readOnlyValue={currentSchool.school.email}
             />
             <FormField
               label="Descripción"
               name="description"
-              value={editData.description || ""}
               isEditing={isEditing}
-              onChange={handleTextChange}
+              register={register}
+              error={errors.description}
+              readOnlyValue={currentSchool.school.description}
               type="textarea"
             />
           </div>
@@ -277,45 +251,39 @@ export default function ConfiguracionPage() {
 function FormField({
   label,
   name,
-  value,
   isEditing,
-  onChange,
+  register,
+  error,
+  readOnlyValue,
   type = "input",
 }: {
   label: string;
-  name: string;
-  value: string;
+  name: keyof SchoolValidationSchema;
   isEditing: boolean;
-  onChange: (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => void;
+  register: UseFormRegister<SchoolValidationSchema>;
+  error?: FieldError;
+  readOnlyValue: string;
   type?: "input" | "textarea";
 }) {
-  const commonProps = {
-    id: name,
-    name,
-    value,
-    onChange,
-    className: "text-base",
-  };
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1.5">
       <Label htmlFor={name} className="text-sm font-medium">
         {label}
       </Label>
       {isEditing ? (
         type === "textarea" ? (
-          <Textarea {...commonProps} rows={4} />
+          <Textarea id={name} {...register(name)} rows={4} />
         ) : (
-          <Input {...commonProps} />
+          <Input id={name} {...register(name)} />
         )
       ) : (
         <p
           className={`text-base text-muted-foreground min-h-10 flex items-center ${type === "textarea" && "whitespace-pre-wrap"}`}
         >
-          {value}
+          {readOnlyValue}
         </p>
       )}
+      {error && <p className="text-sm text-red-500 mt-1">{error.message}</p>}
     </div>
   );
 }

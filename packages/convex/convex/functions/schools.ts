@@ -839,7 +839,6 @@ export const deactivateSchool = mutation({
 
 export const updateSchoolDetails = mutation({
   args: {
-    // CAMBIO 1: Añadimos el clerkId del usuario que hace la petición
     clerkId: v.string(),
     schoolId: v.id('school'),
     name: v.optional(v.string()),
