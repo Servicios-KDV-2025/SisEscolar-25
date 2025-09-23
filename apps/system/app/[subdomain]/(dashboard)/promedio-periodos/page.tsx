@@ -78,9 +78,9 @@ export default function GradeManagementDashboard() {
     api.functions.termAverages.getAnnualAveragesForStudents,
     selectedSchoolCycle && selectedClass
       ? {
-          schoolCycleId: selectedSchoolCycle as Id<"schoolCycle">,
-          classCatalogId: selectedClass as Id<"classCatalog">,
-        }
+        schoolCycleId: selectedSchoolCycle as Id<"schoolCycle">,
+        classCatalogId: selectedClass as Id<"classCatalog">,
+      }
       : "skip"
   );
 
@@ -111,27 +111,27 @@ export default function GradeManagementDashboard() {
 
   const filteredAndSortedStudents = students
     ? students
-        .filter((student) => {
-          if (!student || !student.student) return false;
-          const fullName =
-            `${student.student.name || ""} ${student.student.lastName || ""}`.toLowerCase();
-          const searchTermLower = searchTerm.toLowerCase();
-          return fullName.includes(searchTermLower);
-        })
-        .sort((a, b) => {
-          // Obtenemos los datos de forma segura, usando '' como fallback
-          const lastNameA = a.student?.name || "";
-          const lastNameB = b.student?.name || "";
-          const nameA = a.student?.name || "";
-          const nameB = b.student?.name || "";
+      .filter((student) => {
+        if (!student || !student.student) return false;
+        const fullName =
+          `${student.student.name || ""} ${student.student.lastName || ""}`.toLowerCase();
+        const searchTermLower = searchTerm.toLowerCase();
+        return fullName.includes(searchTermLower);
+      })
+      .sort((a, b) => {
+        // Obtenemos los datos de forma segura, usando '' como fallback
+        const lastNameA = a.student?.name || "";
+        const lastNameB = b.student?.name || "";
+        const nameA = a.student?.name || "";
+        const nameB = b.student?.name || "";
 
-          // La lógica de comparación ahora es segura
-          const lastNameComparison = lastNameA.localeCompare(lastNameB);
-          if (lastNameComparison !== 0) {
-            return lastNameComparison;
-          }
-          return nameA.localeCompare(nameB);
-        })
+        // La lógica de comparación ahora es segura
+        const lastNameComparison = lastNameA.localeCompare(lastNameB);
+        if (lastNameComparison !== 0) {
+          return lastNameComparison;
+        }
+        return nameA.localeCompare(nameB);
+      })
     : [];
 
   const handleSaveAverages = async () => {
@@ -213,23 +213,23 @@ export default function GradeManagementDashboard() {
     allTermAverages === undefined;
 
   // Show a general loading screen for initial data fetching
-  if (
-    !isLoaded ||
-    userLoading ||
-    schoolLoading ||
-    (currentUser && !currentSchool && !schoolError)
-  ) {
-    return (
-      <div className="space-y-8 p-6 max-w-7xl mx-auto">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="space-y-4 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-muted-foreground">Cargando información...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // if (
+  //   !isLoaded ||
+  //   userLoading ||
+  //   schoolLoading ||
+  //   (currentUser && !currentSchool && !schoolError)
+  // ) {
+  //   return (
+  //     <div className="space-y-8 p-6 max-w-7xl mx-auto">
+  //       <div className="flex items-center justify-center min-h-[400px]">
+  //         <div className="space-y-4 text-center">
+  //           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+  //           <p className="text-muted-foreground">Cargando información...</p>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // Logic to handle grade updates. This now uses the upsert mutation.
   const handleUpdateGrade = async (
@@ -262,30 +262,30 @@ export default function GradeManagementDashboard() {
   const hasTerms = terms && terms.length > 0;
   const hasStudents = students && students.length > 0;
 
-  if (!hasSchoolCycles) {
-    return (
-      <div className="min-h-screen bg-background p-6">
-        <div className="mx-auto max-w-7xl space-y-6">
-          <h1 className="text-3xl font-bold text-foreground">
-            Calificaciones por Periodo
-          </h1>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center p-8">
-                <p className="text-muted-foreground">Aún no has registrado:</p>
-                <ul className="list-disc list-inside mt-4 inline-block text-left text-muted-foreground">
-                  {!hasSchoolCycles && <li>Ciclos escolares</li>}
-                  {!hasStudents && <li>Estudiantes en esta clase.</li>}
-                  {!hasTerms && <li>Periodos en este ciclo</li>}
-                  {!hasClasses && <li>Clases</li>}
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
+  // if (!hasSchoolCycles) {
+  //   return (
+  //     <div className="min-h-screen bg-background p-6">
+  //       <div className="mx-auto max-w-7xl space-y-6">
+  //         <h1 className="text-3xl font-bold text-foreground">
+  //           Calificaciones por Periodo
+  //         </h1>
+  //         <Card>
+  //           <CardContent className="pt-6">
+  //             <div className="text-center p-8">
+  //               <p className="text-muted-foreground">Aún no has registrado:</p>
+  //               <ul className="list-disc list-inside mt-4 inline-block text-left text-muted-foreground">
+  //                 {!hasSchoolCycles && <li>Ciclos escolares</li>}
+  //                 {!hasStudents && <li>Estudiantes en esta clase.</li>}
+  //                 {!hasTerms && <li>Periodos en este ciclo</li>}
+  //                 {!hasClasses && <li>Clases</li>}
+  //               </ul>
+  //             </div>
+  //           </CardContent>
+  //         </Card>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // ✨ Transformar los datos de los promedios en un Map antes de pasarlos al componente
   const averagesMap = new Map();
@@ -323,7 +323,7 @@ export default function GradeManagementDashboard() {
               onClick={handleSaveAverages}
               size="lg"
               className="gap-2"
-              // disabled={isLoading || !currentSchool || isCrudLoading}
+            // disabled={isLoading || !currentSchool || isCrudLoading}
             >
               <SaveAll className="w-4 h-4" />
               Guardar promedios
@@ -411,7 +411,17 @@ export default function GradeManagementDashboard() {
         </CardHeader>
         <CardContent>
           {/* Si no hay estudiantes o no hay Periodos, muestra un mensaje */}
-          {hasStudents && hasTerms && hasClasses && !isDataLoading ? (
+          {(
+            !isLoaded ||
+            userLoading ||
+            schoolLoading ||
+            (currentUser && !currentSchool && !schoolError)
+          ) ? (
+            <div className="space-y-4 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="text-muted-foreground">Cargando promedio...</p>
+            </div>
+          ) : (hasStudents && hasTerms && hasClasses && !isDataLoading) ? (
             <TermAverageMatrix
               students={filteredAndSortedStudents}
               terms={terms!}
@@ -421,37 +431,37 @@ export default function GradeManagementDashboard() {
           ) : (
             <div className="flex justify-center">
               <div className="space-y-4 text-center">
-              <BookCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">
-                No se pueden mostrar las calificaciones
-              </h3>
-              <p className="">Registra:</p>
+                <BookCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">
+                  No se pueden mostrar las calificaciones
+                </h3>
+                <p className="">Registra:</p>
 
-              {!hasStudents && (
-                <Link href={`/clasesPorAlumnos`}>
-                  <Button>
-                    <Plus className="w-4 h-4" />
-                    Estudiantes en esta clase
-                  </Button>
-                </Link>
-              )}
-              {!hasTerms && (
-                <Link href={`/periodos`}>
-                  <Button>
-                    <Plus className="w-4 h-4" />
-                    Periodos en este ciclo{" "}
-                  </Button>
-                </Link>
-              )}
-              {!hasClasses && (
-                <Link href={`/clasesPorAlumnos`}>
-                  <Button>
-                    <Plus className="w-4 h-4" />
-                    Clases{" "}
-                  </Button>
-                </Link>
-              )}
-            </div>
+                {!hasStudents && (
+                  <Link href={`/clasesPorAlumnos`}>
+                    <Button>
+                      <Plus className="w-4 h-4" />
+                      Estudiantes en esta clase
+                    </Button>
+                  </Link>
+                )}
+                {!hasTerms && (
+                  <Link href={`/periodos`}>
+                    <Button>
+                      <Plus className="w-4 h-4" />
+                      Periodos en este ciclo{" "}
+                    </Button>
+                  </Link>
+                )}
+                {!hasClasses && (
+                  <Link href={`/clasesPorAlumnos`}>
+                    <Button>
+                      <Plus className="w-4 h-4" />
+                      Clases{" "}
+                    </Button>
+                  </Link>
+                )}
+              </div>
             </div>
           )}
         </CardContent>

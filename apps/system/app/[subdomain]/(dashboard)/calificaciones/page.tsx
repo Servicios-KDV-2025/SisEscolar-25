@@ -72,9 +72,9 @@ export default function GradeManagementDashboard() {
     api.functions.gradeRubrics.getGradeRubricByClassAndTerm,
     selectedClass && selectedTerm
       ? {
-          classCatalogId: selectedClass as Id<"classCatalog">,
-          termId: selectedTerm as Id<"term">,
-        }
+        classCatalogId: selectedClass as Id<"classCatalog">,
+        termId: selectedTerm as Id<"term">,
+      }
       : "skip"
   );
   const students = useQuery(
@@ -87,18 +87,18 @@ export default function GradeManagementDashboard() {
     api.functions.assignment.getAssignmentsByClassAndTerm,
     selectedClass && selectedTerm
       ? {
-          classCatalogId: selectedClass as Id<"classCatalog">,
-          termId: selectedTerm as Id<"term">,
-        }
+        classCatalogId: selectedClass as Id<"classCatalog">,
+        termId: selectedTerm as Id<"term">,
+      }
       : "skip"
   );
   const grades = useQuery(
     api.functions.grades.getGradesByClassAndTerm,
     selectedClass && selectedTerm
       ? {
-          classCatalogId: selectedClass as Id<"classCatalog">,
-          termId: selectedTerm as Id<"term">,
-        }
+        classCatalogId: selectedClass as Id<"classCatalog">,
+        termId: selectedTerm as Id<"term">,
+      }
       : "skip"
   );
 
@@ -109,56 +109,56 @@ export default function GradeManagementDashboard() {
   );
 
   // State synchronization and initial value setting
-useEffect(() => {
-  
-  // Establece el ciclo escolar por defecto si no hay uno seleccionado
-  if (schoolCycles && schoolCycles.length > 0 && !selectedSchoolCycle) {
-    setSelectedSchoolCycle(schoolCycles[0]!._id as string);
-  }
+  useEffect(() => {
 
-  // Establece la clase por defecto si no hay una seleccionada
-  if (classes && classes.length > 0 && !selectedClass) {
-    setSelectedClass(classes[0]!._id as string);
-  }
+    // Establece el ciclo escolar por defecto si no hay uno seleccionado
+    if (schoolCycles && schoolCycles.length > 0 && !selectedSchoolCycle) {
+      setSelectedSchoolCycle(schoolCycles[0]!._id as string);
+    }
 
-  // Establece el periodo por defecto si no hay uno seleccionado
-  if (terms && terms.length > 0 && !selectedTerm) {
-    setSelectedTerm(terms[0]!._id as string);
-  }
-}, [
-  schoolCycles, selectedSchoolCycle,
-  classes, selectedClass,
-  terms, selectedTerm
-]);
+    // Establece la clase por defecto si no hay una seleccionada
+    if (classes && classes.length > 0 && !selectedClass) {
+      setSelectedClass(classes[0]!._id as string);
+    }
 
-useEffect(() => {
-  setSelectedClass("");
-  setSelectedTerm("");
-}, [selectedSchoolCycle]);
+    // Establece el periodo por defecto si no hay uno seleccionado
+    if (terms && terms.length > 0 && !selectedTerm) {
+      setSelectedTerm(terms[0]!._id as string);
+    }
+  }, [
+    schoolCycles, selectedSchoolCycle,
+    classes, selectedClass,
+    terms, selectedTerm
+  ]);
+
+  useEffect(() => {
+    setSelectedClass("");
+    setSelectedTerm("");
+  }, [selectedSchoolCycle]);
 
   const filteredAndSortedStudents = students
     ? students
-        .filter((student) => {
-          if (!student || !student.student) return false;
-          const fullName =
-            `${student.student.name || ""} ${student.student.lastName || ""}`.toLowerCase();
-          const searchTermLower = searchTerm.toLowerCase();
-          return fullName.includes(searchTermLower);
-        })
-        .sort((a, b) => {
-          // Obtenemos los datos de forma segura, usando '' como fallback
-          const lastNameA = a.student?.name || "";
-          const lastNameB = b.student?.name || "";
-          const nameA = a.student?.name || "";
-          const nameB = b.student?.name || "";
+      .filter((student) => {
+        if (!student || !student.student) return false;
+        const fullName =
+          `${student.student.name || ""} ${student.student.lastName || ""}`.toLowerCase();
+        const searchTermLower = searchTerm.toLowerCase();
+        return fullName.includes(searchTermLower);
+      })
+      .sort((a, b) => {
+        // Obtenemos los datos de forma segura, usando '' como fallback
+        const lastNameA = a.student?.name || "";
+        const lastNameB = b.student?.name || "";
+        const nameA = a.student?.name || "";
+        const nameB = b.student?.name || "";
 
-          // La lógica de comparación ahora es segura
-          const lastNameComparison = lastNameA.localeCompare(lastNameB);
-          if (lastNameComparison !== 0) {
-            return lastNameComparison;
-          }
-          return nameA.localeCompare(nameB);
-        })
+        // La lógica de comparación ahora es segura
+        const lastNameComparison = lastNameA.localeCompare(lastNameB);
+        if (lastNameComparison !== 0) {
+          return lastNameComparison;
+        }
+        return nameA.localeCompare(nameB);
+      })
     : [];
 
   const handleSaveAverages = async () => {
@@ -213,25 +213,25 @@ useEffect(() => {
     grades === undefined;
 
   // Show a general loading screen for initial data fetching
-  if (
-    !isLoaded ||
-    userLoading ||
-    schoolLoading ||
-    (currentUser && !currentSchool && !schoolError)
-  ) {
-    return (
-      <div className="space-y-8 p-6 max-w-7xl mx-auto">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="space-y-4 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-muted-foreground">
-              Cargando información de las materias...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // if (
+  //   !isLoaded ||
+  //   userLoading ||
+  //   schoolLoading ||
+  //   (currentUser && !currentSchool && !schoolError)
+  // ) {
+  //   return (
+  //     <div className="space-y-8 p-6 max-w-7xl mx-auto">
+  //       <div className="flex items-center justify-center min-h-[400px]">
+  //         <div className="space-y-4 text-center">
+  //           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+  //           <p className="text-muted-foreground">
+  //             Cargando información de las materias...
+  //           </p>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // Logic to handle grade updates. This now uses the upsert mutation.
   const handleUpdateGrade = async (
@@ -490,7 +490,19 @@ useEffect(() => {
           </CardTitle>
         </CardHeader>
         <CardContent className="w-full">
-          {isDataLoading || !hasSchoolCycles || !hasClasses || !hasTerms ? (
+          {(
+            !isLoaded ||
+            userLoading ||
+            schoolLoading ||
+            (currentUser && !currentSchool && !schoolError)
+          ) ? (
+            <div className="space-y-4 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="text-muted-foreground">
+                Cargando calificaciones...
+              </p>
+            </div>
+          ) : (isDataLoading || !hasSchoolCycles || !hasClasses || !hasTerms) ? (
             <div className="flex justify-center">
               <div className="space-y-4 text-center">
                 <BookCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -499,55 +511,55 @@ useEffect(() => {
                 </h3>
 
                 <p className="">Registra:</p>
-                
-                  {!assignments && (
-                    <Link href={`/asignaciones`}>
-                      <Button>
+
+                {!assignments && (
+                  <Link href={`/asignaciones`}>
+                    <Button>
                       <Plus className="w-4 h-4" />
                       Asignaciones en esta clase.
-                      </Button>
-                    </Link>
-                  )}
-                  {!hasTerms && (
-                    <Link href={`/periodos`}>
-                      <Button>
-                        <Plus className="w-4 h-4" />
-                        Periodos en este ciclo
-                      </Button>
-                    </Link>
-                  )}
-                  {!hasClasses && (
-                    <Link href={`/clasesPorAlumnos`}>
-                      <Button>Clases en este ciclo</Button>
-                    </Link>
-                  )}
-                  {!hasSchoolCycles && (
-                    <Link href={`/CiclosEscolares`}>
-                      <Button>
-                        <Plus className="w-4 h-4" />
-                        Ciclos
-                      </Button>
-                    </Link>
-                  )}
-                  {(!rubrics || rubrics.length === 0) && (
-                    <Link href={`/RubricaDeCalificaciones`}>
-                      {" "}
-                      <Button>
-                        <Plus className="w-4 h-4" />
-                        Rubricas
-                      </Button>
-                    </Link>
-                  )}
-                  {(!students || students.length === 0) && (
-                    <Link href={`/clasesPorAlumnos`}>
-                      {" "}
-                      <Button>
-                        <Plus className="w-4 h-4" />
-                        Clases por alumno{" "}
-                      </Button>
-                    </Link>
-                  )}
-                
+                    </Button>
+                  </Link>
+                )}
+                {!hasTerms && (
+                  <Link href={`/periodos`}>
+                    <Button>
+                      <Plus className="w-4 h-4" />
+                      Periodos en este ciclo
+                    </Button>
+                  </Link>
+                )}
+                {!hasClasses && (
+                  <Link href={`/clasesPorAlumnos`}>
+                    <Button>Clases en este ciclo</Button>
+                  </Link>
+                )}
+                {!hasSchoolCycles && (
+                  <Link href={`/CiclosEscolares`}>
+                    <Button>
+                      <Plus className="w-4 h-4" />
+                      Ciclos
+                    </Button>
+                  </Link>
+                )}
+                {(!rubrics || rubrics.length === 0) && (
+                  <Link href={`/RubricaDeCalificaciones`}>
+                    {" "}
+                    <Button>
+                      <Plus className="w-4 h-4" />
+                      Rubricas
+                    </Button>
+                  </Link>
+                )}
+                {(!students || students.length === 0) && (
+                  <Link href={`/clasesPorAlumnos`}>
+                    {" "}
+                    <Button>
+                      <Plus className="w-4 h-4" />
+                      Clases por alumno{" "}
+                    </Button>
+                  </Link>
+                )}
+
               </div>
             </div>
           ) : (
