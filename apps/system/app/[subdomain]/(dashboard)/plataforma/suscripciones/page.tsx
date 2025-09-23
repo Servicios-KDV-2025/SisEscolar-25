@@ -8,11 +8,11 @@ import { Input } from "@repo/ui/components/shadcn/input"
 import { Label } from "@repo/ui/components/shadcn/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@repo/ui/components/shadcn/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select"
-import { Separator } from "@repo/ui/components/shadcn/separator"
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog"
+import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { UseFormReturn } from "react-hook-form"
 import { z } from "zod"
-import { Users, Eye, Edit, Trash2, AlertCircle, CheckCircle, Search, CreditCard, Clock, Filter, DollarSign, Plus } from "lucide-react"
+import { Users, Eye, AlertCircle, CheckCircle, Search, CreditCard, Clock, Filter, DollarSign } from "lucide-react"
 
 // Schema de validación para suscripciones
 const subscriptionFormSchema = z.object({
@@ -30,17 +30,27 @@ interface SubscriptionFormProps {
   operation: 'create' | 'edit' | 'view' | 'delete'
 }
 
+// Interface que coincide con los campos del formulario + _id
+interface Subscription {
+  _id: string
+  schoolId: string
+  userId: string
+  stripeCustomerId: string
+  stripeSubscriptionId: string
+  currency: string
+  plan: string
+  status: string
+  currentPeriodStart: number
+  currentPeriodEnd: number
+  createdAt: number
+  updatedAt: number
+}
+
+// Tipo para los datos que se pasan al CrudDialog
+type CrudDialogData = Partial<SubscriptionFormValues> & { _id?: string }
+
 function SubscriptionForm({ form, operation }: SubscriptionFormProps) {
   const isView = operation === 'view'
-
-  // Función para formatear fechas
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString("es-MX", {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
-  }
 
   return (
     <div className="grid gap-4 py-4">
@@ -185,7 +195,7 @@ function SubscriptionForm({ form, operation }: SubscriptionFormProps) {
   );
 }
 
-const MOCK_SUBSCRIPTIONS = [
+const MOCK_SUBSCRIPTIONS: Subscription[] = [
   {
     _id: "1",
     schoolId: "school1",
@@ -278,15 +288,12 @@ export default function SubscriptionsManagement() {
   const [sortBy, setSortBy] = useState<"plan" | "status" | "createdAt" | "currentPeriodEnd">("createdAt")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
 
-  // Usar el hook del CrudDialog
+  // Usar el hook del CrudDialog con el tipo correcto
   const {
     isOpen,
     operation,
     data,
-    openCreate,
-    openEdit,
     openView,
-    openDelete,
     close,
   } = useCrudDialog(subscriptionFormSchema)
 
@@ -367,26 +374,25 @@ export default function SubscriptionsManagement() {
     }
   }
 
-  const handleView = (subscription: any) => {
-    openView(subscription)
-  }
-
-  const handleEdit = (subscription: any) => {
-    openEdit(subscription)
-  }
-
-  const handleDelete = (subscription: any) => {
-    openDelete(subscription)
+  const handleView = (subscription: Subscription) => {
+    // Crear un objeto que solo contenga los campos del formulario + _id
+    const formData: CrudDialogData = {
+      _id: subscription._id,
+      plan: subscription.plan,
+      status: subscription.status as any, // Cast al tipo del enum
+      currency: subscription.currency,
+      stripeCustomerId: subscription.stripeCustomerId,
+      stripeSubscriptionId: subscription.stripeSubscriptionId,
+    }
+    openView(formData)
   }
 
   // Función para manejar el submit del formulario
-  const handleSubmit = async (values: Record<string, unknown>) => {
+  const handleSubmit = async (values: CrudDialogData) => {
     try {
-      if (operation === 'edit') {
-        // Aquí iría la lógica para actualizar la suscripción
-        console.log("Actualizar suscripción:", values)
-        // await updateSubscription(data?._id, values)
-      }
+
+      console.log("Actualizar suscripción:", values)
+
       close()
     } catch (error) {
       console.error("Error:", error)
@@ -450,7 +456,7 @@ export default function SubscriptionsManagement() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Activas
             </CardTitle>
-            <div className="p-2 bbg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+            <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
               <CheckCircle className="h-4 w-4 text-primary" />
             </div>
           </CardHeader>
@@ -644,7 +650,7 @@ export default function SubscriptionsManagement() {
                           className="hover:scale-105 transition-transform cursor-pointer"
                         >
                           <Eye className="h-4 w-4" />
-                        </Button>                      
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -682,7 +688,7 @@ export default function SubscriptionsManagement() {
           stripeCustomerId: "",
           stripeSubscriptionId: "",
         }}
-        data={data}
+        data={data as CrudDialogData}
         isOpen={isOpen}
         onOpenChange={close}
         onSubmit={handleSubmit}
