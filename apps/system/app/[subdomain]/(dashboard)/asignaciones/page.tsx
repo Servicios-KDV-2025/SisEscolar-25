@@ -5,6 +5,8 @@ import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
+import { useUser } from "@clerk/nextjs";
+import { useUserWithConvex } from "../../../../stores/userStore";
 import {
   Card,
   CardContent,
@@ -61,6 +63,7 @@ import {
   getValidationErrors,
 } from "../../../../types/form/taskSchema";
 import { useTask } from "../../../../stores/taskStore";
+import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
 import { TaskCreateForm } from "../../../../components/TaskCreateForm";
 
 // Componente de carga
@@ -106,6 +109,9 @@ function UnauthenticatedComponent() {
 
 // Componente principal de contenido (solo se ejecuta cuando está autenticado)
 function TaskManagementContent() {
+  const { user: clerkUser } = useUser();
+  const { currentUser } = useUserWithConvex(clerkUser?.id);
+  const { currentSchool } = useCurrentSchool(currentUser?._id);
   const {
     // Estado del store
     selectedTask,
@@ -130,7 +136,7 @@ function TaskManagementContent() {
     updateTask,
     deleteTask,
     getTaskProgressFromQuery,
-  } = useTask();
+  } = useTask(currentSchool?.school._id);
 
   // Estados para filtros (estos se mantienen locales)
   const [rubricFilter, setRubricFilter] = useState<string>("all");

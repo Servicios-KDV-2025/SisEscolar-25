@@ -68,9 +68,21 @@ export default function HorariosPorClasePage() {
 
   const filteredClasses = useFilteredClasses();
 
-  const classCatalogs = useQuery(
+  // Obtener el ciclo escolar activo
+  const activeCycle = useQuery(
+    api.functions.schoolCycles.ObtenerCicloActivo,
+    currentSchool?.school._id ? { escuelaID: currentSchool.school._id } : 'skip'
+  );
+
+  // Obtener todas las clases con detalles y luego filtrar por ciclo activo
+  const allClassCatalogs = useQuery(
     api.functions.classCatalog.getAllClassCatalog,
     currentSchool?.school._id ? { schoolId: currentSchool.school._id } : 'skip'
+  );
+
+  // Filtrar las clases por el ciclo escolar activo
+  const classCatalogs = allClassCatalogs?.filter(
+    (classCatalog) => classCatalog.schoolCycleId === activeCycle?._id
   );
   const schedules = useQuery(
     api.functions.schedule.getSchedulesBySchools,
@@ -81,7 +93,7 @@ export default function HorariosPorClasePage() {
     currentSchool?.school._id ? { schoolId: currentSchool.school._id } : 'skip'
   );
 
-  const isLoading = !isLoaded || userLoading || schoolLoading || !classCatalogs || !schedules || !classes;
+  const isLoading = !isLoaded || userLoading || schoolLoading || !activeCycle || !allClassCatalogs || !schedules || !classes;
 
   const createClassSchedule = useMutation(api.functions.classSchedule.createClassSchedule);
   const updateClassAndSchedules = useMutation(api.functions.classSchedule.updateClassAndSchedules);
@@ -122,108 +134,122 @@ export default function HorariosPorClasePage() {
   const validateConflictsMutation = useMutation(api.functions.classSchedule.validateScheduleConflicts);
 
   const handleCreate = async (data: Record<string, unknown>) => {
-    if (!currentSchool?.school._id) {
-      throw new Error("No se pudo obtener la información de la escuela");
-    }
+    try {
+      if (!currentSchool?.school._id) {
+        throw new Error("No se pudo obtener la información de la escuela");
+      }
 
-    const formData = data as {
-      classCatalogId: string;
-      selectedScheduleIds: string[];
-      status: "active" | "inactive";
-    };
+      const formData = data as {
+        classCatalogId: string;
+        selectedScheduleIds: string[];
+        status: "active" | "inactive";
+      };
 
-    if (formData.selectedScheduleIds.length === 0) {
-      throw new Error("Debe seleccionar al menos un horario");
-    }
+      if (formData.selectedScheduleIds.length === 0) {
+        throw new Error("Debe seleccionar al menos un horario");
+      }
 
-    if (formData.status === "active") {
-      const validation = await validateConflictsMutation({
+      if (formData.status === "active") {
+        const validation = await validateConflictsMutation({
+          classCatalogId: formData.classCatalogId as Id<"classCatalog">,
+          selectedScheduleIds: formData.selectedScheduleIds as Id<"schedule">[],
+          isEdit: false, // Es una creación, no una edición
+        });
+        if (validation.hasConflicts) {
+          throw new Error(`Conflictos detectados: ${validation.conflicts.map((c: { message: string }) => c.message).join(', ')}`);
+        }
+      }
+
+      await createClassSchedule({
         classCatalogId: formData.classCatalogId as Id<"classCatalog">,
         selectedScheduleIds: formData.selectedScheduleIds as Id<"schedule">[],
-        isEdit: false, // Es una creación, no una edición
+        status: formData.status,
       });
-      if (validation.hasConflicts) {
-        throw new Error(`Conflictos detectados: ${validation.conflicts.map((c: { message: string }) => c.message).join(', ')}`);
-      }
+      toast.success('Relación de clase y horario creada exitosamente');
+    } catch (error) {
+      console.error('Error al crear horario:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Ocurrió un problema al crear el horario';
+      toast.error(errorMessage);
+      throw error; // Re-lanzar para que el formulario se mantenga abierto
     }
-
-    await createClassSchedule({
-      classCatalogId: formData.classCatalogId as Id<"classCatalog">,
-      selectedScheduleIds: formData.selectedScheduleIds as Id<"schedule">[],
-      status: formData.status,
-    });
-    toast.success('Relación de clase y horario creada exitosamente');
   };
 
   const handleEdit = async (data: Record<string, unknown>) => {
-    const formData = data as {
-      classCatalogId: string;
-      selectedScheduleIds: string[];
-      status: "active" | "inactive";
-    };
-
-    if (formData.selectedScheduleIds.length === 0) {
-      throw new Error("Debe seleccionar al menos un horario");
-    }
-
-    // Obtener la clase original para comparar
-    const originalClass = crudDialog.data as ClassItem | null;
-    if (!originalClass) {
-      throw new Error("No se pudo obtener la información de la clase original");
-    }
-
-    // Determinar los horarios finales para validación
-    let finalScheduleIds = formData.selectedScheduleIds as Id<"schedule">[];
-
-    // Si cambió la clase, unificar horarios existentes con los seleccionados
-    if (originalClass.classCatalogId !== formData.classCatalogId) {
-      // Obtener horarios existentes de la clase original
-      const originalScheduleIds = originalClass.selectedScheduleIds as Id<"schedule">[];
-
-      // Unificar horarios: existentes + seleccionados (sin duplicados)
-      const allScheduleIds = [...originalScheduleIds, ...formData.selectedScheduleIds];
-      finalScheduleIds = [...new Set(allScheduleIds)] as Id<"schedule">[];
-    }
-
-    // Validar conflictos solo si el estado es activo
-    if (formData.status === "active") {
-      const validation = await validateConflictsMutation({
-        classCatalogId: formData.classCatalogId as Id<"classCatalog">,
-        selectedScheduleIds: finalScheduleIds,
-        isEdit: true, // Es una edición
-        originalClassCatalogId: originalClass.classCatalogId as Id<"classCatalog">, // ID de la clase original
-      });
-      if (validation.hasConflicts) {
-        throw new Error(`Conflictos detectados: ${validation.conflicts.map((c: { message: string }) => c.message).join(', ')}`);
-      }
-    }
-
-    // Usar la nueva función que maneja tanto clase como horarios
-    await updateClassAndSchedules({
-      oldClassCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
-      newClassCatalogId: formData.classCatalogId as Id<"classCatalog">,
-      selectedScheduleIds: finalScheduleIds,
-      status: formData.status,
-    });
-
-    // Actualizar el estado en el store
-    const newClassCatalog = classCatalogs?.find(cc => cc._id === formData.classCatalogId);
-    if (newClassCatalog) {
-      const updatedClassItem: ClassItem = {
-        ...originalClass,
-        _id: formData.classCatalogId,
-        classCatalogId: formData.classCatalogId,
-        name: newClassCatalog.name,
-        status: formData.status,
-        subject: newClassCatalog.subject,
-        classroom: newClassCatalog.classroom,
-        teacher: newClassCatalog.teacher,
-        group: newClassCatalog.group,
-        selectedScheduleIds: formData.selectedScheduleIds,
+    try {
+      const formData = data as {
+        classCatalogId: string;
+        selectedScheduleIds: string[];
+        status: "active" | "inactive";
       };
-      updateClassCatalogIdStore(originalClass._id, formData.classCatalogId, updatedClassItem);
+
+      if (formData.selectedScheduleIds.length === 0) {
+        throw new Error("Debe seleccionar al menos un horario");
+      }
+
+      // Obtener la clase original para comparar
+      const originalClass = crudDialog.data as ClassItem | null;
+      if (!originalClass) {
+        throw new Error("No se pudo obtener la información de la clase original");
+      }
+
+      // Determinar los horarios finales para validación
+      let finalScheduleIds = formData.selectedScheduleIds as Id<"schedule">[];
+
+      // Si cambió la clase, unificar horarios existentes con los seleccionados
+      if (originalClass.classCatalogId !== formData.classCatalogId) {
+        // Obtener horarios existentes de la clase original
+        const originalScheduleIds = originalClass.selectedScheduleIds as Id<"schedule">[];
+
+        // Unificar horarios: existentes + seleccionados (sin duplicados)
+        const allScheduleIds = [...originalScheduleIds, ...formData.selectedScheduleIds];
+        finalScheduleIds = [...new Set(allScheduleIds)] as Id<"schedule">[];
+      }
+
+      // Validar conflictos solo si el estado es activo
+      if (formData.status === "active") {
+        const validation = await validateConflictsMutation({
+          classCatalogId: formData.classCatalogId as Id<"classCatalog">,
+          selectedScheduleIds: finalScheduleIds,
+          isEdit: true, // Es una edición
+          originalClassCatalogId: originalClass.classCatalogId as Id<"classCatalog">, // ID de la clase original
+        });
+        if (validation.hasConflicts) {
+          throw new Error(`Conflictos detectados: ${validation.conflicts.map((c: { message: string }) => c.message).join(', ')}`);
+        }
+      }
+
+      // Usar la nueva función que maneja tanto clase como horarios
+      await updateClassAndSchedules({
+        oldClassCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
+        newClassCatalogId: formData.classCatalogId as Id<"classCatalog">,
+        selectedScheduleIds: finalScheduleIds,
+        status: formData.status,
+      });
+
+      // Actualizar el estado en el store
+      const newClassCatalog = classCatalogs?.find(cc => cc._id === formData.classCatalogId);
+      if (newClassCatalog) {
+        const updatedClassItem: ClassItem = {
+          ...originalClass,
+          _id: formData.classCatalogId,
+          classCatalogId: formData.classCatalogId,
+          name: newClassCatalog.name,
+          status: formData.status,
+          subject: newClassCatalog.subject,
+          classroom: newClassCatalog.classroom,
+          teacher: newClassCatalog.teacher,
+          group: newClassCatalog.group,
+          selectedScheduleIds: formData.selectedScheduleIds,
+        };
+        updateClassCatalogIdStore(originalClass._id, formData.classCatalogId, updatedClassItem);
+      }
+      toast.success('Relación de clase y horario actualizada exitosamente');
+    } catch (error) {
+      console.error('Error al editar horario:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Ocurrió un problema al actualizar el horario';
+      toast.error(errorMessage);
+      throw error; // Re-lanzar para que el formulario se mantenga abierto
     }
-    toast.success('Relación de clase y horario actualizada exitosamente');
   };
 
   const handleDelete = async (id: string) => {

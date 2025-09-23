@@ -7,19 +7,32 @@ import { Id } from "../_generated/dataModel";
 export const getClassSchedules = query({
   args: { schoolId: v.id("school") },
   handler: async (ctx, args) => {
-    // Obtener todas las relaciones classSchedule (activas e inactivas)
+    // Primero obtener todas las clases de la escuela
+    const schoolClasses = await ctx.db
+      .query("classCatalog")
+      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+      .collect();
+
+    const schoolClassIds = schoolClasses.map(c => c._id);
+
+    // Obtener todas las relaciones classSchedule que pertenecen a clases de la escuela
     const classSchedules = await ctx.db
       .query("classSchedule")
       .collect();
 
+    // Filtrar solo las relaciones que pertenecen a clases de la escuela
+    const filteredClassSchedules = classSchedules.filter(cs => 
+      schoolClassIds.includes(cs.classCatalogId)
+    );
+
     // Agrupar por classCatalogId
-    const groupedSchedules = classSchedules.reduce((acc, cs) => {
+    const groupedSchedules = filteredClassSchedules.reduce((acc, cs) => {
       if (!acc[cs.classCatalogId]) {
         acc[cs.classCatalogId] = [];
       }
       acc[cs.classCatalogId]!.push(cs);
       return acc;
-    }, {} as Record<string, typeof classSchedules>);
+    }, {} as Record<string, typeof filteredClassSchedules>);
 
     // Para cada grupo, obtener la información completa
     const classesWithSchedules = await Promise.all(
@@ -133,13 +146,19 @@ export const validateScheduleConflicts = mutation({
       throw new Error("Clase no encontrada");
     }
 
+    // Obtener el ciclo escolar de la clase para validar solo conflictos dentro del mismo ciclo
+    const classCycle = await ctx.db.get(classCatalog.schoolCycleId);
+    if (!classCycle) {
+      throw new Error("Ciclo escolar de la clase no encontrado");
+    }
+
     const conflicts = [];
 
     for (const scheduleId of args.selectedScheduleIds) {
       const schedule = await ctx.db.get(scheduleId);
       if (!schedule) continue;
 
-      // Verificar conflictos con el mismo grupo
+      // Verificar conflictos con el mismo grupo (solo dentro del mismo ciclo escolar)
       if (classCatalog.groupId) {
         const groupConflicts = await ctx.db
           .query("classSchedule")
@@ -148,7 +167,9 @@ export const validateScheduleConflicts = mutation({
 
         for (const cs of groupConflicts) {
           const existingClass = await ctx.db.get(cs.classCatalogId);
-          if (!existingClass || existingClass.groupId !== classCatalog.groupId) continue;
+          if (!existingClass || 
+              existingClass.groupId !== classCatalog.groupId ||
+              existingClass.schoolCycleId !== classCatalog.schoolCycleId) continue;
           
           // Si es una edición, excluir la clase original
           if (args.isEdit && args.originalClassCatalogId && existingClass._id === args.originalClassCatalogId) continue;
@@ -168,7 +189,7 @@ export const validateScheduleConflicts = mutation({
         }
       }
 
-      // Verificar conflictos con el mismo profesor
+      // Verificar conflictos con el mismo profesor (solo dentro del mismo ciclo escolar)
       const teacherConflicts = await ctx.db
         .query("classSchedule")
         .filter((q) => q.eq(q.field("status"), "active"))
@@ -176,7 +197,9 @@ export const validateScheduleConflicts = mutation({
 
       for (const cs of teacherConflicts) {
         const existingClass = await ctx.db.get(cs.classCatalogId);
-        if (!existingClass || existingClass.teacherId !== classCatalog.teacherId) continue;
+        if (!existingClass || 
+            existingClass.teacherId !== classCatalog.teacherId ||
+            existingClass.schoolCycleId !== classCatalog.schoolCycleId) continue;
         
         // Si es una edición, excluir la clase original
         if (args.isEdit && args.originalClassCatalogId && existingClass._id === args.originalClassCatalogId) continue;
@@ -195,7 +218,7 @@ export const validateScheduleConflicts = mutation({
         }
       }
 
-      // Verificar conflictos con el mismo aula
+      // Verificar conflictos con el mismo aula (solo dentro del mismo ciclo escolar)
       const classroomConflicts = await ctx.db
         .query("classSchedule")
         .filter((q) => q.eq(q.field("status"), "active"))
@@ -203,7 +226,9 @@ export const validateScheduleConflicts = mutation({
 
       for (const cs of classroomConflicts) {
         const existingClass = await ctx.db.get(cs.classCatalogId);
-        if (!existingClass || existingClass.classroomId !== classCatalog.classroomId) continue;
+        if (!existingClass || 
+            existingClass.classroomId !== classCatalog.classroomId ||
+            existingClass.schoolCycleId !== classCatalog.schoolCycleId) continue;
         
         // Si es una edición, excluir la clase original
         if (args.isEdit && args.originalClassCatalogId && existingClass._id === args.originalClassCatalogId) continue;
@@ -240,6 +265,28 @@ export const createClassSchedule = mutation({
   handler: async (ctx, args) => {
     const status = args.status || "active";
 
+    // Obtener la clase y verificar que existe
+    const classCatalog = await ctx.db.get(args.classCatalogId);
+    if (!classCatalog) {
+      throw new Error("Clase no encontrada");
+    }
+
+    // Obtener el ciclo escolar activo de la escuela
+    const activeCycle = await ctx.db
+      .query("schoolCycle")
+      .withIndex("by_school", (q) => q.eq("schoolId", classCatalog.schoolId))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .first();
+
+    if (!activeCycle) {
+      throw new Error("No hay un ciclo escolar activo en esta escuela");
+    }
+
+    // Verificar que la clase pertenece al ciclo escolar activo
+    if (classCatalog.schoolCycleId !== activeCycle._id) {
+      throw new Error("La clase seleccionada no pertenece al ciclo escolar activo. Por favor, selecciona una clase del ciclo escolar actual.");
+    }
+
     // Crear las relaciones classSchedule para cada horario seleccionado
     const classSchedulePromises = args.selectedScheduleIds.map(async (scheduleId) => {
       const schedule = await ctx.db.get(scheduleId);
@@ -271,6 +318,27 @@ export const updateClassSchedule = mutation({
   handler: async (ctx, args) => {
     const status = args.status || "active";
 
+    // Obtener la clase y verificar que existe
+    const classCatalog = await ctx.db.get(args.classCatalogId);
+    if (!classCatalog) {
+      throw new Error("Clase no encontrada");
+    }
+
+    // Obtener el ciclo escolar activo de la escuela
+    const activeCycle = await ctx.db
+      .query("schoolCycle")
+      .withIndex("by_school", (q) => q.eq("schoolId", classCatalog.schoolId))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .first();
+
+    if (!activeCycle) {
+      throw new Error("No hay un ciclo escolar activo en esta escuela");
+    }
+
+    // Verificar que la clase pertenece al ciclo escolar activo
+    if (classCatalog.schoolCycleId !== activeCycle._id) {
+      throw new Error("La clase seleccionada no pertenece al ciclo escolar activo. Por favor, selecciona una clase del ciclo escolar actual.");
+    }
     
     // Eliminar todas las relaciones classSchedule existentes para esta clase
     const existingClassSchedules = await ctx.db
@@ -318,6 +386,22 @@ export const updateClassAndSchedules = mutation({
     const newClassCatalog = await ctx.db.get(args.newClassCatalogId);
     if (!newClassCatalog) {
       throw new Error(`Clase con ID ${args.newClassCatalogId} no encontrada`);
+    }
+
+    // Obtener el ciclo escolar activo de la escuela
+    const activeCycle = await ctx.db
+      .query("schoolCycle")
+      .withIndex("by_school", (q) => q.eq("schoolId", newClassCatalog.schoolId))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .first();
+
+    if (!activeCycle) {
+      throw new Error("No hay un ciclo escolar activo en esta escuela");
+    }
+
+    // Verificar que la nueva clase pertenece al ciclo escolar activo
+    if (newClassCatalog.schoolCycleId !== activeCycle._id) {
+      throw new Error("La clase seleccionada no pertenece al ciclo escolar activo. Por favor, selecciona una clase del ciclo escolar actual.");
     }
 
     // Obtener todas las relaciones classSchedule existentes para la clase original
