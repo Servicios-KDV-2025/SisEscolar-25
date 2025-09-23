@@ -5,10 +5,10 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { useUser } from "@clerk/nextjs";
-import { useUserWithConvex } from "../../../../stores/userStore";
-import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
-import { useClassScheduleStore, useFilteredClasses, ClassItem } from "../../../../stores/classSchudeleStore";
-import { CreateClassFormSchema, EditClassFormSchema, Schedule } from "../../../../types/form/classScheduleSchema";
+import { useUserWithConvex } from "../../../../../stores/userStore";
+import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
+import { useClassScheduleStore, useFilteredClasses, ClassItem } from "../../../../../stores/classSchudeleStore";
+import { CreateClassFormSchema, EditClassFormSchema, Schedule } from "../../../../../types/form/classScheduleSchema";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@repo/ui/components/shadcn/card";
@@ -44,7 +44,7 @@ import {
 } from "lucide-react";
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
 import { toast } from "sonner";
-import { ClockPlus } from "@repo/ui/icons";
+import { Book, ClockPlus } from "@repo/ui/icons";
 
 
 export default function HorariosPorClasePage() {
@@ -165,7 +165,7 @@ export default function HorariosPorClasePage() {
         selectedScheduleIds: formData.selectedScheduleIds as Id<"schedule">[],
         status: formData.status,
       });
-      toast.success('Relación de clase y horario creada exitosamente');
+      toast.success('Asignación creada exitosamente');
     } catch (error) {
       console.error('Error al crear horario:', error);
       const errorMessage = error instanceof Error ? error.message : 'Ocurrió un problema al crear el horario';
@@ -243,7 +243,7 @@ export default function HorariosPorClasePage() {
         };
         updateClassCatalogIdStore(originalClass._id, formData.classCatalogId, updatedClassItem);
       }
-      toast.success('Relación de clase y horario actualizada exitosamente');
+      toast.success('Asignación actualizada exitosamente');
     } catch (error) {
       console.error('Error al editar horario:', error);
       const errorMessage = error instanceof Error ? error.message : 'Ocurrió un problema al actualizar el horario';
@@ -252,11 +252,38 @@ export default function HorariosPorClasePage() {
     }
   };
 
+  const stats = [
+    {
+      title: "Total de asignaciones activas",
+      value: classes?.length.toString() || "0",
+      icon: ClockPlus,
+      trend: "Asignaciones registradas"
+    },
+    {
+      title: "Total de asignaciones inactivas",
+      value: (classes?.filter((classes) => classes?.status === "active") ?? []).length.toString(),
+      icon: ClockPlus,
+      trend: "Asignaciones registradas"
+    },
+    {
+      title: "Total de clases activas",
+      value: (classCatalogs?.filter((classCatalogs) => classCatalogs?.status === "active") ?? []).length.toString(),
+      icon: Book,
+      trend: "Clases registradas"
+    },
+    {
+      title: "Total de horarios activos",
+      value: (schedules?.filter((schedules) => schedules?.status === "active") ?? []).length.toString(),
+      icon: Clock,
+      trend: "Horarios registrados"
+    },
+  ];
+
   const handleDelete = async (id: string) => {
     await deleteClassSchedule({
       classCatalogId: id as Id<"classCatalog">,
     });
-    toast.success('Relación de clase y horario eliminada exitosamente');
+    toast.success('Asignación eliminada exitosamente');
   };
 
   return (
@@ -271,9 +298,9 @@ export default function HorariosPorClasePage() {
                   <ClockPlus className="h-8 w-8 text-primary" />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-bold tracking-tight">Horarios por Clases</h1>
+                  <h1 className="text-4xl font-bold tracking-tight">Asignación de Horarios</h1>
                   <p className="text-lg text-muted-foreground">
-                    Administra los horarios por clases.
+                    Administra las asignaciones de horarios.
                   </p>
                 </div>
               </div>
@@ -283,11 +310,35 @@ export default function HorariosPorClasePage() {
               className="gap-2"
               onClick={crudDialog.openCreate}>
               <Plus className="h-4 w-4" />
-              Agregar Horario por Clase
+              Agregar Asignación
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Estadísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, index) => (
+          <Card
+            key={index}
+            className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {stat.title}
+              </CardTitle>
+              <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                <stat.icon className="h-4 w-4 text-primary" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-3xl font-bold">{stat.value}</div>
+              <p className="text-xs text-muted-foreground">{stat.trend}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
       <div className="mx-auto max-w-7xl space-y-8">
         <Card>
           <CardHeader>
@@ -337,8 +388,8 @@ export default function HorariosPorClasePage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Lista de Horarios por Clases</span>
-              <Badge variant="outline">{filteredClasses.length} registros</Badge>
+              <span>Lista de Asignación de Horarios</span>
+              <Badge variant="outline">{filteredClasses.length} asignaciones</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -346,17 +397,17 @@ export default function HorariosPorClasePage() {
               <div className="flex items-center justify-center py-12">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                  <p className="text-muted-foreground">Cargando relaciones de horarios por clases...</p>
+                  <p className="text-muted-foreground">Cargando asignaciones de horarios...</p>
                 </div>
               </div>
             ) : filteredClasses.length === 0 ? (
               <div className="text-center py-12">
                 <ClockPlus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">
-                  No se encontraron registros
+                  No se encontraron asignaciones
                 </h3>
                 <p className="text-muted-foreground mb-4">
-                  Intenta ajustar los filtros o agrega un nuevo registro.
+                  Intenta ajustar los filtros o agrega una nueva asignación.
                 </p>
                 <Button
                   size="lg"
@@ -376,10 +427,10 @@ export default function HorariosPorClasePage() {
                         {classItem.name}
                       </CardTitle>
                       <Badge
-                            variant={classItem?.status === "active" ? "default" : "secondary"}
-                            className={classItem?.status === "active" ? "bg-green-600 text-white flex-shrink-0 ml-2" : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}>
-                            {classItem?.status === 'active' ? 'Activa' : 'Inactiva'}
-                          </Badge>
+                        variant={classItem?.status === "active" ? "default" : "secondary"}
+                        className={classItem?.status === "active" ? "bg-green-600 text-white flex-shrink-0 ml-2" : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}>
+                        {classItem?.status === 'active' ? 'Activa' : 'Inactiva'}
+                      </Badge>
                     </CardHeader>
 
                     <CardContent className="space-y-3">
@@ -508,9 +559,9 @@ export default function HorariosPorClasePage() {
       <CrudDialog
         operation={crudDialog.operation}
         title={
-          crudDialog.operation === 'create' ? 'Crear Nueva Relación de Horario con Clase' :
-            crudDialog.operation === 'edit' ? 'Editar Relación de Horario con Clase' :
-              crudDialog.operation === 'view' ? 'Ver Relación de Horario con Clase' : 'Relación de Horario con Clase'
+          crudDialog.operation === 'create' ? 'Crear Nueva Asignación de Horario' :
+            crudDialog.operation === 'edit' ? 'Editar Asignación de Horario' :
+              crudDialog.operation === 'view' ? 'Ver Asignación de Horario' : 'Asignación de Horario'
         }
 
         schema={crudDialog.operation === 'edit' ? EditClassFormSchema : CreateClassFormSchema}

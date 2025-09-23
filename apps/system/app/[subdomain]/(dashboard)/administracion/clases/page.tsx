@@ -202,7 +202,7 @@ export default function ClassCatalogPage() {
                                     <ClipboardList className="h-8 w-8 text-primary" />
                                 </div>
                                 <div>
-                                    <h1 className="text-4xl font-bold tracking-tight">Catálogo de Clases</h1>
+                                    <h1 className="text-4xl font-bold tracking-tight">Clases</h1>
                                     <p className="text-lg text-muted-foreground">
                                         Administra el listado de las clases registradas.
                                     </p>
@@ -323,7 +323,7 @@ export default function ClassCatalogPage() {
                                 Filtros y Búsqueda
                             </CardTitle>
                             <CardDescription>
-                                Encuentra los catálogos de clases por nombre, activas o inactivas
+                                Encuentra las clases por nombre, activas o inactivas
                             </CardDescription>
                         </div>
                     </div>
@@ -375,8 +375,8 @@ export default function ClassCatalogPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center justify-between">
-                        <span>Lista de Catálogos de Clases</span>
-                        <Badge variant="outline">{filteredClasses.length} catálogos de clases</Badge>
+                        <span>Lista de Clases</span>
+                        <Badge variant="outline">{filteredClasses.length} clases</Badge>
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -384,17 +384,17 @@ export default function ClassCatalogPage() {
                         <div className="flex items-center justify-center py-12">
                             <div className="text-center">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                                <p className="text-muted-foreground">Cargando catálogos de clases...</p>
+                                <p className="text-muted-foreground">Cargando clases...</p>
                             </div>
                         </div>
                     ) : filteredClasses.length === 0 ? (
                         <div className="text-center py-12">
                             <ClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                             <h3 className="text-lg font-medium mb-2">
-                                No se encontraron catálogos de clases
+                                No se encontraron clases
                             </h3>
                             <p className="text-muted-foreground mb-4">
-                                Intenta ajustar los filtros o no hay catálogos registrados.
+                                Intenta ajustar los filtros o no hay clases registradas.
                             </p>
                             <Button
                                 size="lg"
@@ -504,16 +504,16 @@ export default function ClassCatalogPage() {
             <CrudDialog
                 operation={operation}
                 title={operation === 'create'
-                    ? 'Crear Nuevo Catálogo de Clase'
+                    ? 'Crear Nueva Clase'
                     : operation === 'edit'
-                        ? 'Editar Catálogo de Clase'
-                        : 'Ver Catálogo de Clase'
+                        ? 'Editar Clase'
+                        : 'Ver Clase'
                 }
                 description={operation === 'create'
-                    ? 'Completa la información del Catálogo de Clase'
+                    ? 'Completa la información de la Clase'
                     : operation === 'edit'
-                        ? 'Modifica la información del Catálogo de Clase'
-                        : 'Información del Catálogo de Clase'
+                        ? 'Modifica la información de la Clase'
+                        : 'Información de la Clase'
                 }
                 schema={classCatalogSchema}
                 defaultValues={{

@@ -19,18 +19,18 @@ import { GradeMatrix } from "./grade-matrix";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { api } from "@repo/convex/convex/_generated/api";
 import { useQuery, useMutation } from "convex/react";
-import { useUserWithConvex } from "../../../../stores/userStore";
 import { useUser } from "@clerk/nextjs";
-import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Filter, BookCheck, SaveAll, Search, Plus } from "@repo/ui/icons";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Skeleton } from "@repo/ui/components/shadcn/skeleton";
-import { TaskCreateForm } from "../../../../components/TaskCreateForm";
 import { SquareStack } from "lucide-react";
 import { Input } from "@repo/ui/components/shadcn/input";
 import Link from "next/link";
+import { useUserWithConvex } from "stores/userStore";
+import { useCurrentSchool } from "stores/userSchoolsStore";
+import { TaskCreateForm } from "components/TaskCreateForm";
 
 export default function GradeManagementDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
