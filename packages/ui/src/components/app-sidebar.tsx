@@ -54,7 +54,7 @@ const defaultNavData = {
       items: [
         {
           title: "Ciclos Escolares",
-          url: `/CiclosEscolares`,
+          url: `/ciclos-escolares`,
         },
         {
           title: "Calendario Escolar",
@@ -62,7 +62,7 @@ const defaultNavData = {
         },
         {
           title: "Clases por Alumno",
-          url: `/clasesPorAlumnos`,
+          url: `/clases-por-alumnos`,
         },
         {
           title: "Grupos",
@@ -126,7 +126,7 @@ const defaultNavData = {
     },
     {
       title: "Horarios por Clase",
-      url: `/horariosPorClase`,
+      url: `/horarios-por-clase`,
       icon: SquareTerminal,
       isActive: true,
     },
@@ -142,11 +142,11 @@ const defaultNavData = {
         },
         {
           title: "Calificaciones por Periodo",
-          url: `/promedioPeriodos`,
+          url: `/promedio-periodos`,
         },
         {
           title: "Rúbricas",
-          url: `/RubricaDeCalificaciones`,
+          url: `/rubrica-de-calificaciones`,
         },
         {
           title: "Asignaciones",
