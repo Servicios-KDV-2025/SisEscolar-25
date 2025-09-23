@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Search, Eye, Trash2, School, Filter, Pencil, BookUser} from "@repo/ui/icons"
+import { Plus, Search, Eye, Trash2, School, Filter, Pencil, BookUser } from "@repo/ui/icons"
 import { useEffect } from "react"
 import { Button } from "@repo/ui/components/shadcn/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
@@ -143,7 +143,7 @@ export default function StudentClassesDashboard() {
       toast.success('Eliminado correctamente')
       close()
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al eliminar la inscripción'
+      const errorMessage = err instanceof Error ? err.message : 'Error al eliminar la asignación'
       toast.error(errorMessage)
     }
   }
@@ -177,10 +177,10 @@ export default function StudentClassesDashboard() {
                 </div>
                 <div>
                   <h1 className="text-4xl font-bold tracking-tight">
-                    Incripciones de Clases por Alumnos
+                    Asignación de Clases
                   </h1>
                   <p className="text-lg text-muted-foreground">
-                    Gestión completa de inscripciones de alumnos a clases.
+                    Administra las asignaciones de clases.
                   </p>
                 </div>
               </div>
@@ -193,7 +193,7 @@ export default function StudentClassesDashboard() {
                 disabled={isLoading || !currentSchool}
               >
                 <Plus className="w-4 h-4" />
-                Agregar Inscripción
+                Agregar Asignación
               </Button>
               <Button
                 size="lg"
@@ -214,7 +214,7 @@ export default function StudentClassesDashboard() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:grid-cols-2">
             <TabsTrigger value="enrollments" className="text-xs sm:text-sm">
-              Inscripciones
+              Asignaciones
             </TabsTrigger>
             <TabsTrigger value="reports" className="text-xs sm:text-sm">
               Reportes
@@ -231,7 +231,7 @@ export default function StudentClassesDashboard() {
                       Filtros y Búsqueda
                     </CardTitle>
                     <CardDescription>
-                      Encuentra la inscripción por alumno, matrícula, o materia
+                      Encuentra las asignaciones por alumno, matrícula, o materia
                     </CardDescription>
                   </div>
                 </div>
@@ -312,7 +312,7 @@ export default function StudentClassesDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  <span>Lista de Inscripciones</span>
+                  <span>Lista de Asignaciones</span>
                   <Button variant="outline" size="sm" className="text-xs sm:text-sm">
                     Exportar
                   </Button>
@@ -323,14 +323,14 @@ export default function StudentClassesDashboard() {
                   <div className="flex items-center justify-center py-12">
                     <div className="text-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                      <p className="text-muted-foreground">Cargando Inscripciones...</p>
+                      <p className="text-muted-foreground">Cargando Asignaciones...</p>
                     </div>
                   </div>
                 ) : filteredEnrollments.length === 0 ? (
                   <div className="text-center py-12">
                     <BookUser className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-medium mb-2">
-                      No se encontraron inscripciones
+                      No se encontraron asignaciones
                     </h3>
                     <Button
                       onClick={openCreate}
@@ -338,7 +338,7 @@ export default function StudentClassesDashboard() {
                       disabled={!currentSchool}
                     >
                       <Plus className="h-4 w-4" />
-                      Agregar Inscripción
+                      Agregar Asignación
                     </Button>
                   </div>
                 ) : (
@@ -352,7 +352,7 @@ export default function StudentClassesDashboard() {
                           <TableHead className="w-[150px] text-center">Materia</TableHead>
                           <TableHead className="w-[110px] text-center">Maestro</TableHead>
                           <TableHead className="w-[110px] text-center">Promedio</TableHead>
-                          <TableHead className="w-[140px] text-center">Fecha de Inscripción</TableHead>
+                          <TableHead className="w-[140px] text-center">Fecha de Asignación</TableHead>
                           <TableHead className="w-[100px] text-center">Estado</TableHead>
                           <TableHead className="w-[140px] text-center sticky right-0 bg-white shadow-[-2px_0_5px_rgba(0,0,0,0.1)] z-10">Acciones</TableHead>
                         </TableRow>
@@ -361,7 +361,7 @@ export default function StudentClassesDashboard() {
                         {filteredEnrollments.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={7} className="text-center py-8">
-                              No hay inscripciones registradas
+                              No hay asignaciones registradas
                             </TableCell>
                           </TableRow>
                         ) : (
@@ -467,7 +467,7 @@ export default function StudentClassesDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg sm:text-xl">Estadísticas Generales</CardTitle>
-                  <CardDescription className="text-sm">Resumen de inscripciones en la escuela</CardDescription>
+                  <CardDescription className="text-sm">Resumen de asignaciones en la escuela</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {statistics && (
@@ -478,7 +478,7 @@ export default function StudentClassesDashboard() {
                         </div>
                         <div className="flex flex-row items-center justify-center gap-4 space-y-0 pt-2">
                           <div className="text-sm font-medium text-muted-foreground">
-                            Total Inscripciones
+                            Total Asignaciones
                           </div>
                         </div>
                       </div>
@@ -488,7 +488,7 @@ export default function StudentClassesDashboard() {
                         </div>
                         <div className="flex flex-row items-center justify-center gap-4 space-y-0 pt-2">
                           <div className="text-sm font-medium text-muted-foreground">
-                            Inscripciones Activas
+                            Asignaciones Activas
                           </div>
                         </div>
                       </div>
@@ -547,12 +547,12 @@ export default function StudentClassesDashboard() {
           isOpen={isOpen}
           operation={operation}
           title={
-            operation === 'create' ? 'Crear nueva inscripción de alumno por clase' :
-              operation === 'edit' ? 'Editar inscripción de alumno por clase' : 'Ver inscripción de alumno por clase'
+            operation === 'create' ? 'Crear nueva asignación de alumno por clase' :
+              operation === 'edit' ? 'Editar asignación de alumno por clase' : 'Ver asignación de alumno por clase'
           }
           description={
-            operation === 'create' ? 'Completa los campos para crear una nueva inscripción.' :
-              operation === 'edit' ? 'Actualizar los datos de la inscripción.' : 'Detalles de la inscripción'
+            operation === 'create' ? 'Completa los campos para crear una nueva asignación.' :
+              operation === 'edit' ? 'Actualizar los datos de la asignación.' : 'Detalles de la asignación'
           }
           schema={studentClassSchema}
           defaultValues={{
@@ -571,51 +571,66 @@ export default function StudentClassesDashboard() {
         >
           {(form, operation) => (
             <div className="space-y-6">
+              <div className="space-y-6">
+                {/* Campo Alumno */}
+                <FormField
+                  control={form.control}
+                  name="studentId"
+                  render={({ field }) => (
+                    <div className="space-y-2">
+                      <FormLabel className="text-sm font-medium">Alumno</FormLabel>
+                      <SelectPopover<Student>
+                        items={students ?? []}
+                        value={field.value as string}
+                        onChange={field.onChange}
+                        placeholder="Selecciona un alumno"
+                        getKey={(s: Student) => s._id}
+                        getLabel={(s: Student) => `${s.name} ${s.lastName ?? ""} (${s.enrollment})`}
+                        renderItem={(s: Student) => (
+                          <div className="flex flex-col">
+                            <span className="font-medium">{s.name} {s.lastName}</span>
+                            <span className="text-xs text-muted-foreground">{s.enrollment}</span>
+                          </div>
+                        )}
+                        disabled={operation === "view"}
+                      />
+                    </div>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="studentId"
-                render={({ field }) => (
-                  <SelectPopover<Student>
-                    items={students ?? []}
-                    value={field.value as string}
-                    onChange={field.onChange}
-                    placeholder="Selecciona estudiante"
-                    getKey={(s: Student) => s._id}
-                    getLabel={(s: Student) => `${s.name} ${s.lastName ?? ""} (${s.enrollment})`}
-                    renderItem={(s: Student) => (
-                      <>
-                        {s.name} {s.lastName} ({s.enrollment})
-                      </>
-                    )}
-                    disabled={operation === "view"}
-                  />
-                )}
-              />
+                {/* Campo Clase */}
+                <FormField
+                  control={form.control}
+                  name="classCatalogId"
+                  render={({ field }) => (
+                    <div className="space-y-2">
+                      <FormLabel className="text-sm font-medium">Clase</FormLabel>
+                      <SelectPopover<ClassCatalog>
+                        items={classCatalogs ?? []}
+                        value={field.value as string}
+                        onChange={field.onChange}
+                        placeholder="Selecciona una clase"
+                        getKey={(c: ClassCatalog) => c._id}
+                        getLabel={(c: ClassCatalog) => c.name}
+                        renderItem={(c: ClassCatalog) => (
+                          <div className="flex items-center">
+                            <span>{c.name}</span>
+                          </div>
+                        )}
+                        disabled={operation === "view"}
+                      />
+                    </div>
+                  )}
+                />
+              </div>
 
-              <FormField
-                control={form.control}
-                name="classCatalogId"
-                render={({ field }) => (
-                  <SelectPopover<ClassCatalog>
-                    items={classCatalogs ?? []}
-                    value={field.value as string}
-                    onChange={field.onChange}
-                    placeholder="Selecciona clase"
-                    getKey={(c: ClassCatalog) => c._id}
-                    getLabel={(c: ClassCatalog) => c.name}
-                    renderItem={(c: ClassCatalog) => <>{c.name}</>}
-                    disabled={operation === "view"}
-                  />
-                )}
-              />
 
               <FormField
                 control={form.control}
                 name="enrollmentDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Fecha de inscripción</FormLabel>
+                    <FormLabel>Fecha de asignación</FormLabel>
                     <FormControl>
                       <Input
                         type="date"
@@ -679,7 +694,7 @@ export default function StudentClassesDashboard() {
                       <div className="space-y-0.5">
                         <FormLabel className="text-base">Estado</FormLabel>
                         <div className="text-sm text-muted-foreground">
-                          Determina si la inscripción está activa o inactiva
+                          Determina si la asignación está activa o inactiva
                         </div>
                       </div>
                       <FormControl>

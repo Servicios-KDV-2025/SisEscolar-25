@@ -261,7 +261,7 @@ export default function CalendarioEscolar() {
             <div className="p-3 rounded-full backdrop-blur-sm">
               <School className="h-8 w-8" />
             </div>
-            <h1 className="text-4xl font-bold tracking-tight">Sistema Escolar</h1>
+            <h1 className="text-4xl font-bold tracking-tight">Calendario Escolar</h1>
           </div>
           <p className="text-xl max-w-2xl mx-auto">
             Gestiona eventos, exámenes y actividades escolares de manera eficiente y organizada

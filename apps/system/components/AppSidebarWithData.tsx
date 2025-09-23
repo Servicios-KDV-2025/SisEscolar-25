@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { useUser } from '@clerk/nextjs';
-import { AppSidebar } from '@repo/ui/components/app-sidebar';
 import { useUserWithConvex } from '../stores/userStore';
 import { useCurrentSchool } from '../stores/userSchoolsStore';
+import { AppSidebar } from 'components/menu/app-sidebar';
 
 export function AppSidebarWithData({ ...props }: React.ComponentProps<typeof AppSidebar>) {
   const { user: clerkUser, isLoaded } = useUser();
