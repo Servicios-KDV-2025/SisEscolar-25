@@ -22,7 +22,7 @@ type AttendanceState = 'present' | 'absent' | 'justified' | 'unjustified'
 interface AttendanceFilters {
   classCatalogId?: Id<'classCatalog'>
   attendanceState?: AttendanceState
-  specificDate?: number
+  specificDate?: number 
 }
 
 export default function AttendanceHistory() {

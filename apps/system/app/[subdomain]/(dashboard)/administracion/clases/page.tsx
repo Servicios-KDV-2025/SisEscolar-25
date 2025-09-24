@@ -49,11 +49,11 @@ export default function ClassCatalogPage() {
     // En tu componente principal
     const teachers = useQuery(
         api.functions.userSchool.getByRole,
-        { role: 'teacher' }
+        currentSchool?.school._id ? { schoolId: currentSchool?.school._id, role: 'teacher' } : 'skip',
     );
 
     // Obtener los IDs de usuarios
-    const teacherUserIds = teachers?.map(relation => relation.userId) || [];
+    const teacherUserIds = teachers?.map(relation => relation._id) || [];
 
     // Obtener la información de cada usuario
     const teachersData = useQuery(
