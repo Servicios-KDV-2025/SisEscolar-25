@@ -15,13 +15,41 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@repo/ui/components/shadcn/dialog"
-import { Users, Eye, AlertCircle, CheckCircle, Search, CreditCard, Clock, Filter, DollarSign, Calendar, Copy } from "lucide-react"
+import { Users, Eye, AlertCircle, CheckCircle, Search, CreditCard, Clock, Filter, DollarSign, Calendar, Copy, Banknote, RefreshCw } from "lucide-react"
 
+import { api } from "@repo/convex/convex/_generated/api";
+import { useQuery } from "convex/react";
+import { useUserWithConvex } from "stores/userStore";
+import { useCurrentSchool } from "stores/userSchoolsStore";
+import { useUser } from "@clerk/nextjs";
 
+// Tipos para las monedas y tasas de cambio
+type Currency = "USD" | "MXN" | "EUR"
+
+interface ExchangeRates {
+  USD: number
+  MXN: number
+  EUR: number
+}
+
+// Tasas de cambio estáticas
+const EXCHANGE_RATES: ExchangeRates = {
+  USD: 1,      // Base currency
+  MXN: 18.43,   // 1 USD = 17.5 MXN
+  EUR: 0.85    // 1 USD = 0.85 EUR
+}
 
 interface SubscriptionFormProps {
   subscription: Subscription | null
+  displayCurrency?: Currency
 }
+
+// precios
+const precios = {
+  basico: 39,
+  premium: 59,
+  empresarial: 99,
+} 
 
 // Interface que coincide con los campos del formulario + _id
 interface Subscription {
@@ -39,7 +67,7 @@ interface Subscription {
   updatedAt: number
 }
 
-function SubscriptionView({ subscription }: SubscriptionFormProps) {
+function SubscriptionView({ subscription, displayCurrency = "USD" }: SubscriptionFormProps) {
   if (!subscription) return null
 
   const formatDate = (timestamp: number) => {
@@ -50,13 +78,37 @@ function SubscriptionView({ subscription }: SubscriptionFormProps) {
     })
   }
 
-  const getPlanInfo = (plan: string) => {
-    switch (plan) {
-      case "Basic": return "Basic - $29/mes";
-      case "Premium": return "Premium - $59/mes";
-      case "Enterprise": return "Enterprise - $99/mes";
-      default: return "No seleccionado";
+  // Funciones de conversión de monedas usando tasas estáticas
+  const convertPrice = (price: number, fromCurrency: Currency, toCurrency: Currency): number => {
+    if (fromCurrency === toCurrency) return price
+    
+    // Convertir a USD primero (moneda base)
+    const priceInUSD = price / EXCHANGE_RATES[fromCurrency]
+    
+    // Convertir de USD a la moneda objetivo
+    return priceInUSD * EXCHANGE_RATES[toCurrency]
+  }
+
+  const formatPrice = (price: number, currency: Currency): string => {
+    const symbols = {
+      USD: "$",
+      MXN: "$",
+      EUR: "€"
     }
+    
+    return `${symbols[currency]}${price.toFixed(2)}`
+  }
+
+  const getPlanInfo = (plan: string) => {
+    const basePrices = { "Basico": precios.basico, "Premium": precios.premium, "Enterprise": precios.empresarial }
+    const basePrice = basePrices[plan as keyof typeof basePrices]
+    
+    if (!basePrice) return "No seleccionado"
+    
+    const convertedPrice = convertPrice(basePrice, "USD", displayCurrency)
+    const formattedPrice = formatPrice(convertedPrice, displayCurrency)
+    
+    return `${plan} - ${formattedPrice}/mes`
   }
 
   const getStatusLabel = (status: string) => {
@@ -85,6 +137,38 @@ function SubscriptionView({ subscription }: SubscriptionFormProps) {
     navigator.clipboard.writeText(text)
   }
 
+  // Componente EstadosColor completo
+  const EstadosColor = ({ status }: { status: string }) => {
+    const getStatusConfig = (status: string) => {
+      switch (status) {
+        case "active":
+          return { className: "bg-green-600 text-white ", label: "Activa" }
+        case "trialing":
+          return { className: "bg-blue-600 text-white", label: "Prueba" }
+        case "past_due":
+          return { className: "bg-yellow-600 text-white", label: "Vencida" }
+        case "canceled":
+          return { className: "bg-red-600 text-white", label: "Cancelada" }
+        case "paused":
+          return { className: "bg-gray-600 text-white", label: "Pausada" }
+        case "incomplete":
+        case "incomplete_expired":
+          return { className: "bg-orange-600 text-white", label: "Incompleta" }
+        case "unpaid":
+          return { className: "bg-red-600 text-white", label: "Sin Pagar" }
+        default:
+          return { className: "bg-gray-600 text-white", label: status }
+      }
+    }
+
+    const config = getStatusConfig(status)
+    return (
+      <div className={`inline-flex items-center px-3 py-2 rounded-full text-sm font-medium ${config.className}`}>
+        {config.label}
+      </div>
+    )
+  }
+
   return (
     <div className="grid gap-6 py-4">
       {/* Información Principal */}
@@ -93,10 +177,9 @@ function SubscriptionView({ subscription }: SubscriptionFormProps) {
         <div className="space-y-2">
           <Label className="text-sm font-medium">Plan</Label>
           <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/20 border">
-            <div className={`w-3 h-3 rounded-full ${
-              subscription.plan === "Basic" ? "bg-blue-500" :
+            <div className={`w-3 h-3 rounded-full ${subscription.plan === "Basico" ? "bg-blue-500" :
               subscription.plan === "Premium" ? "bg-purple-500" : "bg-green-500"
-            }`} />
+              }`} />
             <div>
               <div className="font-medium">{subscription.plan}</div>
               <div className="text-sm text-muted-foreground">
@@ -106,18 +189,10 @@ function SubscriptionView({ subscription }: SubscriptionFormProps) {
           </div>
         </div>
 
-        {/* Estado */}
+        {/* Estado - Usando el componente EstadosColor */}
         <div className="space-y-2">
           <Label className="text-sm font-medium">Estado</Label>
-          <div className={`inline-flex items-center px-3 py-2 rounded-full text-sm font-medium ${
-            subscription.status === "active" ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300" :
-            subscription.status === "trialing" ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300" :
-            subscription.status === "past_due" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300" :
-            subscription.status === "canceled" ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300" :
-            "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300"
-          }`}>
-            {getStatusLabel(subscription.status)}
-          </div>
+          <EstadosColor status={subscription.status} />
         </div>
       </div>
 
@@ -126,8 +201,7 @@ function SubscriptionView({ subscription }: SubscriptionFormProps) {
         <Label className="text-sm font-medium">Moneda</Label>
         <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/20 border">
           <span className="text-lg">
-            {subscription.currency === "USD" ? "💵" :
-             subscription.currency === "MXN" ? "💲" : "💶"}
+            <Banknote />
           </span>
           <div>
             <div className="font-medium">{subscription.currency}</div>
@@ -145,9 +219,9 @@ function SubscriptionView({ subscription }: SubscriptionFormProps) {
           <div className="group relative">
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border font-mono text-sm">
               {subscription.stripeCustomerId}
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={() => copyToClipboard(subscription.stripeCustomerId)}
               >
@@ -163,9 +237,9 @@ function SubscriptionView({ subscription }: SubscriptionFormProps) {
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border font-mono text-sm">
               {subscription.stripeSubscriptionId || "No especificado"}
               {subscription.stripeSubscriptionId && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={() => copyToClipboard(subscription.stripeSubscriptionId)}
                 >
@@ -181,8 +255,8 @@ function SubscriptionView({ subscription }: SubscriptionFormProps) {
       <div className="space-y-4 pt-4 border-t">
         <h4 className="font-medium">Información Adicional</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20">
-            <Label className="text-sm text-blue-700 dark:text-blue-300 flex items-center gap-2">
+          <div className="space-y-3 p-3 rounded-lg bg-gray-100 ">
+            <Label className="text-sm dark:text-primary text-blue-700 flex items-center gap-2">
               <Calendar className="h-4 w-4" />
               Período Actual
             </Label>
@@ -197,9 +271,9 @@ function SubscriptionView({ subscription }: SubscriptionFormProps) {
               </div>
             </div>
           </div>
-          
-          <div className="space-y-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/20">
-            <Label className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+
+          <div className="space-y-3 p-3 rounded-lg bg-gray-100 ">
+            <Label className="text-sm text-primary flex items-center gap-2">
               <Clock className="h-4 w-4" />
               Fechas del Sistema
             </Label>
@@ -220,6 +294,8 @@ function SubscriptionView({ subscription }: SubscriptionFormProps) {
   )
 }
 
+
+// se puede quitar cuando quieran o ya de una vez poner la data real, pero sirve para hacer pruebas
 const MOCK_SUBSCRIPTIONS: Subscription[] = [
   {
     _id: "1",
@@ -241,7 +317,7 @@ const MOCK_SUBSCRIPTIONS: Subscription[] = [
     userId: "user2",
     stripeCustomerId: "cus_9876",
     stripeSubscriptionId: "sub_9876",
-    currency: "USD",
+    currency: "MXN",
     plan: "Basic",
     status: "past_due",
     currentPeriodStart: Date.now() - 86400000 * 10,
@@ -276,16 +352,101 @@ const MOCK_SUBSCRIPTIONS: Subscription[] = [
     currentPeriodEnd: Date.now() - 86400000 * 5,
     createdAt: Date.now() - 86400000 * 90,
     updatedAt: Date.now(),
+  },
+  {
+    _id: "5",
+    schoolId: "school2",
+    userId: "user5",
+    stripeCustomerId: "cus_2222",
+    stripeSubscriptionId: "sub_2222",
+    currency: "EUR",
+    plan: "Premium",
+    status: "paused",
+    currentPeriodStart: Date.now() - 86400000 * 8,
+    currentPeriodEnd: Date.now() + 86400000 * 22,
+    createdAt: Date.now() - 86400000 * 45,
+    updatedAt: Date.now(),
+  },
+  {
+    _id: "6",
+    schoolId: "school2",
+    userId: "user6",
+    stripeCustomerId: "cus_3333",
+    stripeSubscriptionId: "sub_3333",
+    currency: "USD",
+    plan: "Basic",
+    status: "incomplete",
+    currentPeriodStart: Date.now() - 86400000 * 3,
+    currentPeriodEnd: Date.now() + 86400000 * 27,
+    createdAt: Date.now() - 86400000 * 5,
+    updatedAt: Date.now(),
+  },
+  {
+    _id: "7",
+    schoolId: "school3",
+    userId: "user7",
+    stripeCustomerId: "cus_4444",
+    stripeSubscriptionId: "sub_4444",
+    currency: "USD",
+    plan: "Enterprise",
+    status: "incomplete_expired",
+    currentPeriodStart: Date.now() - 86400000 * 40,
+    currentPeriodEnd: Date.now() - 86400000 * 10,
+    createdAt: Date.now() - 86400000 * 50,
+    updatedAt: Date.now(),
+  },
+  {
+    _id: "8",
+    schoolId: "school3",
+    userId: "user8",
+    stripeCustomerId: "cus_6666",
+    stripeSubscriptionId: "sub_6666",
+    currency: "USD",
+    plan: "Premium",
+    status: "unpaid",
+    currentPeriodStart: Date.now() - 86400000 * 12,
+    currentPeriodEnd: Date.now() + 86400000 * 18,
+    createdAt: Date.now() - 86400000 * 75,
+    updatedAt: Date.now(),
+  },
+  {
+    _id: "9",
+    schoolId: "school4",
+    userId: "user9",
+    stripeCustomerId: "cus_7777",
+    stripeSubscriptionId: "sub_7777",
+    currency: "EUR",
+    plan: "Basic",
+    status: "active",
+    currentPeriodStart: Date.now() - 86400000 * 20,
+    currentPeriodEnd: Date.now() + 86400000 * 10,
+    createdAt: Date.now() - 86400000 * 120,
+    updatedAt: Date.now(),
+  },
+  {
+    _id: "10",
+    schoolId: "school4",
+    userId: "user10",
+    stripeCustomerId: "cus_8888",
+    stripeSubscriptionId: "sub_8888",
+    currency: "USD",
+    plan: "Enterprise",
+    status: "trialing",
+    currentPeriodStart: Date.now() - 86400000 * 2,
+    currentPeriodEnd: Date.now() + 86400000 * 28,
+    createdAt: Date.now() - 86400000 * 3,
+    updatedAt: Date.now(),
   }
 ]
 
 const StatusBadge = ({ status }: { status: string }) => {
+
   const getStatusConfig = (status: string) => {
     switch (status) {
       case "active":
         return { className: "bg-green-600 text-white", label: "Activa" }
       case "trialing":
-        return { className: "bg-blue-600 text-white", label: "En Prueba" }
+        return { className: "bg-blue-600 text-white", label: "Prueba" }
       case "past_due":
         return { className: "bg-yellow-600 text-white", label: "Vencida" }
       case "canceled":
@@ -303,7 +464,7 @@ const StatusBadge = ({ status }: { status: string }) => {
   }
 
   const config = getStatusConfig(status)
-  return <Badge className={config.className}>{config.label}</Badge>
+  return <Badge className={`min-w-21 text-center px-3 py-1 ${config.className}`}>{config.label}</Badge>
 }
 
 export default function SubscriptionsManagement() {
@@ -314,8 +475,65 @@ export default function SubscriptionsManagement() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null)
+  const [displayCurrency, setDisplayCurrency] = useState<Currency>("USD")
 
-  const subscriptions = MOCK_SUBSCRIPTIONS
+  const { user: clerkUser, isLoaded } = useUser();
+  const { currentUser, isLoading: userLoading } = useUserWithConvex(
+    clerkUser?.id
+  );
+  const {
+    currentSchool,
+  } = useCurrentSchool(currentUser?._id);
+
+  const SubscriptionsData = useQuery(
+    api.functions.schoolSubscriptions.getAllSubscriptions,
+    currentSchool ? { schoolId: currentSchool.school._id } : "skip"
+  )
+
+  const subscriptions = SubscriptionsData || []
+
+  // Funciones de conversión de monedas usando tasas estáticas
+  const convertPrice = (price: number, fromCurrency: Currency, toCurrency: Currency): number => {
+    if (fromCurrency === toCurrency) return price
+    
+    // Convertir a USD primero (moneda base)
+    const priceInUSD = price / EXCHANGE_RATES[fromCurrency]
+    
+    // Convertir de USD a la moneda objetivo
+    return priceInUSD * EXCHANGE_RATES[toCurrency]
+  }
+
+  const formatPrice = (price: number, currency: Currency): string => {
+    const symbols = {
+      USD: "$",
+      MXN: "$",
+      EUR: "€"
+    }
+    
+    return `${symbols[currency]}${price.toFixed(2)}`
+  }
+
+  const getCurrencySymbol = (currency: Currency): string => {
+    const symbols = {
+      USD: "$",
+      MXN: "$",
+      EUR: "€"
+    }
+    return symbols[currency]
+  }
+
+  // Función actualizada para obtener información del plan con conversión de moneda
+  const getPlanInfoWithCurrency = (plan: string, targetCurrency: Currency = displayCurrency): string => {
+    const basePrices = { "Basico": precios.basico, "Premium": precios.premium, "Enterprise": precios.empresarial }
+    const basePrice = basePrices[plan as keyof typeof basePrices]
+    
+    if (!basePrice) return "No seleccionado"
+    
+    const convertedPrice = convertPrice(basePrice, "USD", targetCurrency)
+    const formattedPrice = formatPrice(convertedPrice, targetCurrency)
+    
+    return `${plan} - ${formattedPrice}/mes`
+  }
 
   const filteredAndSortedSubscriptions = useMemo(() => {
     return subscriptions
@@ -360,15 +578,19 @@ export default function SubscriptionsManagement() {
     const active = subscriptions.filter((s) => s.status === "active").length
     const pastDue = subscriptions.filter((s) => s.status === "past_due").length
     const trialing = subscriptions.filter((s) => s.status === "trialing").length
+    
+    // Calcular ingresos totales en la moneda seleccionada
     const totalRevenue = subscriptions
       .filter(s => s.status === "active")
       .reduce((sum, s) => {
-        const planPrices = { "Basic": 29, "Premium": 59, "Enterprise": 99 }
-        return sum + (planPrices[s.plan as keyof typeof planPrices] || 0)
+        const planPrices = { "Basico": precios.basico, "Premium": precios.premium, "Enterprise": precios.empresarial }
+        const basePrice = planPrices[s.plan as keyof typeof planPrices] || 0
+        const convertedPrice = convertPrice(basePrice, "USD", displayCurrency)
+        return sum + convertedPrice
       }, 0)
 
     return { total, active, pastDue, trialing, totalRevenue }
-  }, [subscriptions])
+  }, [subscriptions, displayCurrency, convertPrice])
 
   const getUniquePlans = () => {
     const plans = subscriptions.map((s) => s.plan)
@@ -395,6 +617,7 @@ export default function SubscriptionsManagement() {
   const handleView = (subscription: Subscription) => {
     setSelectedSubscription(subscription)
     setIsDialogOpen(true)
+    console.log(Date.now() - 86400000 * 2)
   }
 
   return (
@@ -416,6 +639,39 @@ export default function SubscriptionsManagement() {
                   </p>
                 </div>
               </div>
+            </div>
+            
+            {/* Selector de Moneda */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <RefreshCw className="h-4 w-4" />
+                <span>Mostrar precios en:</span>
+              </div>
+              <Select value={displayCurrency} onValueChange={(value: Currency) => setDisplayCurrency(value)}>
+                <SelectTrigger className="w-[120px] bg-background/50 backdrop-blur-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">
+                    <div className="flex items-center gap-2">
+                      <span>$</span>
+                      <span>USD</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="MXN">
+                    <div className="flex items-center gap-2">
+                      <span>$</span>
+                      <span>MXN</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="EUR">
+                    <div className="flex items-center gap-2">
+                      <span>€</span>
+                      <span>EUR</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
@@ -489,7 +745,10 @@ export default function SubscriptionsManagement() {
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
-            <div className="text-3xl font-bold">${stats.totalRevenue}</div>
+            <div className="text-3xl font-bold">{formatPrice(stats.totalRevenue, displayCurrency)}</div>
+            <p className="text-xs text-muted-foreground">
+              Ingresos en {displayCurrency}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -656,7 +915,7 @@ export default function SubscriptionsManagement() {
               Información completa de la suscripción seleccionada
             </DialogDescription>
           </DialogHeader>
-          <SubscriptionView subscription={selectedSubscription} />
+          <SubscriptionView subscription={selectedSubscription} displayCurrency={displayCurrency} />
         </DialogContent>
       </Dialog>
     </div>
