@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Button } from "@repo/ui/components/shadcn/button"
@@ -111,18 +111,7 @@ function SubscriptionView({ subscription, displayCurrency = "USD" }: Subscriptio
     return `${plan} - ${formattedPrice}/mes`
   }
 
-  const getStatusLabel = (status: string) => {
-    const statusMap = {
-      active: "Activa",
-      trialing: "En Prueba",
-      past_due: "Vencida",
-      canceled: "Cancelada",
-      paused: "Pausada",
-      incomplete: "Incompleta",
-      unpaid: "Sin Pagar"
-    };
-    return statusMap[status as keyof typeof statusMap] || "No seleccionado";
-  }
+
 
   const getCurrencyInfo = (currency: string) => {
     switch (currency) {
@@ -296,148 +285,148 @@ function SubscriptionView({ subscription, displayCurrency = "USD" }: Subscriptio
 
 
 // se puede quitar cuando quieran o ya de una vez poner la data real, pero sirve para hacer pruebas
-const MOCK_SUBSCRIPTIONS: Subscription[] = [
-  {
-    _id: "1",
-    schoolId: "school1",
-    userId: "user1",
-    stripeCustomerId: "cus_1234",
-    stripeSubscriptionId: "sub_1234",
-    currency: "USD",
-    plan: "Premium",
-    status: "active",
-    currentPeriodStart: Date.now() - 86400000 * 15,
-    currentPeriodEnd: Date.now() + 86400000 * 15,
-    createdAt: Date.now() - 86400000 * 30,
-    updatedAt: Date.now(),
-  },
-  {
-    _id: "2",
-    schoolId: "school1",
-    userId: "user2",
-    stripeCustomerId: "cus_9876",
-    stripeSubscriptionId: "sub_9876",
-    currency: "MXN",
-    plan: "Basic",
-    status: "past_due",
-    currentPeriodStart: Date.now() - 86400000 * 10,
-    currentPeriodEnd: Date.now() + 86400000 * 20,
-    createdAt: Date.now() - 86400000 * 60,
-    updatedAt: Date.now(),
-  },
-  {
-    _id: "3",
-    schoolId: "school1",
-    userId: "user3",
-    stripeCustomerId: "cus_555",
-    stripeSubscriptionId: "sub_555",
-    currency: "USD",
-    plan: "Enterprise",
-    status: "trialing",
-    currentPeriodStart: Date.now() - 86400000 * 5,
-    currentPeriodEnd: Date.now() + 86400000 * 25,
-    createdAt: Date.now() - 86400000 * 7,
-    updatedAt: Date.now(),
-  },
-  {
-    _id: "4",
-    schoolId: "school1",
-    userId: "user4",
-    stripeCustomerId: "cus_1111",
-    stripeSubscriptionId: "sub_1111",
-    currency: "USD",
-    plan: "Basic",
-    status: "canceled",
-    currentPeriodStart: Date.now() - 86400000 * 20,
-    currentPeriodEnd: Date.now() - 86400000 * 5,
-    createdAt: Date.now() - 86400000 * 90,
-    updatedAt: Date.now(),
-  },
-  {
-    _id: "5",
-    schoolId: "school2",
-    userId: "user5",
-    stripeCustomerId: "cus_2222",
-    stripeSubscriptionId: "sub_2222",
-    currency: "EUR",
-    plan: "Premium",
-    status: "paused",
-    currentPeriodStart: Date.now() - 86400000 * 8,
-    currentPeriodEnd: Date.now() + 86400000 * 22,
-    createdAt: Date.now() - 86400000 * 45,
-    updatedAt: Date.now(),
-  },
-  {
-    _id: "6",
-    schoolId: "school2",
-    userId: "user6",
-    stripeCustomerId: "cus_3333",
-    stripeSubscriptionId: "sub_3333",
-    currency: "USD",
-    plan: "Basic",
-    status: "incomplete",
-    currentPeriodStart: Date.now() - 86400000 * 3,
-    currentPeriodEnd: Date.now() + 86400000 * 27,
-    createdAt: Date.now() - 86400000 * 5,
-    updatedAt: Date.now(),
-  },
-  {
-    _id: "7",
-    schoolId: "school3",
-    userId: "user7",
-    stripeCustomerId: "cus_4444",
-    stripeSubscriptionId: "sub_4444",
-    currency: "USD",
-    plan: "Enterprise",
-    status: "incomplete_expired",
-    currentPeriodStart: Date.now() - 86400000 * 40,
-    currentPeriodEnd: Date.now() - 86400000 * 10,
-    createdAt: Date.now() - 86400000 * 50,
-    updatedAt: Date.now(),
-  },
-  {
-    _id: "8",
-    schoolId: "school3",
-    userId: "user8",
-    stripeCustomerId: "cus_6666",
-    stripeSubscriptionId: "sub_6666",
-    currency: "USD",
-    plan: "Premium",
-    status: "unpaid",
-    currentPeriodStart: Date.now() - 86400000 * 12,
-    currentPeriodEnd: Date.now() + 86400000 * 18,
-    createdAt: Date.now() - 86400000 * 75,
-    updatedAt: Date.now(),
-  },
-  {
-    _id: "9",
-    schoolId: "school4",
-    userId: "user9",
-    stripeCustomerId: "cus_7777",
-    stripeSubscriptionId: "sub_7777",
-    currency: "EUR",
-    plan: "Basic",
-    status: "active",
-    currentPeriodStart: Date.now() - 86400000 * 20,
-    currentPeriodEnd: Date.now() + 86400000 * 10,
-    createdAt: Date.now() - 86400000 * 120,
-    updatedAt: Date.now(),
-  },
-  {
-    _id: "10",
-    schoolId: "school4",
-    userId: "user10",
-    stripeCustomerId: "cus_8888",
-    stripeSubscriptionId: "sub_8888",
-    currency: "USD",
-    plan: "Enterprise",
-    status: "trialing",
-    currentPeriodStart: Date.now() - 86400000 * 2,
-    currentPeriodEnd: Date.now() + 86400000 * 28,
-    createdAt: Date.now() - 86400000 * 3,
-    updatedAt: Date.now(),
-  }
-]
+// const MOCK_SUBSCRIPTIONS: Subscription[] = [
+//   {
+//     _id: "1",
+//     schoolId: "school1",
+//     userId: "user1",
+//     stripeCustomerId: "cus_1234",
+//     stripeSubscriptionId: "sub_1234",
+//     currency: "USD",
+//     plan: "Premium",
+//     status: "active",
+//     currentPeriodStart: Date.now() - 86400000 * 15,
+//     currentPeriodEnd: Date.now() + 86400000 * 15,
+//     createdAt: Date.now() - 86400000 * 30,
+//     updatedAt: Date.now(),
+//   },
+//   {
+//     _id: "2",
+//     schoolId: "school1",
+//     userId: "user2",
+//     stripeCustomerId: "cus_9876",
+//     stripeSubscriptionId: "sub_9876",
+//     currency: "MXN",
+//     plan: "Basic",
+//     status: "past_due",
+//     currentPeriodStart: Date.now() - 86400000 * 10,
+//     currentPeriodEnd: Date.now() + 86400000 * 20,
+//     createdAt: Date.now() - 86400000 * 60,
+//     updatedAt: Date.now(),
+//   },
+//   {
+//     _id: "3",
+//     schoolId: "school1",
+//     userId: "user3",
+//     stripeCustomerId: "cus_555",
+//     stripeSubscriptionId: "sub_555",
+//     currency: "USD",
+//     plan: "Enterprise",
+//     status: "trialing",
+//     currentPeriodStart: Date.now() - 86400000 * 5,
+//     currentPeriodEnd: Date.now() + 86400000 * 25,
+//     createdAt: Date.now() - 86400000 * 7,
+//     updatedAt: Date.now(),
+//   },
+//   {
+//     _id: "4",
+//     schoolId: "school1",
+//     userId: "user4",
+//     stripeCustomerId: "cus_1111",
+//     stripeSubscriptionId: "sub_1111",
+//     currency: "USD",
+//     plan: "Basic",
+//     status: "canceled",
+//     currentPeriodStart: Date.now() - 86400000 * 20,
+//     currentPeriodEnd: Date.now() - 86400000 * 5,
+//     createdAt: Date.now() - 86400000 * 90,
+//     updatedAt: Date.now(),
+//   },
+//   {
+//     _id: "5",
+//     schoolId: "school2",
+//     userId: "user5",
+//     stripeCustomerId: "cus_2222",
+//     stripeSubscriptionId: "sub_2222",
+//     currency: "EUR",
+//     plan: "Premium",
+//     status: "paused",
+//     currentPeriodStart: Date.now() - 86400000 * 8,
+//     currentPeriodEnd: Date.now() + 86400000 * 22,
+//     createdAt: Date.now() - 86400000 * 45,
+//     updatedAt: Date.now(),
+//   },
+//   {
+//     _id: "6",
+//     schoolId: "school2",
+//     userId: "user6",
+//     stripeCustomerId: "cus_3333",
+//     stripeSubscriptionId: "sub_3333",
+//     currency: "USD",
+//     plan: "Basic",
+//     status: "incomplete",
+//     currentPeriodStart: Date.now() - 86400000 * 3,
+//     currentPeriodEnd: Date.now() + 86400000 * 27,
+//     createdAt: Date.now() - 86400000 * 5,
+//     updatedAt: Date.now(),
+//   },
+//   {
+//     _id: "7",
+//     schoolId: "school3",
+//     userId: "user7",
+//     stripeCustomerId: "cus_4444",
+//     stripeSubscriptionId: "sub_4444",
+//     currency: "USD",
+//     plan: "Enterprise",
+//     status: "incomplete_expired",
+//     currentPeriodStart: Date.now() - 86400000 * 40,
+//     currentPeriodEnd: Date.now() - 86400000 * 10,
+//     createdAt: Date.now() - 86400000 * 50,
+//     updatedAt: Date.now(),
+//   },
+//   {
+//     _id: "8",
+//     schoolId: "school3",
+//     userId: "user8",
+//     stripeCustomerId: "cus_6666",
+//     stripeSubscriptionId: "sub_6666",
+//     currency: "USD",
+//     plan: "Premium",
+//     status: "unpaid",
+//     currentPeriodStart: Date.now() - 86400000 * 12,
+//     currentPeriodEnd: Date.now() + 86400000 * 18,
+//     createdAt: Date.now() - 86400000 * 75,
+//     updatedAt: Date.now(),
+//   },
+//   {
+//     _id: "9",
+//     schoolId: "school4",
+//     userId: "user9",
+//     stripeCustomerId: "cus_7777",
+//     stripeSubscriptionId: "sub_7777",
+//     currency: "EUR",
+//     plan: "Basic",
+//     status: "active",
+//     currentPeriodStart: Date.now() - 86400000 * 20,
+//     currentPeriodEnd: Date.now() + 86400000 * 10,
+//     createdAt: Date.now() - 86400000 * 120,
+//     updatedAt: Date.now(),
+//   },
+//   {
+//     _id: "10",
+//     schoolId: "school4",
+//     userId: "user10",
+//     stripeCustomerId: "cus_8888",
+//     stripeSubscriptionId: "sub_8888",
+//     currency: "USD",
+//     plan: "Enterprise",
+//     status: "trialing",
+//     currentPeriodStart: Date.now() - 86400000 * 2,
+//     currentPeriodEnd: Date.now() + 86400000 * 28,
+//     createdAt: Date.now() - 86400000 * 3,
+//     updatedAt: Date.now(),
+//   }
+// ]
 
 const StatusBadge = ({ status }: { status: string }) => {
 
@@ -477,8 +466,8 @@ export default function SubscriptionsManagement() {
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null)
   const [displayCurrency, setDisplayCurrency] = useState<Currency>("USD")
 
-  const { user: clerkUser, isLoaded } = useUser();
-  const { currentUser, isLoading: userLoading } = useUserWithConvex(
+  const { user: clerkUser  } = useUser();
+  const { currentUser } = useUserWithConvex(
     clerkUser?.id
   );
   const {
@@ -490,50 +479,17 @@ export default function SubscriptionsManagement() {
     currentSchool ? { schoolId: currentSchool.school._id } : "skip"
   )
 
-  const subscriptions = SubscriptionsData || []
+  const subscriptions = useMemo(() => SubscriptionsData || [], [SubscriptionsData])
 
-  // Funciones de conversión de monedas usando tasas estáticas
-  const convertPrice = (price: number, fromCurrency: Currency, toCurrency: Currency): number => {
-    if (fromCurrency === toCurrency) return price
-    
-    // Convertir a USD primero (moneda base)
-    const priceInUSD = price / EXCHANGE_RATES[fromCurrency]
-    
-    // Convertir de USD a la moneda objetivo
-    return priceInUSD * EXCHANGE_RATES[toCurrency]
-  }
+  
 
-  const formatPrice = (price: number, currency: Currency): string => {
-    const symbols = {
-      USD: "$",
-      MXN: "$",
-      EUR: "€"
-    }
-    
+    const formatPrice = useCallback((price: number, currency: Currency): string => {
+    const symbols = { USD: "$", MXN: "$", EUR: "€" }
     return `${symbols[currency]}${price.toFixed(2)}`
-  }
+  }, [])
 
-  const getCurrencySymbol = (currency: Currency): string => {
-    const symbols = {
-      USD: "$",
-      MXN: "$",
-      EUR: "€"
-    }
-    return symbols[currency]
-  }
 
-  // Función actualizada para obtener información del plan con conversión de moneda
-  const getPlanInfoWithCurrency = (plan: string, targetCurrency: Currency = displayCurrency): string => {
-    const basePrices = { "Basico": precios.basico, "Premium": precios.premium, "Enterprise": precios.empresarial }
-    const basePrice = basePrices[plan as keyof typeof basePrices]
-    
-    if (!basePrice) return "No seleccionado"
-    
-    const convertedPrice = convertPrice(basePrice, "USD", targetCurrency)
-    const formattedPrice = formatPrice(convertedPrice, targetCurrency)
-    
-    return `${plan} - ${formattedPrice}/mes`
-  }
+
 
   const filteredAndSortedSubscriptions = useMemo(() => {
     return subscriptions
@@ -574,23 +530,32 @@ export default function SubscriptionsManagement() {
   }, [subscriptions, searchTerm, statusFilter, planFilter, sortBy, sortOrder])
 
   const stats = useMemo(() => {
+    const convertPrice = (price: number, fromCurrency: Currency, toCurrency: Currency): number => {
+      if (fromCurrency === toCurrency) return price
+      const priceInUSD = price / EXCHANGE_RATES[fromCurrency]
+      return priceInUSD * EXCHANGE_RATES[toCurrency]
+    }
+
     const total = subscriptions.length
     const active = subscriptions.filter((s) => s.status === "active").length
     const pastDue = subscriptions.filter((s) => s.status === "past_due").length
     const trialing = subscriptions.filter((s) => s.status === "trialing").length
     
-    // Calcular ingresos totales en la moneda seleccionada
     const totalRevenue = subscriptions
       .filter(s => s.status === "active")
       .reduce((sum, s) => {
-        const planPrices = { "Basico": precios.basico, "Premium": precios.premium, "Enterprise": precios.empresarial }
+        const planPrices = { 
+          "Basico": precios.basico, 
+          "Premium": precios.premium, 
+          "Enterprise": precios.empresarial 
+        }
         const basePrice = planPrices[s.plan as keyof typeof planPrices] || 0
         const convertedPrice = convertPrice(basePrice, "USD", displayCurrency)
         return sum + convertedPrice
       }, 0)
 
     return { total, active, pastDue, trialing, totalRevenue }
-  }, [subscriptions, displayCurrency, convertPrice])
+  }, [subscriptions, displayCurrency])
 
   const getUniquePlans = () => {
     const plans = subscriptions.map((s) => s.plan)
