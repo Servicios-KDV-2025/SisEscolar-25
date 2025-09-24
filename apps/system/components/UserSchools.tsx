@@ -200,7 +200,7 @@ export const UserSchools: React.FC<UserSchoolsProps> = ({ clerkId }) => {
                   {currentUser ? (
                     <div>
                       <h1 className="text-4xl font-bold tracking-tight flex items-center gap-3">
-                        ¡Bienenido, {currentUser.name}!
+                        ¡Bienvenido, {currentUser.name}!
                       </h1>
                       <p className="text-lg text-muted-foreground">
                         {userSchools.length > 0

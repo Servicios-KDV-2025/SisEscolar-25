@@ -13,6 +13,7 @@ import { usePermissions } from "../../../../hooks/usePermissions";
 import { useCicloEscolarWithConvex } from "../../../../stores/useSchoolCiclesStore";
 import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
+import Link from "next/link";
 
 
 export default function EscuelaHome() {
@@ -250,10 +251,12 @@ export default function EscuelaHome() {
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button size="lg" className="gap-2">
+              <Link href={`/perfil-institucional/`}>
+              <Button size="lg" className="gap-2" >
                 <Settings className="w-4 h-4" />
                 Configuración
               </Button>
+              </Link>
             </div>
           </div>
         </div>

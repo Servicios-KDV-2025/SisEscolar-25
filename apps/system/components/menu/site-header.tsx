@@ -2,7 +2,6 @@
 
 import { SidebarIcon } from "lucide-react";
 
-import { SearchForm } from "@repo/ui/components/search-form";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -30,23 +29,41 @@ export function SiteHeader({
   // Mapeo de segmentos de path a textos amigables
   const pathSegmentLabels: Record<string, string> = {
     'inicio': 'Inicio',
-    'usuarios': 'Usuarios',
+
+    'perfil-institucional': 'Perfil institucional',
+    'alumnos': 'Alumnos',
+    'tutores': 'Tutores',
     'personal': 'Personal',
-    'estudiantes': 'Estudiantes',
-    'profesores': 'Profesores',
+    'inscripciones-colegiaturas': 'Inscripciones/Colegiaturas',
+    'suscripciones': 'Suscripciones',
+
+    'aulas': 'Aulas',
     'materias': 'Materias',
-    'clases': 'Clases',
+    'grupos': 'Grupos',
     'horarios': 'Horarios',
+    
+    'ciclos-escolares': 'Ciclos Escolares',
+    'calendario-escolar': 'Calendario Escolar',
+    'periodos': 'Periodos',
+    'clases': 'Clases',
+    'asignacion-de-clases' : 'Asignación de Clases',
+    'asignacion-de-horarios': 'Asignación de Horarios',
+
+    'asistencias': 'Asistencias',
+    'rubricas': 'Rúbricas',
+    'asignaciones': 'Asignaciones',
     'calificaciones': 'Calificaciones',
-    'reportes': 'Reportes',
-    'configuracion': 'Configuración',
+    'calificaciones-periodos': 'Calificaciones por Periodo',
+
+    'usuarios': 'Usuarios',
+    'profesores': 'Profesores',
     'perfil': 'Perfil',
     'lista': 'Lista',
     'crear': 'Crear',
     'editar': 'Editar',
     'detalle': 'Detalle',
-    'clasesPorAlumnos': 'Clases por Alumnos',
-    'CiclosEscolares': 'Ciclos Escolares',
+    'reportes': 'Reportes',
+    'configuracion': 'Configuración',
   };
 
   // Extraer solo el último segmento del path y aplicar mapeo
@@ -86,10 +103,8 @@ export function SiteHeader({
             <BreadcrumbItem>
               <BreadcrumbPage>{lastSegment}</BreadcrumbPage>
             </BreadcrumbItem>
-            
           </BreadcrumbList>
         </Breadcrumb>
-        <SearchForm className="w-full sm:ml-auto sm:w-auto" />
       </div>
     </header>
   );

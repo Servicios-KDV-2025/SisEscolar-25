@@ -6,7 +6,6 @@ import {
   ChevronsUpDown,
   CreditCard,
   LogOut,
-  Sparkles,
 } from "lucide-react"
 
 import {
@@ -29,6 +28,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@repo/ui/components/shadcn/sidebar"
+import { Gem } from "@repo/ui/icons"
+import { useClerk } from "@clerk/nextjs"
 
 export function NavUser({
   user,
@@ -40,6 +41,10 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const { signOut } = useClerk();
+  const handleSignOut = async () => {
+    await signOut({ redirectUrl: '/' });
+  };
 
   return (
     <SidebarMenu>
@@ -96,29 +101,32 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem>
-                <Sparkles />
-                Upgrade to Pro
+                <CreditCard />
+                Suscripción
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem>
                 <BadgeCheck />
-                Account
+                Perfil
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <CreditCard />
-                Billing
+                <Gem />
+                Cambio de Rol
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Bell />
-                Notifications
+                Notificaciones
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer hover:bg-muted/50"
+              onClick={handleSignOut}
+            >
               <LogOut />
-              Log out
+              Cerrar sesión
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -3,16 +3,16 @@
 import * as React from "react"
 import {
   Command,
-  LifeBuoy,
-  Send,
-  SquareTerminal,
   Users,
+  BanknoteArrowUp,
+  MonitorCog,
+  School,
+  BellElectric,
+  University,
+  BookOpenCheck,
 } from "lucide-react"
+import Image from "next/image";
 
-
-import { NavMain } from "@repo/ui/components/nav-main"
-import { NavSecondary } from "@repo/ui/components/nav-secondary"
-import { NavUser } from "@repo/ui/components/nav-user"
 import {
   Sidebar,
   SidebarContent,
@@ -22,6 +22,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@repo/ui/components/shadcn/sidebar"
+import { NavMain } from "./nav-main";
+import { NavUser } from "./nav-user";
+import Link from "next/link";
 
 
 // Interfaz para los datos del usuario
@@ -45,154 +48,137 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 const defaultNavData = {
-  navMain: [
+  navGeneral: [
     {
-      title: "Ciclos Escolares",
-      url: "#",
-      icon: SquareTerminal,
-      isActive: true,
-      items: [
-        {
-          title: "Ciclos Escolares",
-          url: `/ciclos-escolares`,
-        },
-        {
-          title: "Calendario Escolar",
-          url: `/calendario`,
-        },
-        {
-          title: "Clases por Alumno",
-          url: `/clases-por-alumnos`,
-        },
-        {
-          title: "Grupos",
-          url: `/grupos`,
-        },
-        {
-          title: "Catalogo de Clases",
-          url: `/catalogo-clases`,
-        },
-        {
-          title: "Eventos Por Clase",
-          url: `#`,
-        },
-        {
-          title: "Eventos Escolares",
-          url: `#`,
-        },
-      ],
+      title: "Perfil institucional",
+      url: `/perfil-institucional`,
+      icon: University,
     },
     {
-      title: "Aulas",
-      url: `/aulas`,
-      icon: SquareTerminal,
-      isActive: true,
-    },
-    {
-      title: "Asistencia",
-      url: `/asistencias`,
-      icon: SquareTerminal,
-      isActive: true,
-    },
-    {
-      title: "Materias",
-      url: `/materias`,
-      icon: SquareTerminal,
-      isActive: true,
-    },
-    {
-      title: "Departamentos",
-      url: `/departamentos`,
-      icon: SquareTerminal,
-      isActive: true,
-    },
-    {
-      title: "Personal",
-      url: `/personal`,
-      icon: SquareTerminal,
-      isActive: true,
-    },
-    {
-      title: "Periodos",
-      url: `/periodos`,
-      icon: SquareTerminal,
-      isActive: true,
-    },
-    {
-      title: "Horarios",
-      url: `/horarios`,
-      icon: SquareTerminal,
-      isActive: true,
-    },
-    {
-      title: "Horarios por Clase",
-      url: `/horarios-por-clase`,
-      icon: SquareTerminal,
-      isActive: true,
-    },
-    {
-      title: "Evaluacion",
-      url: `#`,
-      icon: SquareTerminal,
-      isActive: true,
-      items: [
-        {
-          title: "Calificaciones",
-          url: `/calificaciones`,
-        },
-        {
-          title: "Calificaciones por Periodo",
-          url: `/promedio-periodos`,
-        },
-        {
-          title: "Rúbricas",
-          url: `/rubrica-de-calificaciones`,
-        },
-        {
-          title: "Asignaciones",
-          url: `/asignaciones`,
-        },
-      ],
-    },
-    {
-      title: "Usuarios",
-      url: "#",
+      title: "Gestión de Usuarios",
       icon: Users,
-      isActive: true,
+      url: "#",
       items: [
         {
-          title: "Gestión de Personal",
-          url: `/usuarios/personal`,
+          title: "Alumnos",
+          url: `/usuarios/alumnos`,
         },
         {
-          title: "Gestión de Tutores",
+          title: "Tutores",
           url: `/usuarios/tutores`,
         },
         {
-          title: "Gestión de Alumnos",
-          url: `/usuarios/alumnos`,
+          title: "Personal",
+          url: `/usuarios/personal`,
+        }
+      ],
+    },
+    {
+      title: "Inscripciones/Colegiaturas",
+      url: `/inscripciones-colegiaturas`,
+      icon: BanknoteArrowUp,
+    },
+    {
+      title: "Plataforma",
+      icon: MonitorCog,
+      url: "#",
+      items: [
+        {
+          title: "Suscripciones",
+          url: `/plataforma/suscripciones`,
         },
       ],
     },
-    
+
   ],
-  navSecondary: [
+  navEscolar: [
     {
-      title: "Support",
+      title: "General",
       url: "#",
-      icon: LifeBuoy,
+      icon: School,
+      items: [
+        {
+          title: "Aulas",
+          url: `/general/aulas`,
+        },
+        {
+          title: "Materias",
+          url: `/general/materias`,
+        },
+        {
+          title: "Grupos",
+          url: `/general/grupos`,
+        },
+        {
+          title: "Horarios",
+          url: `/general/horarios`,
+        }
+      ],
     },
     {
-      title: "Feedback",
+      title: "Administración",
       url: "#",
-      icon: Send,
+      icon: BellElectric,
+      items: [
+        {
+          title: "Ciclos Escolares",
+          url: `/administracion/ciclos-escolares`,
+        },
+        {
+          title: "Calendario Escolar ",
+          url: `/administracion/calendario-escolar`,
+        },
+        {
+          title: "Periodos",
+          url: `/administracion/periodos`,
+        },
+        {
+          title: "Clases",
+          url: `/administracion/clases`,
+        },
+        {
+          title: "Asignación de Clases",
+          url: `/administracion/asignacion-de-clases`,
+        },
+        {
+          title: "Asignación de Horarios",
+          url: `/administracion/asignacion-de-horarios`,
+        },
+      ],
+    },
+    {
+      title: "Evaluación",
+      icon: BookOpenCheck,
+      url: "#",
+      items: [
+        {
+          title: "Asistencias",
+          url: `/evaluacion/asistencias`,
+        },
+        {
+          title: "Rúbricas",
+          url: `/evaluacion/rubricas`,
+        },
+        {
+          title: "Asignaciones",
+          url: `/evaluacion/asignaciones`,
+        },
+        {
+          title: "Calificaciones",
+          url: `/evaluacion/calificaciones`,
+        },
+        {
+          title: "Calificaciones por Periodo",
+          url: `/evaluacion/calificaciones-periodos`,
+        },
+      ],
     },
   ],
 }
 
 export function AppSidebar({ user, school, ...props }: AppSidebarProps) {
   const [imageError, setImageError] = React.useState(false);
-  
+
   // Usar datos del usuario pasados como props o valores por defecto
   const userData = user || {
     name: "Usuario",
@@ -220,13 +206,15 @@ export function AppSidebar({ user, school, ...props }: AppSidebarProps) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="#">
+              <Link href="/inicio">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg overflow-hidden">
                   {schoolData.logo && !imageError ? (
-                    <img 
-                      src={schoolData.logo} 
+                    <Image
+                      src={schoolData.logo}
                       alt={schoolData.name}
-                      className="size-8 object-cover rounded-lg"
+                      width={32} // tailwind size-8 = 2rem = 32px
+                      height={32}
+                      className="object-cover rounded-lg"
                       onError={() => setImageError(true)}
                       onLoad={() => setImageError(false)}
                     />
@@ -244,14 +232,14 @@ export function AppSidebar({ user, school, ...props }: AppSidebarProps) {
                     {schoolData.shortName}
                   </span>
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={defaultNavData.navMain} />
-        <NavSecondary items={defaultNavData.navSecondary} className="mt-auto" />
+        <NavMain items={defaultNavData.navGeneral} title="General" />
+        <NavMain items={defaultNavData.navEscolar} title="Control Escolar" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={userData} />
