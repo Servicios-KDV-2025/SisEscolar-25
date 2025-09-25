@@ -161,10 +161,6 @@ export default function AttendanceHistory() {
   const [filterClass, setFilterClass] = useState("all");
   const [filterState, setFilterState] = useState("all");
   const [specificDate, setSpecificDate] = useState("");
-
-  const [editingRowId, setEditingRowId] = useState<Id<"attendance"> | null>(
-    null
-  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(
     null
@@ -236,7 +232,7 @@ export default function AttendanceHistory() {
   ) => {
     if (!currentUser) return;
     setPendingChanges((prev) => new Set(prev).add(recordId));
-    setEditingRowId(null);
+    
     try {
       await updateState({ recordId, newState, updatedBy: currentUser._id });
       toast.success("Estado actualizado.");
@@ -303,35 +299,33 @@ export default function AttendanceHistory() {
     setSpecificDate("");
   };
 
-  const getStateBadgeVariant = (state: AttendanceState) => {
-    switch (state) {
-      case "present":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "absent":
-        return "bg-red-100 text-red-800 border-red-200";
-      case "justified":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "unjustified":
-        return "bg-orange-100 text-orange-800 border-orange-200";
-      default:
-        return state;
-    }
-  };
+const getAttendanceStatusStyles = (
+  state: AttendanceState,
+  options: { textOnly?: boolean } = {} // Opción para pedir solo el texto
+) => {
+  const { textOnly = true } = options;
 
-  const getStateTranslation = (state: AttendanceState) => {
-    switch (state) {
-      case "present":
-        return "Presente";
-      case "absent":
-        return "Ausente";
-      case "justified":
-        return "Justificado";
-      case "unjustified":
-        return "Injustificado";
-      default:
-        return state;
-    }
-  };
+  switch (state) {
+    case "present":
+      return textOnly
+        ? "text-green-800"
+        : "bg-green-100 text-green-800";
+    case "absent":
+      return textOnly
+        ? "text-red-800"
+        : "bg-red-100 text-red-800 border-red-200";
+    case "justified":
+      return textOnly
+        ? "text-yellow-800"
+        : "bg-yellow-100 text-yellow-800 border-yellow-200";
+    case "unjustified":
+      return textOnly
+        ? "text-orange-800"
+        : "bg-orange-100 text-orange-800 border-orange-200";
+    default:
+      return textOnly ? "text-gray-800" : "bg-gray-100 text-gray-800";
+  }
+};
 
   if (isLoading) {
     return <div className="text-center py-10">Cargando escuala</div>;
@@ -526,63 +520,86 @@ export default function AttendanceHistory() {
                     const isRecordPending = pendingChanges.has(record._id);
 
                     return (
-                      <TableRow key={record._id} className={isRecordPending ? "opacity-50" : ""}>
-                        <TableCell className="font-medium">{record.student.name} {record.student.lastName}</TableCell>
+                      <TableRow
+                        key={record._id}
+                        className={isRecordPending ? "opacity-50" : ""}
+                      >
+                        <TableCell className="font-medium">
+                          {record.student.name} {record.student.lastName}
+                        </TableCell>
                         <TableCell>{record.student.enrollment}</TableCell>
                         <TableCell>{record.classCatalog.name}</TableCell>
                         <TableCell>{formatDate(record.date)}</TableCell>
                         <TableCell className="w-[150px]">
-                          {/* ✅ CORRECCIÓN: Se usa la nueva variable 'isRecordPending' */}
+                          {/* Si la fila se está guardando, mostramos el indicador de carga */}
                           {isRecordPending ? (
                             <div className="flex items-center gap-2 text-muted-foreground">
-                              <Loader2 className="h-4 w-4 animate-spin" /> Guardando...
+                              <Loader2 className="h-4 w-4 animate-spin" />{" "}
+                              Guardando...
                             </div>
-                          ) : editingRowId === record._id ? (
-<Select
-  // 1. Usamos 'value' para que el componente sea controlado
-  value={record.attendanceState}
-  onValueChange={(value: AttendanceState) =>
-    handleStateChange(record._id, value)
-  }
-  // 2. Usamos 'onOpenChange' para salir del modo de edición de forma segura
-  onOpenChange={(isOpen) => {
-    if (!isOpen) {
-      setEditingRowId(null);
-    }
-  }}
->
-  <SelectTrigger autoFocus className="w-full">
-    <SelectValue placeholder="Seleccionar..." />
-  </SelectTrigger>
-  <SelectContent position="popper">
-    <SelectItem value="present">Presente</SelectItem>
-    <SelectItem value="absent">Ausente</SelectItem>
-    <SelectItem value="justified">Justificado</SelectItem>
-    <SelectItem value="unjustified">Injustificado</SelectItem>
-  </SelectContent>
-</Select>
                           ) : (
-                            <Badge
-                              className={`cursor-pointer hover:ring-2 hover:ring-offset-2 ${getStateBadgeVariant(record.attendanceState)}`}
-                              onClick={() => !isRecordPending && setEditingRowId(record._id)}
-                            >
-                              {getStateTranslation(record.attendanceState)}
-                            </Badge>
+                            <div>
+                              <Select
+                                value={record.attendanceState}
+                                onValueChange={(value: AttendanceState) =>
+                                  handleStateChange(record._id, value)
+                                }
+                              >
+                                <SelectTrigger
+                                  // Estas clases hacen que el botón se vea como una Badge
+                                  className={`rounded-full ${getAttendanceStatusStyles(record.attendanceState)}`}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Escape") {
+                                      // Cierra el menú si se presiona Escape
+                                      (e.target as HTMLElement).blur();
+                                    }
+                                  }}
+                                >
+                                  {/* Muestra el valor seleccionado */}
+                                  <SelectValue />
+                                </SelectTrigger>
+
+                                <SelectContent position="popper">
+                                  <SelectItem value="present">
+                                    Presente
+                                  </SelectItem>
+                                  <SelectItem value="absent">
+                                    Ausente
+                                  </SelectItem>
+                                  <SelectItem value="justified">
+                                    Justificado
+                                  </SelectItem>
+                                  <SelectItem value="unjustified">
+                                    Injustificado
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
                           )}
                         </TableCell>
                         <TableCell className="flex justify-center">
                           {record.comments ? (
                             <div>
-                              <MessageCircleMore onClick={() => handleCommentClick(record)} 
-                              className="h-7.5 w-7.5 rounded-lg justify-end p-0.5 cursor-pointer hover:bg-gray-400 hover:text-white transition-colors"
+                              <MessageCircleMore
+                                onClick={() => handleCommentClick(record)}
+                                className="h-7.5 w-7.5 rounded-lg justify-end p-0.5 cursor-pointer hover:bg-gray-400 hover:text-white transition-colors"
                               />
                             </div>
                           ) : (
-                            <div><MessageCircleDashed onClick={() => handleCommentClick(record)} className="h-7.5 w-7.5 rounded-lg justify-end p-0.5 cursor-pointer hover:bg-gray-400 hover:text-white transition-colors"/></div>
+                            <div>
+                              <MessageCircleDashed
+                                onClick={() => handleCommentClick(record)}
+                                className="h-7.5 w-7.5 rounded-lg justify-end p-0.5 cursor-pointer hover:bg-gray-400 hover:text-white transition-colors"
+                              />
+                            </div>
                           )}
                         </TableCell>
                         <TableCell>{record.createdBy}</TableCell>
-                        <TableCell>{record.updateAt ? formatDateTime(record.updateAt) : "-"}</TableCell>
+                        <TableCell>
+                          {record.updateAt
+                            ? formatDateTime(record.updateAt)
+                            : "-"}
+                        </TableCell>
                       </TableRow>
                     );
                   })}
