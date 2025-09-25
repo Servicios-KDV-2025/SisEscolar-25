@@ -12,7 +12,7 @@ import { useGroup } from "stores/groupStore";
 import { useSubject } from "stores/subjectStore";
 import { useCurrentSchool } from "stores/userSchoolsStore";
 import { useUserWithConvex } from "stores/userStore";
-import { ClassCatalogForm } from "./ClassCatalogForm";
+import { ClassCatalogForm } from "../../../../../components/ClassCatalogForm";
 import { useQuery } from 'convex/react';
 import { api } from '@repo/convex/convex/_generated/api';
 import { toast } from 'sonner';

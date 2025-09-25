@@ -362,7 +362,6 @@ export const useTask = (schoolId?: string) => {
   
   // No sincronizamos automáticamente para evitar setState durante render
   // El progreso se obtiene directamente de la query
-  
   return {
     // Estado
     ...store,

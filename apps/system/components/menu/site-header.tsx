@@ -33,7 +33,7 @@ export function SiteHeader({
   user,
 }: SiteHeaderProps) {
   const { toggleSidebar } = useSidebar();
-  console.log(pathname)
+  // console.log(pathname)
   
   // Mapeo de segmentos de path a textos amigables
   const pathSegmentLabels: Record<string, string> = {
