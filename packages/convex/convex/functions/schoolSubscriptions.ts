@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalMutation, internalQuery } from "../_generated/server";
+import { internalMutation, internalQuery, query } from "../_generated/server";
 
 export const saveSubscription = internalMutation({
   args: {
@@ -92,5 +92,20 @@ export const getSubscriptionByStripeId = internalQuery({
       .first();
 
     return subscription;
+  },
+});
+
+export const getAllSubscriptions = query({
+   args: {
+    schoolId: v.id("school"),
+  },
+  handler: async (ctx, args) => {
+    const subscriptions = await ctx.db
+      .query("schoolSubscription")
+      .withIndex("by_schoolId", (q) => q.eq("schoolId", args.schoolId))
+      .order("desc")
+      .collect();
+
+    return subscriptions;
   },
 });
