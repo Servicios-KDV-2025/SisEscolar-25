@@ -84,8 +84,8 @@ const defaultNavData = {
       url: "#",
       items: [
         {
-          title: "Subcripciones",
-          url: `/plataforma/subcripciones`,
+          title: "Suscripciones",
+          url: `/plataforma/suscripciones`,
         },
       ],
     },

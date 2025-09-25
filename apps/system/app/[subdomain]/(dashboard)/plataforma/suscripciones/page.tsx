@@ -49,7 +49,7 @@ const precios = {
   basico: 39,
   premium: 59,
   empresarial: 99,
-} 
+}
 
 // Interface que coincide con los campos del formulario + _id
 interface Subscription {
@@ -81,10 +81,10 @@ function SubscriptionView({ subscription, displayCurrency = "USD" }: Subscriptio
   // Funciones de conversión de monedas usando tasas estáticas
   const convertPrice = (price: number, fromCurrency: Currency, toCurrency: Currency): number => {
     if (fromCurrency === toCurrency) return price
-    
+
     // Convertir a USD primero (moneda base)
     const priceInUSD = price / EXCHANGE_RATES[fromCurrency]
-    
+
     // Convertir de USD a la moneda objetivo
     return priceInUSD * EXCHANGE_RATES[toCurrency]
   }
@@ -95,19 +95,19 @@ function SubscriptionView({ subscription, displayCurrency = "USD" }: Subscriptio
       MXN: "$",
       EUR: "€"
     }
-    
+
     return `${symbols[currency]}${price.toFixed(2)}`
   }
 
   const getPlanInfo = (plan: string) => {
     const basePrices = { "Basico": precios.basico, "Premium": precios.premium, "Enterprise": precios.empresarial }
     const basePrice = basePrices[plan as keyof typeof basePrices]
-    
+
     if (!basePrice) return "No seleccionado"
-    
+
     const convertedPrice = convertPrice(basePrice, "USD", displayCurrency)
     const formattedPrice = formatPrice(convertedPrice, displayCurrency)
-    
+
     return `${plan} - ${formattedPrice}/mes`
   }
 
@@ -466,7 +466,7 @@ export default function SubscriptionsManagement() {
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null)
   const [displayCurrency, setDisplayCurrency] = useState<Currency>("USD")
 
-  const { user: clerkUser  } = useUser();
+  const { user: clerkUser } = useUser();
   const { currentUser } = useUserWithConvex(
     clerkUser?.id
   );
@@ -481,9 +481,9 @@ export default function SubscriptionsManagement() {
 
   const subscriptions = useMemo(() => SubscriptionsData || [], [SubscriptionsData])
 
-  
 
-    const formatPrice = useCallback((price: number, currency: Currency): string => {
+
+  const formatPrice = useCallback((price: number, currency: Currency): string => {
     const symbols = { USD: "$", MXN: "$", EUR: "€" }
     return `${symbols[currency]}${price.toFixed(2)}`
   }, [])
@@ -540,14 +540,14 @@ export default function SubscriptionsManagement() {
     const active = subscriptions.filter((s) => s.status === "active").length
     const pastDue = subscriptions.filter((s) => s.status === "past_due").length
     const trialing = subscriptions.filter((s) => s.status === "trialing").length
-    
+
     const totalRevenue = subscriptions
       .filter(s => s.status === "active")
       .reduce((sum, s) => {
-        const planPrices = { 
-          "Basico": precios.basico, 
-          "Premium": precios.premium, 
-          "Enterprise": precios.empresarial 
+        const planPrices = {
+          "Basico": precios.basico,
+          "Premium": precios.premium,
+          "Enterprise": precios.empresarial
         }
         const basePrice = planPrices[s.plan as keyof typeof planPrices] || 0
         const convertedPrice = convertPrice(basePrice, "USD", displayCurrency)
@@ -605,7 +605,7 @@ export default function SubscriptionsManagement() {
                 </div>
               </div>
             </div>
-            
+
             {/* Selector de Moneda */}
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
