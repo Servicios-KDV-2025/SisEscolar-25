@@ -515,25 +515,28 @@ export default function GradeManagementDashboard() {
                   {/*esta es la 1ra fila de botones*/}
                   <div className= "flex flex-row gap-4 justify-center w-full"  >
                     {!assignments && (
-                      <Link href={`/asignaciones`}>
+                      <Link href={`/evaluacion/asignaciones`}>
                         <Button>
                           <Plus className="w-4 h-4" />
-                          Asignaciones en esta clase.
+                          ACTIVIDADES
                         </Button>
                       </Link>
                     )}
                       
                     {!hasTerms && (
-                      <Link href={`/periodos`}>
+                      <Link href={`/administracion/periodos`}>
                         <Button>
                           <Plus className="w-4 h-4" />
-                          Periodos en este ciclo
+                          Periodos
                         </Button>
                       </Link>
                     )}
                     {!hasClasses && (
-                      <Link href={`/clasesPorAlumnos`}>
-                        <Button>Clases en este ciclo</Button>
+                      <Link href={`/administracion/clases`}>
+                        <Button>
+                          <Plus className="w-4 h-4" />
+                          Clases
+                        </Button>
                       </Link>
                     )}
 
@@ -543,15 +546,15 @@ export default function GradeManagementDashboard() {
                   <div className = "flex flex-row gap-4 justify-center w-full">
 
                     {!hasSchoolCycles && (
-                      <Link href={`/CiclosEscolares`}>
+                      <Link href='/administracion/ciclos-escolares'>
                         <Button>
                           <Plus className="w-4 h-4" />
-                          Ciclos
+                          Ciclos Escolares
                         </Button>
                       </Link>
                     )}
                     {(!rubrics || rubrics.length === 0) && (
-                      <Link href={`/RubricaDeCalificaciones`}>
+                      <Link href={`/evaluacion/rubricas`}>
                         <Button>
                           <Plus className="w-4 h-4" />
                           Rubricas
@@ -559,10 +562,10 @@ export default function GradeManagementDashboard() {
                       </Link>
                     )}
                     {(!students || students.length === 0) && (
-                      <Link href={`/clasesPorAlumnos`}>
+                      <Link href={`/administracion/asignacion-de-clases`}>
                         <Button>
                           <Plus className="w-4 h-4" />
-                          Clases por alumno{" "}
+                          Asignación de clases{" "}
                         </Button>
                       </Link>
                       )}
