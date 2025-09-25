@@ -39,7 +39,7 @@ interface ClassroomFormProps {
 
 function ClassroomForm({ form, operation }: ClassroomFormProps) {
   const isView = operation === 'view'
-   
+
   return (
     <div className="grid gap-4 py-4">
       <div className="grid gap-2">
@@ -172,8 +172,10 @@ export default function ClassroomManagement() {
     })
 
   const getUniqueLocations = () => {
-    const locations = (classrooms || []).map((c) => c.location || "")
-    return [...new Set(locations)]
+    const locations = (classrooms || [])
+      .map((c) => c.location || "")
+      .filter(location => location && location.trim() !== "");
+    return [...new Set(locations)].filter(loc => loc !== "");
   }
 
   // crear y actualizar aulas
@@ -210,7 +212,7 @@ export default function ClassroomManagement() {
 
     // en el handleSubmit, antes de crear/editar checamos:
     if (existingClassroom(validData.name, validData.location) &&
-        (operation !== 'edit' || (data && (data.name !== validData.name || data.location !== validData.location)))) {
+      (operation !== 'edit' || (data && (data.name !== validData.name || data.location !== validData.location)))) {
       toast.error("Ya existe un aula con ese nombre y ubicación.")
       return
     }
@@ -254,9 +256,13 @@ export default function ClassroomManagement() {
   }
 
   const handleDelete = async (id: string) => {
-    await deleteClassroom({ id: id as Id<"classroom">, schoolId: currentSchool?.school._id as Id<"school"> })
-    toast.success("Aula eliminada correctamente.")
-    close()
+    try {
+      await deleteClassroom({ id: id as Id<"classroom">, schoolId: currentSchool?.school._id as Id<"school"> })
+      toast.success("Aula eliminada correctamente.")
+      close()
+    } catch (error) {
+      toast.error("Error al eliminar el aula: " + (error instanceof Error ? error.message : 'Error desconocido'))
+    }
   }
 
   const handleSort = (column: "name" | "location" | "capacity" | "createdAt") => {
@@ -441,7 +447,7 @@ export default function ClassroomManagement() {
                 onClick={openCreate}
               >
                 <Plus className="h-4 w-4" />
-                agregar Aula
+                Agregar Aula
               </Button>
             </div>
           ) : (
@@ -518,7 +524,11 @@ export default function ClassroomManagement() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(classroom.id)}
+                          onClick={() => {
+                            if (confirm('¿Estás seguro de que quieres eliminar esta aula?')) {
+                              handleDelete(classroom.id)
+                            }
+                          }}
                           className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />

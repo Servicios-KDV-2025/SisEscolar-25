@@ -1,7 +1,7 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { SubjectCard } from "./SubjectCard"
+import { SubjectCard } from "../../../../../components/SubjectCard"
 import { useUserWithConvex } from "stores/userStore";
 import { useCurrentSchool } from "stores/userSchoolsStore";
 import { useSubject } from "stores/subjectStore";

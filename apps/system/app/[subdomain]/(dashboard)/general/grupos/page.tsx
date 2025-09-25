@@ -17,7 +17,7 @@ import { groupSchema } from "@/types/form/groupSchema"
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form"
 import { Alert, AlertDescription } from '@repo/ui/components/shadcn/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@repo/ui/components/shadcn/card';
-import { GroupCard } from './GroupCard';
+import { GroupCard } from '../../../../../components/GroupCard';
 
 export default function GroupPage() {
     const { user: clerkUser, isLoaded } = useUser();
@@ -31,7 +31,6 @@ export default function GroupPage() {
         isLoading: schoolLoading,
     } = useCurrentSchool(currentUser?._id);
 
-    const isLoading = !isLoaded || userLoading || schoolLoading;
 
     const {
         groups,
@@ -45,8 +44,12 @@ export default function GroupPage() {
         updateGroup,
         deleteGroup,
         clearErrors: clearErrorsGroup,
+        isLoading: isLoadingGroup,
     } = useGroup(currentSchool?.school._id);
 
+    const isLoading = !isLoaded || userLoading || schoolLoading || isLoadingGroup;
+
+    console.log(isLoading);
     const {
         isOpen,
         operation,

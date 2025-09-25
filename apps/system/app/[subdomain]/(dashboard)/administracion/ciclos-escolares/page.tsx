@@ -7,7 +7,7 @@ import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select";
 import { useState, useEffect, useMemo } from "react";
-import { SchoolCycleCard } from "./SchoolCycleCard";
+import { SchoolCycleCard } from "../../../../../components/SchoolCycleCard";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { AlertCircle, Calendar, CheckCircle, Filter, Plus, Search, XCircle } from "@repo/ui/icons";
 import { Id } from "@repo/convex/convex/_generated/dataModel";

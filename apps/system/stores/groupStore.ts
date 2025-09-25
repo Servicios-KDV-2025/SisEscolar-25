@@ -121,6 +121,7 @@ export const useGroup = (schoolId?: string) => {
         setCreating,
         setUpdating,
         setDeleting,
+        setLoading,
 
         setCreateError,
         setUpdateError,
@@ -205,6 +206,7 @@ export const useGroup = (schoolId?: string) => {
 
     // Refrescar grupos cuando cambie la query
     useEffect(() => {
+        setLoading(true);
         if (groupsQuery) {
             setGroups(
                 (groupsQuery as GroupResultFromQuery[]).map((g) => ({
@@ -217,8 +219,10 @@ export const useGroup = (schoolId?: string) => {
                     updatedBy: g.updatedBy
                 }))
             );
+            setLoading(false);
         }
-    }, [groupsQuery, setGroups]);
+        setLoading(false);
+    }, [groupsQuery, setGroups, setLoading]);
 
 
     return {
