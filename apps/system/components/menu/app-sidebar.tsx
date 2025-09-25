@@ -23,16 +23,10 @@ import {
   SidebarMenuItem,
 } from "@repo/ui/components/shadcn/sidebar"
 import { NavMain } from "./nav-main";
-import { NavUser } from "./nav-user";
 import Link from "next/link";
 
 
-// Interfaz para los datos del usuario
-interface UserData {
-  name: string;
-  email: string;
-  avatar: string;
-}
+
 
 // Interfaz para los datos de la escuela
 interface SchoolData {
@@ -43,7 +37,6 @@ interface SchoolData {
 
 // Props del componente
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-  user?: UserData;
   school?: SchoolData;
 }
 
@@ -176,15 +169,10 @@ const defaultNavData = {
   ],
 }
 
-export function AppSidebar({ user, school, ...props }: AppSidebarProps) {
+export function AppSidebar({  school, ...props }: AppSidebarProps) {
   const [imageError, setImageError] = React.useState(false);
 
-  // Usar datos del usuario pasados como props o valores por defecto
-  const userData = user || {
-    name: "Usuario",
-    email: "usuario@ejemplo.com",
-    avatar: "/avatars/default-user.jpg",
-  };
+
 
   // Usar datos de la escuela pasados como props o valores por defecto
   const schoolData = school || {
@@ -242,7 +230,6 @@ export function AppSidebar({ user, school, ...props }: AppSidebarProps) {
         <NavMain items={defaultNavData.navEscolar} title="Control Escolar" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={userData} />
       </SidebarFooter>
     </Sidebar>
   )

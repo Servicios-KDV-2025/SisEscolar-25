@@ -13,15 +13,24 @@ import {
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Separator } from "@repo/ui/components/shadcn/separator";
 import { useSidebar } from "@repo/ui/components/shadcn/sidebar";
+import { NavUser } from "./nav-user";
+
+interface userData {
+  name: string;
+  email: string;
+  avatar: string;
+}
 
 interface SiteHeaderProps {
   schoolName: string;
   pathname: string;
+  user: userData;
 }
 
 export function SiteHeader({
   schoolName,
   pathname,
+  user,
 }: SiteHeaderProps) {
   const { toggleSidebar } = useSidebar();
   console.log(pathname)
@@ -81,6 +90,11 @@ export function SiteHeader({
   
   const lastSegment = getLastPathSegment(pathname);
 
+  const userData = user || {
+    name: "Usuario",
+    email: "usuario@ejemplo.com",
+    avatar: "/avatars/default-user.jpg",
+  };
   return (
     <header className="bg-background sticky top-0 z-50 flex w-full items-center border-b">
       <div className="flex h-(--header-height) w-full items-center gap-2 px-4">
@@ -105,6 +119,12 @@ export function SiteHeader({
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
+        <div className="text-sm text-muted-foreground ml-auto">
+
+        <NavUser user={userData} />
+        </div>
+
+        
       </div>
     </header>
   );

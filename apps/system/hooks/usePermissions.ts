@@ -1,5 +1,6 @@
 import { useUserStore } from "../stores/userStore";
 import { useUserSchoolsWithConvex } from "../stores/userSchoolsStore";
+import { useActiveRole } from "./useActiveRole";
 import React, { useState, useEffect, useMemo } from "react";  
 
 type UserRole = 'superadmin' | 'admin' | 'auditor' | 'teacher' | 'tutor';
@@ -7,6 +8,7 @@ type UserRole = 'superadmin' | 'admin' | 'auditor' | 'teacher' | 'tutor';
 export const usePermissions = (schoolId?: string) => {
     const { currentUser } = useUserStore();
     const { userSchools, isLoading: schoolsLoading } = useUserSchoolsWithConvex(currentUser?._id);
+    const { activeRole, availableRoles, isLoading: roleLoading, error: roleError } = useActiveRole();
     
     const [permissions, setPermissions] = useState<Record<string, boolean>>({});
     const [isLoading, setIsLoading] = useState(true);
@@ -77,28 +79,21 @@ export const usePermissions = (schoolId?: string) => {
         }
     }, [currentUser, userSchools, schoolId]);
 
-    // Obtener el rol más alto (prioridad: superadmin > admin > auditor > teacher > tutor)
-    const highestRole = useMemo((): UserRole | null => {
-        if (userRoles.includes('superadmin')) return 'superadmin';
-        if (userRoles.includes('admin')) return 'admin';
-        if (userRoles.includes('auditor')) return 'auditor';
-        if (userRoles.includes('teacher')) return 'teacher';
-        if (userRoles.includes('tutor')) return 'tutor';
-        return null;
-    }, [userRoles]);
+    // Usar el rol activo en lugar del más alto
+    const currentRole = activeRole;
 
     useEffect(() => {
-        // Esperar a que termine de cargar las escuelas
-        if (schoolsLoading) {
+        // Esperar a que terminen de cargar las escuelas y el rol activo
+        if (schoolsLoading || roleLoading) {
             setIsLoading(true);
             return;
         }
 
         if (currentUser) {
             try {
-                if (highestRole) {
-                    // Obtener permisos del rol más alto
-                    const userPermissions = rolePermissions[highestRole];
+                if (currentRole) {
+                    // Obtener permisos del rol activo
+                    const userPermissions = rolePermissions[currentRole];
                     
                     // Crear objeto de permisos con todas las acciones/recursos
                     const allPermissions: Record<string, boolean> = {};
@@ -109,11 +104,11 @@ export const usePermissions = (schoolId?: string) => {
                     });
                     
                     setPermissions(allPermissions);
-                    setError(null);
+                    setError(roleError);
                 } else {
-                    // Usuario sin roles, no tiene permisos
+                    // Usuario sin rol activo, no tiene permisos
                     setPermissions({});
-                    setError(userSchools?.length === 0 ? 'Usuario no asignado a ninguna escuela' : 'Usuario sin roles asignados');
+                    setError(roleError || 'Usuario sin rol activo');
                 }
             } catch (err) {
                 setError('Error al cargar permisos');
@@ -126,7 +121,7 @@ export const usePermissions = (schoolId?: string) => {
             setPermissions({});
             setIsLoading(false);
         }
-    }, [currentUser, userSchools, highestRole, schoolsLoading]);
+    }, [currentUser, userSchools, currentRole, schoolsLoading, roleLoading, roleError]);
 
     // Función helper para verificar permisos
     const hasPermission = (permission: string): boolean => {
@@ -153,35 +148,35 @@ export const usePermissions = (schoolId?: string) => {
         return roleList.some(role => userRoles.includes(role));
     };
 
-    // Función para obtener filtros de estudiantes basados en el rol del usuario
+    // Función para obtener filtros de estudiantes basados en el rol activo del usuario
     const getStudentFilters = React.useCallback(() => {
-        if (!currentUser || !highestRole) {
+        if (!currentUser || !currentRole) {
             return { canViewAll: false, tutorId: undefined, teacherId: undefined };
         }
 
         // Superadmin y Admin pueden ver todos los estudiantes
-        if (highestRole === 'superadmin' || highestRole === 'admin') {
+        if (currentRole === 'superadmin' || currentRole === 'admin') {
             return { canViewAll: true, tutorId: undefined, teacherId: undefined };
         }
 
         // Auditor puede ver todos pero con restricciones de edición
-        if (highestRole === 'auditor') {
+        if (currentRole === 'auditor') {
             return { canViewAll: true, tutorId: undefined, teacherId: undefined };
         }
 
         // Tutor solo puede ver sus estudiantes asignados
-        if (highestRole === 'tutor') {
+        if (currentRole === 'tutor') {
             return { canViewAll: false, tutorId: currentUser._id, teacherId: undefined };
         }
 
         // Maestro solo puede ver estudiantes de sus materias
-        if (highestRole === 'teacher') {
+        if (currentRole === 'teacher') {
             return { canViewAll: false, tutorId: undefined, teacherId: currentUser._id };
         }
 
         // Por defecto, no puede ver nada
         return { canViewAll: false, tutorId: undefined, teacherId: undefined };
-    }, [currentUser, highestRole]);
+    }, [currentUser, currentRole]);
 
     return {
         // Estado
@@ -191,7 +186,8 @@ export const usePermissions = (schoolId?: string) => {
         
         // Roles del usuario
         userRoles,
-        highestRole,
+        currentRole,
+        availableRoles,
         
         // Funciones de permisos
         hasPermission,
