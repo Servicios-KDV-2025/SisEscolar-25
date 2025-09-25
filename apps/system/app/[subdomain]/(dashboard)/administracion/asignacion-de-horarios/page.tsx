@@ -339,7 +339,7 @@ export default function HorariosPorClasePage() {
         ))}
       </div>
 
-      <div className="mx-auto max-w-7xl space-y-8">
+      
         <Card>
           <CardHeader>
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -554,7 +554,7 @@ export default function HorariosPorClasePage() {
             )}
           </CardContent>
         </Card>
-      </div>
+      
 
       <CrudDialog
         operation={crudDialog.operation}
