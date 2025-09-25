@@ -266,3 +266,46 @@ export const getAttendanceStatistics = query({
     }
   }
 })
+
+export const updateAttendanceState = mutation({
+  args: {
+    recordId: v.id("attendance"),
+    newState: v.union(
+      v.literal("present"),
+      v.literal("absent"),
+      v.literal("justified"),
+      v.literal("unjustified")
+    ),
+    updatedBy: v.id('user'), // Para saber quién hizo el cambio
+  },
+  handler: async (ctx, args) => {
+    // Aquí puedes añadir validaciones de permisos
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("No autenticado");
+
+    return await ctx.db.patch(args.recordId, {
+      attendanceState: args.newState,
+      updatedBy: args.updatedBy,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+// Mutación para actualizar SOLO el comentario
+export const updateAttendanceComment = mutation({
+  args: {
+    recordId: v.id("attendance"),
+    newComment: v.string(),
+    updatedBy: v.id('user'), // Para saber quién hizo el cambio
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("No autenticado");
+    
+    return await ctx.db.patch(args.recordId, {
+      comments: args.newComment,
+      updatedBy: args.updatedBy,
+      updatedAt: Date.now(),
+    });
+  },
+});
