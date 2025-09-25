@@ -2,10 +2,21 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@repo/ui/components/shadcn/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table"
-import { Filter, AlertTriangle, CheckCircle, DollarSign, Search, Settings, Calendar } from "lucide-react"
+import { Filter, AlertTriangle, CheckCircle, DollarSign, Search, Settings,  Plus } from "lucide-react"
 import { Badge } from "@repo/ui/components/shadcn/badge"
 import { Input } from "@repo/ui/components/shadcn/input"
+import { Label } from "@repo/ui/components/shadcn/label"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@repo/ui/components/shadcn/select"
+import { Button } from "@repo/ui/components/shadcn/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@repo/ui/components/shadcn/dialog"
 
 interface SchoolCycle {
   id: string
@@ -19,6 +30,7 @@ interface PaymentConfig {
   id: string
   schoolCycleId: string
   type: string
+  modalidad: string
   amount: number
   startDate: string
   endDate: string
@@ -53,16 +65,19 @@ const paymentConfigsMock: PaymentConfig[] = [
   {
     id: "1",
     schoolCycleId: "2024-2025",
-    type: "Colegiatura Mensual",
+    type: "Colegiatura",
+    modalidad: "Mensual",
     amount: 2500,
     startDate: "2024-01-01",
     endDate: "2024-12-31",
     status: "active",
+
   },
   {
     id: "2",
     schoolCycleId: "2024-2025",
-    type: "Inscripción",
+    type: "Inscripción enero - junio",
+    modalidad: "semestral",
     amount: 5000,
     startDate: "2024-08-01",
     endDate: "2024-08-31",
@@ -71,7 +86,8 @@ const paymentConfigsMock: PaymentConfig[] = [
   {
     id: "3",
     schoolCycleId: "2024-2025",
-    type: "Material Escolar",
+    type: "Repeticion de Material Escolar",
+    modalidad: "unica",
     amount: 1200,
     startDate: "2024-08-15",
     endDate: "2024-09-15",
@@ -81,6 +97,7 @@ const paymentConfigsMock: PaymentConfig[] = [
     id: "4",
     schoolCycleId: "2024-2025",
     type: "Seguro Escolar",
+    modalidad: "anual",
     amount: 800,
     startDate: "2024-09-01",
     endDate: "2024-09-30",
@@ -89,7 +106,8 @@ const paymentConfigsMock: PaymentConfig[] = [
   {
     id: "5",
     schoolCycleId: "2023-2024",
-    type: "Colegiatura Mensual",
+    type: "Colegiatura",
+    modalidad: "Mensual",
     amount: 2300,
     startDate: "2023-01-01",
     endDate: "2023-12-31",
@@ -103,6 +121,7 @@ interface PaymentConfigProps {
 }
 
 export default function PaymentConfig({ selectedSchoolCycle, setSelectedSchoolCycle }: PaymentConfigProps) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [configSearchTerm, setConfigSearchTerm] = useState("")
   const [configTypeFilter, setConfigTypeFilter] = useState<string | null>(null)
   const [configStatusFilter, setConfigStatusFilter] = useState<string | null>(null)
@@ -124,32 +143,44 @@ export default function PaymentConfig({ selectedSchoolCycle, setSelectedSchoolCy
   })
 
   const uniquePaymentTypes = [...new Set(filteredConfigsByCycle.map((config) => config.type))]
+  const [formData, setFormData] = useState({
+    schoolCycleId: "",
+    type: "",
+    modalidad: "",
+    amount: "",
+    startDate: "",
+    endDate: "",
+    status: "active" as "active" | "inactive",
+  })
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+
+   
+    setFormData({
+      schoolCycleId: "",
+      type: "",
+      modalidad: "",
+      amount: "",
+      startDate: "",
+      endDate: "",
+      status: "active",
+    })
+
+    setIsDialogOpen(false)
+  }
+
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Ciclo Escolar
-          </CardTitle>
-          <CardDescription>Selecciona el ciclo escolar para ver las configuraciones correspondientes.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Select value={selectedSchoolCycle} onValueChange={setSelectedSchoolCycle}>
-            <SelectTrigger className="w-full md:w-[300px]">
-              <SelectValue placeholder="Seleccionar ciclo escolar" />
-            </SelectTrigger>
-            <SelectContent>
-              {schoolCyclesMock.map((cycle) => (
-                <SelectItem key={cycle.id} value={cycle.id}>
-                  {cycle.name} {cycle.isActive && "(Activo)"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
+
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
@@ -171,7 +202,7 @@ export default function PaymentConfig({ selectedSchoolCycle, setSelectedSchoolCy
               Configuraciones Activas
             </CardTitle>
             <div className="p-1.5 lg:p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-              <CheckCircle className="h-3 w-3 lg:h-4 lg:w-4 text-green-600" />
+              <CheckCircle className="h-3 w-3 lg:h-4 lg:w-4 text-primary" />
             </div>
           </CardHeader>
           <CardContent className="space-y-1 lg:space-y-2">
@@ -184,7 +215,7 @@ export default function PaymentConfig({ selectedSchoolCycle, setSelectedSchoolCy
               Configuraciones Inactivas
             </CardTitle>
             <div className="p-1.5 lg:p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-              <AlertTriangle className="h-3 w-3 lg:h-4 lg:w-4 text-red-500" />
+              <AlertTriangle className="h-3 w-3 lg:h-4 lg:w-4 text-primary" />
             </div>
           </CardHeader>
           <CardContent className="space-y-1 lg:space-y-2">
@@ -281,18 +312,140 @@ export default function PaymentConfig({ selectedSchoolCycle, setSelectedSchoolCy
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 ">
             <Settings className="h-5 w-5" />
             Configuración de Pagos
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="ml-auto cursor-pointer">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Añadir Concepto de Pago
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px]">
+                <DialogHeader>
+                  <DialogTitle>Añadir Nuevo Concepto de Pago</DialogTitle>
+                  <DialogDescription>
+                    Complete los datos para crear un nuevo concepto de pago para el ciclo escolar.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit}>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="schoolCycle">Ciclo Escolar</Label>
+                        <Input
+                          id="schoolCycle"
+                          placeholder="ej. 2024-2025"
+                          value={formData.schoolCycleId}
+                          onChange={(e) => handleInputChange("schoolCycleId", e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="paymentType">Concepto de Pago</Label>
+                        <Input
+                          id="paymentType"
+                          placeholder="ej. Colegiatura, Inscripción"
+                          value={formData.type}
+                          onChange={(e) => handleInputChange("type", e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="modalidad">Modalidad</Label>
+                        <Select
+                          value={formData.modalidad}
+                          onValueChange={(value) => handleInputChange("modalidad", value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar modalidad" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Mensual">Mensual</SelectItem>
+                            <SelectItem value="Bimestral">Bimestral</SelectItem>
+                            <SelectItem value="Trimestral">Trimestral</SelectItem>
+                            <SelectItem value="Semestral">Semestral</SelectItem>
+                            <SelectItem value="Anual">Anual</SelectItem>
+                            <SelectItem value="Unica">Unica</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="amount">Monto</Label>
+                        <Input
+                          id="amount"
+                          type="number"
+                          placeholder="0.00"
+                          value={formData.amount}
+                          onChange={(e) => handleInputChange("amount", e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="startDate">Fecha Inicio</Label>
+                        <Input
+                          id="startDate"
+                          type="date"
+                          value={formData.startDate}
+                          onChange={(e) => handleInputChange("startDate", e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="endDate">Fecha Fin</Label>
+                        <Input
+                          id="endDate"
+                          type="date"
+                          value={formData.endDate}
+                          onChange={(e) => handleInputChange("endDate", e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Estado</Label>
+                      <Select
+                        value={formData.status}
+                        onValueChange={(value: "active" | "inactive") => handleInputChange("status", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Activo</SelectItem>
+                          <SelectItem value="inactive">Inactivo</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button type="submit">Guardar Concepto</Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+
           </CardTitle>
-          <CardDescription>Administra los tipos de pagos, montos y fechas para el ciclo escolar.</CardDescription>
+          <CardDescription>Administra los conceptos de pagos, montos y fechas para el ciclo escolar.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Ciclo Escolar</TableHead>
-                <TableHead>Tipo de Pago</TableHead>
+                <TableHead>Concepto de Pago</TableHead>
+                <TableHead>Modalidad</TableHead>
                 <TableHead>Monto</TableHead>
                 <TableHead>Fecha Inicio</TableHead>
                 <TableHead>Fecha Fin</TableHead>
@@ -304,6 +457,7 @@ export default function PaymentConfig({ selectedSchoolCycle, setSelectedSchoolCy
                 <TableRow key={config.id}>
                   <TableCell className="font-medium">{config.schoolCycleId}</TableCell>
                   <TableCell>{config.type}</TableCell>
+                  <TableCell>{config.modalidad}</TableCell>
                   <TableCell>${config.amount.toLocaleString()}</TableCell>
                   <TableCell>{config.startDate}</TableCell>
                   <TableCell>{config.endDate}</TableCell>
