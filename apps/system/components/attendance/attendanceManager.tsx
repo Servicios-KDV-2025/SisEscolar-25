@@ -75,12 +75,27 @@ export default function AttendanceManager() {
       : "skip"
   );
 
-  const studentClasses = useQuery(
-    api.functions.studentsClasses.getStudentClassesBySchool,
-    currentSchool
-      ? { schoolId: currentSchool.school._id as Id<"school"> }
-      : "skip"
-  );
+  const student = useQuery(
+  api.functions.studentsClasses.getStudentClassesBySchool,
+  currentSchool
+    ? { schoolId: currentSchool.school._id as Id<"school"> }
+    : "skip"
+);
+
+const studentClasses = useMemo(() => {
+  if (!student) {
+    return [];
+  }
+  return [...student].sort((a, b) => {
+    if (!a) return 1;
+    if (!b) return -1;
+    const nameA = a.student?.name || "";
+    const nameB = b.student?.name || "";
+
+    return nameA.localeCompare(nameB);
+  });
+}, [student]);
+
 
   const studentsInSelectedClass = useMemo(
     () =>

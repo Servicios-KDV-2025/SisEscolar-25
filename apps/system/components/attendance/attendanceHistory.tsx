@@ -194,7 +194,7 @@ export default function AttendanceHistory() {
   }, [filterClass, filterState, specificDate]);
 
   // Obtener hisotrial se asistencias
-  const attendanceHistory = useQuery(
+  const attHistory = useQuery(
     api.functions.attendance.getAttendanceHistory,
     currentSchool
       ? {
@@ -203,6 +203,34 @@ export default function AttendanceHistory() {
         }
       : "skip"
   );
+
+  const attendanceHistory = useMemo(() => {
+  if (!attHistory) {
+    return [];
+  }
+
+  return [...attHistory].sort((a, b) => {
+    // Medidas de seguridad para evitar errores si un registro es nulo
+    if (!a) return 1;
+    if (!b) return -1;
+
+    // --- Nivel 1: Ordenar por fecha (de más reciente a más antigua) ---
+    const dateComparison = b.date - a.date;
+
+    // Si las fechas son diferentes, ese es nuestro resultado y no necesitamos seguir.
+    if (dateComparison !== 0) {
+      return dateComparison;
+    }
+
+    // --- Nivel 2: Si las fechas son iguales, ordenar por nombre (A-Z) ---
+    const nameA = a.student?.name || '';
+    const nameB = b.student?.name || '';
+    
+    return nameA.localeCompare(nameB);
+  });
+}, [attHistory]);
+
+// En tu JSX, asegúrate de usar 'sortedAttHistory' para renderizar la tabla.
 
   // Preparar filtros para estadisticas
   const statsFilters = useMemo(
