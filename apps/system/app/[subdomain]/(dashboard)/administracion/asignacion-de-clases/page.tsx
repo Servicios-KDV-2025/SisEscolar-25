@@ -23,7 +23,7 @@ import { useCurrentSchool } from "stores/userSchoolsStore"
 import { StudentClassDto, studentClassSchema } from "schema/studentClassSchema"
 import { StudentClasses } from "@/types/studentClass"
 import { parseConvexErrorMessage } from "lib/parseConvexErrorMessage"
-import { SelectPopover } from "./selectPopover"
+import { SelectPopover } from "../../../../../components/selectPopover"
 import { ClassCatalog } from "@/types/classCatalog"
 import { Student } from "@/types/student"
 

@@ -17,7 +17,7 @@ import {
 } from "@repo/ui/components/shadcn/card";
 import { Filter, SaveAll, Search, Star, Plus } from "@repo/ui/icons";
 import Link from "next/link";
-import { TermAverageMatrix } from "./term-average-matrix";
+import { TermAverageMatrix } from "../../../../../components/term-average-matrix";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { api } from "@repo/convex/convex/_generated/api";
 import { useQuery, useMutation } from "convex/react";

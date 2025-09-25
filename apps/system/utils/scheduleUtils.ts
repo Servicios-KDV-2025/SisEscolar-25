@@ -1,5 +1,3 @@
-
-
 export const hasTimeOverlap = (
   existingSchedules: Array<{startTime: string, endTime: string}>,
   newStartTime: string,
