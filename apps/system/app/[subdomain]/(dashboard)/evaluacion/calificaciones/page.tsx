@@ -212,27 +212,6 @@ export default function GradeManagementDashboard() {
     rubrics.length === 0 ||
     grades === undefined;
 
-  // Show a general loading screen for initial data fetching
-  // if (
-  //   !isLoaded ||
-  //   userLoading ||
-  //   schoolLoading ||
-  //   (currentUser && !currentSchool && !schoolError)
-  // ) {
-  //   return (
-  //     <div className="space-y-8 p-6 max-w-7xl mx-auto">
-  //       <div className="flex items-center justify-center min-h-[400px]">
-  //         <div className="space-y-4 text-center">
-  //           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-  //           <p className="text-muted-foreground">
-  //             Cargando información de las materias...
-  //           </p>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
   // Logic to handle grade updates. This now uses the upsert mutation.
   const handleUpdateGrade = async (
     studentClassId: string,
