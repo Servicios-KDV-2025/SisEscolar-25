@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
-import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
+import { Authenticated, AuthLoading } from "convex/react";
 import { useUser } from "@clerk/nextjs";
 import {
   Card,
@@ -66,49 +66,8 @@ import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { TaskCreateForm } from "../../../../../components/TaskCreateForm";
 import { useUserWithConvex } from "stores/userStore";
 
-// Componente de carga
-function LoadingComponent() {
-  return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">
-              Cargando, por favor espere...
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Componente para usuarios no autenticados
-function UnauthenticatedComponent() {
-  return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-foreground mb-4">
-              Acceso Requerido
-            </h1>
-            <p className="text-muted-foreground mb-6">
-              Necesitas iniciar sesión para acceder a esta página.
-            </p>
-            <Button asChild>
-              <Link href="/auth/signin">Iniciar Sesión</Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // Componente principal de contenido (solo se ejecuta cuando está autenticado)
-function TaskManagementContent() {
+export default function TaskManagement() {
   const { user: clerkUser } = useUser();
   const { currentUser } = useUserWithConvex(clerkUser?.id);
   const { currentSchool } = useCurrentSchool(currentUser?._id);
@@ -317,7 +276,7 @@ function TaskManagementContent() {
     filteredTasks?.filter((task) => {
       // Filtro por término de búsqueda
       const subject = teacherClasses?.find((clase) => clase._id === task.classCatalogId);
-      const searchMatch = searchTermTask === "" || 
+      const searchMatch = searchTermTask === "" ||
         task.name.toLowerCase().includes(searchTermTask.toLowerCase()) ||
         task.description?.toLowerCase().includes(searchTermTask.toLowerCase()) ||
         task.group?.name.toLowerCase().includes(searchTermTask.toLowerCase()) ||
@@ -359,10 +318,10 @@ function TaskManagementContent() {
                 </div>
                 <div>
                   <h1 className="text-4xl font-bold tracking-tight">
-                    Asignaciones 
+                    Asignaciones
                   </h1>
                   <p className="text-lg text-muted-foreground">
-                    Administra las asignaciones de los estudiantes 
+                    Administra las asignaciones de los estudiantes
                   </p>
                 </div>
               </div>
@@ -719,161 +678,172 @@ function TaskManagementContent() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Lista de Asignaciones</span>
-          <Badge variant="outline">{filteredTasksList.length} asignaciones</Badge>
+            <Badge variant="outline">{filteredTasksList.length} asignaciones</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {filteredTasksList
-              ?.sort((a, b) => b._creationTime - a._creationTime)
-              .map((task) => (
-                <div
-                  key={task._id}
-                  className="border rounded-lg p-4 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3 mb-3">
-                    <div className="flex-1">
-                      <div className="flex flex-col xs:flex-row xs:items-center gap-2 mb-2">
-                        <div className="flex items-center">
-                          <FileText className="w-5 h-5 text-blue-600" />
+          <AuthLoading>
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">
+                Cargando información de las asignaciones, por favor espere...
+              </p>
+            </div>
+          </AuthLoading>
+          <Authenticated>
+            <div className="space-y-4">
+              {filteredTasksList
+                ?.sort((a, b) => b._creationTime - a._creationTime)
+                .map((task) => (
+                  <div
+                    key={task._id}
+                    className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3 mb-3">
+                      <div className="flex-1">
+                        <div className="flex flex-col xs:flex-row xs:items-center gap-2 mb-2">
+                          <div className="flex items-center">
+                            <FileText className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <Link href={`/teacher/classid/tasks/${task._id}`}>
+                            <h3 className="text-lg font-semibold">
+                              {task.gradeRubric?.name ?? "Sin rúbrica"} -{" "}
+                              {task.name}
+                              {task.group && (
+                                <span className="text-sm font-normal text-gray-600 ml-2">
+                                  (Grupo: {task.group.grade}
+                                  {task.group.name})
+                                </span>
+                              )}
+                            </h3>
+                          </Link>
                         </div>
-                        <Link href={`/teacher/classid/tasks/${task._id}`}>
-                          <h3 className="text-lg font-semibold">
-                            {task.gradeRubric?.name ?? "Sin rúbrica"} -{" "}
-                            {task.name}
-                            {task.group && (
-                              <span className="text-sm font-normal text-gray-600 ml-2">
-                                (Grupo: {task.group.grade}
-                                {task.group.name})
-                              </span>
-                            )}
-                          </h3>
-                        </Link>
+                        <p className="text-gray-600 mb-2 break-words">{task.description}</p>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-500">
+                          <span className="flex items-center">
+                            <Calendar className="w-4 h-4 mr-1" />
+                            Vence: {new Date(task.dueDate).toLocaleDateString()} a
+                            las{" "}
+                            {new Date(task.dueDate).toLocaleTimeString("es-MX", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                          <span>Puntuación máxima: {task.maxScore}</span>
+                        </div>
                       </div>
-                      <p className="text-gray-600 mb-2 break-words">{task.description}</p>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-500">
-                        <span className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-1" />
-                          Vence: {new Date(task.dueDate).toLocaleDateString()} a
-                          las{" "}
-                          {new Date(task.dueDate).toLocaleTimeString("es-MX", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                        <span>Puntuación máxima: {task.maxScore}</span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col md:flex-row gap-2 mt-3 md:mt-0">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openEditModal(task)}
-                        className="cursor-pointer"
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Editar
-                      </Button>
+                      <div className="flex flex-col md:flex-row gap-2 mt-3 md:mt-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEditModal(task)}
+                          className="cursor-pointer"
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Editar
+                        </Button>
 
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 cursor-pointer"
-                          >
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            Eliminar
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Esta acción no se puede deshacer. Esto eliminará
-                              permanentemente la asignación y afectara los datos
-                              relacionados a ella.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel className="cursor-pointer">
-                              Cancelar
-                            </AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteTask(task._id)}
-                              className=" bg-white text-red-600 border-2 border-red-600 hover:bg-red-600 hover:text-white cursor-pointer"
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 cursor-pointer"
                             >
+                              <Trash2 className="w-4 h-4 mr-1" />
                               Eliminar
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-3 pt-3 border-t md:flex-row md:justify-between md:items-center">
-                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
-                      <span className="text-sm">
-                        <span className="font-medium">
-                          {getTaskProgressFromQuery(
-                            task._id,
-                            assignmentsProgress
-                          )?.submittedCount || 0}
-                        </span>{" "}
-                        de{" "}
-                        <span className="font-medium">
-                          {getTaskProgressFromQuery(
-                            task._id,
-                            assignmentsProgress
-                          )?.totalStudents || 0}
-                        </span>{" "}
-                        entregas
-                      </span>
-                      <div className="w-full max-w-xs md:w-32 bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-green-600 h-2 rounded-full"
-                          style={{
-                            width: `${getTaskProgressFromQuery(task._id, assignmentsProgress)?.progressPercentage || 0}%`,
-                          }}
-                        ></div>
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción no se puede deshacer. Esto eliminará
+                                permanentemente la asignación y afectara los datos
+                                relacionados a ella.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel className="cursor-pointer">
+                                Cancelar
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteTask(task._id)}
+                                className=" bg-white text-red-600 border-2 border-red-600 hover:bg-red-600 hover:text-white cursor-pointer"
+                              >
+                                Eliminar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
+                    <div className="flex flex-col gap-3 pt-3 border-t md:flex-row md:justify-between md:items-center">
+                      <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
+                        <span className="text-sm">
+                          <span className="font-medium">
+                            {getTaskProgressFromQuery(
+                              task._id,
+                              assignmentsProgress
+                            )?.submittedCount || 0}
+                          </span>{" "}
+                          de{" "}
+                          <span className="font-medium">
+                            {getTaskProgressFromQuery(
+                              task._id,
+                              assignmentsProgress
+                            )?.totalStudents || 0}
+                          </span>{" "}
+                          entregas
+                        </span>
+                        <div className="w-full max-w-xs md:w-32 bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-green-600 h-2 rounded-full"
+                            style={{
+                              width: `${getTaskProgressFromQuery(task._id, assignmentsProgress)?.progressPercentage || 0}%`,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
 
-                    <div className="mt-2 md:mt-0 flex-shrink-0">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewDetails(task._id)}
-                        className="cursor-pointer w-full md:w-auto"
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        Ver Entregas
-                      </Button>
+                      <div className="mt-2 md:mt-0 flex-shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewDetails(task._id)}
+                          className="cursor-pointer w-full md:w-auto"
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          Ver Entregas
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            {(!filteredTasks || filteredTasks.length === 0) && (
-              <div className="text-center py-12">
-              
-                <div className="flex flex-col items-center justify-center space-y-4">
-                 
+                ))}
+              {(!filteredTasks || filteredTasks.length === 0) && (
+                <div className="text-center py-12">
+
+                  <div className="flex flex-col items-center justify-center space-y-4">
+
                     <BookText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                 
-                  <div className="space-y-2 text-center">
-                    <h3 className="text-lg font-medium text-foreground mb-2">
-                      No se encontraron asignaciones
-                    </h3>
-                    <p className="text-muted-foreground mb-4">
-                      No hay asignaciones creadas. Crea tu primera asignación para comenzar a calificar. 
-                    </p>
+
+                    <div className="space-y-2 text-center">
+                      <h3 className="text-lg font-medium text-foreground mb-2">
+                        No se encontraron asignaciones
+                      </h3>
+                      <p className="text-muted-foreground mb-4">
+                        No hay asignaciones creadas. Crea tu primera asignación para comenzar a calificar.
+                      </p>
+                    </div>
+                    <TaskCreateForm />
                   </div>
-                  <TaskCreateForm />
                 </div>
-                </div>
-            )}
-          </div>
+              )}
+            </div>
+          </Authenticated>
         </CardContent>
       </Card>
+
       <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -919,7 +889,7 @@ function TaskManagementContent() {
                   <Badge
                     className={
                       assignmentDetails.submittedCount ===
-                      assignmentDetails.totalStudents
+                        assignmentDetails.totalStudents
                         ? "bg-green-100 text-green-800"
                         : assignmentDetails.submittedCount > 0
                           ? "bg-yellow-100 text-yellow-800"
@@ -927,7 +897,7 @@ function TaskManagementContent() {
                     }
                   >
                     {assignmentDetails.submittedCount ===
-                    assignmentDetails.totalStudents
+                      assignmentDetails.totalStudents
                       ? "Completada"
                       : assignmentDetails.submittedCount > 0
                         ? "En Progreso"
@@ -951,7 +921,7 @@ function TaskManagementContent() {
                         {Math.round(
                           (assignmentDetails.submittedCount /
                             assignmentDetails.totalStudents) *
-                            100
+                          100
                         )}
                         %
                       </div>
@@ -1030,21 +1000,3 @@ function TaskManagementContent() {
   );
 }
 
-// Componente principal que maneja la autenticación
-export default function TaskManagement() {
-  return (
-    <>
-      <AuthLoading>
-        <LoadingComponent />
-      </AuthLoading>
-
-      <Unauthenticated>
-        <UnauthenticatedComponent />
-      </Unauthenticated>
-
-      <Authenticated>
-        <TaskManagementContent />
-      </Authenticated>
-    </>
-  );
-}

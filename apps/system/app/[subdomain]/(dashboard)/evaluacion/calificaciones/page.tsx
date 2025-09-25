@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui/components/shadcn/select";
-import { GradeMatrix } from "./grade-matrix";
+import { GradeMatrix } from "../../../../../components/grade-matrix";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { api } from "@repo/convex/convex/_generated/api";
 import { useQuery, useMutation } from "convex/react";
