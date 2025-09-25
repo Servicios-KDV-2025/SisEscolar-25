@@ -518,7 +518,7 @@ export default function GradeManagementDashboard() {
                       <Link href={`/evaluacion/asignaciones`}>
                         <Button>
                           <Plus className="w-4 h-4" />
-                          ACTIVIDADES
+                          Asignaciones
                         </Button>
                       </Link>
                     )}
