@@ -190,7 +190,7 @@ export default function ClassCatalogPage() {
     }
 
     return (
-        <div className="space-y-8 p-6">
+        <div className="space-y-8 p-6 min-w-full max-w-5xl mx-auto">
             {/* Header */}
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
                 <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
