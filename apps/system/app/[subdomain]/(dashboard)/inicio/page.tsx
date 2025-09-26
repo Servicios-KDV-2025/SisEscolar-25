@@ -16,6 +16,7 @@ import { api } from "@repo/convex/convex/_generated/api";
 import Link from "next/link";
 
 
+
 export default function EscuelaHome() {
   // Get current user from Clerk
   const { user: clerkUser, isLoaded } = useUser();
@@ -41,6 +42,7 @@ export default function EscuelaHome() {
     // isAdmin,
     // isTutor,
     // highestRole
+    canReadInicioInfo,
   } = usePermissions(currentSchool?.school._id);
 
   // Get school cycles for current school

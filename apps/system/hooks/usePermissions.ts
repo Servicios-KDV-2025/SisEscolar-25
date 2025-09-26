@@ -1,7 +1,7 @@
 import { useUserStore } from "../stores/userStore";
 import { useUserSchoolsWithConvex } from "../stores/userSchoolsStore";
 import { useActiveRole } from "./useActiveRole";
-import React, { useState, useEffect, useMemo } from "react";  
+import React, { useState, useEffect, useMemo } from "react";
 
 type UserRole = 'superadmin' | 'admin' | 'auditor' | 'teacher' | 'tutor';
 
@@ -9,7 +9,7 @@ export const usePermissions = (schoolId?: string) => {
     const { currentUser } = useUserStore();
     const { userSchools, isLoading: schoolsLoading } = useUserSchoolsWithConvex(currentUser?._id);
     const { activeRole, availableRoles, isLoading: roleLoading, error: roleError } = useActiveRole();
-    
+
     const [permissions, setPermissions] = useState<Record<string, boolean>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -20,6 +20,13 @@ export const usePermissions = (schoolId?: string) => {
         { action: "read", resource: "users" },
         { action: "update", resource: "users" },
         { action: "delete", resource: "users" },
+
+        // Perfil Institucional
+        { action: "read", resource: "perfil_institucional" },
+        { action: "update", resource: "perfil_institucional" },
+
+        // paginia de inicio
+        { action: "read", resource: "inicio_info" },
     ];
 
     // Definir permisos por rol (basado en tu sistema actual)
@@ -30,6 +37,13 @@ export const usePermissions = (schoolId?: string) => {
             "read:users": true,
             "update:users": true,
             "delete:users": true,
+
+            //permisos perfil institucional
+            "read:perfil_institucional": true,
+            "update:perfil_institucional": true,
+
+            // permisos pagina de inicio
+            "read:inicio_info": true,
         },
         admin: {
             // Admin tiene casi todos los permisos (excepto eliminar escuelas)
@@ -37,6 +51,13 @@ export const usePermissions = (schoolId?: string) => {
             "read:users": true,
             "update:users": true,
             "delete:users": true,
+
+            //permisos perfil institucional
+            "read:perfil_institucional": true,
+            "update:perfil_institucional": true,
+            
+            // permisos pagina de inicio
+            "read:inicio_info": true,
         },
         auditor: {
             // Auditor solo puede leer y ver reportes
@@ -44,6 +65,13 @@ export const usePermissions = (schoolId?: string) => {
             "read:users": true,
             "update:users": false,
             "delete:users": false,
+
+            //permisos perfil institucional
+            "read:perfil_institucional": true,
+            "update:perfil_institucional": false,
+
+            // permisos pagina de inicio
+            "read:inicio_info": true,
         },
         teacher: {
             // Profesor similar al tutor pero con menos permisos
@@ -51,6 +79,13 @@ export const usePermissions = (schoolId?: string) => {
             "read:users": true, // Solo usuarios de sus materias
             "update:users": false,
             "delete:users": false,
+
+            //permisos perfil institucional
+            "read:perfil_institucional": true,
+            "update:perfil_institucional": false,
+
+            // permisos pagina de inicio
+            "read:inicio_info": false,
         },
         tutor: {
             // Tutor es el padre 
@@ -58,6 +93,13 @@ export const usePermissions = (schoolId?: string) => {
             "read:users": true, // Solo podra ver a sus hijos
             "update:users": false,
             "delete:users": false,
+
+            //permisos perfil institucional
+            "read:perfil_institucional": true,
+            "update:perfil_institucional": false,
+
+            // permisos pagina de inicio
+            "read:inicio_info": false,
         },
     };
 
@@ -94,15 +136,15 @@ export const usePermissions = (schoolId?: string) => {
                 if (currentRole) {
                     // Obtener permisos del rol activo
                     const userPermissions = rolePermissions[currentRole];
-                    
+
                     // Crear objeto de permisos con todas las acciones/recursos
                     const allPermissions: Record<string, boolean> = {};
-                    
+
                     actionsResources.forEach(({ action, resource }) => {
                         const permissionKey = `${action}:${resource}`;
                         allPermissions[permissionKey] = userPermissions[permissionKey] || false;
                     });
-                    
+
                     setPermissions(allPermissions);
                     setError(roleError);
                 } else {
@@ -183,34 +225,41 @@ export const usePermissions = (schoolId?: string) => {
         permissions,
         isLoading,
         error,
-        
+
         // Roles del usuario
         userRoles,
         currentRole,
         availableRoles,
-        
+
         // Funciones de permisos
         hasPermission,
         hasAnyPermission,
         hasAllPermissions,
-        
+
         // Funciones de roles
         hasRole,
         hasAnyRole,
-        
+
         // Propiedades específicas para facilitar el uso
         canCreateUsers: permissions["create:users"] || false,
         canReadUsers: permissions["read:users"] || false,
         canUpdateUsers: permissions["update:users"] || false,
         canDeleteUsers: permissions["delete:users"] || false,
-        
+
+        // Permisos perfil institucional
+        canReadPerfilInstitucional: permissions["read:perfil_institucional"] || false,
+        canUpdatePerfilInstitucional: permissions["update:perfil_institucional"] || false,
+
+        // Permisos pagina de inicio
+        canReadInicioInfo: permissions["read:inicio_info"] || false,
+
         // Propiedades específicas por rol
         isSuperAdmin: hasRole('superadmin'),
         isAdmin: hasRole('admin'),
         isAuditor: hasRole('auditor'),
         isTeacher: hasRole('teacher'),
         isTutor: hasRole('tutor'),
-        
+
         // Filtros para estudiantes
         getStudentFilters,
     };
