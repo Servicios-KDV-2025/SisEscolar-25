@@ -56,7 +56,7 @@ import {
 } from "@repo/ui/components/dialog/crud-dialog";
 import { UseFormReturn } from "react-hook-form";
 import { usePermissions } from "../../../../../hooks/usePermissions";
-
+import  NotAuth  from "../../../../../components/NotAuth";
 interface Classroom extends Record<string, unknown> {
   _id: Id<"classroom">;
   id: string;
@@ -692,7 +692,12 @@ export default function ClassroomManagement() {
           </CrudDialog>
         </div>
       ) : (
-        <div>nel</div>
+        <NotAuth
+          pageName="Aulas"
+          pageDetails="Administra las aulas de tu escuela con sus atributos de capacidad, ubicación y estado."
+          icon={GraduationCap}
+        />
+
       )}
     </>
   );
