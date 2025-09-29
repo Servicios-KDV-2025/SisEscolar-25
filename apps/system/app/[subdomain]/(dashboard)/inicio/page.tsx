@@ -21,7 +21,7 @@ export default function EscuelaHome() {
   // Get current user from Clerk
   const { user: clerkUser, isLoaded } = useUser();
   const { currentUser, isLoading: userLoading } = useUserWithConvex(clerkUser?.id);
-  
+
   // Get current school information using the subdomain
   const {
     currentSchool,
@@ -57,7 +57,7 @@ export default function EscuelaHome() {
   // Get teachers/staff count for current school
   const teachersData = useQuery(
     api.functions.schools.getUsersBySchoolAndRoles,
-    currentSchool?.school._id ? { 
+    currentSchool?.school._id ? {
       schoolId: currentSchool.school._id,
       roles: ["teacher", "admin", "superadmin"],
       status: "active"
@@ -206,7 +206,7 @@ export default function EscuelaHome() {
 
   return (
     <div className="space-y-8 p-6 w-full">
-      
+
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
         <div className="relative p-8">
@@ -232,8 +232,8 @@ export default function EscuelaHome() {
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <h1 className="text-4xl font-bold tracking-tight">{schoolData.name}</h1>
-                  <Badge 
-                    variant={schoolData.status === 'active' ? 'secondary' : 'destructive'} 
+                  <Badge
+                    variant={schoolData.status === 'active' ? 'secondary' : 'destructive'}
                     className="text-xs bg-green-600 text-white -mb-2"
                   >
                     {schoolData.status === 'active' ? 'Activa' : 'Inactiva'}
@@ -254,66 +254,127 @@ export default function EscuelaHome() {
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link href={`/perfil-institucional/`}>
-              <Button size="lg" className="gap-2" >
-                <Settings className="w-4 h-4" />
-                Configuración
-              </Button>
+                <Button size="lg" className="gap-2" >
+                  <Settings className="w-4 h-4" />
+                  Configuración
+                </Button>
               </Link>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <Card key={index} className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </CardTitle>
-              <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                <stat.icon className="h-4 w-4 text-primary" />
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="text-3xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">{stat.trend}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {canReadInicioInfo ? (
 
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-tight">Acciones Rápidas</h2>
-            <p className="text-muted-foreground">Accede a las funciones principales del sistema</p>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {stats.map((stat, index) => (
+              <Card key={index} className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    {stat.title}
+                  </CardTitle>
+                  <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                    <stat.icon className="h-4 w-4 text-primary" />
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="text-3xl font-bold">{stat.value}</div>
+                  <p className="text-xs text-muted-foreground">{stat.trend}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold tracking-tight">Acciones Rápidas</h2>
+                <p className="text-muted-foreground">Accede a las funciones principales del sistema</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {quickActions.map((action, index) => (
+                <Card key={index} className="group cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                  <CardHeader className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className={`p-3 rounded-xl ${action.color} text-white group-hover:scale-110 transition-transform duration-300`}>
+                        <action.icon className="h-6 w-6" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <CardTitle className="text-lg group-hover:text-primary transition-colors">
+                        {action.title}
+                      </CardTitle>
+                      <CardDescription className="text-sm">
+                        {action.description}
+                      </CardDescription>
+                    </div>
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
+
+          </div>
+        </>
+      ) : (
+        <div className="max-w-4xl mx-auto space-y-8">
+          <div className="text-center space-y-4">
+            <h2 className="text-3xl font-bold tracking-tight">Nuestra Escuela</h2>
+            <p className="text-muted-foreground text-lg">
+              {schoolData.description || "Aún no se ha definido la visión o descripción de la escuela."}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="p-6 space-y-3">
+              <CardHeader>
+                <CardTitle className="text-xl">Visión</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  {schoolData.description || "Nuestra visión aún no ha sido definida."}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="p-6 space-y-3">
+              <CardHeader>
+                <CardTitle className="text-xl">Misión</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  {schoolData.description || "Nuestra misión aún no ha sido definida."}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="p-6 space-y-3">
+              <CardHeader>
+                <CardTitle className="text-xl">Valores</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  {schoolData.description || "Los valores de la institución aún no se han registrado."}
+                </p>
+              </CardContent>
+            </Card>
+
+          </div>
+
+          <div className="text-center space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Dirección: {schoolData.address || "No disponible"}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Clave CCT: {schoolData.cctCode || "No disponible"}
+            </p>
           </div>
         </div>
+      )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {quickActions.map((action, index) => (
-            <Card key={index} className="group cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-              <CardHeader className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className={`p-3 rounded-xl ${action.color} text-white group-hover:scale-110 transition-transform duration-300`}>
-                    <action.icon className="h-6 w-6" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <CardTitle className="text-lg group-hover:text-primary transition-colors">
-                    {action.title}
-                  </CardTitle>
-                  <CardDescription className="text-sm">
-                    {action.description}
-                  </CardDescription>
-                </div>
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
 
-      </div>
     </div>
   );
 }
