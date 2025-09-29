@@ -20,6 +20,12 @@ export const usePermissions = (schoolId?: string) => {
         { action: "read", resource: "users" },
         { action: "update", resource: "users" },
         { action: "delete", resource: "users" },
+//Aulas
+        { action: "create", resource: "classroom" },
+        { action: "read", resource: "classroom" },
+        { action: "update", resource: "classroom" },
+        { action: "delete", resource: "classroom" },
+        
     ];
 
     // Definir permisos por rol (basado en tu sistema actual)
@@ -30,6 +36,11 @@ export const usePermissions = (schoolId?: string) => {
             "read:users": true,
             "update:users": true,
             "delete:users": true,
+
+            "create:classroom": true,
+            "read:classroom": true,
+            "update:classroom": true,
+            "delete:classroom": true,
         },
         admin: {
             // Admin tiene casi todos los permisos (excepto eliminar escuelas)
@@ -37,6 +48,11 @@ export const usePermissions = (schoolId?: string) => {
             "read:users": true,
             "update:users": true,
             "delete:users": true,
+//Aulas
+            "create:classroom": true,
+            "read:classroom": true,
+            "update:classroom": true,
+            "delete:classroom": true,
         },
         auditor: {
             // Auditor solo puede leer y ver reportes
@@ -44,6 +60,11 @@ export const usePermissions = (schoolId?: string) => {
             "read:users": true,
             "update:users": false,
             "delete:users": false,
+
+            "create:classroom": false,
+            "read:classroom": true,
+            "update:classroom": false,
+            "delete:classroom": false,
         },
         teacher: {
             // Profesor similar al tutor pero con menos permisos
@@ -51,6 +72,11 @@ export const usePermissions = (schoolId?: string) => {
             "read:users": true, // Solo usuarios de sus materias
             "update:users": false,
             "delete:users": false,
+
+            "create:classroom": false,
+            "read:classroom": false,
+            "update:classroom": false,
+            "delete:classroom": false,
         },
         tutor: {
             // Tutor es el padre 
@@ -58,6 +84,11 @@ export const usePermissions = (schoolId?: string) => {
             "read:users": true, // Solo podra ver a sus hijos
             "update:users": false,
             "delete:users": false,
+
+            "create:classroom": false,
+            "read:classroom": false,
+            "update:classroom": false,
+            "delete:classroom": false,
         },
     };
 
@@ -203,7 +234,11 @@ export const usePermissions = (schoolId?: string) => {
         canReadUsers: permissions["read:users"] || false,
         canUpdateUsers: permissions["update:users"] || false,
         canDeleteUsers: permissions["delete:users"] || false,
-        
+//Aulas
+        canCreateClassroom: permissions["create:classroom"] || false,
+        canReadclassroom: permissions["read:classroom"] || false,
+        canUpdateclassroom: permissions["update:classroom"] || false,
+        canDeleteclassroom: permissions["delete:classroom"] || false,
         // Propiedades específicas por rol
         isSuperAdmin: hasRole('superadmin'),
         isAdmin: hasRole('admin'),
