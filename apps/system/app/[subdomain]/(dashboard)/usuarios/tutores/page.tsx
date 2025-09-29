@@ -72,6 +72,7 @@ import { useUserWithConvex } from "../../../../../stores/userStore";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { useUserActionsWithConvex } from "../../../../../stores/userActionsStore";
 import { usePermissions } from "../../../../../hooks/usePermissions";
+import NotAuth from "../../../../../components/NotAuth";
 
 // Tipo para los usuarios que vienen de Convex
 type UserFromConvex = {
@@ -149,10 +150,10 @@ export default function TutorPage() {
     api.functions.schools.getUsersBySchoolAndRoles,
     currentSchool?.school?._id
       ? {
-        schoolId: currentSchool.school._id,
-        roles: ["tutor"],
-        status: "active",
-      }
+          schoolId: currentSchool.school._id,
+          roles: ["tutor"],
+          status: "active",
+        }
       : "skip"
   );
 
@@ -160,10 +161,10 @@ export default function TutorPage() {
     api.functions.schools.getUsersBySchoolAndRoles,
     currentSchool?.school?._id
       ? {
-        schoolId: currentSchool.school._id,
-        roles: ["tutor"],
-        status: "inactive",
-      }
+          schoolId: currentSchool.school._id,
+          roles: ["tutor"],
+          status: "inactive",
+        }
       : "skip"
   );
 
@@ -193,10 +194,10 @@ export default function TutorPage() {
     api.functions.users.searchUsers,
     searchEmail
       ? {
-        searchTerm: searchEmail,
-        status: "active",
-        limit: 1,
-      }
+          searchTerm: searchEmail,
+          status: "active",
+          limit: 1,
+        }
       : "skip"
   );
 
@@ -431,7 +432,7 @@ export default function TutorPage() {
         );
         throw new Error(
           userResult.error ||
-          "Error al actualizar información básica del usuario"
+            "Error al actualizar información básica del usuario"
         );
       }
 
@@ -480,6 +481,7 @@ export default function TutorPage() {
     });
   };
 
+
   const getInitials = (name: string, lastName?: string) => {
     const first = name.charAt(0).toUpperCase();
     const last = lastName ? lastName.charAt(0).toUpperCase() : "";
@@ -491,40 +493,14 @@ export default function TutorPage() {
   const isCrudLoading =
     userActions.isCreating || userActions.isUpdating || userActions.isDeleting;
 
-  // Verificar error de permisos
-  if (permissionsError && !permissionsLoading) {
+  // Verificar error de permisos o falta de permiso de lectura
+  if ((permissionsError || !canReadUsersTutores) && !permissionsLoading && !isLoading) {
     return (
-      <div className="space-y-8 p-6">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Error al cargar permisos: {permissionsError}
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  // Verificar permiso de lectura
-  if (!canReadUsersTutores && !permissionsLoading && !isLoading) {
-    return (
-      <div className="space-y-8 p-6">
-        <Card className="border-red-500 bg-red-50">
-          <CardHeader>
-            <CardTitle className="flex items-center text-red-600">
-              <AlertCircle className="h-4 w-4 mr-2" />
-              Acceso denegado
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-red-700">
-              No tienes permisos para ver esta página. Tu rol actual es:{" "}
-              <span className="font-semibold">{currentRole || "Sin rol"}</span>
-            </p>
-          </CardContent>
-        </Card>
-
-      </div>
+      <NotAuth
+        pageName="Tutores"
+        pageDetails="Administra los tutores que tienen acceso a información de alumnos"
+        icon={GraduationCap}
+      />
     );
   }
 
