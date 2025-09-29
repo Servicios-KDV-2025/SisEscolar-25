@@ -24,7 +24,7 @@ export const createUser = action(
 
                 if (existingUsers.data.length > 0) {
                     return {
-                        error: "User already exists",
+                        error: "El usuario ya existe",
                         success: false,
                     }
                 }
@@ -38,13 +38,13 @@ export const createUser = action(
                 });
 
                 return {
-                    message: "User created successfully in Clerk",
+                    message: "Se creó el usuario en Clerk",
                     success: true,
                     userId: user.id,
                 }
             }
             catch (error) {
-                console.error("Error creating user:", error);
+                console.error("Error al crear usuario:", error);
                 return {
                     error: error,
                     success: false,
@@ -77,7 +77,7 @@ export const updateUser = action(
                 const updatedUser = await ClerkClient.users.updateUser(args.userId, updateData);
 
                 return {
-                    message: "User updated successfully in Clerk",
+                    message: "Se actualizó el usuario en Clerk",
                     success: true,
                     userId: updatedUser.id,
                 }
@@ -85,7 +85,7 @@ export const updateUser = action(
             catch (error) {
                 console.error("Error updating user:", error);
                 return {
-                    error: "Error updating user",
+                    error: "Error al actualizar el usuario en Clerk por favor intente de nuevo",
                     success: false,
                 }
             }
@@ -101,7 +101,7 @@ export const deleteUser = action({
         try {
             await ClerkClient.users.deleteUser(args.userId);
             return {
-                message: "User deleted successfully in Clerk",
+                message: "Se eliminó el usuario en Clerk",
                 success: true,
             }
         }

@@ -27,6 +27,12 @@ export const usePermissions = (schoolId?: string) => {
 
         // paginia de inicio
         { action: "read", resource: "inicio_info" },
+
+        //pagina de tutores
+        { action: "create", resource: "users_tutores" },
+        { action: "read", resource: "users_tutores" },
+        { action: "update", resource: "users_tutores" },
+        { action: "delete", resource: "users_tutores" },
     ];
 
     // Definir permisos por rol (basado en tu sistema actual)
@@ -44,6 +50,12 @@ export const usePermissions = (schoolId?: string) => {
 
             // permisos pagina de inicio
             "read:inicio_info": true,
+
+            // permisos pagina de tutores
+            "create:users_tutores": true,
+            "read:users_tutores": true,
+            "update:users_tutores": true,
+            "delete:users_tutores": true,
         },
         admin: {
             // Admin tiene casi todos los permisos (excepto eliminar escuelas)
@@ -58,6 +70,12 @@ export const usePermissions = (schoolId?: string) => {
             
             // permisos pagina de inicio
             "read:inicio_info": true,
+
+            // permisos pagina de tutores
+            "create:users_tutores": true,
+            "read:users_tutores": true,
+            "update:users_tutores": true,
+            "delete:users_tutores": true,
         },
         auditor: {
             // Auditor solo puede leer y ver reportes
@@ -72,11 +90,17 @@ export const usePermissions = (schoolId?: string) => {
 
             // permisos pagina de inicio
             "read:inicio_info": true,
+
+            // permisos pagina de tutores
+            "create:users_tutores": false,
+            "read:users_tutores": true,
+            "update:users_tutores": false,
+            "delete:users_tutores": false,
         },
         teacher: {
             // Profesor similar al tutor pero con menos permisos
             "create:users": false,
-            "read:users": true, // Solo usuarios de sus materias
+            "read:users": false, // Solo usuarios de sus materias
             "update:users": false,
             "delete:users": false,
 
@@ -86,6 +110,12 @@ export const usePermissions = (schoolId?: string) => {
 
             // permisos pagina de inicio
             "read:inicio_info": false,
+
+            // permisos pagina de tutores
+            "create:users_tutores": false,
+            "read:users_tutores": false,
+            "update:users_tutores": false,
+            "delete:users_tutores": false,
         },
         tutor: {
             // Tutor es el padre 
@@ -100,6 +130,12 @@ export const usePermissions = (schoolId?: string) => {
 
             // permisos pagina de inicio
             "read:inicio_info": false,
+
+            // permisos pagina de tutores
+            "create:users_tutores": false,
+            "read:users_tutores": false,
+            "update:users_tutores": false,
+            "delete:users_tutores": false,
         },
     };
 
@@ -252,6 +288,12 @@ export const usePermissions = (schoolId?: string) => {
 
         // Permisos pagina de inicio
         canReadInicioInfo: permissions["read:inicio_info"] || false,
+
+        // Permisos pagina de tutores
+        canCreateUsersTutores: permissions["create:users_tutores"] || false,
+        canReadUsersTutores: permissions["read:users_tutores"] || false,
+        canUpdateUsersTutores: permissions["update:users_tutores"] || false,
+        canDeleteUsersTutores: permissions["delete:users_tutores"] || false,
 
         // Propiedades específicas por rol
         isSuperAdmin: hasRole('superadmin'),

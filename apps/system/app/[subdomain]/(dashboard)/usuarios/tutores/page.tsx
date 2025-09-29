@@ -71,6 +71,7 @@ import {
 import { useUserWithConvex } from "../../../../../stores/userStore";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { useUserActionsWithConvex } from "../../../../../stores/userActionsStore";
+import { usePermissions } from "../../../../../hooks/usePermissions";
 
 // Tipo para los usuarios que vienen de Convex
 type UserFromConvex = {
@@ -128,6 +129,17 @@ export default function TutorPage() {
     currentUser?._id
   );
 
+  // Obtener permisos del usuario
+  const {
+    canCreateUsersTutores,
+    canReadUsersTutores,
+    canUpdateUsersTutores,
+    canDeleteUsersTutores,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+    currentRole,
+  } = usePermissions(currentSchool?.school?._id);
+
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -137,10 +149,10 @@ export default function TutorPage() {
     api.functions.schools.getUsersBySchoolAndRoles,
     currentSchool?.school?._id
       ? {
-          schoolId: currentSchool.school._id,
-          roles: ["tutor"],
-          status: "active",
-        }
+        schoolId: currentSchool.school._id,
+        roles: ["tutor"],
+        status: "active",
+      }
       : "skip"
   );
 
@@ -148,16 +160,14 @@ export default function TutorPage() {
     api.functions.schools.getUsersBySchoolAndRoles,
     currentSchool?.school?._id
       ? {
-          schoolId: currentSchool.school._id,
-          roles: ["tutor"],
-          status: "inactive",
-        }
+        schoolId: currentSchool.school._id,
+        roles: ["tutor"],
+        status: "inactive",
+      }
       : "skip"
   );
 
   const allUsers = activeUsers?.concat(inactiveUsers || []);
-
-  // const allUsers = activeUsers?.concat(inactiveUsers || []);
 
   // User Actions Store para CRUD operations
   const userActions = useUserActionsWithConvex();
@@ -183,10 +193,10 @@ export default function TutorPage() {
     api.functions.users.searchUsers,
     searchEmail
       ? {
-          searchTerm: searchEmail,
-          status: "active",
-          limit: 1,
-        }
+        searchTerm: searchEmail,
+        status: "active",
+        limit: 1,
+      }
       : "skip"
   );
 
@@ -236,11 +246,10 @@ export default function TutorPage() {
     userActions.clearLastResult();
 
     // Preparar datos para edición incluyendo userSchoolId
-    // Mapear schoolStatus a status para que el formulario muestre el estado correcto
     const editData = {
       ...user,
       userSchoolId: user.userSchoolId,
-      status: user.schoolStatus, // Usar schoolStatus en lugar del status general
+      status: user.schoolStatus,
     };
 
     openEdit(editData);
@@ -251,11 +260,10 @@ export default function TutorPage() {
     userActions.clearLastResult();
 
     // Preparar datos para vista incluyendo userSchoolId
-    // Mapear schoolStatus a status para que el formulario muestre el estado correcto
     const viewData = {
       ...user,
       userSchoolId: user.userSchoolId,
-      status: user.schoolStatus, // Usar schoolStatus en lugar del status general
+      status: user.schoolStatus,
     };
 
     openView(viewData);
@@ -272,7 +280,7 @@ export default function TutorPage() {
     if (!allUsers) return [];
 
     return allUsers
-      .filter((user: UserFromConvex) => user.schoolRole.includes("tutor")) // Solo tutores
+      .filter((user: UserFromConvex) => user.schoolRole.includes("tutor"))
       .filter((user: UserFromConvex) => {
         const searchMatch =
           user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -289,7 +297,6 @@ export default function TutorPage() {
 
   // Funciones CRUD
   const handleCreate = async (formData: Record<string, unknown>) => {
-
     if (!currentSchool?.school?._id) {
       console.error("No hay escuela actual disponible");
       throw new Error("No hay escuela actual disponible");
@@ -299,7 +306,6 @@ export default function TutorPage() {
 
     try {
       // PASO 1: Buscar si el usuario ya existe en Convex
-
       const existingUsers = await searchUserByEmailAsync(email);
 
       if (existingUsers && existingUsers.length > 0) {
@@ -316,20 +322,18 @@ export default function TutorPage() {
           );
         }
 
-
         await createUserSchoolRelation({
           clerkId: existingUser.clerkId,
           schoolId: currentSchool.school._id,
-          role: ["tutor"], // Solo rol de tutor
+          role: ["tutor"],
           status: "active",
-          department: undefined, // Los tutores no tienen departamento
+          department: undefined,
         });
 
         return;
       }
 
       // FLUJO B: Usuario no existe, crear nuevo en Clerk + asignar
-
       const password = formData.password as string;
 
       // Validación: Si no existe el usuario, la contraseña es obligatoria
@@ -349,27 +353,25 @@ export default function TutorPage() {
       const result = await userActions.createUser(createData);
 
       if (result.success && result.userId) {
-
         try {
           // Esperar sincronización del webhook
-          await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 segundos
+          await new Promise((resolve) => setTimeout(resolve, 2000));
 
           // Asignar rol de tutor en la escuela actual
           await createUserSchoolRelation({
             clerkId: result.userId,
             schoolId: currentSchool.school._id,
-            role: ["tutor"], // Solo rol de tutor
+            role: ["tutor"],
             status: "active",
-            department: undefined, // Los tutores no tienen departamento
+            department: undefined,
           });
-
         } catch (error) {
-          console.error("❌ Error al asignar usuario como tutor:", error);
+          console.error("Error al asignar usuario como tutor:", error);
           const errorMessage = `Usuario creado pero error al asignar como tutor: ${error instanceof Error ? error.message : "Error desconocido"}`;
           throw new Error(errorMessage);
         }
       } else {
-        console.error("❌ Error al crear usuario en Clerk:", result.error);
+        console.error("Error al crear usuario en Clerk:", result.error);
         throw new Error(result.error || "Error al crear usuario en Clerk");
       }
     } catch (error) {
@@ -390,6 +392,9 @@ export default function TutorPage() {
     // Combinar datos del formulario con datos originales para tener clerkId
     const combinedData = { ...data, ...formData };
 
+    // Asumir que 'data' es del tipo UserFromConvex, que tiene schoolRole
+    const originalRoles = (data as UserFromConvex)?.schoolRole;
+
     if (!combinedData.clerkId) {
       console.error("Clerk ID de usuario no disponible");
       throw new Error("Clerk ID de usuario no disponible");
@@ -398,6 +403,12 @@ export default function TutorPage() {
     if (!combinedData.userSchoolId) {
       console.error("UserSchool ID no disponible");
       throw new Error("UserSchool ID no disponible");
+    }
+
+    // Asegurarse de tener los roles originales
+    if (!originalRoles) {
+      console.error("Roles de usuario no disponibles para actualizar");
+      throw new Error("Roles de usuario no disponibles para actualizar");
     }
 
     try {
@@ -420,21 +431,19 @@ export default function TutorPage() {
         );
         throw new Error(
           userResult.error ||
-            "Error al actualizar información básica del usuario"
+          "Error al actualizar información básica del usuario"
         );
       }
 
-      // PASO 2: Actualizar estado en la relación usuario-escuela (mantener rol de tutor)
-
+      // PASO 2: Actualizar estado en la relación usuario-escuela (MANTENER TODOS LOS ROLES)
       await updateUserSchoolRelation({
         id: combinedData.userSchoolId as Id<"userSchool">,
-        role: ["tutor"], // Mantener siempre rol de tutor
-        department: null, // Los tutores no tienen departamento
+        role: originalRoles,
+        department: null,
         status: (combinedData.status as "active" | "inactive") || "active",
       });
-
     } catch (error) {
-      console.error("❌ Error en handleUpdate:", error);
+      console.error("Error en handleUpdate:", error);
       throw error;
     }
   };
@@ -449,13 +458,12 @@ export default function TutorPage() {
     }
 
     try {
-      // Realizar soft delete: cambiar status a 'inactive' en lugar de eliminar completamente
+      // Realizar soft delete: cambiar status a 'inactive'
       await deactivateUserInSchool({
         userSchoolId: targetData.userSchoolId as Id<"userSchool">,
       });
-
     } catch (error) {
-      console.error("❌ Error al desactivar tutor:", error);
+      console.error("Error al desactivar tutor:", error);
       throw new Error(
         `Error al desactivar tutor: ${error instanceof Error ? error.message : "Error desconocido"}`
       );
@@ -479,9 +487,46 @@ export default function TutorPage() {
   };
 
   // Loading y error states
-  const isLoading = schoolLoading || allUsers === undefined;
+  const isLoading = schoolLoading || permissionsLoading || allUsers === undefined;
   const isCrudLoading =
     userActions.isCreating || userActions.isUpdating || userActions.isDeleting;
+
+  // Verificar error de permisos
+  if (permissionsError && !permissionsLoading) {
+    return (
+      <div className="space-y-8 p-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Error al cargar permisos: {permissionsError}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  // Verificar permiso de lectura
+  if (!canReadUsersTutores && !permissionsLoading && !isLoading) {
+    return (
+      <div className="space-y-8 p-6">
+        <Card className="border-red-500 bg-red-50">
+          <CardHeader>
+            <CardTitle className="flex items-center text-red-600">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              Acceso denegado
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-red-700">
+              No tienes permisos para ver esta página. Tu rol actual es:{" "}
+              <span className="font-semibold">{currentRole || "Sin rol"}</span>
+            </p>
+          </CardContent>
+        </Card>
+
+      </div>
+    );
+  }
 
   // Estadísticas para tutores
   const stats = [
@@ -544,15 +589,17 @@ export default function TutorPage() {
                 </div>
               </div>
             </div>
-            <Button
-              size="lg"
-              className="gap-2 bg-orange-600 hover:bg-orange-700"
-              onClick={handleOpenCreate}
-              disabled={isLoading || !currentSchool || isCrudLoading}
-            >
-              <Plus className="w-4 h-4" />
-              Agregar Tutor
-            </Button>
+            {canCreateUsersTutores && (
+              <Button
+                size="lg"
+                className="gap-2 bg-orange-600 hover:bg-orange-700"
+                onClick={handleOpenCreate}
+                disabled={isLoading || !currentSchool || isCrudLoading}
+              >
+                <Plus className="w-4 h-4" />
+                Agregar Tutor
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -695,14 +742,16 @@ export default function TutorPage() {
                   ? "Intenta ajustar los filtros para ver más resultados."
                   : "Aún no hay tutores registrados en esta escuela."}
               </p>
-              <Button
-                onClick={handleOpenCreate}
-                className="gap-2 bg-orange-600 hover:bg-orange-700"
-                disabled={!currentSchool || isCrudLoading}
-              >
-                <Plus className="h-4 w-4" />
-                Agregar Tutor
-              </Button>
+              {canCreateUsersTutores && (
+                <Button
+                  onClick={handleOpenCreate}
+                  className="gap-2 bg-orange-600 hover:bg-orange-700"
+                  disabled={!currentSchool || isCrudLoading}
+                >
+                  <Plus className="h-4 w-4" />
+                  Agregar Tutor
+                </Button>
+              )}
             </div>
           ) : (
             <div className="rounded-md border">
@@ -712,14 +761,16 @@ export default function TutorPage() {
                     <TableHead className="w-[110px] px-4">Tutor</TableHead>
                     <TableHead className="text-center">Contacto</TableHead>
                     <TableHead className="text-center">Estado</TableHead>
-                    <TableHead className="text-center">Fecha de Ingreso</TableHead>
+                    <TableHead className="text-center">
+                      Fecha de Ingreso
+                    </TableHead>
                     <TableHead className="text-center">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredUsers.map((user: UserFromConvex) => (
                     <TableRow key={user._id}>
-                      <TableCell >
+                      <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10">
                             <AvatarImage src={user.imgUrl} alt={user.name} />
@@ -756,12 +807,20 @@ export default function TutorPage() {
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge
-                          variant={(user.schoolStatus || "active") === "active" ? "default" : "secondary"}
-                          className={(user.schoolStatus || "active") === "active"
-                            ? "bg-green-600 text-white flex-shrink-0 ml-2"
-                            : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}
+                          variant={
+                            (user.schoolStatus || "active") === "active"
+                              ? "default"
+                              : "secondary"
+                          }
+                          className={
+                            (user.schoolStatus || "active") === "active"
+                              ? "bg-green-600 text-white flex-shrink-0 ml-2"
+                              : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"
+                          }
                         >
-                          {(user.schoolStatus || "active") === "active" ? "Activo" : "Inactivo"}
+                          {(user.schoolStatus || "active") === "active"
+                            ? "Activo"
+                            : "Inactivo"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
@@ -781,27 +840,29 @@ export default function TutorPage() {
                           >
                             <Eye className="h-8 w-8 p-0" />
                           </Button>
-                          <Button
-                            className= "hover:scale-105 transition-transform cursor-pointer h-8 w-8 p-0"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenEdit(user)}
-                            
-                            disabled={isCrudLoading}
-                          >
-                            <Pencil className="h-4 w-4"/>
-                          </Button>
-                          {user.schoolStatus === "active" && (
+                          {canUpdateUsersTutores && (
                             <Button
+                              className="hover:scale-105 transition-transform cursor-pointer h-8 w-8 p-0"
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleOpenDelete(user)}
-                              className="text-destructive hover:text-destructive hover:scale-105 transition-transform cursor-pointer"
+                              onClick={() => handleOpenEdit(user)}
                               disabled={isCrudLoading}
                             >
-                              <Trash2 className="h-8 w-8 p-0" />
+                              <Pencil className="h-4 w-4" />
                             </Button>
                           )}
+                          {canDeleteUsersTutores &&
+                            user.schoolStatus === "active" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenDelete(user)}
+                                className="text-destructive hover:text-destructive hover:scale-105 transition-transform cursor-pointer"
+                                disabled={isCrudLoading}
+                              >
+                                <Trash2 className="h-8 w-8 p-0" />
+                              </Button>
+                            )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -898,7 +959,10 @@ export default function TutorPage() {
                       value={(field.value as string) || ""}
                       type="email"
                       placeholder="email@escuela.edu.mx"
-                      disabled={currentOperation === "view" || currentOperation === "edit"}
+                      disabled={
+                        currentOperation === "view" ||
+                        currentOperation === "edit"
+                      }
                     />
                   </FormControl>
                   <FormMessage />
