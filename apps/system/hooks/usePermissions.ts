@@ -33,6 +33,12 @@ export const usePermissions = (schoolId?: string) => {
         { action: "read", resource: "users_tutores" },
         { action: "update", resource: "users_tutores" },
         { action: "delete", resource: "users_tutores" },
+
+        // pagina de personal
+        { action: "create", resource: "users_personal" },
+        { action: "read", resource: "users_personal" },
+        { action: "update", resource: "users_personal" },
+        { action: "delete", resource: "users_personal" },
     ];
 
     // Definir permisos por rol (basado en tu sistema actual)
@@ -56,6 +62,12 @@ export const usePermissions = (schoolId?: string) => {
             "read:users_tutores": true,
             "update:users_tutores": true,
             "delete:users_tutores": true,
+
+            //  pagina de personal
+            "create:users_personal": true,
+            "read:users_personal": true,
+            "update:users_personal": true,
+            "delete:users_personal": true,
         },
         admin: {
             // Admin tiene casi todos los permisos (excepto eliminar escuelas)
@@ -76,6 +88,12 @@ export const usePermissions = (schoolId?: string) => {
             "read:users_tutores": true,
             "update:users_tutores": true,
             "delete:users_tutores": true,
+
+            //  pagina de personal
+            "create:users_personal": false,
+            "read:users_personal": true,
+            "update:users_personal": false,
+            "delete:users_personal": false,
         },
         auditor: {
             // Auditor solo puede leer y ver reportes
@@ -96,6 +114,12 @@ export const usePermissions = (schoolId?: string) => {
             "read:users_tutores": true,
             "update:users_tutores": false,
             "delete:users_tutores": false,
+
+            //  pagina de personal
+            "create:users_personal": true,
+            "read:users_personal": true,
+            "update:users_personal": true,
+            "delete:users_personal": false,
         },
         teacher: {
             // Profesor similar al tutor pero con menos permisos
@@ -116,6 +140,12 @@ export const usePermissions = (schoolId?: string) => {
             "read:users_tutores": false,
             "update:users_tutores": false,
             "delete:users_tutores": false,
+
+            //  pagina de personal
+            "create:users_personal": false,
+            "read:users_personal": false,
+            "update:users_personal": false,
+            "delete:users_personal": false,
         },
         tutor: {
             // Tutor es el padre 
@@ -136,6 +166,12 @@ export const usePermissions = (schoolId?: string) => {
             "read:users_tutores": false,
             "update:users_tutores": false,
             "delete:users_tutores": false,
+
+            //  pagina de personal
+            "create:users_personal": false,
+            "read:users_personal": false,
+            "update:users_personal": false,
+            "delete:users_personal": false,
         },
     };
 
@@ -294,6 +330,12 @@ export const usePermissions = (schoolId?: string) => {
         canReadUsersTutores: permissions["read:users_tutores"] || false,
         canUpdateUsersTutores: permissions["update:users_tutores"] || false,
         canDeleteUsersTutores: permissions["delete:users_tutores"] || false,
+
+        // Permisos pagina de personal
+        canCreateUsersPersonal: permissions["create:users_personal"] || false,
+        canReadUsersPersonal: permissions["read:users_personal"] || false,
+        canUpdateUsersPersonal: permissions["update:users_personal"] || false,
+        canDeleteUsersPersonal: permissions["delete:users_personal"] || false,
 
         // Propiedades específicas por rol
         isSuperAdmin: hasRole('superadmin'),

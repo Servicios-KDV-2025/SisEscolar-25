@@ -63,6 +63,7 @@ import {
   CheckCircle,
   Building2,
   BookOpen,
+  GraduationCap,
   Search as SearchIcon,
 } from "@repo/ui/icons";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
@@ -74,6 +75,9 @@ import {
 import { useUserWithConvex } from "../../../../../stores/userStore";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { useUserActionsWithConvex } from "../../../../../stores/userActionsStore";
+import { usePermissions } from "../../../../../hooks/usePermissions";
+import NotAuth from "../../../../../components/NotAuth";
+
 
 // Tipo para los usuarios que vienen de Convex
 type UserFromConvex = {
@@ -107,6 +111,8 @@ type SearchUserResult = {
   createdAt: number;
   updatedAt: number;
 };
+
+
 
 // Función para obtener el esquema correcto según la operación
 const getSchemaForOperation = (operation: string) => {
@@ -174,6 +180,17 @@ export default function PersonalPage() {
   const { currentSchool, isLoading: schoolLoading } = useCurrentSchool(
     currentUser?._id
   );
+
+  // Obtener permisos del usuario
+  const {
+    canCreateUsersPersonal,
+    canReadUsersPersonal,
+    canUpdateUsersPersonal,
+    canDeleteUsersPersonal,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+    currentRole,
+  } = usePermissions(currentSchool?.school?._id);
 
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState("");
@@ -571,7 +588,7 @@ export default function PersonalPage() {
         status: (combinedData.status as "active" | "inactive") || "active",
       });
 
-      
+
     } catch (error) {
       console.error("❌ Error en handleUpdate:", error);
       throw error;
@@ -637,6 +654,17 @@ export default function PersonalPage() {
   const isCrudLoading =
     userActions.isCreating || userActions.isUpdating || userActions.isDeleting;
 
+  // Verificar error de permisos o falta de permiso de lectura
+  if ((permissionsError || !canReadUsersPersonal) && !permissionsLoading && !isLoading) {
+    return (
+      <NotAuth
+        pageName="Personal"
+        pageDetails="Administra el personal "
+        icon={Users}
+      />
+    );
+  }
+
   // Estadísticas por rol - Excluir tutores
   const personalUsers =
     allUsers?.filter(
@@ -678,6 +706,9 @@ export default function PersonalPage() {
     },
   ];
 
+
+
+
   return (
     <div className="space-y-8 p-6">
       {/* Header */}
@@ -701,15 +732,18 @@ export default function PersonalPage() {
                 </div>
               </div>
             </div>
-            <Button
-              size="lg"
-              className="gap-2"
-              onClick={handleOpenCreate}
-              disabled={isLoading || !currentSchool || isCrudLoading}
-            >
-              <Plus className="w-4 h-4" />
-              Agregar Personal
-            </Button>
+            {canCreateUsersPersonal && (
+              <Button
+                size="lg"
+                className="gap-2"
+                onClick={handleOpenCreate}
+                disabled={isLoading || !currentSchool || isCrudLoading}
+              >
+                <Plus className="w-4 h-4" />
+                Agregar Personal
+              </Button>
+            )}
+
           </div>
         </div>
       </div>
@@ -993,6 +1027,7 @@ export default function PersonalPage() {
                             >
                               <Eye className="h-8 w-8 p-0" />
                             </Button>
+                            {canUpdateUsersPersonal && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1002,7 +1037,8 @@ export default function PersonalPage() {
                             >
                               <Pencil className="h-8 w-8 p-0" />
                             </Button>
-                            {user.schoolStatus === "active" && (
+                            )}
+                            {canDeleteUsersPersonal && (
                               <Button
                                 variant="ghost"
                                 size="sm"
