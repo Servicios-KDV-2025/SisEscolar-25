@@ -1,150 +1,23 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
-import { api } from "@repo/convex/convex/_generated/api";
-import { Id } from "@repo/convex/convex/_generated/dataModel";
-import { Badge } from "@repo/ui/components/shadcn/badge";
-import { Button } from "@repo/ui/components/shadcn/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@repo/ui/components/shadcn/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@repo/ui/components/shadcn/dialog";
-import { Input } from "@repo/ui/components/shadcn/input";
-import { Label } from "@repo/ui/components/shadcn/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@repo/ui/components/shadcn/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@repo/ui/components/shadcn/table";
-import { Textarea } from "@repo/ui/components/shadcn/textarea";
-import {
-  BookOpen,
-  CheckCircle,
-  FileCheck,
-  FileX,
-  Filter,
-  X,
-  XCircle,
-  Loader2,
-  Save,
-  MessageCircleMore,
-  MessageCircleDashed,
-} from "@repo/ui/icons";
-import { useQuery, useMutation } from "convex/react";
-import { useMemo, useState, useEffect } from "react";
-import { toast } from "sonner";
-import { useClassCatalog } from "stores/classCatalogStore";
-import { useCurrentSchool } from "stores/userSchoolsStore";
-import { useUserWithConvex } from "stores/userStore";
+import { useUser } from "@clerk/nextjs"
+import { api } from "@repo/convex/convex/_generated/api"
+import { Id } from "@repo/convex/convex/_generated/dataModel"
+import { Badge } from "@repo/ui/components/shadcn/badge"
+import { Button } from "@repo/ui/components/shadcn/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
+import { Input } from "@repo/ui/components/shadcn/input"
+import { Label } from "@repo/ui/components/shadcn/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table"
+import { BookOpen, CheckCircle, FileCheck, FileX, Filter, X, XCircle } from "@repo/ui/icons"
+import { useQuery } from "convex/react"
+import { useMemo, useState } from "react"
+import { useClassCatalog } from "stores/classCatalogStore"
+import { useCurrentSchool } from "stores/userSchoolsStore"
+import { useUserWithConvex } from "stores/userStore"
 
-type AttendanceRecord = NonNullable<
-  ReturnType<
-    typeof useQuery<typeof api.functions.attendance.getAttendanceHistory>
-  >
->[0];
-type AttendanceState = "present" | "absent" | "justified" | "unjustified";
-
-const CharacterCounter = ({
-  current,
-  max,
-}: {
-  current: number;
-  max: number;
-}) => (
-  <div className="text-xs mt-1 text-right text-gray-500">
-    {current}/{max} caracteres
-  </div>
-);
-
-interface CommentEditModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  record: AttendanceRecord | null;
-  onSave: (recordId: Id<"attendance">, newComment: string) => void;
-  isSaving: boolean;
-}
-
-function CommentEditModal({
-  isOpen,
-  onClose,
-  record,
-  onSave,
-  isSaving,
-}: CommentEditModalProps) {
-  const [comment, setComment] = useState("");
-
-  useEffect(() => {
-    if (record) setComment(record.comments || "");
-  }, [record]);
-
-  const handleSave = () => {
-    if (!record || isSaving) return;
-    onSave(record._id, comment);
-  };
-
-  if (!record) return null;
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Editar Comentario</DialogTitle>
-        </DialogHeader>
-        <div className="py-4 space-y-2">
-          <Label htmlFor="comment" className="text-muted-foreground">
-            Comentario para:{" "}
-            <span className="font-semibold text-primary">
-              {record.student.name} {record.student.lastName}
-            </span>
-          </Label>
-          <Textarea
-            id="comment"
-            value={comment}
-            maxLength={300}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="Añade una nota..."
-            rows={5}
-            className="mt-2"
-          />
-          <CharacterCounter current={comment.length} max={300} />
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSaving}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            Guardar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
+type AttendanceState = 'present' | 'absent' | 'justified' | 'unjustified'
 
 interface AttendanceFilters {
   classCatalogId?: Id<"classCatalog">;
@@ -153,10 +26,10 @@ interface AttendanceFilters {
 }
 
 export default function AttendanceHistory() {
-  const { user: clerkUser } = useUser();
-  const { currentUser } = useUserWithConvex(clerkUser?.id);
-  const { currentSchool, isLoading } = useCurrentSchool(currentUser?._id);
-  const { classCatalogs } = useClassCatalog(currentSchool?.school._id);
+  const { user: clerkUser } = useUser()
+  const { currentUser } = useUserWithConvex(clerkUser?.id)
+  const { currentSchool, isLoading } = useCurrentSchool(currentUser?._id)
+  const { classCatalogs } = useClassCatalog(currentSchool?.school._id)
 
   const [filterClass, setFilterClass] = useState("all");
   const [filterState, setFilterState] = useState("all");

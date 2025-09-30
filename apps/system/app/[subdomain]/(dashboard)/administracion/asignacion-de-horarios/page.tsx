@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
@@ -45,7 +45,7 @@ import {
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
 import { toast } from "sonner";
 import { Book, ClockPlus } from "@repo/ui/icons";
-
+import { usePermissions } from 'hooks/usePermissions';
 
 export default function HorariosPorClasePage() {
   const { user: clerkUser, isLoaded } = useUser();
@@ -66,7 +66,32 @@ export default function HorariosPorClasePage() {
     removeDuplicates,
   } = useClassScheduleStore();
 
-  const filteredClasses = useFilteredClasses();
+  const {
+    getStudentFilters,
+    canCreateScheduleAssignament,
+    canUpdateScheduleAssignament,
+    canDeleteScheduleAssignament,
+    currentRole,
+    isLoading: permissionsLoading
+  } = usePermissions(currentSchool?.school._id);
+
+  const classFilters = useMemo(() => {
+    return getStudentFilters?.() || { canViewAll: false };
+  }, [getStudentFilters]);
+
+  const classS = useQuery(
+    api.functions.classSchedule.getClassScheduleWithRoleFilter,
+    currentSchool && classFilters ? {
+      schoolId: currentSchool?.school._id as Id<'school'>,
+      canViewAll: classFilters.canViewAll,
+      tutorId: classFilters.tutorId,
+      teacherId: classFilters.teacherId,
+    } : 'skip'
+  );
+
+  const classItems = classS as ClassItem[];
+
+  const filteredClasses = useFilteredClasses(classItems);
 
   // Obtener el ciclo escolar activo
   const activeCycle = useQuery(
@@ -93,7 +118,7 @@ export default function HorariosPorClasePage() {
     currentSchool?.school._id ? { schoolId: currentSchool.school._id } : 'skip'
   );
 
-  const isLoading = !isLoaded || userLoading || schoolLoading || !activeCycle || !allClassCatalogs || !schedules || !classes;
+  const isLoading = !isLoaded || userLoading || schoolLoading || !activeCycle || !allClassCatalogs || !schedules || !classes || permissionsLoading;
 
   const createClassSchedule = useMutation(api.functions.classSchedule.createClassSchedule);
   const updateClassAndSchedules = useMutation(api.functions.classSchedule.updateClassAndSchedules);
@@ -111,7 +136,6 @@ export default function HorariosPorClasePage() {
       setClasses(filteredClasses);
     }
   }, [classes, setClasses, removeDuplicates]);
-
 
   const formatTime = (time: string) => {
     return new Date(`2000-01-01T${time}`).toLocaleTimeString("es-ES", {
@@ -305,39 +329,47 @@ export default function HorariosPorClasePage() {
                 </div>
               </div>
             </div>
-            <Button
-              size="lg"
-              className="gap-2"
-              onClick={crudDialog.openCreate}>
-              <Plus className="h-4 w-4" />
-              Agregar Asignación
-            </Button>
+            {canCreateScheduleAssignament &&
+              (<Button
+                size="lg"
+                className="gap-2"
+                onClick={crudDialog.openCreate}>
+                <Plus className="h-4 w-4" />
+                Agregar Asignación
+              </Button>)
+            }
           </div>
         </div>
       </div>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <Card
-            key={index}
-            className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </CardTitle>
-              <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                <stat.icon className="h-4 w-4 text-primary" />
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="text-3xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">{stat.trend}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {(
+        currentRole === 'superadmin' ||
+        currentRole === 'admin' ||
+        currentRole === 'auditor'
+      ) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {stats.map((stat, index) => (
+              <Card
+                key={index}
+                className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    {stat.title}
+                  </CardTitle>
+                  <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                    <stat.icon className="h-4 w-4 text-primary" />
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="text-3xl font-bold">{stat.value}</div>
+                  <p className="text-xs text-muted-foreground">{stat.trend}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
       
         <Card>
@@ -367,24 +399,27 @@ export default function HorariosPorClasePage() {
                   />
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Select
-                  onValueChange={(v) => setFilter(v === "all" ? "active" : "inactive")}
-                  value={filter || ""}
-                >
-                  <SelectTrigger className="w-[160px]">
-                    <SelectValue placeholder="Filtrar estado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los estados</SelectItem>
-                    <SelectItem value="active">Activos</SelectItem>
-                    <SelectItem value="inactive">Inactivos</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {(currentRole === 'superadmin' || currentRole === 'admin' || currentRole === 'auditor') && (
+                <div className="flex gap-2">
+                  <Select
+                    onValueChange={(v) => setFilter(v === "all" ? "active" : "inactive")}
+                    value={filter || ""}
+                  >
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="Filtrar estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los estados</SelectItem>
+                      <SelectItem value="active">Activos</SelectItem>
+                      <SelectItem value="inactive">Inactivos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
@@ -406,17 +441,23 @@ export default function HorariosPorClasePage() {
                 <h3 className="text-lg font-medium mb-2">
                   No se encontraron asignaciones
                 </h3>
+                {currentRole === 'tutor' ? (
                 <p className="text-muted-foreground mb-4">
                   Intenta ajustar los filtros o agrega una nueva asignación.
                 </p>
-                <Button
-                  size="lg"
-                  className="gap-2"
-                  onClick={crudDialog.openCreate}
-                >
-                  <Plus className="h-4 w-4" />
-                  Agregar Horario por Clase
-                </Button>
+                ) : (
+                  <p>En caso de alguna inconsistencia con la información comunicate con soporte.</p>
+                )}
+                {canCreateScheduleAssignament &&
+                  <Button
+                    size="lg"
+                    className="gap-2"
+                    onClick={crudDialog.openCreate}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Agregar Horario por Clase
+                  </Button>
+                }
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-9">
@@ -525,7 +566,7 @@ export default function HorariosPorClasePage() {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button
+                      {canUpdateScheduleAssignament && <Button
                         variant="ghost"
                         size="sm"
                         onClick={(e) => {
@@ -535,8 +576,8 @@ export default function HorariosPorClasePage() {
                         className="hover:scale-105 transition-transform cursor-pointer"
                       >
                         <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
+                      </Button>}
+                      {canDeleteScheduleAssignament && <Button
                         variant="ghost"
                         size="sm"
                         onClick={(e) => {
@@ -546,7 +587,7 @@ export default function HorariosPorClasePage() {
                         className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive bg-white"
                       >
                         <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </Button>}
                     </CardFooter>
                   </Card>
                 ))}

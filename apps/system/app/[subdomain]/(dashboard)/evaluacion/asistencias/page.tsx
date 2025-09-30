@@ -5,8 +5,26 @@ import AttendanceManager from "components/attendance/attendanceManager";
 import AttendanceHistory from "components/attendance/attendanceHistory";
 import { Tabs, TabsList, TabsContent, TabsTrigger } from "@repo/ui/components/shadcn/tabs";
 import { ClipboardList } from "@repo/ui/icons";
+import { useUser } from '@clerk/nextjs';
+import { useUserWithConvex } from 'stores/userStore';
+import { useCurrentSchool } from 'stores/userSchoolsStore';
+import { useClassCatalog } from 'stores/classCatalogStore';
+import { usePermissions } from 'hooks/usePermissions';
 
 export default function AttendancePage() {
+  const { user: clerkUser } = useUser()
+  const { currentUser } = useUserWithConvex(clerkUser?.id)
+  const { currentSchool, isLoading } = useCurrentSchool(currentUser?._id)
+  const { classCatalogs } = useClassCatalog(currentSchool?.school._id)
+
+  const {
+    canCreateClassCatalog,
+    canReadClassCatalog,
+    canUpdateClassCatalog,
+    currentRole,
+    isLoading: permissionsLoading,
+  } = usePermissions(currentSchool?.school._id);
+
   const [activeTab, setActiveTab] = useState('register');
 
   return (
@@ -32,27 +50,48 @@ export default function AttendancePage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
-        <TabsList  className="w-full bg-muted/50 p-1 rounded-xl border">
-          <TabsTrigger 
-            value="register"
-          >
-            <span className="font-semibold">Registrar Asistencia</span>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="history"
-          >
-            <span className="font-semibold">Historial</span>
-          </TabsTrigger>
-        </TabsList>
+        {currentRole !== 'tutor' ?
+          (<>
+            <TabsList className="w-full bg-muted/50 p-1 rounded-xl border">
+              <TabsTrigger
+                value="register"
+              >
+                <span className="font-semibold">Registrar Asistencia</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="history"
+              >
+                <span className="font-semibold">Historial</span>
+              </TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="register">
-          <AttendanceManager />
-        </TabsContent>
+            <TabsContent value="register">
+              <AttendanceManager
+                currentUser={currentUser}
+                currentSchool={currentSchool}
+                classCatalogs={classCatalogs}
+                isLoading={isLoading}
+              />
+            </TabsContent>
 
-        <TabsContent value="history">
-          <AttendanceHistory />
-        </TabsContent>
+            <TabsContent value="history">
+              <AttendanceHistory
+                currentSchool={currentSchool}
+                classCatalogs={classCatalogs}
+                isLoading={isLoading}
+              />
+            </TabsContent>
+          </>) : (
+            <TabsContent value="history">
+              <AttendanceHistory
+                currentSchool={currentSchool}
+                classCatalogs={classCatalogs}
+                isLoading={isLoading}
+              />
+            </TabsContent>
+          )
+        }
       </Tabs>
-    </div>
+    </div >
   );
 };

@@ -21,263 +21,52 @@ export const usePermissions = (schoolId?: string) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Definir todos los recursos y acciones disponibles
-  const actionsResources = [
-    { action: "create", resource: "users" },
-    { action: "read", resource: "users" },
-    { action: "update", resource: "users" },
-    { action: "delete", resource: "users" },
-    //Aulas
-    { action: "create", resource: "classroom" },
-    { action: "read", resource: "classroom" },
-    { action: "update", resource: "classroom" },
-    { action: "delete", resource: "classroom" },
-    // Materias
-    { action: "create", resource: "subject" },
-    { action: "read", resource: "subject" },
-    { action: "update", resource: "subject" },
-    { action: "delete", resource: "subject" },
-    // Grupos
-    { action: "create", resource: "group" },
-    { action: "read", resource: "group" },
-    { action: "update", resource: "group" },
-    { action: "delete", resource: "group" },
-    // Horarios
-    { action: "create", resource: "schedule" },
-    { action: "read", resource: "schedule" },
-    { action: "update", resource: "schedule" },
-    { action: "delete", resource: "schedule" },
-    // Ciclos Escolares
-    { action: "create", resource: "schoolCycle" },
-    { action: "read", resource: "schoolCycle" },
-    { action: "update", resource: "schoolCycle" },
-    { action: "delete", resource: "schoolCycle" },
-    // Calendario Escolar
-    { action: "create", resource: "calendar" },
-    { action: "read", resource: "calendar" },
-    { action: "update", resource: "calendar" },
-    { action: "delete", resource: "calendar" },
-    // Periodos
-    { action: "create", resource: "term" },
-    { action: "read", resource: "term" },
-    { action: "update", resource: "term" },
-    { action: "delete", resource: "term" },
-  ];
+    // Definir todos los recursos y acciones disponibles
+    const actionsResources = [
+        { action: "create", resource: "users" },
+        { action: "read", resource: "users" },
+        { action: "update", resource: "users" },
+        { action: "delete", resource: "users" },
+    ];
 
-  // Definir permisos por rol (basado en tu sistema actual)
-  const rolePermissions: Record<UserRole, Record<string, boolean>> = {
-    superadmin: {
-      // Superadmin tiene TODOS los permisos
-      "create:users": true,
-      "read:users": true,
-      "update:users": true,
-      "delete:users": true,
-
-      //Aulas
-      "create:classroom": true,
-      "read:classroom": true,
-      "update:classroom": true,
-      "delete:classroom": true,
-      // Materias
-      "create:subject": true,
-      "read:subject": true,
-      "update:subject": true,
-      "delete:subject": true,
-      // Grupos
-      "create:group": true,
-      "read:group": true,
-      "update:group": true,
-      "delete:group": true,
-      // Horarios
-      "create:schedule": true,
-      "read:schedule": true,
-      "update:schedule": true,
-      "delete:schedule": true,
-      // Ciclos Escolares
-      "create:schoolCycle": true,
-      "read:schoolCycle": true,
-      "update:schoolCycle": true,
-      "delete:schoolCycle": true,
-      // Calendario Escolar
-      "create:calendar": true,
-      "read:calendar": true,
-      "update:calendar": true,
-      "delete:calendar": true,
-      // Periodos
-      "create:term": true,
-      "read:term": true,
-      "update:term": true,
-      "delete:term": true,
-    },
-    admin: {
-      // Admin tiene casi todos los permisos (excepto eliminar escuelas)
-      "create:users": true,
-      "read:users": true,
-      "update:users": true,
-      "delete:users": true,
-      //Aulas
-      "create:classroom": true,
-      "read:classroom": true,
-      "update:classroom": true,
-      "delete:classroom": true,
-      // Materias
-      "create:subject": true,
-      "read:subject": true,
-      "update:subject": true,
-      "delete:subject": true,
-      // Grupos
-      "create:group": true,
-      "read:group": true,
-      "update:group": true,
-      "delete:group": true,
-      // Horarios
-      "create:schedule": true,
-      "read:schedule": true,
-      "update:schedule": true,
-      "delete:schedule": true,
-      // Ciclos Escolares
-      "create:schoolCycle": true,
-      "read:schoolCycle": true,
-      "update:schoolCycle": true,
-      "delete:schoolCycle": true,
-      // Calendario Escolar
-      "create:calendar": true,
-      "read:calendar": true,
-      "update:calendar": true,
-      "delete:calendar": true,
-      // Periodos
-      "create:term": true,
-      "read:term": true,
-      "update:term": true,
-      "delete:term": true,
-    },
-    auditor: {
-      // Auditor solo puede leer y ver reportes
-      "create:users": false,
-      "read:users": true,
-      "update:users": false,
-      "delete:users": false,
-      //Aulas
-      "create:classroom": false,
-      "read:classroom": true,
-      "update:classroom": false,
-      "delete:classroom": false,
-      // Materias
-      "create:subject": false,
-      "read:subject": true,
-      "update:subject": false,
-      "delete:subject": false,
-      // Grupos
-      "create:group": false,
-      "read:group": true,
-      "update:group": false,
-      "delete:group": false,
-      // Horarios
-      "create:schedule": false,
-      "read:schedule": true,
-      "update:schedule": false,
-      "delete:schedule": false,
-      // Ciclos Escolares
-      "create:schoolCycle": false,
-      "read:schoolCycle": true,
-      "update:schoolCycle": false,
-      "delete:schoolCycle": false,
-      // Calendario Escolar
-      "create:calendar": false,
-      "read:calendar": true,
-      "update:calendar": false,
-      "delete:calendar": false,
-      // Periodos
-      "create:term": false,
-      "read:term": true,
-      "update:term": false,
-      "delete:term": false,
-    },
-    teacher: {
-      // Profesor similar al tutor pero con menos permisos
-      "create:users": false,
-      "read:users": true, // Solo usuarios de sus materias
-      "update:users": false,
-      "delete:users": false,
-      //Aulas
-      "create:classroom": false,
-      "read:classroom": false,
-      "update:classroom": false,
-      "delete:classroom": false,
-      // Materias
-      "create:subject": false,
-      "read:subject": false,
-      "update:subject": false,
-      "delete:subject": false,
-      // Grupos
-      "create:group": false,
-      "read:group": false,
-      "update:group": false,
-      "delete:group": false,
-      // Horarios
-      "create:schedule": false,
-      "read:schedule": false,
-      "update:schedule": false,
-      "delete:schedule": false,
-      // Ciclos Escolares
-      "create:schoolCycle": false,
-      "read:schoolCycle": false,
-      "update:schoolCycle": false,
-      "delete:schoolCycle": false,
-      // Calendario Escolar
-      "create:calendar": false,
-      "read:calendar": true,
-      "update:calendar": false,
-      "delete:calendar": false,
-      // Periodos
-      "create:term": false,
-      "read:term": true,
-      "update:term": false,
-      "delete:term": false,
-    },
-    tutor: {
-      // Tutor es el padre
-      "create:users": false,
-      "read:users": true, // Solo podra ver a sus hijos
-      "update:users": false,
-      "delete:users": false,
-      //Aulas
-      "create:classroom": false,
-      "read:classroom": false,
-      "update:classroom": false,
-      "delete:classroom": false,
-      // Materias
-      "create:subject": false,
-      "read:subject": false,
-      "update:subject": false,
-      "delete:subject": false,
-      // Grupos
-      "create:group": false,
-      "read:group": false,
-      "update:group": false,
-      "delete:group": false,
-      // Horarios
-      "create:schedule": false,
-      "read:schedule": false,
-      "update:schedule": false,
-      "delete:schedule": false,
-      // Ciclos Escolares
-      "create:schoolCycle": false,
-      "read:schoolCycle": false,
-      "update:schoolCycle": false,
-      "delete:schoolCycle": false,
-      // Calendario Escolar
-      "create:calendar": false,
-      "read:calendar": true,
-      "update:calendar": false,
-      "delete:calendar": false,
-      // Periodos
-      "create:term": false,
-      "read:term": false,
-      "update:term": false,
-      "delete:term": false,
-    },
-  };
+    // Definir permisos por rol (basado en tu sistema actual)
+    const rolePermissions: Record<UserRole, Record<string, boolean>> = {
+        superadmin: {
+            // Superadmin tiene TODOS los permisos
+            "create:users": true,
+            "read:users": true,
+            "update:users": true,
+            "delete:users": true,
+        },
+        admin: {
+            // Admin tiene casi todos los permisos (excepto eliminar escuelas)
+            "create:users": true,
+            "read:users": true,
+            "update:users": true,
+            "delete:users": true,
+        },
+        auditor: {
+            // Auditor solo puede leer y ver reportes
+            "create:users": false,
+            "read:users": true,
+            "update:users": false,
+            "delete:users": false,
+        },
+        teacher: {
+            // Profesor similar al tutor pero con menos permisos
+            "create:users": false,
+            "read:users": true, // Solo usuarios de sus materias
+            "update:users": false,
+            "delete:users": false,
+        },
+        tutor: {
+            // Tutor es el padre 
+            "create:users": false,
+            "read:users": true, // Solo podra ver a sus hijos
+            "update:users": false,
+            "delete:users": false,
+        },
+    };
 
   // Obtener roles del usuario en la escuela específica o en todas las escuelas
   const userRoles = useMemo((): UserRole[] => {
@@ -414,75 +203,40 @@ export const usePermissions = (schoolId?: string) => {
     return { canViewAll: false, tutorId: undefined, teacherId: undefined };
   }, [currentUser, currentRole]);
 
-  return {
-    // Estado
-    permissions,
-    isLoading,
-    error,
-
-    // Roles del usuario
-    userRoles,
-    currentRole,
-    availableRoles,
-
-    // Funciones de permisos
-    hasPermission,
-    hasAnyPermission,
-    hasAllPermissions,
-
-    // Funciones de roles
-    hasRole,
-    hasAnyRole,
-
-    // Propiedades específicas para facilitar el uso
-    canCreateUsers: permissions["create:users"] || false,
-    canReadUsers: permissions["read:users"] || false,
-    canUpdateUsers: permissions["update:users"] || false,
-    canDeleteUsers: permissions["delete:users"] || false,
-    //Aulas
-    canCreateClassroom: permissions["create:classroom"] || false,
-    canReadClassroom: permissions["read:classroom"] || false,
-    canUpdateClassroom: permissions["update:classroom"] || false,
-    canDeleteClassroom: permissions["delete:classroom"] || false,
-    //Materias
-    canCreateSubject: permissions["create:subject"] || false,
-    canReadSubject: permissions["read:subject"] || false,
-    canUpdateSubject: permissions["update:subject"] || false,
-    canDeleteSubject: permissions["delete:subject"] || false,
-    //Grupos
-    canCreateGroup: permissions["create:group"] || false,
-    canReadGroup: permissions["read:group"] || false,
-    canUpdateGroup: permissions["update:group"] || false,
-    canDeleteGroup: permissions["delete:group"] || false,
-    //Horarios
-    canCreateSchedule: permissions["create:schedule"] || false,
-    canReadSchedule: permissions["read:schedule"] || false,
-    canUpdateSchedule: permissions["update:schedule"] || false,
-    canDeleteSchedule: permissions["delete:schedule"] || false,
-    //Ciclos Escolares
-    canCreateSchoolCycle: permissions["create:schoolCycle"] || false,
-    canReadSchoolCycle: permissions["read:schoolCycle"] || false,
-    canUpdateSchoolCycle: permissions["update:schoolCycle"] || false,
-    canDeleteSchoolCycle: permissions["delete:schoolCycle"] || false,
-    //Calendario Escolar
-    canCreateCalendar: permissions["create:calendar"] || false,
-    canReadCalendar: permissions["read:calendar"] || false,
-    canUpdateCalendar: permissions["update:calendar"] || false,
-    canDeleteCalendar: permissions["delete:calendar"] || false,
-    //Periodos
-    canCreateTerm: permissions["create:term"] || false,
-    canReadTerm: permissions["read:term"] || false,
-    canUpdateTerm: permissions["update:term"] || false,
-    canDeleteTerm: permissions["delete:term"] || false,
-
-    // Propiedades específicas por rol
-    isSuperAdmin: hasRole("superadmin"),
-    isAdmin: hasRole("admin"),
-    isAuditor: hasRole("auditor"),
-    isTeacher: hasRole("teacher"),
-    isTutor: hasRole("tutor"),
-
-    // Filtros para estudiantes
-    getStudentFilters,
-  };
+    return {
+        // Estado
+        permissions,
+        isLoading,
+        error,
+        
+        // Roles del usuario
+        userRoles,
+        currentRole,
+        availableRoles,
+        
+        // Funciones de permisos
+        hasPermission,
+        hasAnyPermission,
+        hasAllPermissions,
+        
+        // Funciones de roles
+        hasRole,
+        hasAnyRole,
+        
+        // Propiedades específicas para facilitar el uso
+        canCreateUsers: permissions["create:users"] || false,
+        canReadUsers: permissions["read:users"] || false,
+        canUpdateUsers: permissions["update:users"] || false,
+        canDeleteUsers: permissions["delete:users"] || false,
+        
+        // Propiedades específicas por rol
+        isSuperAdmin: hasRole('superadmin'),
+        isAdmin: hasRole('admin'),
+        isAuditor: hasRole('auditor'),
+        isTeacher: hasRole('teacher'),
+        isTutor: hasRole('tutor'),
+        
+        // Filtros para estudiantes
+        getStudentFilters,
+    };
 };
