@@ -65,6 +65,7 @@ import { useTask } from "../../../../../stores/taskStore";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { TaskCreateForm } from "../../../../../components/TaskCreateForm";
 import { useUserWithConvex } from "stores/userStore";
+import ListStudents from "components/asignaciones/ListStudents";
 
 // Componente principal de contenido (solo se ejecuta cuando está autenticado)
 export default function TaskManagement() {
@@ -106,6 +107,7 @@ export default function TaskManagement() {
 
   // Estado para el dialog de detalles
   const [detailsDialogOpen, setDetailsDialogOpen] = useState<boolean>(false);
+  const [listStudentDialogOpen, setListStudentDialogOpen] = useState<boolean>(false)
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<
     string | null
   >(null);
@@ -123,6 +125,11 @@ export default function TaskManagement() {
     setSelectedTaskForDetails(taskId);
     setDetailsDialogOpen(true);
   };
+
+  const handleListStudent = (taskId: string) => {
+    setSelectedTaskForDetails(taskId)
+    setListStudentDialogOpen(true)
+  }
 
   const handleUpdateTask = async () => {
     try {
@@ -705,7 +712,11 @@ export default function TaskManagement() {
                           <div className="flex items-center">
                             <FileText className="w-5 h-5 text-blue-600" />
                           </div>
-                          <Link href={`/teacher/classid/tasks/${task._id}`}>
+                          <div 
+                            // href={`/teacher/classid/tasks/${task._id}`}
+                            onClick={() => handleListStudent(task._id)}
+                            className="cursor-pointer"
+                          >
                             <h3 className="text-lg font-semibold">
                               {task.gradeRubric?.name ?? "Sin rúbrica"} -{" "}
                               {task.name}
@@ -716,7 +727,7 @@ export default function TaskManagement() {
                                 </span>
                               )}
                             </h3>
-                          </Link>
+                          </div>
                         </div>
                         <p className="text-gray-600 mb-2 break-words">{task.description}</p>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-500">
@@ -996,6 +1007,12 @@ export default function TaskManagement() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ListStudents
+        open={listStudentDialogOpen}
+        close={setListStudentDialogOpen}
+        assignmentDetails={assignmentDetails}
+      />
     </div>
   );
 }
