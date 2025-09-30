@@ -14,12 +14,16 @@ interface GroupCardProps {
   openEdit: (itemData: Group) => void;
   openView: (itemData: Group) => void;
   openDelete: (itemData: Group) => void;
+  canUpdateGroup: boolean;
+  canDeleteGroup: boolean;
 }
 
 export function GroupCard({
   group,
   isUpdatingGroup,
   isDeletingGroup,
+  canUpdateGroup,
+  canDeleteGroup,
   openEdit,
   openView,
   openDelete,
@@ -94,7 +98,7 @@ export function GroupCard({
         >
           <Eye className="h-4 w-4" />
         </Button>
-        <Button
+        {canUpdateGroup && (<Button
           variant="ghost"
           size="sm"
           onClick={(e) => {
@@ -105,8 +109,8 @@ export function GroupCard({
           className="hover:scale-105 transition-transform cursor-pointer"
         >
           <Edit className="h-4 w-4" />
-        </Button>
-        <Button
+        </Button>)}
+        {canDeleteGroup && (<Button
           variant="ghost"
           size="sm"
           onClick={(e) => {
@@ -117,7 +121,7 @@ export function GroupCard({
           className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive bg-white"
         >
           <Trash2 className="h-4 w-4" />
-        </Button>
+        </Button>)}
       </CardFooter>
     </Card>
   )
