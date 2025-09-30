@@ -23,11 +23,15 @@ interface SubjectCardProps {
     openEdit: (itemData: Subject) => void;
     openView: (itemData: Subject) => void;
     openDelete: (itemData: Subject) => void;
+    canUpdateSubject: boolean;
+    canDeleteSubject: boolean;
+    
     isUpdatingSubject: boolean;
     isDeletingSubject: boolean;
 }
 
-export function SubjectCard({ subject, openEdit, openView, openDelete, isUpdatingSubject, isDeletingSubject }: SubjectCardProps) {
+export function SubjectCard({ subject, openEdit, openView, openDelete, isUpdatingSubject, isDeletingSubject,canUpdateSubject,
+    canDeleteSubject, }: SubjectCardProps) {
     const formatDate = (timestamp: number) => {
         return new Date(timestamp).toLocaleDateString("es-ES", {
             year: "numeric",
@@ -104,7 +108,7 @@ export function SubjectCard({ subject, openEdit, openView, openDelete, isUpdatin
                 >
                     <Eye className="h-4 w-4" />
                 </Button>
-                <Button
+                {(canUpdateSubject && <Button
                     variant="ghost"
                     size="sm"
                     onClick={(e) => {
@@ -122,8 +126,8 @@ export function SubjectCard({ subject, openEdit, openView, openDelete, isUpdatin
                     className="hover:scale-105 transition-transform cursor-pointer"
                 >
                     <Edit className="h-4 w-4" />
-                </Button>
-                <Button
+                </Button>)}
+                {canDeleteSubject && (<Button
                     variant="ghost"
                     size="sm"
                     onClick={(e) => {
@@ -134,7 +138,7 @@ export function SubjectCard({ subject, openEdit, openView, openDelete, isUpdatin
                     className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive bg-white"
                 >
                     <Trash2 className="h-4 w-4" />
-                </Button>
+                </Button>)}
             </CardFooter>
         </Card>
     )
