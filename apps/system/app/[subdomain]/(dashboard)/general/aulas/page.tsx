@@ -57,6 +57,7 @@ import {
 import { UseFormReturn } from "react-hook-form";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import  NotAuth  from "../../../../../components/NotAuth";
+
 interface Classroom extends Record<string, unknown> {
   _id: Id<"classroom">;
   id: string;
@@ -142,9 +143,9 @@ export default function ClassroomManagement() {
   const { currentSchool } = useCurrentSchool(currentUser?._id);
   const {
     canCreateClassroom,
-    canReadclassroom,
-    canUpdateclassroom,
-    canDeleteclassroom,
+    canReadClassroom,
+    canUpdateClassroom,
+    canDeleteClassroom,
     
   } = usePermissions(currentSchool?.school._id);
 
@@ -338,7 +339,7 @@ export default function ClassroomManagement() {
 
   return (
     <>
-      {canReadclassroom  ? (
+      {canReadClassroom  ? (
         <div className="space-y-8 p-6">
           {/* Header */}
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
@@ -619,7 +620,7 @@ export default function ClassroomManagement() {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                          {canUpdateclassroom && (  <Button
+                          {canUpdateClassroom && (  <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleEdit(classroom)}
@@ -627,7 +628,7 @@ export default function ClassroomManagement() {
                             >
                               <Edit className="h-4 w-4" />
                             </Button>)}
-                            {canDeleteclassroom && (<Button
+                            {canDeleteClassroom && (<Button
                               variant="ghost"
                               size="sm"
                               onClick={() => {
