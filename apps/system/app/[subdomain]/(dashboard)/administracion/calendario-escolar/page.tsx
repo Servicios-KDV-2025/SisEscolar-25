@@ -113,8 +113,6 @@ export default function CalendarioEscolar() {
   // Calendarios
   const [modalAbierto, setModalAbierto] = useState(false);
   const [eventoEditar, setEventoEditar] = useState<CalendarType | null>(null);
-  type ModoEvento = "editar" | "ver" | "eliminar" | null;
-  const [modoDialogo, setModoDialogo] = useState<ModoEvento>();
 
   // Tipos de eventos
   const [modalAbiertoT, setModalAbiertoT] = useState(false);
@@ -369,11 +367,6 @@ export default function CalendarioEscolar() {
                             <div
                               onClick={() => {
                                 setEventoEditar(evento as CalendarType);
-                                {
-                                  setModoDialogo(
-                                    canUpdateCalendar ? "editar" : "ver"
-                                  );
-                                }
                                 setModalAbierto(true);
                               }}
                               key={evento._id}
@@ -487,11 +480,6 @@ export default function CalendarioEscolar() {
                               key={index}
                               onClick={() => {
                                 setEventoEditar(evento as CalendarType);
-                                {
-                                  setModoDialogo(
-                                    canUpdateCalendar ? "editar" : "ver"
-                                  );
-                                }
                                 setModalAbierto(true);
                               }}
                               className={cn(
@@ -652,7 +640,6 @@ export default function CalendarioEscolar() {
                       <Button
                         onClick={() => {
                           setEventoEditar(null);
-                          setModoDialogo(null);
                           setModalAbierto(true);
                         }}
                         className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow-md transition duration-150 hover:scale-105"
@@ -798,10 +785,10 @@ export default function CalendarioEscolar() {
               }
               setModalAbierto(open);
             }}
-            modo={modoDialogo}
+            canUpdateCalendar={canUpdateCalendar}
             canDeleteCalendar={canDeleteCalendar}
             escuelaId={currentSchool?.school._id as Id<"school">}
-            eventoEditar={eventoEditar ?? undefined}
+            eventoEditar={eventoEditar}
           />
         </div>
       ) : (
