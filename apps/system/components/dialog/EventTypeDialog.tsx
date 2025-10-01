@@ -4,13 +4,42 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "convex/react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@repo/ui/components/shadcn/dialog";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@repo/ui/components/shadcn/dialog";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@repo/ui/components/shadcn/form";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Textarea } from "@repo/ui/components/shadcn/textarea";
 import { Button } from "@repo/ui/components/shadcn/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select";
-import { Calendar, Users, BookOpen, Trophy, Star, Heart, Save, X } from "@repo/ui/icons";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@repo/ui/components/shadcn/select";
+import {
+  Calendar,
+  Users,
+  BookOpen,
+  Trophy,
+  Star,
+  Heart,
+  Save,
+  X,
+} from "@repo/ui/icons";
 import { toast } from "sonner";
 import { EventType } from "@/types/eventType";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
@@ -25,6 +54,7 @@ interface TipoEventoDialogProps {
   escuelaId: Id<"school">;
   tipoEventoEditar?: EventType;
   modo?: ModoEvento;
+  canDeleteCalendar: boolean;
 }
 
 const iconOptions = [
@@ -52,7 +82,8 @@ export default function EventTypeDialog({
   onOpenChange,
   escuelaId,
   tipoEventoEditar,
-  modo
+  modo,
+  canDeleteCalendar,
 }: TipoEventoDialogProps) {
   const esSoloLectura = modo === "ver";
   const esEdicion = modo === "editar";
@@ -61,7 +92,9 @@ export default function EventTypeDialog({
 
   const crearTipoEvento = useMutation(api.functions.eventType.createEventType);
   const editarTipoEvento = useMutation(api.functions.eventType.editEventType);
-  const eliminarTipoEvento = useMutation(api.functions.eventType.deleteEventType);
+  const eliminarTipoEvento = useMutation(
+    api.functions.eventType.deleteEventType
+  );
 
   const form = useForm<EventTypeFormData>({
     resolver: zodResolver(EventTypeSchema),
@@ -71,7 +104,7 @@ export default function EventTypeDialog({
       description: "",
       color: "#3B82F6",
       icon: "calendar",
-      status: "active"
+      status: "active",
     },
   });
 
@@ -86,7 +119,7 @@ export default function EventTypeDialog({
         description: "",
         color: "#3B82F6",
         icon: "calendar",
-        status: "active"
+        status: "active",
       });
     }
     if (tipoEventoEditar && (esEdicion || esSoloLectura)) {
@@ -96,7 +129,11 @@ export default function EventTypeDialog({
         description: tipoEventoEditar.description || "",
         color: tipoEventoEditar.color || "#3B82F6",
         icon: tipoEventoEditar.icon || "calendar",
-        status: (tipoEventoEditar.status === "active" || tipoEventoEditar.status === "inactive") ? tipoEventoEditar.status : "active"
+        status:
+          tipoEventoEditar.status === "active" ||
+          tipoEventoEditar.status === "inactive"
+            ? tipoEventoEditar.status
+            : "active",
       });
     }
   }, [tipoEventoEditar, esEdicion, esSoloLectura, form, isOpen, modo]);
@@ -104,11 +141,14 @@ export default function EventTypeDialog({
   const handleEliminar = async () => {
     if (!tipoEventoEditar) return;
     try {
-      await eliminarTipoEvento({ schoolId: escuelaId, eventTypeId: tipoEventoEditar._id });
+      await eliminarTipoEvento({
+        schoolId: escuelaId,
+        eventTypeId: tipoEventoEditar._id,
+      });
       toast.success("Evento eliminado");
       onOpenChange(false);
     } catch (error) {
-      console.log("Error: ", error)
+      console.log("Error: ", error);
       toast.error("Error al eliminar");
     }
   };
@@ -126,8 +166,8 @@ export default function EventTypeDialog({
           description: data.description,
           color: data.color,
           icon: data.icon,
-          status: data.status || "active"
-        })
+          status: data.status || "active",
+        });
         toast.success("¡Tipo de Evento editado exitosamente!");
       } else if (modo === null) {
         await crearTipoEvento({
@@ -136,8 +176,8 @@ export default function EventTypeDialog({
           key: data.key,
           description: data.description || undefined,
           color: data.color || undefined,
-          icon: data.icon || undefined
-        })
+          icon: data.icon || undefined,
+        });
         toast.success("Tipo de evento creado exitosamente");
       }
       form.reset();
@@ -195,6 +235,7 @@ export default function EventTypeDialog({
                   </FormLabel>
                   <FormControl>
                     <Input
+                      disabled={esSoloLectura || esEliminar}
                       {...field}
                       placeholder="Ej: Reunión de Padres"
                       className="h-11"
@@ -219,6 +260,7 @@ export default function EventTypeDialog({
                   </FormLabel>
                   <FormControl>
                     <Input
+                      disabled={esSoloLectura || esEliminar}
                       {...field}
                       placeholder="REUNION_PADRES"
                       className="h-11 font-mono"
@@ -226,7 +268,8 @@ export default function EventTypeDialog({
                     />
                   </FormControl>
                   <FormDescription className="text-xs text-gray-500">
-                    Solo mayúsculas, números y guiones bajos. Máximo 10 caracteres.
+                    Solo mayúsculas, números y guiones bajos. Máximo 10
+                    caracteres.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -243,6 +286,7 @@ export default function EventTypeDialog({
                   </FormLabel>
                   <FormControl>
                     <Textarea
+                      disabled={esSoloLectura || esEliminar}
                       {...field}
                       placeholder="Descripción breve del tipo de evento..."
                       className="min-h-[80px] resize-none"
@@ -266,7 +310,11 @@ export default function EventTypeDialog({
                     Color
                   </FormLabel>
                   <FormControl>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select
+                      disabled={esSoloLectura || esEliminar}
+                      onValueChange={field.onChange}
+                      value={field.value}
+                    >
                       <SelectTrigger className="h-11">
                         <SelectValue>
                           <div className="flex items-center gap-2">
@@ -274,7 +322,11 @@ export default function EventTypeDialog({
                               className="w-4 h-4 rounded-full border border-gray-300"
                               style={{ backgroundColor: selectedColor }}
                             />
-                            {colorOptions.find(c => c.value === selectedColor)?.label}
+                            {
+                              colorOptions.find(
+                                (c) => c.value === selectedColor
+                              )?.label
+                            }
                           </div>
                         </SelectValue>
                       </SelectTrigger>
@@ -307,15 +359,26 @@ export default function EventTypeDialog({
                     Icono
                   </FormLabel>
                   <FormControl>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select
+                      disabled={esSoloLectura || esEliminar}
+                      onValueChange={field.onChange}
+                      value={field.value}
+                    >
                       <SelectTrigger className="h-11">
                         <SelectValue>
                           <div className="flex items-center gap-2">
                             {(() => {
-                              const IconComponent = iconOptions.find(i => i.value === selectedIcon)?.icon;
-                              return IconComponent ? <IconComponent className="w-4 h-4" /> : null;
+                              const IconComponent = iconOptions.find(
+                                (i) => i.value === selectedIcon
+                              )?.icon;
+                              return IconComponent ? (
+                                <IconComponent className="w-4 h-4" />
+                              ) : null;
                             })()}
-                            {iconOptions.find(i => i.value === selectedIcon)?.label}
+                            {
+                              iconOptions.find((i) => i.value === selectedIcon)
+                                ?.label
+                            }
                           </div>
                         </SelectValue>
                       </SelectTrigger>
@@ -336,66 +399,79 @@ export default function EventTypeDialog({
               )}
             />
 
-            {tipoEventoEditar ? <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Estado</FormLabel>
-                  <FormControl>
-                    <Select
-                      onValueChange={value => field.onChange(value)}
-                      value={field.value || "active"}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona el estado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Activo</SelectItem>
-                        <SelectItem value="inactive">Inactivo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            /> : ""}
+            {tipoEventoEditar ? (
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Estado</FormLabel>
+                    <FormControl>
+                      <Select
+                        disabled={esSoloLectura || esEliminar}
+                        onValueChange={(value) => field.onChange(value)}
+                        value={field.value || "active"}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona el estado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Activo</SelectItem>
+                          <SelectItem value="inactive">Inactivo</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : (
+              ""
+            )}
 
-            <div className="flex gap-3 pt-4 border-t border-slate-200">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isLoading}
-                className="border-slate-300 text-slate-700 hover:bg-slate-50"
-              >
-                <X className="w-4 h-4 mr-2" />
-                Cerrar
-              </Button>
-              {esEliminar ? (
-                <Button variant="destructive" onClick={handleEliminar}>Eliminar</Button>
-
-              ) : esSoloLectura ? (
-                ""
-              ) : (
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
-                >
-                  {isLoading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      {esEdicion ? "Guardando..." : "Creando..."}
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Save className="w-4 h-4" />
-                      {esEdicion ? "Guardar Cambios" : "Crear Evento"}
-                    </div>
-                  )}
+            <div className="flex gap-3 pt-4 border-t border-slate-200 justify-between">
+              {canDeleteCalendar && (
+                <Button variant="destructive" onClick={handleEliminar}>
+                  Eliminar
                 </Button>
               )}
+              <div className="flex gap-3 ml-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isLoading}
+                  className="border-slate-300 text-slate-700 hover:bg-slate-50"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Cerrar
+                </Button>
+                {esEliminar ? (
+                  <Button variant="destructive" onClick={handleEliminar}>
+                    Eliminar
+                  </Button>
+                ) : esSoloLectura ? (
+                  ""
+                ) : (
+                  <Button
+                    type="submit"
+                    disabled={isLoading}
+                    className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        {esEdicion ? "Guardando..." : "Creando..."}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Save className="w-4 h-4" />
+                        {esEdicion ? "Guardar" : "Crear Evento"}
+                      </div>
+                    )}
+                  </Button>
+                )}
+              </div>
             </div>
           </form>
         </Form>

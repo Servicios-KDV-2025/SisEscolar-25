@@ -103,11 +103,11 @@ export default function CalendarioEscolar() {
       : "skip"
   );
 
-const {
+  const {
     canCreateCalendar,
     canReadCalendar,
     canUpdateCalendar,
-    // canDeleteCalendar,  eliminar no implementado.
+    canDeleteCalendar,
   } = usePermissions(currentSchool?.school._id);
 
   // Calendarios
@@ -244,7 +244,6 @@ const {
     return modifiers;
   }, [tipoEventoMap, getTipoEvento]);
 
-  
   const generateModifiersClassNames = useCallback(() => {
     const classNames: Record<string, string> = {};
     const dotColorMap: Record<string, string> = {
@@ -291,496 +290,527 @@ const {
 
   return (
     <>
-      {canReadCalendar ? (<div>
-        <div className="container mx-auto px-6 py-6">
-          <div className="text-center space-y-4">
-            <div className="flex mt-2 justify-end">
-              <Select
-                value={filtroCicloEscolarId}
-                onValueChange={setFiltroCicloEscolarId}
-              >
-                <SelectTrigger className="bg-slate-50 border-slate-200 focus:bg-white">
-                  <School className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Filtrar por ciclo escolar" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ciclosEscolares?.map((ciclo) => (
-                    <SelectItem key={ciclo._id} value={ciclo._id}>
-                      {ciclo.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex justify-center items-center gap-3 mb-5">
-              <div className="p-3 rounded-full backdrop-blur-sm">
-                <School className="h-8 w-8" />
+      {canReadCalendar ? (
+        <div>
+          <div className="container mx-auto px-6 py-6">
+            <div className="text-center space-y-4">
+              <div className="flex mt-2 justify-end">
+                <Select
+                  value={filtroCicloEscolarId}
+                  onValueChange={setFiltroCicloEscolarId}
+                >
+                  <SelectTrigger className="bg-slate-50 border-slate-200 focus:bg-white">
+                    <School className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Filtrar por ciclo escolar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ciclosEscolares?.map((ciclo) => (
+                      <SelectItem key={ciclo._id} value={ciclo._id}>
+                        {ciclo.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <h1 className="text-4xl font-bold tracking-tight">
-                Calendario Escolar
-              </h1>
+              <div className="flex justify-center items-center gap-3 mb-5">
+                <div className="p-3 rounded-full backdrop-blur-sm">
+                  <School className="h-8 w-8" />
+                </div>
+                <h1 className="text-4xl font-bold tracking-tight">
+                  Calendario Escolar
+                </h1>
+              </div>
+              <p className="text-xl max-w-2xl mx-auto">
+                Gestiona eventos, exámenes y actividades escolares de manera
+                eficiente y organizada
+              </p>
             </div>
-            <p className="text-xl max-w-2xl mx-auto">
-              Gestiona eventos, exámenes y actividades escolares de manera
-              eficiente y organizada
-            </p>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          <div className="row-span-3 xl:col-span-1">
-            {selectedDate && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="row-span-3 xl:col-span-1">
+              {selectedDate && (
+                <Card className="shadow-lg bg-white/90 backdrop-blur-md mb-2">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-3 text-lg font-bold text-slate-800">
+                      <div className="p-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-md">
+                        <CalendarIcon className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-lg font-bold">
+                          {format(selectedDate, "d 'de' MMMM", { locale: es })}
+                        </div>
+                        <div className="text-sm text-slate-600 font-normal">
+                          {format(selectedDate, "yyyy")}
+                        </div>
+                      </div>
+                      {datosCalendario.eventosDelDia.length > 0 && (
+                        <Badge
+                          variant="secondary"
+                          className="bg-blue-100 text-blue-700"
+                        >
+                          {datosCalendario.eventosDelDia.length}
+                        </Badge>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {datosCalendario.eventosDelDia.length > 0 ? (
+                      <div className="space-y-3 max-h-84 overflow-y-auto">
+                        {datosCalendario.eventosDelDia.map((evento) => {
+                          const tipoEvento = getTipoEventoById(
+                            evento.eventTypeId
+                          );
+                          const config = tipoEvento
+                            ? tipoEventoMap[tipoEvento.key]
+                            : null;
+                          const IconComponent = config?.icono || CalendarIcon;
+                          return (
+                            <div
+                              onClick={() => {
+                                setEventoEditar(evento as CalendarType);
+                                {
+                                  setModoDialogo(
+                                    canUpdateCalendar ? "editar" : "ver"
+                                  );
+                                }
+                                setModalAbierto(true);
+                              }}
+                              key={evento._id}
+                              className={cn(
+                                "p-4 rounded-xl border-l-4 mx-2",
+                                config?.bgLight || "bg-gray-50",
+                                config?.borderColor || "border-l-gray-300"
+                              )}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <div className="flex items-center gap-3 mb-2">
+                                <div
+                                  className={cn(
+                                    "p-2 rounded-lg shadow-sm",
+                                    config?.color || "bg-gray-500 text-white"
+                                  )}
+                                >
+                                  <IconComponent className="w-4 h-4" />
+                                </div>
+                                <div className="flex-1">
+                                  <span className="font-semibold text-slate-800 capitalize">
+                                    {config?.name || evento.eventTypeId}
+                                  </span>
+                                  <div className="text-xs text-slate-500">
+                                    {format(
+                                      new Date(evento.date),
+                                      "d 'de' MMMM",
+                                      { locale: es }
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              {evento.description && (
+                                <p className="text-sm text-slate-700 ml-0 sm:ml-11 leading-relaxed break-words">
+                                  {(() => {
+                                    const maxWords = 15;
+                                    const maxChars = 80;
+                                    let desc = evento.description;
+                                    // Limita palabras
+                                    const words = desc.split(" ");
+                                    if (words.length > maxWords) {
+                                      desc = words.slice(0, maxWords).join(" ");
+                                    }
+                                    // Limita caracteres
+                                    if (desc.length > maxChars) {
+                                      desc = desc.slice(0, maxChars) + "...";
+                                    }
+                                    return desc.endsWith(".")
+                                      ? desc
+                                      : desc + ".";
+                                  })()}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <CalendarIcon className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                        <p className="text-slate-500 font-medium">
+                          No hay eventos programados
+                        </p>
+                        <p className="text-slate-400 text-sm mt-1">
+                          para este día
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               <Card className="shadow-lg bg-white/90 backdrop-blur-md mb-2">
                 <CardHeader className="pb-4">
                   <CardTitle className="flex items-center gap-3 text-lg font-bold text-slate-800">
-                    <div className="p-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-md">
-                      <CalendarIcon className="w-5 h-5 text-white" />
+                    <div className="p-2 bg-gradient-to-r from-amber-500 to-amber-600 rounded-lg shadow-md">
+                      <Bell className="w-5 h-5 text-white" />
                     </div>
-                    <div className="flex-1">
-                      <div className="text-lg font-bold">
-                        {format(selectedDate, "d 'de' MMMM", { locale: es })}
-                      </div>
-                      <div className="text-sm text-slate-600 font-normal">
-                        {format(selectedDate, "yyyy")}
-                      </div>
-                    </div>
-                    {datosCalendario.eventosDelDia.length > 0 && (
-                      <Badge
-                        variant="secondary"
-                        className="bg-blue-100 text-blue-700"
-                      >
-                        {datosCalendario.eventosDelDia.length}
-                      </Badge>
-                    )}
+                    Próximos eventos
                   </CardTitle>
+                  <CardDescription className="text-slate-600 text-sm mt-1 ">
+                    Los eventos más cercanos en el calendario escolar
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {datosCalendario.eventosDelDia.length > 0 ? (
+                  {datosCalendario.eventos &&
+                  datosCalendario.eventos?.length > 0 ? (
                     <div className="space-y-3 max-h-84 overflow-y-auto">
-                      {datosCalendario.eventosDelDia.map((evento) => {
-                        const tipoEvento = getTipoEventoById(
-                          evento.eventTypeId
-                        );
-                        const config = tipoEvento
-                          ? tipoEventoMap[tipoEvento.key]
-                          : null;
-                        const IconComponent = config?.icono || CalendarIcon;
-                        return (
-                          <div
-                            key={evento._id}
-                            className={cn(
-                              "p-4 rounded-xl border-l-4 mx-2",
-                              config?.bgLight || "bg-gray-50",
-                              config?.borderColor || "border-l-gray-300"
-                            )}
-                            role="button"
-                            tabIndex={0}
-                          >
-                            <div className="flex items-center gap-3 mb-2">
-                              <div
-                                className={cn(
-                                  "p-2 rounded-lg shadow-sm",
-                                  config?.color || "bg-gray-500 text-white"
-                                )}
-                              >
-                                <IconComponent className="w-4 h-4" />
-                              </div>
-                              <div className="flex-1">
-                                <span className="font-semibold text-slate-800 capitalize">
-                                  {config?.name || evento.eventTypeId}
-                                </span>
-                                <div className="text-xs text-slate-500">
-                                  {format(
-                                    new Date(evento.date),
-                                    "d 'de' MMMM",
-                                    { locale: es }
+                      {datosCalendario.eventos
+                        ?.filter(
+                          (evento) => new Date(evento.date) >= new Date()
+                        )
+                        .sort(
+                          (a, b) =>
+                            new Date(a.date).getTime() -
+                            new Date(b.date).getTime()
+                        )
+                        .slice(0, 5)
+                        .map((evento, index) => {
+                          const tipoEvento = getTipoEventoById(
+                            evento.eventTypeId
+                          );
+                          const config = tipoEvento
+                            ? tipoEventoMap[tipoEvento.key]
+                            : null;
+                          const IconComponent = config?.icono || CalendarIcon;
+
+                          return (
+                            <div
+                              key={index}
+                              onClick={() => {
+                                setEventoEditar(evento as CalendarType);
+                                {
+                                  setModoDialogo(
+                                    canUpdateCalendar ? "editar" : "ver"
+                                  );
+                                }
+                                setModalAbierto(true);
+                              }}
+                              className={cn(
+                                "p-4 rounded-xl border-l-4 transition-all duration-200 hover:shadow-md cursor-pointer",
+                                "w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl", // Responsivo
+                                "mx-auto", // Centra en pantallas pequeñas
+                                config?.bgLight || "bg-gray-50",
+                                config?.borderColor || "border-l-gray-300"
+                              )}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-2">
+                                <div
+                                  className={cn(
+                                    "p-2 rounded-lg shadow-sm",
+                                    config?.color || "bg-gray-500 text-white"
                                   )}
+                                >
+                                  <IconComponent className="w-4 h-4" />
+                                </div>
+                                <div className="flex-1">
+                                  <span className="font-semibold text-slate-800 capitalize">
+                                    {config?.name || evento.eventTypeId}
+                                  </span>
+                                  <div className="text-xs text-slate-500">
+                                    {format(
+                                      new Date(evento.date),
+                                      "d 'de' MMMM",
+                                      { locale: es }
+                                    )}
+                                  </div>
                                 </div>
                               </div>
+                              {evento.description && (
+                                <p className="text-sm text-slate-700 ml-0 sm:ml-11 leading-relaxed break-words">
+                                  {(() => {
+                                    const maxWords = 15;
+                                    const maxChars = 80;
+                                    let desc = evento.description;
+                                    // Limita palabras
+                                    const words = desc.split(" ");
+                                    if (words.length > maxWords) {
+                                      desc = words.slice(0, maxWords).join(" ");
+                                    }
+                                    // Limita caracteres
+                                    if (desc.length > maxChars) {
+                                      desc = desc.slice(0, maxChars) + "...";
+                                    }
+                                    return desc.endsWith(".")
+                                      ? desc
+                                      : desc + ".";
+                                  })()}
+                                </p>
+                              )}
                             </div>
-                            {evento.description && (
-                              <p className="text-sm text-slate-700 ml-0 sm:ml-11 leading-relaxed break-words">
-                                {(() => {
-                                  const maxWords = 15;
-                                  const maxChars = 80;
-                                  let desc = evento.description;
-                                  // Limita palabras
-                                  const words = desc.split(" ");
-                                  if (words.length > maxWords) {
-                                    desc = words.slice(0, maxWords).join(" ");
-                                  }
-                                  // Limita caracteres
-                                  if (desc.length > maxChars) {
-                                    desc = desc.slice(0, maxChars) + "...";
-                                  }
-                                  return desc.endsWith(".") ? desc : desc + ".";
-                                })()}
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      {datosCalendario.eventos?.filter(
+                        (evento) => new Date(evento.date) >= new Date()
+                      ).length === 0 && (
+                        <div className="text-center py-8">
+                          <CalendarDays className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                          <p className="text-slate-500 font-medium">
+                            No hay próximos eventos programados
+                          </p>
+                          <p className="text-slate-400 text-sm mt-1">
+                            Revisa el calendario para más información
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <CalendarIcon className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                      <CalendarDays className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                       <p className="text-slate-500 font-medium">
-                        No hay eventos programados
+                        No hay próximos eventos programados
                       </p>
                       <p className="text-slate-400 text-sm mt-1">
-                        para este día
+                        Revisa el calendario para más información
                       </p>
                     </div>
                   )}
                 </CardContent>
               </Card>
-            )}
+            </div>
 
-            <Card className="shadow-lg bg-white/90 backdrop-blur-md mb-2">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-3 text-lg font-bold text-slate-800">
-                  <div className="p-2 bg-gradient-to-r from-amber-500 to-amber-600 rounded-lg shadow-md">
-                    <Bell className="w-5 h-5 text-white" />
-                  </div>
-                  Próximos eventos
-                </CardTitle>
-                <CardDescription className="text-slate-600 text-sm mt-1 ">
-                  Los eventos más cercanos en el calendario escolar
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {datosCalendario.eventos &&
-                datosCalendario.eventos?.length > 0 ? (
-                  <div className="space-y-3 max-h-84 overflow-y-auto">
-                    {datosCalendario.eventos
-                      ?.filter((evento) => new Date(evento.date) >= new Date())
-                      .sort(
-                        (a, b) =>
-                          new Date(a.date).getTime() -
-                          new Date(b.date).getTime()
-                      )
-                      .slice(0, 5)
-                      .map((evento, index) => {
-                        const tipoEvento = getTipoEventoById(
-                          evento.eventTypeId
-                        );
-                        const config = tipoEvento
-                          ? tipoEventoMap[tipoEvento.key]
-                          : null;
-                        const IconComponent = config?.icono || CalendarIcon;
-
-                        return (
-                          <div
-                            key={index}
-                            onClick={() => {
-                              setEventoEditar(evento as CalendarType);
-                              {setModoDialogo(canUpdateCalendar ? "editar" : "ver")};
-                              setModalAbierto(true);
-                            }}
-                            className={cn(
-                              "p-4 rounded-xl border-l-4 transition-all duration-200 hover:shadow-md cursor-pointer",
-                              "w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl", // Responsivo
-                              "mx-auto", // Centra en pantallas pequeñas
-                              config?.bgLight || "bg-gray-50",
-                              config?.borderColor || "border-l-gray-300"
-                            )}
-                            role="button"
-                            tabIndex={0}
-                          >
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-2">
-                              <div
-                                className={cn(
-                                  "p-2 rounded-lg shadow-sm",
-                                  config?.color || "bg-gray-500 text-white"
-                                )}
-                              >
-                                <IconComponent className="w-4 h-4" />
-                              </div>
-                              <div className="flex-1">
-                                <span className="font-semibold text-slate-800 capitalize">
-                                  {config?.name || evento.eventTypeId}
-                                </span>
-                                <div className="text-xs text-slate-500">
-                                  {format(
-                                    new Date(evento.date),
-                                    "d 'de' MMMM",
-                                    { locale: es }
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                            {evento.description && (
-                              <p className="text-sm text-slate-700 ml-0 sm:ml-11 leading-relaxed break-words">
-                                {(() => {
-                                  const maxWords = 15;
-                                  const maxChars = 80;
-                                  let desc = evento.description;
-                                  // Limita palabras
-                                  const words = desc.split(" ");
-                                  if (words.length > maxWords) {
-                                    desc = words.slice(0, maxWords).join(" ");
-                                  }
-                                  // Limita caracteres
-                                  if (desc.length > maxChars) {
-                                    desc = desc.slice(0, maxChars) + "...";
-                                  }
-                                  return desc.endsWith(".") ? desc : desc + ".";
-                                })()}
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })}
-                    {datosCalendario.eventos?.filter(
-                      (evento) => new Date(evento.date) >= new Date()
-                    ).length === 0 && (
-                      <div className="text-center py-8">
-                        <CalendarDays className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                        <p className="text-slate-500 font-medium">
-                          No hay próximos eventos programados
-                        </p>
-                        <p className="text-slate-400 text-sm mt-1">
-                          Revisa el calendario para más información
-                        </p>
+            <div className="row-span-2 col-span-2 ">
+              <Card className="shadow-lg bg-white/90 backdrop-blur-md">
+                <CardContent className="p-6">
+                  <CardHeader className="flex flex-col items-center text-center pb-4 justify-center">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center justify-center">
+                        <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-md">
+                          <CalendarIcon className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-2xl font-bold text-slate-800">
+                            Calendario Escolar
+                          </CardTitle>
+                          <p className="text-slate-600 text-sm pl-7">
+                            Gestiona y visualiza el año académico
+                          </p>
+                        </div>
                       </div>
+                    </div>
+                  </CardHeader>
+                  <Separator className="bg-black/10" />
+
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    month={currentMonth}
+                    onMonthChange={setCurrentMonth}
+                    captionLayout="dropdown"
+                    locale={es}
+                    className="rounded-xl shadow-sm border bg-white mx-auto mt-5"
+                    classNames={{
+                      table: "w-full border-collapse space-y-1",
+                      head_row: "flex",
+                      head_cell:
+                        "text-slate-600 rounded-md w-14 font-semibold text-sm uppercase tracking-wider text-center py-2",
+                      row: "flex w-full mt-2",
+                      cell: cn(
+                        "h-8 w-8 sm:h-11 sm:w-11 md:w-14 md:h-14",
+                        "text-center text-sm p-0 relative",
+                        "first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md",
+                        "focus-within:relative focus-within:z-20"
+                      ),
+                      day: cn(
+                        "h-8 w-8 sm:h-11 sm:w-11 md:w-14 md:h-14 text-sm relative",
+                        "p-0 font-medium aria-selected:opacity-70 rounded-xl transition-all duration-100",
+                        "hover:bg-slate-100 hover:scale-105 hover:shadow-md",
+                        "focus:bg-blue-50 focus:text-blue-700 focus:ring-2 focus:ring-blue-300"
+                      ),
+                      day_button:
+                        "data-[selected-single=true]:bg-transparent data-[selected-single=true]:text-black",
+                      selected:
+                        "bg-transparent border-1 sm:border-2 p-0 border-blue-300 text-black font-semibold",
+                      today: "bg-slate-100",
+                      day_selected:
+                        "ring-2 ring-slate-400 bg-slate-100 text-slate-900 font-bold",
+                      day_today:
+                        "ring-2 ring-slate-400 bg-slate-100 text-slate-900 font-bold",
+                      day_outside: "text-slate-300 opacity-40",
+                      day_disabled:
+                        "text-slate-300 opacity-30 cursor-not-allowed",
+                      day_range_middle:
+                        "aria-selected:bg-blue-50 aria-selected:text-blue-700",
+                      day_hidden: "invisible",
+                    }}
+                    modifiers={generateModifiers()}
+                    modifiersClassNames={generateModifiersClassNames()}
+                  />
+                  <div className="flex justify-center mt-6 pl-4">
+                    {canCreateCalendar && (
+                      <Button
+                        onClick={() => {
+                          setEventoEditar(null);
+                          setModoDialogo(null);
+                          setModalAbierto(true);
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow-md transition duration-150 hover:scale-105"
+                      >
+                        Crear nuevo evento
+                      </Button>
                     )}
                   </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <CalendarDays className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-500 font-medium">
-                      No hay próximos eventos programados
-                    </p>
-                    <p className="text-slate-400 text-sm mt-1">
-                      Revisa el calendario para más información
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </div>
 
-          <div className="row-span-2 col-span-2 ">
-            <Card className="shadow-lg bg-white/90 backdrop-blur-md">
-              <CardContent className="p-6">
-                <CardHeader className="flex flex-col items-center text-center pb-4 justify-center">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center justify-center">
-                      <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-md">
-                        <CalendarIcon className="w-6 h-6 text-white" />
+            <div className="col-span-2 xl:col-span-1">
+              <Card className="lg:col-span-1 shadow-xl bg-white/90 backdrop-blur-md">
+                <CardContent className="px-4">
+                  <CardHeader className="flex flex-row justify-between pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-gradient-to-r from-amber-500 to-amber-600 rounded-xl shadow-md">
+                        <AlertTriangle className="w-6 h-6 text-white" />
                       </div>
                       <div>
                         <CardTitle className="text-2xl font-bold text-slate-800">
-                          Calendario Escolar
+                          Tipos de Eventos
                         </CardTitle>
-                        <p className="text-slate-600 text-sm pl-7">
-                          Gestiona y visualiza el año académico
+                        <p className="text-slate-600 text-sm">
+                          Personaliza tus tipos de eventos
                         </p>
                       </div>
                     </div>
+                  </CardHeader>
+                  <Separator className="bg-black/10" />
+                  <div className="space-y-4 pt-4">
+                    {Object.entries(tipoEventoMap).map(([tipo, config]) => {
+                      const IconComponent = config.icono;
+                      const tipoDeEvento: EventType = {
+                        _id: config.id,
+                        schoolId: currentSchool?.school._id as Id<"school">,
+                        name: config.name,
+                        key: config.key,
+                        description: config.description,
+                        color: config.colorB,
+                        icon: config.icon,
+                        status: config.status,
+                      };
+                      return (
+                        <div
+                          key={tipo}
+                          onClick={() => {
+                            setTipoDeEventoEditar(tipoDeEvento as EventType);
+                            {
+                              setModoDialogoT(
+                                canUpdateCalendar ? "editar" : "ver"
+                              );
+                            }
+                            setModalAbiertoT(true);
+                          }}
+                          className={cn(
+                            "p-4 rounded-xl border-2 transition-all duration-200 hover:shadow-md cursor-pointer",
+                            config.bgLight,
+                            config.borderColor.replace("border-l-", "border-")
+                          )}
+                          role="button"
+                          tabIndex={0}
+                        >
+                          <div className="flex items-center gap-3 mb-2">
+                            <div
+                              className={cn(
+                                "p-2 rounded-lg shadow-sm transition-all duration-200",
+                                config.color,
+                                "group-hover:shadow-md"
+                              )}
+                            >
+                              <IconComponent className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-bold text-slate-800">
+                                {config.name}
+                              </h3>
+                            </div>
+                            <TrendingUp className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
+                          </div>
+                          {config.description && (
+                            <p className="text-sm text-slate-700 ml-0 sm:ml-11 leading-relaxed break-words">
+                              {(() => {
+                                const maxWords = 15;
+                                const maxChars = 80;
+                                let desc = config.description;
+                                // Limita palabras
+                                const words = desc.split(" ");
+                                if (words.length > maxWords) {
+                                  desc = words.slice(0, maxWords).join(" ");
+                                }
+                                // Limita caracteres
+                                if (desc.length > maxChars) {
+                                  desc = desc.slice(0, maxChars) + "...";
+                                }
+                                return desc.endsWith(".") ? desc : desc + ".";
+                              })()}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                </CardHeader>
-                <Separator className="bg-black/10" />
-
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  month={currentMonth}
-                  onMonthChange={setCurrentMonth}
-                  captionLayout="dropdown"
-                  locale={es}
-                  className="rounded-xl shadow-sm border bg-white mx-auto mt-5"
-                  classNames={{
-                    table: "w-full border-collapse space-y-1",
-                    head_row: "flex",
-                    head_cell:
-                      "text-slate-600 rounded-md w-14 font-semibold text-sm uppercase tracking-wider text-center py-2",
-                    row: "flex w-full mt-2",
-                    cell: cn(
-                      "h-8 w-8 sm:h-11 sm:w-11 md:w-14 md:h-14",
-                      "text-center text-sm p-0 relative",
-                      "first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md",
-                      "focus-within:relative focus-within:z-20"
-                    ),
-                    day: cn(
-                      "h-8 w-8 sm:h-11 sm:w-11 md:w-14 md:h-14 text-sm relative",
-                      "p-0 font-medium aria-selected:opacity-70 rounded-xl transition-all duration-100",
-                      "hover:bg-slate-100 hover:scale-105 hover:shadow-md",
-                      "focus:bg-blue-50 focus:text-blue-700 focus:ring-2 focus:ring-blue-300"
-                    ),
-                    day_button:
-                      "data-[selected-single=true]:bg-transparent data-[selected-single=true]:text-black",
-                    selected:
-                      "bg-transparent border-1 sm:border-2 p-0 border-blue-300 text-black font-semibold",
-                    today: "bg-slate-100",
-                    day_selected:
-                      "ring-2 ring-slate-400 bg-slate-100 text-slate-900 font-bold",
-                    day_today:
-                      "ring-2 ring-slate-400 bg-slate-100 text-slate-900 font-bold",
-                    day_outside: "text-slate-300 opacity-40",
-                    day_disabled:
-                      "text-slate-300 opacity-30 cursor-not-allowed",
-                    day_range_middle:
-                      "aria-selected:bg-blue-50 aria-selected:text-blue-700",
-                    day_hidden: "invisible",
-                  }}
-                  modifiers={generateModifiers()}
-                  modifiersClassNames={generateModifiersClassNames()}
-                />
-                <div className="flex justify-center mt-6 pl-4">
-                  {canCreateCalendar&&(<Button
-                    onClick={() => {
-                      setEventoEditar(null);
-                      setModoDialogo(null);
-                      setModalAbierto(true);
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow-md transition duration-150 hover:scale-105"
-                  >
-                    Crear nuevo evento
-                  </Button>)}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="col-span-2 xl:col-span-1">
-            <Card className="lg:col-span-1 shadow-xl bg-white/90 backdrop-blur-md">
-              <CardContent className="px-4">
-                <CardHeader className="flex flex-row justify-between pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-gradient-to-r from-amber-500 to-amber-600 rounded-xl shadow-md">
-                      <AlertTriangle className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-2xl font-bold text-slate-800">
-                        Tipos de Eventos
-                      </CardTitle>
-                      <p className="text-slate-600 text-sm">
-                        Personaliza tus tipos de eventos
-                      </p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <Separator className="bg-black/10" />
-                <div className="space-y-4 pt-4">
-                  {Object.entries(tipoEventoMap).map(([tipo, config]) => {
-                    const IconComponent = config.icono;
-                    const tipoDeEvento: EventType = {
-                      _id: config.id,
-                      schoolId: currentSchool?.school._id as Id<"school">,
-                      name: config.name,
-                      key: config.key,
-                      description: config.description,
-                      color: config.colorB,
-                      icon: config.icon,
-                      status: config.status,
-                    };
-                    return (
-                      
-                      <div
-                        key={tipo}
+                  <div className="flex mt-6 pl-1">
+                    {canCreateCalendar && (
+                      <Button
                         onClick={() => {
-                          setTipoDeEventoEditar(tipoDeEvento as EventType);
-                          {setModoDialogoT(canUpdateCalendar ? "editar" : "ver")};
+                          setTipoDeEventoEditar(null);
+                          setModoDialogoT(null);
                           setModalAbiertoT(true);
                         }}
-                        className={cn(
-                          "p-4 rounded-xl border-2 transition-all duration-200 hover:shadow-md cursor-pointer",
-                          config.bgLight,
-                          config.borderColor.replace("border-l-", "border-")
-                        )}
-                        role="button"
-                        tabIndex={0}
+                        className="bg-amber-600 hover:bg-amber-700 shadow-lg rounded-lg px-4 py-2 flex items-center justify-center transition-transform duration-150 hover:scale-105 "
+                        aria-label="Agregar tipo de evento"
+                        title="Agregar tipo de evento"
                       >
-                        <div className="flex items-center gap-3 mb-2">
-                          <div
-                            className={cn(
-                              "p-2 rounded-lg shadow-sm transition-all duration-200",
-                              config.color,
-                              "group-hover:shadow-md"
-                            )}
-                          >
-                            <IconComponent className="w-4 h-4" />
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="font-bold text-slate-800">
-                              {config.name}
-                            </h3>
-                          </div>
-                          <TrendingUp className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
-                        </div>
-                        {config.description && (
-                          <p className="text-sm text-slate-700 ml-0 sm:ml-11 leading-relaxed break-words">
-                            {(() => {
-                              const maxWords = 15;
-                              const maxChars = 80;
-                              let desc = config.description;
-                              // Limita palabras
-                              const words = desc.split(" ");
-                              if (words.length > maxWords) {
-                                desc = words.slice(0, maxWords).join(" ");
-                              }
-                              // Limita caracteres
-                              if (desc.length > maxChars) {
-                                desc = desc.slice(0, maxChars) + "...";
-                              }
-                              return desc.endsWith(".") ? desc : desc + ".";
-                            })()}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="flex mt-6 pl-1">
-                  {canCreateCalendar&&(<Button
-                    onClick={() => {
-                      setTipoDeEventoEditar(null);
-                      setModoDialogoT(null);
-                      setModalAbiertoT(true);
-                    }}
-                    className="bg-amber-600 hover:bg-amber-700 shadow-lg rounded-lg px-4 py-2 flex items-center justify-center transition-transform duration-150 hover:scale-105 "
-                    aria-label="Agregar tipo de evento"
-                    title="Agregar tipo de evento"
-                  >
-                    Crear nuevo tipo de evento
-                  </Button>)}
-                </div>
-              </CardContent>
-            </Card>
+                        Crear nuevo tipo de evento
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
+          <EventTypeDialog
+            isOpen={modalAbiertoT}
+            onOpenChange={(open) => {
+              if (!open) {
+                setTipoDeEventoEditar(null);
+              }
+              setModalAbiertoT(open);
+            }}
+            modo={modoDialogoT}
+            canDeleteCalendar={canDeleteCalendar}
+            tipoEventoEditar={tipoDeEventoEditar ?? undefined}
+            escuelaId={currentSchool?.school._id as Id<"school">}
+          />
+          <EventDialog
+            isOpen={modalAbierto}
+            onOpenChange={(open) => {
+              if (!open) {
+                setEventoEditar(null);
+              }
+              setModalAbierto(open);
+            }}
+            modo={modoDialogo}
+            canDeleteCalendar={canDeleteCalendar}
+            escuelaId={currentSchool?.school._id as Id<"school">}
+            eventoEditar={eventoEditar ?? undefined}
+          />
         </div>
-        <EventTypeDialog
-          isOpen={modalAbiertoT}
-          onOpenChange={(open) => {
-            if (!open) {
-              setTipoDeEventoEditar(null);
-            }
-            setModalAbiertoT(open);
-          }}
-          modo={modoDialogoT}
-          tipoEventoEditar={tipoDeEventoEditar ?? undefined}
-          escuelaId={currentSchool?.school._id as Id<"school">}
-          
+      ) : (
+        <NotAuth
+          pageName="Calendario Escolar"
+          pageDetails="Gestiona eventos, exámenes y actividades escolares de manera eficiente y organizada"
+          icon={CalendarIcon}
         />
-        <EventDialog
-          isOpen={modalAbierto}
-          onOpenChange={(open) => {
-            if (!open) {
-              setEventoEditar(null);
-            }
-            setModalAbierto(open);
-          }}
-          modo={modoDialogo}
-          escuelaId={currentSchool?.school._id as Id<"school">}
-          eventoEditar={eventoEditar ?? undefined}
-        />
-      </div>): (<NotAuth
-      pageName="Calendario Escolar"
-      pageDetails="Gestiona eventos, exámenes y actividades escolares de manera eficiente y organizada"
-      icon={CalendarIcon}
-       />)}
+      )}
     </>
   );
 }
