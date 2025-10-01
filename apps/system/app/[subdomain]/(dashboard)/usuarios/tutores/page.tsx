@@ -138,7 +138,6 @@ export default function TutorPage() {
     canDeleteUsersTutores,
     isLoading: permissionsLoading,
     error: permissionsError,
-    currentRole,
   } = usePermissions(currentSchool?.school?._id);
 
   // Estados para filtros

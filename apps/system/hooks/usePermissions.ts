@@ -81,6 +81,13 @@ export const usePermissions = (schoolId?: string) => {
     { action: "read", resource: "term" },
     { action: "update", resource: "term" },
     { action: "delete", resource: "term" },
+
+    //suscripciones
+    { action: "create", resource: "suscripciones" },
+    { action: "read", resource: "suscripciones" },
+    { action: "update", resource: "suscripciones" },
+    { action: "delete", resource: "suscripciones" },
+    
   ];
 
   // Definir permisos por rol (basado en tu sistema actual)
@@ -146,6 +153,11 @@ export const usePermissions = (schoolId?: string) => {
       "read:term": true,
       "update:term": true,
       "delete:term": true,
+      //suscripciones
+      "create:suscripciones": true,
+      "read:suscripciones": true,
+      "update:suscripciones": true,
+      "delete:suscripciones": true,
     },
     admin: {
       // Admin tiene casi todos los permisos (excepto eliminar escuelas)
@@ -207,6 +219,11 @@ export const usePermissions = (schoolId?: string) => {
       "read:term": true,
       "update:term": true,
       "delete:term": true,
+      //suscripciones
+      "create:suscripciones": false,
+      "read:suscripciones": false,
+      "update:suscripciones": false,
+      "delete:suscripciones": false,
     },
     auditor: {
       // Auditor solo puede leer y ver reportes
@@ -268,6 +285,12 @@ export const usePermissions = (schoolId?: string) => {
       "read:term": true,
       "update:term": false,
       "delete:term": false,
+//suscripciones
+      "create:suscripciones": false,
+      "read:suscripciones": false,
+      "update:suscripciones": false,
+      "delete:suscripciones": false,
+      
     },
     teacher: {
       // Profesor similar al tutor pero con menos permisos
@@ -329,6 +352,11 @@ export const usePermissions = (schoolId?: string) => {
       "read:term": true,
       "update:term": false,
       "delete:term": false,
+      //suscripciones
+      "create:suscripciones": false,
+      "read:suscripciones": false,
+      "update:suscripciones": false,
+      "delete:suscripciones": false,
     },
     tutor: {
       // Tutor es el padre
@@ -390,6 +418,11 @@ export const usePermissions = (schoolId?: string) => {
       "read:term": false,
       "update:term": false,
       "delete:term": false,
+      //suscripciones
+      "create:suscripciones": false,
+      "read:suscripciones": false,
+      "update:suscripciones": false,
+      "delete:suscripciones": false,
     },
   };
 
@@ -588,6 +621,11 @@ export const usePermissions = (schoolId?: string) => {
     canReadTerm: permissions["read:term"] || false,
     canUpdateTerm: permissions["update:term"] || false,
     canDeleteTerm: permissions["delete:term"] || false,
+    //suscripciones
+    canCreateSuscripciones: permissions["create:suscripciones"] || false,
+    canReadSuscripciones: permissions["read:suscripciones"] || false,
+    canUpdateSuscripciones: permissions["update:suscripciones"] || false,
+    canDeleteSuscripciones: permissions["delete:suscripciones"] || false,
 
     // Propiedades específicas por rol
     isSuperAdmin: hasRole("superadmin"),

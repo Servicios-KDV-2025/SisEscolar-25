@@ -189,7 +189,7 @@ export default function PersonalPage() {
     canDeleteUsersPersonal,
     isLoading: permissionsLoading,
     error: permissionsError,
-    currentRole,
+
   } = usePermissions(currentSchool?.school?._id);
 
   // Estados para filtros
@@ -368,7 +368,6 @@ export default function PersonalPage() {
 
   // Funciones CRUD
   const handleCreate = async (formData: Record<string, unknown>) => {
-
     if (!currentSchool?.school?._id) {
       console.error("No hay escuela actual disponible");
       throw new Error("No hay escuela actual disponible");
@@ -378,23 +377,20 @@ export default function PersonalPage() {
     const selectedRole = formData.role as string;
     const selectedDepartment = formData.department as string;
 
-    // IMPORTANTE: Solo los administradores pueden tener departamento
-    // Para cualquier otro rol, el departamento debe ser undefined
+    // LÓGICA DE DEPARTAMENTO: Solo para administradores.
     const departmentValue =
       selectedRole === "admin"
         ? selectedDepartment === "none"
           ? undefined
           : selectedDepartment
-        : undefined; // Forzar undefined para roles que no son admin
-
+        : undefined;
 
     try {
       // PASO 1: Buscar si el usuario ya existe en Convex
-
       const existingUsers = await searchUserByEmailAsync(email);
 
       if (existingUsers && existingUsers.length > 0) {
-        // FLUJO A: Usuario existe, solo asignar a escuela
+        // FLUJO A: Usuario existe en la base de datos de usuarios
         const existingUser = existingUsers[0];
 
         if (
@@ -407,18 +403,62 @@ export default function PersonalPage() {
           );
         }
 
+        // 1.1: Buscar si ya tiene una relación en esta escuela
+        const userInCurrentSchool = allUsers?.find(
+          (user: UserFromConvex) => user.clerkId === existingUser.clerkId
+        );
 
+        const roleToAdd = selectedRole as
+          | "superadmin"
+          | "admin"
+          | "auditor"
+          | "teacher"
+          | "tutor";
+
+        if (userInCurrentSchool) {
+          // Usuario YA tiene una relación en esta escuela
+          const existingRoles = userInCurrentSchool.schoolRole;
+
+          // Verificar si el rol ya existe
+          if (existingRoles.includes(roleToAdd)) {
+            throw new Error(
+              `El usuario ${email} ya tiene asignado el rol de ${roleConfig[roleToAdd].label}. No se realizó ningún cambio.`
+            );
+          }
+
+          // Crear array con los roles combinados (sin duplicados)
+          const newRolesSet = new Set([...existingRoles, roleToAdd]);
+          const newRoleArray = Array.from(newRolesSet);
+
+          console.log(
+            `⚠️ Agregando rol adicional. Roles anteriores: ${existingRoles.join(", ")}. Nuevos roles: ${newRoleArray.join(", ")}`
+          );
+
+          // Actualizar la relación existente con el nuevo rol
+          await updateUserSchoolRelation({
+            id: userInCurrentSchool.userSchoolId,
+            role: newRoleArray as Array<
+              "superadmin" | "admin" | "auditor" | "teacher" | "tutor"
+            >,
+            department:
+              departmentValue === undefined
+                ? null
+                : (departmentValue as
+                  | "secretary"
+                  | "direction"
+                  | "schoolControl"
+                  | "technology"),
+            status: "active", // Reactivar si estaba inactivo
+          });
+
+          return;
+        }
+
+        // Usuario existe pero NO está asignado a esta escuela - CREAR relación
         await createUserSchoolRelation({
           clerkId: existingUser.clerkId,
           schoolId: currentSchool.school._id,
-          role: [
-            selectedRole as
-            | "superadmin"
-            | "admin"
-            | "auditor"
-            | "teacher"
-            | "tutor",
-          ],
+          role: [roleToAdd], // Solo el rol seleccionado
           status: "active",
           department: departmentValue as
             | "secretary"
@@ -432,10 +472,8 @@ export default function PersonalPage() {
       }
 
       // FLUJO B: Usuario no existe, crear nuevo en Clerk + asignar
-
       const password = formData.password as string;
 
-      // Validación: Si no existe el usuario, la contraseña es obligatoria
       if (!password || password.trim() === "") {
         throw new Error(
           "La contraseña es requerida para crear un usuario nuevo. Si el usuario ya existe en el sistema, se asignará automáticamente."
@@ -452,10 +490,9 @@ export default function PersonalPage() {
       const result = await userActions.createUser(createData);
 
       if (result.success && result.userId) {
-
         try {
           // Esperar sincronización del webhook
-          await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 segundos
+          await new Promise((resolve) => setTimeout(resolve, 2000));
 
           // Asignar rol en la escuela actual
           await createUserSchoolRelation({
@@ -477,26 +514,17 @@ export default function PersonalPage() {
               | "technology"
               | undefined,
           });
-
         } catch (error) {
           console.error("❌ Error al asignar usuario a la escuela:", error);
-          const errorMessage = `Usuario creado pero error al asignar a la escuela: ${error instanceof Error ? error.message : "Error desconocido"}`;
-          throw new Error(errorMessage);
+          throw new Error(
+            `Usuario creado pero error al asignar a la escuela: ${error instanceof Error ? error.message : "Error desconocido"}`
+          );
         }
       } else {
         console.error("❌ Error al crear usuario en Clerk:", result.error);
         throw new Error(result.error || "Error al crear usuario en Clerk");
       }
     } catch (error) {
-      // Si el error menciona que ya está asignado, dar mensaje más amigable
-      if (
-        error instanceof Error &&
-        error.message.includes("ya está asignado")
-      ) {
-        throw new Error(
-          `El usuario ${email} ya tiene un rol asignado en esta escuela`
-        );
-      }
       throw error;
     }
   };
@@ -638,16 +666,7 @@ export default function PersonalPage() {
     return first + last;
   };
 
-  const getPrimaryRole = (roles: Array<string>) => {
-    // Orden de prioridad para mostrar el rol principal
-    const priority = ["superadmin", "admin", "auditor", "teacher", "tutor"];
-    for (const role of priority) {
-      if (roles.includes(role)) {
-        return role;
-      }
-    }
-    return roles[0];
-  };
+
 
   // Loading y error states
   const isLoading = schoolLoading || allUsers === undefined;
@@ -936,16 +955,13 @@ export default function PersonalPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredUsers.map((user: UserFromConvex) => {
-                    const primaryRole = getPrimaryRole(user.schoolRole);
-                    const roleInfo =
-                      roleConfig[primaryRole as keyof typeof roleConfig];
                     const departmentInfo = user.department
                       ? departmentConfig[user.department]
                       : null;
 
                     return (
                       <TableRow key={user._id}>
-                        <TableCell >
+                        <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar className="h-10 w-10">
                               <AvatarImage src={user.imgUrl} alt={user.name} />
@@ -964,18 +980,29 @@ export default function PersonalPage() {
                             </div>
                           </div>
                         </TableCell>
+
+                        {/* Columna de Roles - Ahora muestra TODOS los roles */}
                         <TableCell className="text-center">
-                          <Badge variant="outline" className={roleInfo?.color}>
-                            <roleInfo.icon className="h-3 w-3 mr-1" />
-                            {roleInfo?.label}
-                          </Badge>
+                          <div className="flex flex-wrap gap-1 justify-center">
+                            {user.schoolRole.map((role) => {
+                              const roleInfo = roleConfig[role as keyof typeof roleConfig];
+                              return (
+                                <Badge
+                                  key={role}
+                                  variant="outline"
+                                  className={`${roleInfo?.color} text-xs`}
+                                >
+                                  <roleInfo.icon className="h-3 w-3 mr-1" />
+                                  {roleInfo?.label}
+                                </Badge>
+                              );
+                            })}
+                          </div>
                         </TableCell>
+
                         <TableCell className="text-center">
                           {departmentInfo ? (
-                            <Badge
-                              variant="outline"
-                              className={departmentInfo.color}
-                            >
+                            <Badge variant="outline" className={departmentInfo.color}>
                               {departmentInfo.label}
                             </Badge>
                           ) : (
@@ -984,6 +1011,7 @@ export default function PersonalPage() {
                             </span>
                           )}
                         </TableCell>
+
                         <TableCell className="text-center">
                           <div className="space-y-1">
                             {user.phone && (
@@ -1000,22 +1028,27 @@ export default function PersonalPage() {
                             )}
                           </div>
                         </TableCell>
+
                         <TableCell className="text-center">
                           <Badge
                             variant={(user.schoolStatus || "active") === "active" ? "default" : "secondary"}
-                            className={(user.schoolStatus || "active") === "active"
-                              ? "bg-green-600 text-white flex-shrink-0 ml-2"
-                              : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}
+                            className={
+                              (user.schoolStatus || "active") === "active"
+                                ? "bg-green-600 text-white flex-shrink-0 ml-2"
+                                : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"
+                            }
                           >
                             {(user.schoolStatus || "active") === "active" ? "Activo" : "Inactivo"}
                           </Badge>
                         </TableCell>
+
                         <TableCell className="text-center">
                           <div className="flex items-center gap-1 text-sm">
                             <Calendar className="h-3 w-3 text-muted-foreground" />
                             {formatDate(user.admissionDate || user.createdAt)}
                           </div>
                         </TableCell>
+
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-2">
                             <Button
@@ -1028,15 +1061,15 @@ export default function PersonalPage() {
                               <Eye className="h-8 w-8 p-0" />
                             </Button>
                             {canUpdateUsersPersonal && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleOpenEdit(user)}
-                              className="hover:scale-105 transition-transform cursor-pointer"
-                              disabled={isCrudLoading}
-                            >
-                              <Pencil className="h-8 w-8 p-0" />
-                            </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenEdit(user)}
+                                className="hover:scale-105 transition-transform cursor-pointer"
+                                disabled={isCrudLoading}
+                              >
+                                <Pencil className="h-8 w-8 p-0" />
+                              </Button>
                             )}
                             {canDeleteUsersPersonal && (
                               <Button
