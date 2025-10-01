@@ -445,7 +445,7 @@ export default function EventDialog({
             )}
 
             <div className="flex gap-3 pt-4 border-t border-slate-200 justify-between">
-              {canDeleteCalendar && (
+              {(canDeleteCalendar && esEdicion) && (
                 <Button variant="destructive" onClick={handleEliminar}>
                   Eliminar
                 </Button>
