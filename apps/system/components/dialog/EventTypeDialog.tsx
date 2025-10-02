@@ -39,6 +39,7 @@ import {
   Heart,
   Save,
   X,
+  Trash2,
 } from "@repo/ui/icons";
 import { toast } from "sonner";
 import { EventType } from "@/types/eventType";
@@ -46,15 +47,13 @@ import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { EventTypeFormData, EventTypeSchema } from "schema/eventType";
 import { api } from "@repo/convex/convex/_generated/api";
 
-type ModoEvento = "editar" | "ver" | "eliminar" | null;
-
 interface TipoEventoDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   escuelaId: Id<"school">;
-  tipoEventoEditar?: EventType;
-  modo?: ModoEvento;
-  canDeleteCalendar: boolean;
+  tipoEventoEditar?: EventType | null;
+  canUpdateCalendar?: boolean;
+  canDeleteCalendar?: boolean;
 }
 
 const iconOptions = [
@@ -82,14 +81,11 @@ export default function EventTypeDialog({
   onOpenChange,
   escuelaId,
   tipoEventoEditar,
-  modo,
+  canUpdateCalendar,
   canDeleteCalendar,
 }: TipoEventoDialogProps) {
-  const esSoloLectura = modo === "ver";
-  const esEdicion = modo === "editar";
-  const esEliminar = modo === "eliminar";
   const [isLoading, setIsLoading] = useState(false);
-
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const crearTipoEvento = useMutation(api.functions.eventType.createEventType);
   const editarTipoEvento = useMutation(api.functions.eventType.editEventType);
   const eliminarTipoEvento = useMutation(
@@ -112,17 +108,8 @@ export default function EventTypeDialog({
   const selectedIcon = form.watch("icon");
 
   useEffect(() => {
-    if (isOpen && !tipoEventoEditar && modo === null) {
-      form.reset({
-        name: "",
-        key: "",
-        description: "",
-        color: "#3B82F6",
-        icon: "calendar",
-        status: "active",
-      });
-    }
-    if (tipoEventoEditar && (esEdicion || esSoloLectura)) {
+    setConfirmingDelete(false);
+    if (tipoEventoEditar) {
       form.reset({
         name: tipoEventoEditar.name,
         key: tipoEventoEditar.key,
@@ -135,8 +122,17 @@ export default function EventTypeDialog({
             ? tipoEventoEditar.status
             : "active",
       });
+    } else {
+      form.reset({
+        name: "",
+        key: "",
+        description: "",
+        color: "#3B82F6",
+        icon: "calendar",
+        status: "active",
+      });
     }
-  }, [tipoEventoEditar, esEdicion, esSoloLectura, form, isOpen, modo]);
+  }, [tipoEventoEditar, form, isOpen]);
 
   const handleEliminar = async () => {
     if (!tipoEventoEditar) return;
@@ -148,8 +144,7 @@ export default function EventTypeDialog({
       toast.success("Evento eliminado");
       onOpenChange(false);
     } catch (error) {
-      console.log("Error: ", error);
-      toast.error("Error al eliminar");
+      toast.error("Error al eliminar"+ error);
     }
   };
 
@@ -157,7 +152,7 @@ export default function EventTypeDialog({
     try {
       setIsLoading(true);
 
-      if (tipoEventoEditar && esEdicion) {
+      if (tipoEventoEditar && canUpdateCalendar) {
         await editarTipoEvento({
           schoolId: escuelaId,
           eventTypeId: tipoEventoEditar._id as Id<"eventType">,
@@ -169,7 +164,7 @@ export default function EventTypeDialog({
           status: data.status || "active",
         });
         toast.success("¡Tipo de Evento editado exitosamente!");
-      } else if (modo === null) {
+      } else {
         await crearTipoEvento({
           schoolId: escuelaId,
           name: data.name,
@@ -183,8 +178,8 @@ export default function EventTypeDialog({
       form.reset();
       onOpenChange(false);
     } catch (error) {
-      console.error("Error al crear tipo de evento:", error);
-      toast.error("Error al crear el tipo de evento");
+      
+      toast.error("Error al crear el tipo de evento"+ error);
     } finally {
       setIsLoading(false);
     }
@@ -203,26 +198,32 @@ export default function EventTypeDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-gray-900">
-            {esEdicion
-              ? "Editar Tipo de Evento"
-              : esSoloLectura
-                ? "Detalle del Tipo de Evento"
-                : esEliminar
-                  ? "Eliminar Tipo de Evento"
-                  : "Crear Nuevo Tipo de Evento"}
+        <DialogTitle className="text-2xl font-bold text-gray-900">
+            {confirmingDelete ? "Confirmar Eliminación"
+              : canUpdateCalendar ? "Editar Tipo de Evento"
+              : tipoEventoEditar ? "Detalle del Tipo de Evento"
+              : "Crear Nuevo Tipo de Evento"}
           </DialogTitle>
           <DialogDescription className="text-gray-600">
-            {esEdicion
-              ? "Editar tipo de evento del calendario escolar"
-              : esSoloLectura
-                ? "Detalles del tipo de evento del calendario escolar"
-                : esEliminar
-                  ? "Eliminar tipo de evento del calendario escolar"
-                  : "Define un nuevo tipo de evento para organizar mejor tus actividades escolares."}
+            {confirmingDelete ? "¿Estás seguro? Esta acción no se puede deshacer."
+              : tipoEventoEditar ? "Modifica la información del tipo de evento."
+              : !canUpdateCalendar ? "Información detallada del tipo de evento."
+              : "Define un nuevo tipo de evento para tus actividades."}
           </DialogDescription>
         </DialogHeader>
 
+{confirmingDelete ? (
+          <div className="py-6">
+            <p className="text-center">El tipo de evento será eliminado permanentemente.</p>
+            <div className="flex justify-end gap-3 pt-6 mt-6 border-t">
+              <Button variant="outline" onClick={() => setConfirmingDelete(false)} disabled={isLoading}>Cancelar</Button>
+              <Button variant="destructive" onClick={handleEliminar} disabled={isLoading}>
+                {isLoading ? <div className="animate-spin w-4 h-4 border-2 rounded-full border-white border-t-transparent"/> : <Trash2 className="w-4 h-4 mr-2" />}
+                Sí, eliminar
+              </Button>
+            </div>
+          </div>
+        ) : (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
@@ -235,7 +236,7 @@ export default function EventTypeDialog({
                   </FormLabel>
                   <FormControl>
                     <Input
-                      disabled={esSoloLectura || esEliminar}
+                      disabled={!canUpdateCalendar}
                       {...field}
                       placeholder="Ej: Reunión de Padres"
                       className="h-11"
@@ -260,7 +261,7 @@ export default function EventTypeDialog({
                   </FormLabel>
                   <FormControl>
                     <Input
-                      disabled={esSoloLectura || esEliminar}
+                      disabled={!canUpdateCalendar}
                       {...field}
                       placeholder="REUNION_PADRES"
                       className="h-11 font-mono"
@@ -286,7 +287,7 @@ export default function EventTypeDialog({
                   </FormLabel>
                   <FormControl>
                     <Textarea
-                      disabled={esSoloLectura || esEliminar}
+                      disabled={!canUpdateCalendar}
                       {...field}
                       placeholder="Descripción breve del tipo de evento..."
                       className="min-h-[80px] resize-none"
@@ -311,7 +312,7 @@ export default function EventTypeDialog({
                   </FormLabel>
                   <FormControl>
                     <Select
-                      disabled={esSoloLectura || esEliminar}
+                      disabled={!canUpdateCalendar}
                       onValueChange={field.onChange}
                       value={field.value}
                     >
@@ -360,7 +361,7 @@ export default function EventTypeDialog({
                   </FormLabel>
                   <FormControl>
                     <Select
-                      disabled={esSoloLectura || esEliminar}
+                      disabled={!canUpdateCalendar}
                       onValueChange={field.onChange}
                       value={field.value}
                     >
@@ -408,7 +409,7 @@ export default function EventTypeDialog({
                     <FormLabel>Estado</FormLabel>
                     <FormControl>
                       <Select
-                        disabled={esSoloLectura || esEliminar}
+                        disabled={!canUpdateCalendar}
                         onValueChange={(value) => field.onChange(value)}
                         value={field.value || "active"}
                       >
@@ -429,52 +430,34 @@ export default function EventTypeDialog({
               ""
             )}
 
-            <div className="flex gap-3 pt-4 border-t border-slate-200 justify-between">
-              {(canDeleteCalendar&&esEdicion) && (
-                <Button variant="destructive" onClick={handleEliminar}>
-                  Eliminar
-                </Button>
-              )}
-              <div className="flex gap-3 ml-auto">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
-                  disabled={isLoading}
-                  className="border-slate-300 text-slate-700 hover:bg-slate-50"
-                >
-                  <X className="w-4 h-4 mr-2" />
-                  Cerrar
-                </Button>
-                {esEliminar ? (
-                  <Button variant="destructive" onClick={handleEliminar}>
+            <div className="flex gap-3 pt-4 border-t justify-between">
+                {(canDeleteCalendar && !!tipoEventoEditar) && (
+                  <Button type="button" variant="destructive" onClick={() => setConfirmingDelete(true)} disabled={isLoading}>
+                    <Trash2 className="w-4 h-4 mr-2" />
                     Eliminar
                   </Button>
-                ) : esSoloLectura ? (
-                  ""
-                ) : (
-                  <Button
-                    type="submit"
-                    disabled={isLoading}
-                    className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
-                  >
-                    {isLoading ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        {esEdicion ? "Guardando..." : "Creando..."}
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <Save className="w-4 h-4" />
-                        {esEdicion ? "Guardar" : "Crear Evento"}
-                      </div>
-                    )}
-                  </Button>
                 )}
+                <div className="flex gap-3 ml-auto">
+                  <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+                    <X className="w-4 h-4 mr-2" />
+                    Cerrar
+                  </Button>
+                  {canUpdateCalendar && (
+                    <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
+                      {isLoading ? ( "Guardando..." ) : (
+                        <div className="flex items-center gap-2">
+                          <Save className="w-4 h-4" />
+                          <span>{tipoEventoEditar ? "Guardar" : "Crear"}</span>
+                        </div>
+                      )}
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
+
           </form>
         </Form>
+        )}
       </DialogContent>
     </Dialog>
   );

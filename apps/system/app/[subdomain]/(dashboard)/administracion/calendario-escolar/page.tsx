@@ -118,8 +118,6 @@ export default function CalendarioEscolar() {
   const [modalAbiertoT, setModalAbiertoT] = useState(false);
   const [tipoDeEventoEditar, setTipoDeEventoEditar] =
     useState<EventType | null>(null);
-  type ModoTipoDeEvento = "editar" | "ver" | "eliminar" | null;
-  const [modoDialogoT, setModoDialogoT] = useState<ModoTipoDeEvento>();
 
   useEffect(() => {
     if (
@@ -689,11 +687,6 @@ export default function CalendarioEscolar() {
                           key={tipo}
                           onClick={() => {
                             setTipoDeEventoEditar(tipoDeEvento as EventType);
-                            {
-                              setModoDialogoT(
-                                canUpdateCalendar ? "editar" : "ver"
-                              );
-                            }
                             setModalAbiertoT(true);
                           }}
                           className={cn(
@@ -749,7 +742,6 @@ export default function CalendarioEscolar() {
                       <Button
                         onClick={() => {
                           setTipoDeEventoEditar(null);
-                          setModoDialogoT(null);
                           setModalAbiertoT(true);
                         }}
                         className="bg-amber-600 hover:bg-amber-700 shadow-lg rounded-lg px-4 py-2 flex items-center justify-center transition-transform duration-150 hover:scale-105 "
@@ -772,14 +764,14 @@ export default function CalendarioEscolar() {
               }
               setModalAbiertoT(open);
             }}
-            modo={modoDialogoT}
+            canUpdateCalendar={canUpdateCalendar}
             canDeleteCalendar={canDeleteCalendar}
-            tipoEventoEditar={tipoDeEventoEditar ?? undefined}
+            tipoEventoEditar={tipoDeEventoEditar}
             escuelaId={currentSchool?.school._id as Id<"school">}
           />
           <EventDialog
             isOpen={modalAbierto}
-            onOpenChange={(open) => {
+            onOpenChange={(open: boolean) => {
               if (!open) {
                 setEventoEditar(null);
               }
