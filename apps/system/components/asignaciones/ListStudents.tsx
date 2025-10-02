@@ -88,7 +88,14 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
 
       setGradesData(initialData)
     }
-  })
+  }, [open, students, grades, isInitialized])
+
+  useEffect(() => {
+    if(!open) {
+      setIsInitialized(false)
+      setGradesData({})
+    }
+  }, [open])
 
   const getGrade = (studentClassId: string) => {
     return grades?.find(g => g.studentClassId === studentClassId)?.score
@@ -96,7 +103,7 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
 
   const handleGradeChange = (studentClassId: Id<'studentClass'>, field: keyof GradeData, value: string) => {
     setGradesData(prev => {
-      const currentStudentData = prev[studentClassId]
+      const currentStudentData = prev[studentClassId] || createEmptyGradeData(studentClassId)
 
       if(!currentStudentData) {
         return {
@@ -120,18 +127,30 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
     })
   }
 
+  const getSafeValue = (studentClassId: string, field: keyof GradeData): string => {
+    const data = gradesData[studentClassId]
+    return data?.[field] || ''
+  }
+
   const handleSaveGrades = async () => {
     if(!currentUser || !assignmentDetails) return
 
     setIsSaving(true)
     try{
-      const promises = Object.values(gradesData)
-        .filter(gradeData => gradeData.score.trim() !== '')
-        .map(async (gradeData) => {
-        if(gradeData.score.trim() === '') return // Salir si no hay calificaciones
+      const gradesToSave = Object.values(gradesData).filter(gradeData => gradeData.score.trim() !== '')
 
+      if(gradesToSave.length === 0) {
+        toast.info('No hay calificaciones para guardar')
+        return
+      }
+
+      const promises = gradesToSave.map(async (gradeData) => {
         const score = parseFloat(gradeData.score)
-        if(isNaN(score)) return // Saltar si no hay un numbero valido
+        if(isNaN(score)) {
+          console.warn('Calificación invalida')
+          toast.warning(`Calificación invalida para estudiante: ${gradeData.score}`)
+          return  
+        }
 
         if (score > assignmentDetails.assignment.maxScore) {
           toast.error(`La calificación ${score} excede el máximo permitido (${assignmentDetails.assignment.maxScore})`)
@@ -147,8 +166,9 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
         })
       })
 
-      await Promise.all(promises)
-      toast.success('Clificacies guardadas')
+      const result = await Promise.all(promises)
+      const successfulSeves = result.filter(result => result !== undefined).length
+      toast.success(`${successfulSeves} calificación(es) guardada(s) correctamente`)
       close(false) // Cerrar el dialog despies de guardar
     } catch (error){
       console.error('Error al guaradar las calificaciones: ',error)
@@ -203,9 +223,11 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
             </TableHeader>
             <TableBody>
               {students?.map((student) => {
-                const currentGrade = gradesData[student._id]
                 const existingGrade = getGrade(student._id)
                 const status = getSubmissionStatus(student._id)
+
+                const currentScore = getSafeValue(student._id, 'score')
+                const currentComments = getSafeValue(student._id, 'comments')
 
                 return (
                   <TableRow
@@ -236,7 +258,7 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
                           max={assignmentDetails?.assignment.maxScore}
                           autoFocus
                           placeholder="0"
-                          value={currentGrade?.score}
+                          value={currentScore}
                           onChange={(e) => handleGradeChange(student._id, 'score', e.target.value)}
                           className="w-20"
                         />
@@ -247,11 +269,12 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
                         </div>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell
+                    >
                       <Textarea
                         placeholder="Comentario sobre la entrega"
                         rows={2}
-                        value={currentGrade?.comments || ''}
+                        value={currentComments || ''}
                         onChange={(e) => handleGradeChange(student._id, 'comments', e.target.value)}
                       />
                     </TableCell>
@@ -262,7 +285,7 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
           </Table>
           <div className="flex justify-between items-center pt-4 border-t">
             <div className="text-sm text-muted-foreground">
-              {students?.length || 0} estudiante en esta clase
+              {students?.length || 0} estudiante{students?.length !== 1 ? 's' : ''} en esta clase
             </div>
             <div className="flex gap-2">
               <Button
