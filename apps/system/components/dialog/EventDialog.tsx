@@ -199,10 +199,10 @@ export default function EventDialog({
           <DialogTitle className="text-2xl font-bold">
             {confirmingDelete
               ? "Confirmar Eliminación"
-              : canUpdateCalendar
-                ? "Editar Evento"
-                : eventoEditar
-                  ? "Detalle del Evento"
+              : !canUpdateCalendar
+              ? "Detalle del Evento"
+              : eventoEditar
+              ? "Editar Evento"
                   : "Crear Nuevo Evento"}
           </DialogTitle>
           <DialogDescription>

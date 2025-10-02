@@ -200,8 +200,8 @@ export default function EventTypeDialog({
         <DialogHeader>
         <DialogTitle className="text-2xl font-bold text-gray-900">
             {confirmingDelete ? "Confirmar Eliminación"
-              : canUpdateCalendar ? "Editar Tipo de Evento"
-              : tipoEventoEditar ? "Detalle del Tipo de Evento"
+              : !canUpdateCalendar ? "Detalle del Tipo de Evento"
+              : tipoEventoEditar ? "Editar Tipo de Evento"
               : "Crear Nuevo Tipo de Evento"}
           </DialogTitle>
           <DialogDescription className="text-gray-600">
