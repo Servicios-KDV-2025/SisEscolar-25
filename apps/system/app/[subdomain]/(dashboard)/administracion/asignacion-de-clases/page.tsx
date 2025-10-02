@@ -26,7 +26,7 @@ import { parseConvexErrorMessage } from "lib/parseConvexErrorMessage"
 import { SelectPopover } from "../../../../../components/selectPopover"
 import { Student } from "@/types/student"
 import { usePermissions } from 'hooks/usePermissions'
-import { ClassCatalog, useClassCatalog } from 'stores/classCatalogStore'
+import { ClassCatalog, useClassCatalogWithPermissions } from 'stores/classCatalogStore'
 import { useCicloEscolarWithConvex } from 'stores/useSchoolCiclesStore'
 
 export default function StudentClassesDashboard() {
@@ -48,10 +48,11 @@ export default function StudentClassesDashboard() {
     isLoading: permissionsLoading
   } = usePermissions(currentSchool?.school._id);
 
-  console.log(currentRole);
-
   const students = useQuery(api.functions.student.listStudentsBySchool, currentSchool ? { schoolId: currentSchool.school._id as Id<'school'> } : 'skip')
-  const { classCatalogs } = useClassCatalog(currentSchool?.school._id);
+  const { classCatalogs } = useClassCatalogWithPermissions(
+    currentSchool?.school._id,
+    getStudentFilters
+  );
 
   const { ciclosEscolares: schoolYears } = useCicloEscolarWithConvex(currentSchool?.school._id);
 

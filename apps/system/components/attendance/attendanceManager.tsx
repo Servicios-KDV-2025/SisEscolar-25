@@ -24,39 +24,38 @@ interface AttendanceRecord {
 }
 
 type CurrentSchool = {
-    userSchoolId: Id<"userSchool">;
-    school: {
-        _id: Id<"school">;
-        _creationTime: number;
-        name: string;
-        email: string;
-        phone: string;
-        address: string;
-        imgUrl: string;
-        status: "active" | "inactive";
-        createdAt: number;
-        updatedAt: number;
-        subdomain: string;
-        shortName: string;
-        cctCode: string;
-        description: string;
-    };
-    role: ("superadmin" | "admin" | "auditor" | "teacher" | "tutor")[];
+  userSchoolId: Id<"userSchool">;
+  school: {
+    _id: Id<"school">;
+    _creationTime: number;
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    imgUrl: string;
     status: "active" | "inactive";
-    department: "secretary" | "direction" | "schoolControl" | "technology" | undefined;
     createdAt: number;
     updatedAt: number;
+    subdomain: string;
+    shortName: string;
+    cctCode: string;
+    description: string;
+  };
+  role: ("superadmin" | "admin" | "auditor" | "teacher" | "tutor")[];
+  status: "active" | "inactive";
+  department: "secretary" | "direction" | "schoolControl" | "technology" | undefined;
+  createdAt: number;
+  updatedAt: number;
 } | null
 
 type AttendanceManagerProps = {
   currentUser: User | null;
   currentSchool: CurrentSchool;
-  classCatalogs: ClassCatalog[];
-  isLoading: boolean
+  classCatalogs: ClassCatalog[] | undefined;
+  isLoading: boolean;
 }
 
 export default function AttendanceManager({ currentUser, currentSchool, classCatalogs, isLoading }: AttendanceManagerProps) {
-
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -65,6 +64,8 @@ export default function AttendanceManager({ currentUser, currentSchool, classCat
     Record<string, Partial<AttendanceRecord>>
   >({});
   const [isSaving, setIsSaving] = useState(false);
+  // const [clasCat, setClasCat] = useState<ClassCatalog[]>();
+  // useEffect(() => setClasCat(classCatalogs), [classCatalogs])
 
   const createAttendanceMutation = useMutation(
     api.functions.attendance.createAttendance
@@ -78,9 +79,9 @@ export default function AttendanceManager({ currentUser, currentSchool, classCat
     api.functions.attendance.getAttendanceByClassAndDate,
     selectedClass && currentUser?._id
       ? {
-          classCatalogId: selectedClass as Id<"classCatalog">,
-          date: dateTimestamp,
-        }
+        classCatalogId: selectedClass as Id<"classCatalog">,
+        date: dateTimestamp,
+      }
       : "skip"
   );
 

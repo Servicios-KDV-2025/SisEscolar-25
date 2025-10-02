@@ -1,23 +1,150 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs"
-import { api } from "@repo/convex/convex/_generated/api"
-import { Id } from "@repo/convex/convex/_generated/dataModel"
-import { Badge } from "@repo/ui/components/shadcn/badge"
-import { Button } from "@repo/ui/components/shadcn/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
-import { Input } from "@repo/ui/components/shadcn/input"
-import { Label } from "@repo/ui/components/shadcn/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table"
-import { BookOpen, CheckCircle, FileCheck, FileX, Filter, X, XCircle } from "@repo/ui/icons"
-import { useQuery } from "convex/react"
-import { useMemo, useState } from "react"
-import { useClassCatalog } from "stores/classCatalogStore"
-import { useCurrentSchool } from "stores/userSchoolsStore"
-import { useUserWithConvex } from "stores/userStore"
+import { api } from "@repo/convex/convex/_generated/api";
+import { Id } from "@repo/convex/convex/_generated/dataModel";
+import { Badge } from "@repo/ui/components/shadcn/badge";
+import { Button } from "@repo/ui/components/shadcn/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/shadcn/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@repo/ui/components/shadcn/dialog";
+import { Input } from "@repo/ui/components/shadcn/input";
+import { Label } from "@repo/ui/components/shadcn/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@repo/ui/components/shadcn/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@repo/ui/components/shadcn/table";
+import { Textarea } from "@repo/ui/components/shadcn/textarea";
+import {
+  BookOpen,
+  CheckCircle,
+  FileCheck,
+  FileX,
+  Filter,
+  X,
+  XCircle,
+  Loader2,
+  Save,
+  MessageCircleMore,
+  MessageCircleDashed,
+} from "@repo/ui/icons";
+import { useQuery, useMutation } from "convex/react";
+import { UserRole } from 'hooks/usePermissions';
+import { useMemo, useState, useEffect } from "react";
+import { toast } from "sonner";
+import { ClassCatalog } from 'stores/classCatalogStore';
+import { User } from 'stores/userStore';
 
-type AttendanceState = 'present' | 'absent' | 'justified' | 'unjustified'
+type AttendanceRecord = NonNullable<ReturnType<
+  typeof useQuery<typeof api.functions.attendance.getAttendanceHistory>
+>>[0];
+
+type AttendanceState = "present" | "absent" | "justified" | "unjustified";
+
+const CharacterCounter = ({ current, max, }: {
+  current: number;
+  max: number;
+}) => (
+  <div className="text-xs mt-1 text-right text-gray-500">
+    {current}/{max} caracteres
+  </div>
+);
+
+interface CommentEditModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  record: AttendanceRecord | null;
+  onSave: (recordId: Id<"attendance">, newComment: string) => void;
+  isSaving: boolean;
+  canUpdateAttendance: boolean;
+}
+
+function CommentEditModal({
+  isOpen,
+  onClose,
+  record,
+  onSave,
+  isSaving,
+  canUpdateAttendance,
+}: CommentEditModalProps) {
+  const [comment, setComment] = useState("");
+
+  useEffect(() => {
+    if (record) setComment(record.comments || "");
+  }, [record]);
+
+  const handleSave = () => {
+    if (!record || isSaving) return;
+    onSave(record._id, comment);
+  };
+
+  if (!record) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar Comentario</DialogTitle>
+        </DialogHeader>
+        <div className="py-4 space-y-2">
+          <Label htmlFor="comment" className="text-muted-foreground">
+            Comentario para:{" "}
+            <span className="font-semibold text-primary">
+              {record.student.name} {record.student.lastName}
+            </span>
+          </Label>
+          <Textarea
+            id="comment"
+            value={comment}
+            maxLength={300}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Añade una nota..."
+            rows={5}
+            className="mt-2"
+            disabled={!canUpdateAttendance}
+          />
+          <CharacterCounter current={comment.length} max={300} />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isSaving}>
+            {canUpdateAttendance ? 'Cancelar' : 'Cerrar'}
+          </Button>
+          {canUpdateAttendance &&
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Guardar
+            </Button>
+          }
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 interface AttendanceFilters {
   classCatalogId?: Id<"classCatalog">;
@@ -25,12 +152,48 @@ interface AttendanceFilters {
   specificDate?: number;
 }
 
-export default function AttendanceHistory() {
-  const { user: clerkUser } = useUser()
-  const { currentUser } = useUserWithConvex(clerkUser?.id)
-  const { currentSchool, isLoading } = useCurrentSchool(currentUser?._id)
-  const { classCatalogs } = useClassCatalog(currentSchool?.school._id)
+type CurrentSchoolType = {
+  userSchoolId: Id<"userSchool">;
+  school: {
+    _id: Id<"school">;
+    _creationTime: number;
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    imgUrl: string;
+    status: "active" | "inactive";
+    createdAt: number;
+    updatedAt: number;
+    subdomain: string;
+    shortName: string;
+    cctCode: string;
+    description: string;
+  };
+  role: ("superadmin" | "admin" | "auditor" | "teacher" | "tutor")[];
+  status: "active" | "inactive";
+  department: "secretary" | "direction" | "schoolControl" | "technology" | undefined;
+  createdAt: number;
+  updatedAt: number;
+} | null
 
+type AttendanceHistoryProps = {
+  currentUser: User | null;
+  currentSchool: CurrentSchoolType;
+  classCatalogs: ClassCatalog[] | undefined;
+  isLoading: boolean;
+  currentRole: UserRole | null
+  canUpdateAttendance: boolean
+}
+
+export default function AttendanceHistory({
+  currentUser,
+  currentSchool,
+  classCatalogs,
+  isLoading,
+  currentRole,
+  canUpdateAttendance
+}: AttendanceHistoryProps) {
   const [filterClass, setFilterClass] = useState("all");
   const [filterState, setFilterState] = useState("all");
   const [specificDate, setSpecificDate] = useState("");
@@ -71,39 +234,39 @@ export default function AttendanceHistory() {
     api.functions.attendance.getAttendanceHistory,
     currentSchool
       ? {
-          schoolId: currentSchool.school._id,
-          filters: filters,
-        }
+        schoolId: currentSchool.school._id,
+        filters: filters,
+      }
       : "skip"
   );
 
   const attendanceHistory = useMemo(() => {
-  if (!attHistory) {
-    return [];
-  }
-
-  return [...attHistory].sort((a, b) => {
-    // Medidas de seguridad para evitar errores si un registro es nulo
-    if (!a) return 1;
-    if (!b) return -1;
-
-    // --- Nivel 1: Ordenar por fecha (de más reciente a más antigua) ---
-    const dateComparison = b.date - a.date;
-
-    // Si las fechas son diferentes, ese es nuestro resultado y no necesitamos seguir.
-    if (dateComparison !== 0) {
-      return dateComparison;
+    if (!attHistory) {
+      return [];
     }
 
-    // --- Nivel 2: Si las fechas son iguales, ordenar por nombre (A-Z) ---
-    const nameA = a.student?.name || '';
-    const nameB = b.student?.name || '';
-    
-    return nameA.localeCompare(nameB);
-  });
-}, [attHistory]);
+    return [...attHistory].sort((a, b) => {
+      // Medidas de seguridad para evitar errores si un registro es nulo
+      if (!a) return 1;
+      if (!b) return -1;
 
-// En tu JSX, asegúrate de usar 'sortedAttHistory' para renderizar la tabla.
+      // --- Nivel 1: Ordenar por fecha (de más reciente a más antigua) ---
+      const dateComparison = b.date - a.date;
+
+      // Si las fechas son diferentes, ese es nuestro resultado y no necesitamos seguir.
+      if (dateComparison !== 0) {
+        return dateComparison;
+      }
+
+      // --- Nivel 2: Si las fechas son iguales, ordenar por nombre (A-Z) ---
+      const nameA = a.student?.name || '';
+      const nameB = b.student?.name || '';
+
+      return nameA.localeCompare(nameB);
+    });
+  }, [attHistory]);
+
+  // En tu JSX, asegúrate de usar 'sortedAttHistory' para renderizar la tabla.
 
   // Preparar filtros para estadisticas
   const statsFilters = useMemo(
@@ -122,9 +285,9 @@ export default function AttendanceHistory() {
     api.functions.attendance.getAttendanceStatistics,
     currentSchool
       ? {
-          schoolId: currentSchool.school._id,
-          ...statsFilters,
-        }
+        schoolId: currentSchool.school._id,
+        ...statsFilters,
+      }
       : "skip"
   );
   const handleStateChange = async (
@@ -133,7 +296,7 @@ export default function AttendanceHistory() {
   ) => {
     if (!currentUser) return;
     setPendingChanges((prev) => new Set(prev).add(recordId));
-    
+
     try {
       await updateState({ recordId, newState, updatedBy: currentUser._id });
       toast.success("Estado actualizado.");
@@ -200,33 +363,33 @@ export default function AttendanceHistory() {
     setSpecificDate("");
   };
 
-const getAttendanceStatusStyles = (
-  state: AttendanceState,
-  options: { textOnly?: boolean } = {} // Opción para pedir solo el texto
-) => {
-  const { textOnly = true } = options;
+  const getAttendanceStatusStyles = (
+    state: AttendanceState,
+    options: { textOnly?: boolean } = {} // Opción para pedir solo el texto
+  ) => {
+    const { textOnly = true } = options;
 
-  switch (state) {
-    case "present":
-      return textOnly
-        ? "text-green-800"
-        : "bg-green-100 text-green-800";
-    case "absent":
-      return textOnly
-        ? "text-red-800"
-        : "bg-red-100 text-red-800 border-red-200";
-    case "justified":
-      return textOnly
-        ? "text-yellow-800"
-        : "bg-yellow-100 text-yellow-800 border-yellow-200";
-    case "unjustified":
-      return textOnly
-        ? "text-orange-800"
-        : "bg-orange-100 text-orange-800 border-orange-200";
-    default:
-      return textOnly ? "text-gray-800" : "bg-gray-100 text-gray-800";
-  }
-};
+    switch (state) {
+      case "present":
+        return textOnly
+          ? "text-green-800"
+          : "bg-green-100 text-green-800";
+      case "absent":
+        return textOnly
+          ? "text-red-800"
+          : "bg-red-100 text-red-800 border-red-200";
+      case "justified":
+        return textOnly
+          ? "text-yellow-800"
+          : "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "unjustified":
+        return textOnly
+          ? "text-orange-800"
+          : "bg-orange-100 text-orange-800 border-orange-200";
+      default:
+        return textOnly ? "text-gray-800" : "bg-gray-100 text-gray-800";
+    }
+  };
 
   if (isLoading) {
     return <div className="text-center py-10">Cargando escuala</div>;
@@ -235,7 +398,7 @@ const getAttendanceStatusStyles = (
   return (
     <div className="space-y-6">
       {/* Estadísticas */}
-      {attendanceStats && (
+      {(currentRole !== 'tutor' && attendanceStats) && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 space-x-5">
           <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
@@ -332,7 +495,7 @@ const getAttendanceStatusStyles = (
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas las clases</SelectItem>
-                  {classCatalogs.map((cc) => (
+                  {classCatalogs?.map((cc) => (
                     <SelectItem key={cc._id} value={cc._id}>
                       {cc.name}
                     </SelectItem>
@@ -445,6 +608,7 @@ const getAttendanceStatusStyles = (
                                 onValueChange={(value: AttendanceState) =>
                                   handleStateChange(record._id, value)
                                 }
+                                disabled={!canUpdateAttendance}
                               >
                                 <SelectTrigger
                                   // Estas clases hacen que el botón se vea como una Badge
@@ -518,6 +682,7 @@ const getAttendanceStatusStyles = (
         isSaving={
           selectedRecord ? pendingChanges.has(selectedRecord._id) : false
         }
+        canUpdateAttendance={canUpdateAttendance}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import AttendanceManager from "components/attendance/attendanceManager";
 import AttendanceHistory from "components/attendance/attendanceHistory";
 import { Tabs, TabsList, TabsContent, TabsTrigger } from "@repo/ui/components/shadcn/tabs";
@@ -8,24 +8,47 @@ import { ClipboardList } from "@repo/ui/icons";
 import { useUser } from '@clerk/nextjs';
 import { useUserWithConvex } from 'stores/userStore';
 import { useCurrentSchool } from 'stores/userSchoolsStore';
-import { useClassCatalog } from 'stores/classCatalogStore';
+import { ClassCatalog, useClassCatalogWithPermissions } from 'stores/classCatalogStore';
 import { usePermissions } from 'hooks/usePermissions';
 
 export default function AttendancePage() {
   const { user: clerkUser } = useUser()
   const { currentUser } = useUserWithConvex(clerkUser?.id)
-  const { currentSchool, isLoading } = useCurrentSchool(currentUser?._id)
-  const { classCatalogs } = useClassCatalog(currentSchool?.school._id)
+  const { currentSchool, isLoading: loadingSchool } = useCurrentSchool(currentUser?._id)
+  const [clasCat, setClasCat] = useState<ClassCatalog[]>();
+  const [clasCatLoading, setClasCatLoading] = useState(false);
 
   const {
-    canCreateClassCatalog,
-    canReadClassCatalog,
-    canUpdateClassCatalog,
+    getStudentFilters,
+    canCreateAttendance,
+    canUpdateAttendance,
     currentRole,
     isLoading: permissionsLoading,
   } = usePermissions(currentSchool?.school._id);
 
+  const { classCatalogs } = useClassCatalogWithPermissions(
+    currentSchool?.school._id,
+    getStudentFilters
+  );
+
+  useEffect(() => {
+    setClasCatLoading(true);
+    if (classCatalogs) {
+      setClasCat(classCatalogs);
+      setClasCatLoading(false);
+    }
+    setClasCatLoading(false);
+  }, [currentRole, classCatalogs])
+
   const [activeTab, setActiveTab] = useState('register');
+
+  const isLoading = loadingSchool || permissionsLoading || clasCatLoading;
+
+  useEffect(() => {
+    if (currentRole === 'tutor' || currentRole === 'auditor') {
+      setActiveTab('history');
+    }
+  }, [currentRole]);
 
   return (
     <div className="container mx-auto p-6">
@@ -50,7 +73,7 @@ export default function AttendancePage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
-        {currentRole !== 'tutor' ?
+        {(canCreateAttendance) ?
           (<>
             <TabsList className="w-full bg-muted/50 p-1 rounded-xl border">
               <TabsTrigger
@@ -69,24 +92,30 @@ export default function AttendancePage() {
               <AttendanceManager
                 currentUser={currentUser}
                 currentSchool={currentSchool}
-                classCatalogs={classCatalogs}
+                classCatalogs={clasCat}
                 isLoading={isLoading}
               />
             </TabsContent>
 
             <TabsContent value="history">
               <AttendanceHistory
+                currentUser={currentUser}
                 currentSchool={currentSchool}
-                classCatalogs={classCatalogs}
+                classCatalogs={clasCat}
                 isLoading={isLoading}
+                currentRole={currentRole}
+                canUpdateAttendance={canUpdateAttendance}
               />
             </TabsContent>
           </>) : (
             <TabsContent value="history">
               <AttendanceHistory
+                currentUser={currentUser}
                 currentSchool={currentSchool}
-                classCatalogs={classCatalogs}
+                classCatalogs={clasCat}
                 isLoading={isLoading}
+                currentRole={currentRole}
+                canUpdateAttendance={canUpdateAttendance}
               />
             </TabsContent>
           )

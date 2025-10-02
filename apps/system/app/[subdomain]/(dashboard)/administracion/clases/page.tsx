@@ -7,7 +7,7 @@ import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialo
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table";
 import { AlertCircle, CheckCircle, ClipboardList, Eye, Filter, Pencil, Plus, Search, Trash2, XCircle } from "@repo/ui/icons";
-import { useClassCatalog } from "stores/classCatalogStore";
+import { useClassCatalogWithPermissions } from "stores/classCatalogStore";
 import { useGroup } from "stores/groupStore";
 import { useSubject } from "stores/subjectStore";
 import { useCurrentSchool } from "stores/userSchoolsStore";
@@ -48,6 +48,7 @@ export default function ClassCatalogPage() {
         isAdmin,
         isAuditor,
         isLoading: permissionsLoading,
+        getStudentFilters
     } = usePermissions(currentSchool?.school._id);
 
     const isLoading = !isLoaded || userLoading || schoolLoading || permissionsLoading;
@@ -99,7 +100,10 @@ export default function ClassCatalogPage() {
         updateClassCatalog,
         deleteClassCatalog,
         clearErrors: clearSubjectErrors,
-    } = useClassCatalog(currentSchool?.school._id);
+    } = useClassCatalogWithPermissions(
+        currentSchool?.school._id,
+        getStudentFilters
+    );
 
     const {
         isOpen,
