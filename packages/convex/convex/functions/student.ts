@@ -9,6 +9,7 @@ export const createStudent = mutation({
     groupId: v.id("group"),
     tutorId: v.id("user"),
     enrollment: v.string(),
+    schoolCycleId:v.id("schoolCycle"), // Agregar schoolCycleId
     name: v.string(),
     lastName: v.optional(v.string()),
     birthDate: v.optional(v.number()),
@@ -33,12 +34,104 @@ export const createStudent = mutation({
 
     // Insertar el nuevo estudiante con datos de auditoría
     const now = Date.now();
-    return await ctx.db.insert("student", {
+    const studentId = await ctx.db.insert("student", {
       ...args,
-      status: args.status || "active", // Usar el status proporcionado o default "active"
+      status: args.status || "active",
+      balance: 0, // Inicializar balance en 0
       createdAt: now,
       updatedAt: now,
     });
+
+    // Generar pagos automáticamente si tiene schoolCycleId
+    let paymentsCreated = [];
+    if (args.schoolCycleId) {
+      try {
+        // Obtener todas las configuraciones de pago activas para su escuela y ciclo
+        const paymentConfigs = await ctx.db
+          .query("billingConfig")
+          .withIndex("by_schoolCycle", (q) => q.eq("schoolCycleId", args.schoolCycleId))
+          .filter((q) => q.eq(q.field("schoolId"), args.schoolId))
+          .filter((q) => q.neq(q.field("status"), "inactive")) // Solo configuraciones que no esten inactivas
+          .collect();
+
+        let totalDebt = 0;
+
+        // Crear pagos para cada configuración que aplique al estudiante
+        for (const config of paymentConfigs) {
+          let shouldCreatePayment = false;
+
+          // Verificar si la configuración aplica a este estudiante
+          if (config.scope === "all_students") {
+            shouldCreatePayment = true;
+          } else if (config.scope === "specific_groups" && config.targetGroup) {
+            shouldCreatePayment = config.targetGroup.includes(args.groupId);
+          } else if (config.scope === "specific_grades" && config.targetGrade) {
+            // Obtener el grupo para verificar el grado
+            const group = await ctx.db.get(args.groupId);
+            shouldCreatePayment = !!(group && config.targetGrade.includes(group.grade));
+          } else if (config.scope === "specific_students" && config.targetStudent) {
+            // Para estudiantes específicos, necesitaríamos el ID del estudiante pero pues no existe asi que pues nomas no lo ponemos jajajja
+            shouldCreatePayment = false;
+          }
+
+          if (shouldCreatePayment) {
+            // Verificar si ya existe un pago para este estudiante y configuración
+            const existingPayment = await ctx.db
+              .query("billing")
+              .withIndex("by_student_and_config", (q) => 
+                q.eq("studentId", studentId).eq("billingConfigId", config._id)
+              )
+              .first();
+
+            if (!existingPayment) {
+              const paymentId = await ctx.db.insert("billing", {
+                studentId: studentId,
+                billingConfigId: config._id,
+                status: "Pago pendiente",
+                amount: config.amount,
+                createdAt: now,
+                updatedAt: now,
+              });
+
+              // SOLO sumar al balance si el status es "required"
+              if (config.status === "required") {
+                totalDebt += config.amount;
+              }
+
+              paymentsCreated.push({
+                paymentId,
+                configName: `${config.type} - ${config.recurrence_type}`,
+                amount: config.amount,
+                status: config.status,
+                balanceUpdated: config.status === "required",
+              });
+            }
+          }
+        }
+
+        // Actualizar el balance del estudiante SOLO si hay deuda requerida
+        if (totalDebt > 0) {
+          await ctx.db.patch(studentId, {
+            balance: -totalDebt, // Negativo porque es deuda
+            updatedAt: now,
+          });
+        }
+      } catch (error) {
+        console.error("Error creando pagos para el estudiante:", error);
+      }
+    }
+
+    return {
+      studentId,
+      student: {
+        id: studentId,
+        name: `${args.name} ${args.lastName || ""}`,
+        enrollment: args.enrollment,
+        schoolCycleId: args.schoolCycleId,
+      },
+      paymentsCreated: paymentsCreated.length,
+      payments: paymentsCreated,
+    };
   },
 });
 

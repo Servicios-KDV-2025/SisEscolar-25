@@ -162,6 +162,7 @@ export default function AlumnosPage() {
       schoolId: currentSchool.school._id as Id<"school">,
       groupId: formData.groupId as Id<"group">,
       tutorId: formData.tutorId as Id<"user">,
+      schoolCycleId: formData.schoolCycleId as Id<"schoolCycle">,
       enrollment: formData.enrollment as string,
       name: formData.name as string,
       lastName: formData.lastName as string || undefined,

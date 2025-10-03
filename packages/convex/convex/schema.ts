@@ -79,6 +79,8 @@ const applicationTable = defineSchema({
     groupId: v.id("group"),
     tutorId: v.id("user"),
     enrollment: v.string(),
+    schoolCycleId: v.optional(v.id("schoolCycle")),
+    balance: v.optional(v.number()),
     name: v.string(),
     lastName: v.optional(v.string()),
     birthDate: v.optional(v.number()),
@@ -366,6 +368,78 @@ const applicationTable = defineSchema({
     .index("by_schoolId", ["schoolId"])
     .index("by_stripeSubscriptionId", ["stripeSubscriptionId"])
     .index("by_status", ["status"]),
+
+
+billing: defineTable({
+  studentId: v.id("student"),
+  billingConfigId: v.id("billingConfig"),
+  status: v.union(
+    v.literal("Pago pendiente"), 
+    v.literal("Pago cumplido"), 
+    v.literal("Pago vencido"), 
+    v.literal("Pago parcial"), 
+    v.literal("Pago retrasado")
+  ),
+  amount: v.number(),
+  paidAt: v.optional(v.number()),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+})
+  .index("by_student", ["studentId"])
+  .index("by_billingConfig", ["billingConfigId"])
+  .index("by_status", ["status"])
+  .index("by_student_and_config", ["studentId", "billingConfigId"]),
+
+
+  billingConfig: defineTable({
+  schoolId: v.id("school"),
+  schoolCycleId: v.id("schoolCycle"),
+  scope: v.union(
+    v.literal("all_students"),//Todos los estudiantes del ciclo escolar
+    v.literal("specific_groups"),//Grupos específicos
+    v.literal("specific_grades"),//Grados específicos
+    v.literal("specific_students"),//Estudiantes específicos
+  ),
+  targetGroup: v.optional(v.array(v.id("group"))),
+  targetGrade: v.optional(v.array(v.string())),
+  targetStudent: v.optional(v.array(v.id("student"))),
+  recurrence_type: v.union(
+    v.literal("cuatrimestral"),
+    v.literal("semestral"),
+    v.literal("sabatino"),
+    v.literal("mensual"),
+    v.literal("diario"),
+    v.literal("semanal"),
+    v.literal("anual"),
+    v.literal("unico"),
+  ),
+  type: v.union(
+    v.literal("inscripción"),
+    v.literal("colegiatura"),
+    v.literal("examen"),
+    v.literal("material-escolar"),
+    v.literal("seguro-vida"),
+    v.literal("plan-alimenticio"),
+    v.literal("otro")
+  ),
+  amount: v.number(),
+  startDate: v.number(),
+  endDate: v.number(),
+  createdBy: v.id("user"),
+  status: v.union(v.literal("required"), v.literal("optional"), v.literal("inactive")),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+})
+  .index("by_school", ["schoolId"])
+  .index("by_schoolCycle", ["schoolCycleId"])
+  .index("by_status", ["status"])
+  .index("by_type", ["type"])
+  .index("by_recurrence_type", ["recurrence_type"])
+  .index("by_scope", ["scope"])
+  .index("by_group", ["targetGroup"])
+  .index("by_grade", ["targetGrade"])
+  .index("by_student", ["targetStudent"])
+
 });
 
 export default applicationTable;
