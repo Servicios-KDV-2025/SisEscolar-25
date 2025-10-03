@@ -103,16 +103,21 @@ export const tutorSchema = userSchema.extend({
 /**
  * Schema unificado para gestión de usuarios
  * Incluye selección de rol y departamento para el CrudDialog unificado
+ * Soporta tanto un rol único (string) como múltiples roles (array)
  */
 export const unifiedUserCreateSchema = userSchema.extend({
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").optional(),
-  role: z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"], {
+  role: z.union([
+    z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"]),
+    z.array(z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"])).min(1, "Debe seleccionar al menos un rol")
+  ], {
     message: "Debe seleccionar un rol"
   }),
   department: z.enum(["secretary", "direction", "schoolControl", "technology"]).optional(),
 }).refine((data) => {
-  // Si el rol es admin, el departamento es requerido
-  if (data.role === "admin" && !data.department) {
+  // Si el rol es admin (o incluye admin en el array), el departamento es requerido
+  const roles = Array.isArray(data.role) ? data.role : [data.role];
+  if (roles.includes("admin") && !data.department) {
     return false;
   }
   return true;
@@ -122,13 +127,17 @@ export const unifiedUserCreateSchema = userSchema.extend({
 });
 
 export const unifiedUserEditSchema = userSchema.extend({
-  role: z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"], {
+  role: z.union([
+    z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"]),
+    z.array(z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"])).min(1, "Debe seleccionar al menos un rol")
+  ], {
     message: "Debe seleccionar un rol"
   }),
   department: z.enum(["secretary", "direction", "schoolControl", "technology"]).optional(),
 }).refine((data) => {
-  // Si el rol es admin, el departamento es requerido
-  if (data.role === "admin" && !data.department) {
+  // Si el rol es admin (o incluye admin en el array), el departamento es requerido
+  const roles = Array.isArray(data.role) ? data.role : [data.role];
+  if (roles.includes("admin") && !data.department) {
     return false;
   }
   return true;
@@ -139,13 +148,17 @@ export const unifiedUserEditSchema = userSchema.extend({
 
 export const unifiedUserSchema = userSchema.extend({
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").optional(),
-  role: z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"], {
+  role: z.union([
+    z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"]),
+    z.array(z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"])).min(1, "Debe seleccionar al menos un rol")
+  ], {
     message: "Debe seleccionar un rol"
   }),
   department: z.enum(["secretary", "direction", "schoolControl", "technology"]).optional(),
 }).refine((data) => {
-  // Si el rol es admin, el departamento es requerido
-  if (data.role === "admin" && !data.department) {
+  // Si el rol es admin (o incluye admin en el array), el departamento es requerido
+  const roles = Array.isArray(data.role) ? data.role : [data.role];
+  if (roles.includes("admin") && !data.department) {
     return false;
   }
   return true;

@@ -180,9 +180,9 @@ export const usePermissions = (schoolId?: string) => {
       "delete:users_tutores": true,
 
       //  pagina de personal
-      "create:users_personal": false,
+      "create:users_personal": true,
       "read:users_personal": true,
-      "update:users_personal": false,
+      "update:users_personal": true,
       "delete:users_personal": false,
       //Aulas
       "create:classroom": true,
@@ -246,9 +246,9 @@ export const usePermissions = (schoolId?: string) => {
       "delete:users_tutores": false,
 
       //  pagina de personal
-      "create:users_personal": true,
+      "create:users_personal": false,
       "read:users_personal": true,
-      "update:users_personal": true,
+      "update:users_personal": false,
       "delete:users_personal": false,
       //Aulas
       "create:classroom": false,

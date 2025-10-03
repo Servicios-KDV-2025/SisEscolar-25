@@ -63,9 +63,10 @@ import {
   CheckCircle,
   Building2,
   BookOpen,
-  GraduationCap,
   Search as SearchIcon,
+  X,
 } from "@repo/ui/icons";
+import { FolderClosed } from "lucide-react";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import {
   unifiedUserSchema,
@@ -130,31 +131,31 @@ const getSchemaForOperation = (operation: string) => {
 const roleConfig = {
   superadmin: {
     label: "Super-Admin",
-    color: "bg-red-100 text-red-800",
+    color: "bg-amber-500 text-gray-50",
     icon: Shield,
     description: "Acceso completo sin restricciones",
   },
   admin: {
     label: "Administrador",
-    color: "bg-blue-100 text-blue-800",
-    icon: Building2,
+    color: "bg-amber-400 text-gray-50",
+    icon: FolderClosed,
     description: "Acceso administrativo departamental",
   },
   auditor: {
     label: "Auditor",
-    color: "bg-green-100 text-green-800",
+    color: "bg-sky-700 text-white",
     icon: SearchIcon,
     description: "Acceso de auditoría y verificación",
   },
   teacher: {
     label: "Docente",
-    color: "bg-purple-100 text-purple-800",
+    color: "bg-sky-600 text-white",
     icon: BookOpen,
     description: "Acceso de enseñanza y evaluación",
   },
   tutor: {
     label: "Tutor",
-    color: "bg-orange-100 text-orange-800",
+    color: "bg-sky-500 text-white",
     icon: Users,
     description: "Acceso a información de alumnos",
   },
@@ -204,7 +205,7 @@ export default function PersonalPage() {
     currentSchool?.school?._id
       ? {
         schoolId: currentSchool.school._id,
-        roles: ["superadmin", "admin", "auditor", "teacher"],
+        roles: ["superadmin", "admin", "auditor", "teacher", "tutor"],
         status: "active",
       }
       : "skip"
@@ -215,13 +216,13 @@ export default function PersonalPage() {
     currentSchool?.school?._id
       ? {
         schoolId: currentSchool.school._id,
-        roles: ["superadmin", "admin", "auditor", "teacher"],
+        roles: ["superadmin", "admin", "auditor", "teacher", "tutor"],
         status: "inactive",
       }
       : "skip"
   );
 
-  const allUsers = activeUsers?.concat(inactiveUsers || []);
+  const allUsers: UserFromConvex[] = (activeUsers || []).concat(inactiveUsers || []);
 
   // User Actions Store para CRUD operations
   const userActions = useUserActionsWithConvex();
@@ -333,38 +334,38 @@ export default function PersonalPage() {
   };
 
   // Filtrado de datos - Excluir tutores
-  const filteredUsers = useMemo(() => {
-    if (!allUsers) return [];
+ // Reemplaza el useMemo actual:
+const filteredUsers = useMemo(() => {
+  if (!allUsers) return [];
 
-    return allUsers
-      .filter((user: UserFromConvex) => !user.schoolRole.includes("tutor")) // Excluir tutores
-      .filter((user: UserFromConvex) => {
-        const searchMatch =
-          user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.email.toLowerCase().includes(searchTerm.toLowerCase());
+  return allUsers
+    .filter((user: UserFromConvex) => {
+      const searchMatch =
+        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase());
 
-        const statusMatch =
-          statusFilter === "all" ||
-          (user.schoolStatus || "active") === statusFilter;
+      const statusMatch =
+        statusFilter === "all" ||
+        (user.schoolStatus || "active") === statusFilter;
 
-        const roleMatch =
-          roleFilter === "all" ||
-          user.schoolRole.includes(
-            roleFilter as
-            | "superadmin"
-            | "admin"
-            | "auditor"
-            | "teacher"
-            | "tutor"
-          );
+      const roleMatch =
+        roleFilter === "all" ||
+        user.schoolRole.includes(
+          roleFilter as
+          | "superadmin"
+          | "admin"
+          | "auditor"
+          | "teacher"
+          | "tutor"
+        );
 
-        const departmentMatch =
-          departmentFilter === "all" || user.department === departmentFilter;
+      const departmentMatch =
+        departmentFilter === "all" || user.department === departmentFilter;
 
-        return searchMatch && statusMatch && roleMatch && departmentMatch;
-      });
-  }, [allUsers, searchTerm, statusFilter, roleFilter, departmentFilter]);
+      return searchMatch && statusMatch && roleMatch && departmentMatch;
+    });
+}, [allUsers, searchTerm, statusFilter, roleFilter, departmentFilter]);
 
   // Funciones CRUD
   const handleCreate = async (formData: Record<string, unknown>) => {
@@ -530,8 +531,6 @@ export default function PersonalPage() {
   };
 
   const handleUpdate = async (formData: Record<string, unknown>) => {
-
-
     // Combinar datos del formulario con datos originales para tener clerkId
     const combinedData = { ...data, ...formData };
 
@@ -570,52 +569,51 @@ export default function PersonalPage() {
       }
 
       // PASO 2: Actualizar rol y departamento en la relación usuario-escuela
-      const selectedRole = formData.role as string;
+      const selectedRoleData = formData.role;
       const selectedDepartment = formData.department as string;
-      const originalRole = data?.role as string; // Rol original antes del cambio
+
+      // Convertir selectedRoleData a array de roles
+      let finalRoles: Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
+      
+      if (Array.isArray(selectedRoleData)) {
+        // Si ya es un array, usarlo directamente
+        finalRoles = selectedRoleData as Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
+      } else if (typeof selectedRoleData === "string") {
+        // Si es un string, convertirlo a array
+        finalRoles = [selectedRoleData as "superadmin" | "admin" | "auditor" | "teacher" | "tutor"];
+      } else {
+        // Fallback: usar los roles originales si no hay datos válidos
+        finalRoles = Array.isArray(data?.schoolRole) 
+          ? data.schoolRole 
+          : [data?.role as "superadmin" | "admin" | "auditor" | "teacher" | "tutor"];
+      }
+
+      console.log("🔍 Roles finales a guardar:", finalRoles);
 
       // LÓGICA DE DEPARTAMENTO:
-      // - Si el nuevo rol es admin: usar el departamento seleccionado
-      // - Si el nuevo rol NO es admin Y el rol original ERA admin: limpiar departamento (undefined)
-      // - Si el nuevo rol NO es admin Y el rol original NO era admin: mantener como está (undefined)
       let departmentValue: string | undefined;
 
-      if (selectedRole === "admin") {
-        // Rol admin: usar departamento seleccionado
-        departmentValue =
-          selectedDepartment === "none" ? undefined : selectedDepartment;
-      } else if (originalRole === "admin") {
-        // Cambio DE admin A otro rol: limpiar departamento
-        departmentValue = undefined;
+      // Verificar si tiene rol de admin en los roles finales
+      const hasAdminRole = finalRoles.includes("admin");
 
+      if (hasAdminRole) {
+        // Tiene rol admin: usar departamento seleccionado
+        departmentValue = selectedDepartment === "none" ? undefined : selectedDepartment;
       } else {
-        // Cambio entre roles no-admin: mantener undefined
+        // No tiene rol admin: limpiar departamento
         departmentValue = undefined;
       }
 
-
-
       await updateUserSchoolRelation({
         id: combinedData.userSchoolId as Id<"userSchool">,
-        role: [
-          selectedRole as
-          | "superadmin"
-          | "admin"
-          | "auditor"
-          | "teacher"
-          | "tutor",
-        ],
-        department:
-          departmentValue === undefined
-            ? null
-            : (departmentValue as
-              | "secretary"
-              | "direction"
-              | "schoolControl"
-              | "technology"),
+        role: finalRoles, // Usar el array completo de roles preservados
+        department: departmentValue === undefined
+          ? null
+          : (departmentValue as "secretary" | "direction" | "schoolControl" | "technology"),
         status: (combinedData.status as "active" | "inactive") || "active",
       });
 
+      console.log("✅ Actualización completada exitosamente");
 
     } catch (error) {
       console.error("❌ Error en handleUpdate:", error);
@@ -685,17 +683,14 @@ export default function PersonalPage() {
   }
 
   // Estadísticas por rol - Excluir tutores
-  const personalUsers =
-    allUsers?.filter(
-      (user: UserFromConvex) => !user.schoolRole.includes("tutor")
-    ) || [];
+  const personalUsers: UserFromConvex[] = allUsers || [];
 
   const stats = [
     {
       title: "Total Personal",
       value: personalUsers.length.toString(),
       icon: Users,
-      trend: "Excluyendo tutores",
+      trend: "Incluyendo tutores",
     },
     {
       title: "Super-Admins",
@@ -905,8 +900,25 @@ export default function PersonalPage() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Lista de Personal</span>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(roleConfig).map(([roleKey, roleInfo]) => (
+                <Badge
+                  key={roleKey}
+                  variant="outline"
+                  className={`${roleInfo.color} text-xs m-x-2 space-x-2`}
+                >
+                  <roleInfo.icon className="h-4 w-4 mr-1" />
+                  {roleInfo.label}
+                </Badge>
+              ))}
+            </div>
             <Badge variant="outline">{filteredUsers.length} usuarios</Badge>
           </CardTitle>
+
+          <CardDescription className="space-x-1">
+
+
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -945,7 +957,7 @@ export default function PersonalPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[110px] px-4">Usuario</TableHead>
-                    <TableHead className="text-center">Rol Principal</TableHead>
+                    <TableHead className="text-center">Roles</TableHead>
                     <TableHead className="text-center">Departamento</TableHead>
                     <TableHead className="text-center">Contacto</TableHead>
                     <TableHead className="text-center">Estado</TableHead>
@@ -990,10 +1002,9 @@ export default function PersonalPage() {
                                 <Badge
                                   key={role}
                                   variant="outline"
-                                  className={`${roleInfo?.color} text-xs`}
+                                  className={`${roleInfo?.color} text-center text-xs m-x-2 space-x-2`}
                                 >
-                                  <roleInfo.icon className="h-3 w-3 mr-1" />
-                                  {roleInfo?.label}
+                                  <roleInfo.icon className="h-5 w-5 mr-1 ml-1" />
                                 </Badge>
                               );
                             })}
@@ -1189,47 +1200,137 @@ export default function PersonalPage() {
                 </FormItem>
               )}
             />
-
+          
             <FormField
               control={form.control}
               name="role"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Rol *</FormLabel>
-                  <FormControl>
-                    <Select
-                      value={field.value as string}
-                      onValueChange={(value) => {
-                        const previousRole = form.getValues("role");
-                        field.onChange(value);
+              render={({ field }) => {
+                // Obtener roles seleccionados (puede ser string o array)
+                const selectedRoles = React.useMemo(() => {
+                  if (currentOperation === "view" && data?.schoolRole) {
+                    return Array.isArray(data.schoolRole) ? data.schoolRole : [data.schoolRole];
+                  }
+                  if (Array.isArray(field.value)) {
+                    return field.value as string[];
+                  }
+                  return field.value ? [field.value as string] : [];
+                }, [field.value, currentOperation, data?.schoolRole]);
 
-                        // Solo limpiar departamento si cambiamos DE admin A otro rol
-                        if (previousRole === "admin" && value !== "admin") {
-                          form.setValue("department", undefined);
-                        }
-                      }}
-                      disabled={currentOperation === "view"}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar rol" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="superadmin">
-                          Super-Administrador
-                        </SelectItem>
-                        <SelectItem value="admin">Administrador</SelectItem>
-                        <SelectItem value="auditor">Auditor</SelectItem>
-                        <SelectItem value="teacher">Docente</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+                const handleAddRole = (roleToAdd: string) => {
+                  if (!selectedRoles.includes(roleToAdd)) {
+                    const newRoles = [...selectedRoles, roleToAdd];
+                    field.onChange(newRoles.length === 1 ? newRoles[0] : newRoles);
+                  }
+                };
+
+                const handleRemoveRole = (roleToRemove: string) => {
+                  const newRoles = selectedRoles.filter(r => r !== roleToRemove);
+                  if (newRoles.length === 0) {
+                    field.onChange(undefined);
+                  } else {
+                    field.onChange(newRoles.length === 1 ? newRoles[0] : newRoles);
+                  }
+                  
+                  // Limpiar departamento si se elimina el rol admin
+                  if (roleToRemove === "admin" && !newRoles.includes("admin")) {
+                    form.setValue("department", undefined);
+                  }
+                };
+
+                const availableRoles = ["superadmin", "admin", "auditor", "teacher"].filter(
+                  role => !selectedRoles.includes(role)
+                );
+
+                return (
+                  <FormItem className="md:col-span-2">
+                    <FormLabel>Roles *</FormLabel>
+                    <FormControl>
+                      <div className="space-y-3">
+                        {/* Roles seleccionados */}
+                        <div className="flex flex-wrap gap-2 min-h-[42px] p-2 border rounded-md bg-background">
+                          {selectedRoles.length === 0 ? (
+                            <span className="text-sm text-muted-foreground">
+                              No hay roles seleccionados
+                            </span>
+                          ) : (
+                            selectedRoles.map((role) => {
+                              const roleInfo = roleConfig[role as keyof typeof roleConfig];
+                              return (
+                                <Badge
+                                  key={role}
+                                  variant="outline"
+                                  className={`${roleInfo?.color} flex items-center gap-1 pr-1`}
+                                >
+                                  <roleInfo.icon className="h-3 w-3" />
+                                  {roleInfo?.label}
+                                  {currentOperation !== "view" && selectedRoles.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveRole(role)}
+                                      className="ml-1 hover:bg-black/10 rounded-full p-0.5"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                </Badge>
+                              );
+                            })
+                          )}
+                        </div>
+
+                        {/* Selector para agregar roles */}
+                        {currentOperation !== "view" && availableRoles.length > 0 && (
+                          <Select
+                            value=""
+                            onValueChange={(value) => {
+                              handleAddRole(value);
+                              // Limpiar departamento si se cambia de admin a otro rol
+                              const previousHasAdmin = selectedRoles.includes("admin");
+                              if (previousHasAdmin && value !== "admin") {
+                                form.setValue("department", undefined);
+                              }
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="+ Agregar rol" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableRoles.map((role) => {
+                                const roleInfo = roleConfig[role as keyof typeof roleConfig];
+                                return (
+                                  <SelectItem key={role} value={role}>
+                                    <div className="flex items-center gap-2">
+                                      <roleInfo.icon className="h-4 w-4" />
+                                      {roleInfo.label}
+                                    </div>
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                    <p className="text-xs text-muted-foreground">
+                      {currentOperation === "view" 
+                        ? "Roles asignados al usuario en esta escuela"
+                        : "Puedes asignar múltiples roles. Haz clic en la X para eliminar un rol."}
+                    </p>
+                  </FormItem>
+                );
+              }}
             />
 
-            {/* Campo de departamento solo visible para administradores */}
-            {form.watch("role") === "admin" && (
+
+            {/* Campo de departamento solo visible si tiene rol de administrador */}
+            {(() => {
+              const currentRole = form.watch("role");
+              const hasAdminRole = Array.isArray(currentRole) 
+                ? currentRole.includes("admin") 
+                : currentRole === "admin";
+              return hasAdminRole;
+            })() && (
               <FormField
                 control={form.control}
                 name="department"
