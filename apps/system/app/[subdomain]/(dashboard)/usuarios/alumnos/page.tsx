@@ -515,156 +515,158 @@ export default function AlumnosPage() {
           </CardContent>
         </Card>
 
-        {/* Tabla de Alumnos */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Lista de Alumnos</span>
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{filteredStudents.length} estudiantes</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-md border">
-              {isLoading ? (
-                <div className="space-y-4 text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                  <p className="text-muted-foreground">Cargando asignaciones...</p>
-                </div>
-              ) : (filteredStudents.length === 0 && students.length === 0 && isLoading) ? (
-                <div className="text-center py-12">
-                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No se encontraron alumnos</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Intenta ajustar los filtros o agregar un nuevo alumno.
-                  </p>
-                  {canCreateUsers && (
-                    <Button
-                      onClick={openCreate}
-                      className="gap-2 bg-blue-600 hover:bg-blue-700"
-                      disabled={!groups?.length || !tutors?.length}
-                      title={
-                        !groups?.length ? "No hay grupos disponibles" :
-                          !tutors?.length ? "No hay tutores disponibles" : ""
-                      }
-                    >
-                      <Plus className="w-4 h-4" />
-                      Agregar Alumno
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Estudiante</TableHead>
-                      <TableHead>Matrícula</TableHead>
-                      <TableHead>Grupo</TableHead>
-                      <TableHead>Tutor</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Fecha de Ingreso</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(filteredStudents.length > 0 ? filteredStudents : students).map((student) => (
-                      <TableRow key={student._id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={student.imgUrl} alt={student.name} />
-                              <AvatarFallback className="bg-indigo-500/10">
-                                {getInitials(student.name, student.lastName)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="font-medium">
-                                {student.name} {student.lastName}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                {calculateAge(student.birthDate)}
-                              </div>
+      {/* Tabla de Alumnos */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Lista de Alumnos</span>
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{filteredStudents.length} estudiantes</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            {isLoading ? (
+              <div className="space-y-4 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="text-muted-foreground">Cargando asignaciones...</p>
+              </div>
+            ) : (filteredStudents.length === 0 && students.length === 0 && isLoading) ? (
+              <div className="text-center py-12">
+                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No se encontraron alumnos</h3>
+                <p className="text-muted-foreground mb-4">
+                  Intenta ajustar los filtros o agregar un nuevo alumno.
+                </p>
+                {canCreateUsers && (
+                  <Button
+                    onClick={openCreate}
+                    className="gap-2 bg-blue-600 hover:bg-blue-700"
+                    disabled={!groups?.length || !tutors?.length}
+                    title={
+                      !groups?.length ? "No hay grupos disponibles" :
+                        !tutors?.length ? "No hay tutores disponibles" : ""
+                    }
+                  >
+                    <Plus className="w-4 h-4" />
+                    Agregar Alumno
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[110px] px-4">Estudiante</TableHead>
+                    <TableHead className="text-center">Matrícula</TableHead>
+                    <TableHead className="text-center">Grupo</TableHead>
+                    <TableHead className="text-center">Tutor</TableHead>
+                    <TableHead className="text-center">Estado</TableHead>
+                    <TableHead >Fecha de Ingreso</TableHead>
+                    <TableHead className="text-center">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(filteredStudents.length > 0 ? filteredStudents : students).map((student) => (
+                    <TableRow key={student._id}>
+                      <TableCell >
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={student.imgUrl} alt={student.name} />
+                            <AvatarFallback className="bg-indigo-500/10">
+                              {getInitials(student.name, student.lastName)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">
+                              {student.name} {student.lastName}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {calculateAge(student.birthDate)}
                             </div>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="font-mono">
-                            {student.enrollment}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">
-                            {getGroupInfo(student.groupId)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            {getTutorInfo(student.tutorId)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={student.status === "active" ? "default" : "secondary"}
-                            className={student.status === "active" ? "bg-green-500 hover:bg-green-600" : ""}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className="font-mono">
+                          {student.enrollment}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="secondary">
+                          {getGroupInfo(student.groupId)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="text-sm">
+                          {getTutorInfo(student.tutorId)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          variant={student.status === "active" ? "default" : "secondary"}
+                          className={student.status === "active"
+                            ? "bg-green-600 text-white flex-shrink-0 ml-2"
+                            : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}
+                        >
+                          {student.status === "active" ? "Activo" : "Inactivo"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center gap-1 text-sm">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          {formatDate(student.admissionDate)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openView(student as unknown as Record<string, unknown>)}
+                            className="hover:scale-105 transition-transform cursor-pointer"
                           >
-                            {student.status === "active" ? "Activo" : "Inactivo"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1 text-sm">
-                            <Calendar className="h-3 w-3 text-muted-foreground" />
-                            {formatDate(student.admissionDate)}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {canUpdateUsers && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => openView(student as unknown as Record<string, unknown>)}
+                              onClick={() => openEdit(student as unknown as Record<string, unknown>)}
                               className="hover:scale-105 transition-transform cursor-pointer"
+                              disabled={isUpdating || isDeleting}
                             >
-                              <Eye className="h-4 w-4" />
+                              {isUpdating ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Edit className="h-4 w-4" />
+                              )}
                             </Button>
-                            {canUpdateUsers && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openEdit(student as unknown as Record<string, unknown>)}
-                                className="hover:scale-105 transition-transform cursor-pointer"
-                                disabled={isUpdating || isDeleting}
-                              >
-                                {isUpdating ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Edit className="h-4 w-4" />
-                                )}
-                              </Button>
-                            )}
-                            {canDeleteUsers && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openDelete(student as unknown as Record<string, unknown>)}
-                                className="hover:scale-105 transition-transform text-destructive hover:text-destructive cursor-pointer"
-                                disabled={isUpdating || isDeleting}
-                              >
-                                {isDeleting ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-4 w-4" />
-                                )}
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                          )}
+                          {canDeleteUsers && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openDelete(student as unknown as Record<string, unknown>)}
+                              className="hover:scale-105 transition-transform text-destructive hover:text-destructive cursor-pointer"
+                              disabled={isUpdating || isDeleting}
+                            >
+                              {isDeleting ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
         {/* Dialog CRUD */}
         <CrudDialog
