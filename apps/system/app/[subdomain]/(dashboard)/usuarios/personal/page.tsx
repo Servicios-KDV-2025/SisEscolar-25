@@ -131,7 +131,7 @@ const getSchemaForOperation = (operation: string) => {
 const roleConfig = {
   superadmin: {
     label: "Super-Admin",
-    color: "bg-amber-500 text-gray-50",
+    color: "bg-yellow-500 text-gray-50",
     icon: Shield,
     description: "Acceso completo sin restricciones",
   },
