@@ -120,15 +120,14 @@ export function NavUser({
         sideOffset={4}
       >
         <DropdownMenuLabel className="p-0 font-normal">
-          <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-            <div className="flex flex-1 items-center justify-between gap-4">
+          <div className="flex items-center flex-col gap-1 px-1 py-1.5 text-left text-sm">
               <span className="truncate text-xs">{user.email}</span>
               {activeRole && availableRoles && availableRoles.length > 0 && (
                 <Badge variant="secondary" className="text-xs">
                   {getRoleLabel(activeRole)}
                 </Badge>
               )}
-            </div>
+            
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -156,7 +155,9 @@ export function NavUser({
                 Rol
               </DropdownMenuSubTrigger>
               <DropdownMenuPortal>
-                <DropdownMenuSubContent>
+                <DropdownMenuSubContent
+                  sideOffset={5} 
+                  className="w-fit lg:w-44 max-h-48 overflow-y-auto ml-2.5">
                   {[...new Set(availableRoles)].map((role) => (
                     <DropdownMenuItem
                       key={role}
@@ -166,8 +167,10 @@ export function NavUser({
                       <div className="flex items-center justify-between w-full">
                         <span>{getRoleLabel(role)}</span>
                         {activeRole === role && (
-                          <Badge variant="default" className="text-xs bg-green-600 ml-3 ">
-                            Activo
+                          <Badge variant="default" className="text-xs bg-white-300 text-gray-700 ml-3 flex items-center justify-center p-0.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
                           </Badge>
                         )}
                       </div>

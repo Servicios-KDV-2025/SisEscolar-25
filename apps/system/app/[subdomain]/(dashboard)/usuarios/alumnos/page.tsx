@@ -554,19 +554,19 @@ export default function AlumnosPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Estudiante</TableHead>
-                    <TableHead>Matrícula</TableHead>
-                    <TableHead>Grupo</TableHead>
-                    <TableHead>Tutor</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Fecha de Ingreso</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
+                    <TableHead className="w-[110px] px-4">Estudiante</TableHead>
+                    <TableHead className="text-center">Matrícula</TableHead>
+                    <TableHead className="text-center">Grupo</TableHead>
+                    <TableHead className="text-center">Tutor</TableHead>
+                    <TableHead className="text-center">Estado</TableHead>
+                    <TableHead >Fecha de Ingreso</TableHead>
+                    <TableHead className="text-center">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(filteredStudents.length > 0 ? filteredStudents : students).map((student) => (
                     <TableRow key={student._id}>
-                      <TableCell>
+                      <TableCell >
                         <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10">
                             <AvatarImage src={student.imgUrl} alt={student.name} />
@@ -584,30 +584,32 @@ export default function AlumnosPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <Badge variant="outline" className="font-mono">
                           {student.enrollment}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <Badge variant="secondary">
                           {getGroupInfo(student.groupId)}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <div className="text-sm">
                           {getTutorInfo(student.tutorId)}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <Badge
                           variant={student.status === "active" ? "default" : "secondary"}
-                          className={student.status === "active" ? "bg-green-500 hover:bg-green-600" : ""}
+                          className={student.status === "active"
+                            ? "bg-green-600 text-white flex-shrink-0 ml-2"
+                            : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}
                         >
                           {student.status === "active" ? "Activo" : "Inactivo"}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <div className="flex items-center gap-1 text-sm">
                           <Calendar className="h-3 w-3 text-muted-foreground" />
                           {formatDate(student.admissionDate)}
