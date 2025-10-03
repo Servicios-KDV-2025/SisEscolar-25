@@ -6,6 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@repo/ui/compo
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table";
 import { Textarea } from "@repo/ui/components/shadcn/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@repo/ui/components/shadcn/tooltip";
+import { MessageCircleDashed, MessageCircleMore } from "@repo/ui/icons";
 import { useMutation, useQuery } from "convex/react";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -40,6 +42,15 @@ interface GradeData {
   comments: string
 }
 
+interface EditState {
+  score: boolean
+  comments: boolean
+}
+
+const createEmptyEditState = (): EditState => ({
+  score: false,
+  comments: false
+})
 // Crear datos iniciales vacios
 const createEmptyGradeData = (studentClassId: Id<'studentClass'>): GradeData => ({
   studentClassId,
@@ -55,6 +66,8 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
   const [gradesData, setGradesData] = useState<Record<string, GradeData>>({})
   const [isSaving, setIsSaving] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
+
+  const [editingState, setEditingState] = useState<Record<string, EditState>>({})
 
   const students = useQuery(
     api.functions.student.getStudentWithClasses,
@@ -73,6 +86,7 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
   useEffect(() => {
     if(open && students && grades && !isInitialized) {
       const initialData: Record<string, GradeData> = {}
+      const initialEditState: Record<string, EditState> = {}
 
       students.forEach((student) => {
         const existingGrade = grades.find(
@@ -84,9 +98,16 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
           score: existingGrade?.score.toString() || '',
           comments: existingGrade?.comments || ''
         }
+
+        initialEditState[student._id] = {
+          score: false,
+          comments: false
+        }
       })
 
       setGradesData(initialData)
+      setEditingState(initialEditState)
+      setIsInitialized(true)
     }
   }, [open, students, grades, isInitialized])
 
@@ -94,6 +115,7 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
     if(!open) {
       setIsInitialized(false)
       setGradesData({})
+      setEditingState({})
     }
   }, [open])
 
@@ -115,7 +137,6 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
           }
         }
       }
-
       // Si existe, actualizar solo el campo específico
       return {
         ...prev,
@@ -130,6 +151,48 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
   const getSafeValue = (studentClassId: string, field: keyof GradeData): string => {
     const data = gradesData[studentClassId]
     return data?.[field] || ''
+  }
+
+  // Función para activar el modo edición
+  const startEditing = (studentClassId: Id<'studentClass'>, field: keyof EditState) => {
+    setEditingState(prev => {
+      const currentEditState = prev[studentClassId] || createEmptyEditState()
+
+      return {
+        ...prev,
+        [studentClassId]: {
+          ...currentEditState,
+          [field]: true
+        }
+      }
+    })
+  }
+
+  // Función para desactivar el modo edición
+  const stopEditing = (studentClassId: Id<'studentClass'>, field: keyof EditState) => {
+    setEditingState(prev => {
+      const currentEditState = prev[studentClassId] || createEmptyEditState()
+
+      return {
+        ...prev,
+        [studentClassId]: {
+          ...currentEditState,
+          [field]: false
+        }
+      }
+    })
+  }
+
+  // Función para manejar el blur del input (cuando pierde el foco)
+  const handleInputBlur = (studentClassId: Id<'studentClass'>, field: keyof EditState) => {
+    stopEditing(studentClassId, field)
+  }
+
+  // Función para manejar la tecla Enter en el input
+  const handleInputKeyDown = (studentClassId: Id<'studentClass'>, field: keyof EditState, e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      stopEditing(studentClassId, field)
+    }
   }
 
   const handleSaveGrades = async () => {
@@ -167,8 +230,11 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
       })
 
       const result = await Promise.all(promises)
-      const successfulSeves = result.filter(result => result !== undefined).length
-      toast.success(`${successfulSeves} calificación(es) guardada(s) correctamente`)
+      const successfullSeves = result.filter(result => result !== undefined).length
+      if(successfullSeves) {
+        toast.success(`calificación(es) guardada(s) correctamente`)
+      }
+      
       close(false) // Cerrar el dialog despies de guardar
     } catch (error){
       console.error('Error al guaradar las calificaciones: ',error)
@@ -185,10 +251,97 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
     return isSubmitted ? 'Entregado' : 'Pendiente'
   }
 
+  // Funcion para cambiar el estado de la calificacion (texto o input)
+  const renderScoreField = (studentClassId: Id<'studentClass'>, currentScore: string) => {
+    const isEditing = editingState[studentClassId]?.score || false
+    const existingGrade = getGrade(studentClassId)
+
+    if(isEditing) {
+      return(
+        <div className="flex items-center ">
+          <Input
+            type="number"
+            min={0}
+            max={assignmentDetails?.assignment.maxScore}
+            autoFocus
+            placeholder="0"
+            value={currentScore}
+            onChange={(e) => handleGradeChange(studentClassId as Id<'studentClass'>, 'score', e.target.value)}
+            onBlur={() => handleInputBlur(studentClassId, 'score')}
+            onKeyDown={(e) => handleInputKeyDown(studentClassId, 'score', e)}
+            className="w-20"
+          />
+        </div>
+      )
+    } else {
+      return (
+        <div
+          className="flex items-center gap-2 cursor-pointer"
+          onClick={() => startEditing(studentClassId, 'score')}
+        >
+          <div className="min-w-[50px] px-3 py-2 border border-transparent rounded-md group-hover:border-gray-300 group-hover:bg-gray-50 transition-colors">
+            <span className="">
+              {currentScore || ' - '}
+            </span>
+            {existingGrade !== undefined && (
+              <div className="text-xs text-muted-foreground">
+                Actual: {existingGrade}
+              </div>
+            )}
+          </div>
+        </div>
+      )
+    }
+  }
+
+  // Funcion para cambiar el estado de los comentarios (texto o textarea)
+  const renderComentsField = (studentClassId: Id<'studentClass'>, currentComments: string) => {
+    const isEditing = editingState[studentClassId]?.comments || ''
+
+    if(isEditing) {
+      return(
+        <Textarea
+          placeholder="Comentarios sobre la entrega"
+          rows={2}
+          value={currentComments}
+          onChange={(e) => handleGradeChange(studentClassId as Id<'studentClass'>, 'comments', e.target.value)}
+          onBlur={() => handleInputBlur(studentClassId, 'comments')}
+          onKeyDown={(e) => handleInputKeyDown(studentClassId, 'comments', e)}
+          autoFocus
+        />
+      )
+    } else {
+      return (
+          <Tooltip>
+            <TooltipTrigger>
+              {currentComments ? (
+                <MessageCircleMore
+                  onClick={() => startEditing(studentClassId, 'comments')}
+                  className="hover:text-gray-500"
+                />
+              ) : (
+                <MessageCircleDashed
+                  onClick={() => startEditing(studentClassId, 'comments')}
+                  className="hover:text-gray-500"
+                />
+              )}
+            </TooltipTrigger>
+            <TooltipContent>
+              {currentComments ? (
+                <p>{currentComments}</p>
+              ) : (
+                <p>No hay comentarios</p>
+              )}
+            </TooltipContent>
+          </Tooltip>
+      )
+    }
+  }
+
   return (
     <>
       <Dialog open={open} onOpenChange={close}>
-        <DialogContent className="max-w-full max-h-[80vh] overflow-y-auto">
+        <DialogContent className="w-full max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               Calificaciones: {assignmentDetails?.assignment.name}
@@ -223,7 +376,6 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
             </TableHeader>
             <TableBody>
               {students?.map((student) => {
-                const existingGrade = getGrade(student._id)
                 const status = getSubmissionStatus(student._id)
 
                 const currentScore = getSafeValue(student._id, 'score')
@@ -251,32 +403,10 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
                       </span>
                     </TableCell>
                     <TableCell>
-                      <div className="items-center gap-2">
-                        <Input
-                          type="number"
-                          min={0}
-                          max={assignmentDetails?.assignment.maxScore}
-                          autoFocus
-                          placeholder="0"
-                          value={currentScore}
-                          onChange={(e) => handleGradeChange(student._id, 'score', e.target.value)}
-                          className="w-20"
-                        />
-                      </div>
-                      {existingGrade !== undefined && (
-                        <div className="text-xs text-muted-foreground">
-                          Actual: {existingGrade}
-                        </div>
-                      )}
+                      {renderScoreField(student._id, currentScore)}
                     </TableCell>
-                    <TableCell
-                    >
-                      <Textarea
-                        placeholder="Comentario sobre la entrega"
-                        rows={2}
-                        value={currentComments || ''}
-                        onChange={(e) => handleGradeChange(student._id, 'comments', e.target.value)}
-                      />
+                    <TableCell>
+                      {renderComentsField(student._id, currentComments)}
                     </TableCell>
                   </TableRow>
                 )

@@ -56,7 +56,6 @@ import {
   BookText,
   X
 } from "@repo/ui/icons";
-import Link from "next/link";
 import {
   validateTaskForm,
   getValidationErrors,
@@ -712,8 +711,7 @@ export default function TaskManagement() {
                           <div className="flex items-center">
                             <FileText className="w-5 h-5 text-blue-600" />
                           </div>
-                          <div 
-                            // href={`/teacher/classid/tasks/${task._id}`}
+                          <div
                             onClick={() => handleListStudent(task._id)}
                             className="cursor-pointer"
                           >
