@@ -2,7 +2,7 @@ import { useUser } from "@clerk/nextjs";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { Button } from "@repo/ui/components/shadcn/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@repo/ui/components/shadcn/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@repo/ui/components/shadcn/dialog";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table";
 import { Textarea } from "@repo/ui/components/shadcn/textarea";
@@ -47,6 +47,13 @@ interface EditState {
   comments: boolean
 }
 
+interface CommentsModalState {
+  isOpen: boolean
+  studentClassId: Id<'studentClass'> | null
+  studentName: string
+  currentComments: string
+}
+
 const createEmptyEditState = (): EditState => ({
   score: false,
   comments: false
@@ -68,6 +75,13 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
   const [isInitialized, setIsInitialized] = useState(false)
 
   const [editingState, setEditingState] = useState<Record<string, EditState>>({})
+
+  const [commentsModal, setCommentModal] = useState<CommentsModalState>({
+    isOpen: false,
+    studentClassId: null,
+    studentName: '',
+    currentComments: ''
+  })
 
   const students = useQuery(
     api.functions.student.getStudentWithClasses,
@@ -148,9 +162,39 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
     })
   }
 
+
+
   const getSafeValue = (studentClassId: string, field: keyof GradeData): string => {
     const data = gradesData[studentClassId]
     return data?.[field] || ''
+  }
+
+  // Funcion para abrir el modal de comentarios
+  const openCommentsModal = (studentClassId: Id<'studentClass'>, studentName: string, currentComments: string ) => {
+    setCommentModal({
+      isOpen: true,
+      studentClassId,
+      studentName,
+      currentComments
+    })
+  }
+
+  // Funcion para cerrar el modal
+  const closeCommentsModal = () => {
+    setCommentModal({
+      isOpen: false,
+      studentClassId: null,
+      studentName: '',
+      currentComments: ''
+    })
+  }
+
+  // Función para guardar comentarios desde el modal
+  const handleSaveComments = () => {
+    if(commentsModal.studentClassId) {
+      handleGradeChange(commentsModal.studentClassId, 'comments', commentsModal.currentComments)
+    }
+    closeCommentsModal()
   }
 
   // Función para activar el modo edición
@@ -295,47 +339,31 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
   }
 
   // Funcion para cambiar el estado de los comentarios (texto o textarea)
-  const renderComentsField = (studentClassId: Id<'studentClass'>, currentComments: string) => {
-    const isEditing = editingState[studentClassId]?.comments || ''
-
-    if(isEditing) {
-      return(
-        <Textarea
-          placeholder="Comentarios sobre la entrega"
-          rows={2}
-          value={currentComments}
-          onChange={(e) => handleGradeChange(studentClassId as Id<'studentClass'>, 'comments', e.target.value)}
-          onBlur={() => handleInputBlur(studentClassId, 'comments')}
-          onKeyDown={(e) => handleInputKeyDown(studentClassId, 'comments', e)}
-          autoFocus
-        />
-      )
-    } else {
-      return (
-          <Tooltip>
-            <TooltipTrigger>
-              {currentComments ? (
-                <MessageCircleMore
-                  onClick={() => startEditing(studentClassId, 'comments')}
-                  className="hover:text-gray-500"
-                />
-              ) : (
-                <MessageCircleDashed
-                  onClick={() => startEditing(studentClassId, 'comments')}
-                  className="hover:text-gray-500"
-                />
-              )}
-            </TooltipTrigger>
-            <TooltipContent>
-              {currentComments ? (
-                <p>{currentComments}</p>
-              ) : (
-                <p>No hay comentarios</p>
-              )}
-            </TooltipContent>
-          </Tooltip>
-      )
-    }
+  const renderComentsField = (studentClassId: Id<'studentClass'>, currentComments: string, studentName: string) => {
+    return (
+      <Tooltip>
+        <TooltipTrigger>
+          {currentComments ? (
+            <MessageCircleMore
+              onClick={() => openCommentsModal(studentClassId as Id<'studentClass'>, studentName, currentComments)}
+              className="hover:text-gray-500"
+            />
+          ) : (
+            <MessageCircleDashed
+              onClick={() => openCommentsModal(studentClassId as Id<'studentClass'>, studentName, currentComments)}
+              className="hover:text-gray-500"
+            />
+          )}
+        </TooltipTrigger>
+        <TooltipContent>
+          {currentComments ? (
+            <p>{currentComments}</p>
+          ) : (
+            <p>No hay comentarios</p>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    )
   }
 
   return (
@@ -380,6 +408,7 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
 
                 const currentScore = getSafeValue(student._id, 'score')
                 const currentComments = getSafeValue(student._id, 'comments')
+                const studentName = `${student.student?.name} ${student.student?.lastName || ''}`.trim()
 
                 return (
                   <TableRow
@@ -406,7 +435,7 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
                       {renderScoreField(student._id, currentScore)}
                     </TableCell>
                     <TableCell>
-                      {renderComentsField(student._id, currentComments)}
+                      {renderComentsField(student._id, currentComments, studentName)}
                     </TableCell>
                   </TableRow>
                 )
@@ -426,6 +455,33 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
                 {isSaving ? 'Guardando...' : 'Guardar Calificaciones'}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal para editar comentarios */}
+      <Dialog open={commentsModal.isOpen} onOpenChange={closeCommentsModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Comentarios para {commentsModal.studentName}</DialogTitle>
+            <DialogDescription>Agregar o editar los comentarios para este estudiante</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              placeholder="Comentario sobre la entrega del estudiante"
+              rows={5}
+              value={commentsModal.currentComments}
+              onChange={(e) => setCommentModal(prev => ({
+                ...prev,
+                currentComments: e.target.value
+              }))}
+              className="min-h-[200px] resize-y"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button onClick={handleSaveComments}>
+              Guardar Comentarios
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
