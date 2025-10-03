@@ -526,6 +526,7 @@ const filteredUsers = useMemo(() => {
         throw new Error(result.error || "Error al crear usuario en Clerk");
       }
     } catch (error) {
+      console.error("❌ Error en handleCreate:", error);
       throw error;
     }
   };
@@ -1206,15 +1207,14 @@ const filteredUsers = useMemo(() => {
               name="role"
               render={({ field }) => {
                 // Obtener roles seleccionados (puede ser string o array)
-                const selectedRoles = React.useMemo(() => {
-                  if (currentOperation === "view" && data?.schoolRole) {
-                    return Array.isArray(data.schoolRole) ? data.schoolRole : [data.schoolRole];
-                  }
-                  if (Array.isArray(field.value)) {
-                    return field.value as string[];
-                  }
-                  return field.value ? [field.value as string] : [];
-                }, [field.value, currentOperation, data?.schoolRole]);
+                let selectedRoles: string[];
+                if (currentOperation === "view" && data?.schoolRole) {
+                  selectedRoles = Array.isArray(data.schoolRole) ? data.schoolRole : [data.schoolRole];
+                } else if (Array.isArray(field.value)) {
+                  selectedRoles = field.value as string[];
+                } else {
+                  selectedRoles = field.value ? [field.value as string] : [];
+                }
 
                 const handleAddRole = (roleToAdd: string) => {
                   if (!selectedRoles.includes(roleToAdd)) {
