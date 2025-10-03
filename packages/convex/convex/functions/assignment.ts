@@ -7,7 +7,7 @@ import {
   internalQuery,
 } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { Id } from "../_generated/dataModel"; 
+import { Id } from "../_generated/dataModel";
 
 const assignmentFields = schema.tables.assignment.validator.fields;
 
@@ -100,7 +100,12 @@ export const getAssignmentsForTutor = query({
  * Maestro: Obtiene todas las tareas creadas por el usuario autenticado.
  */
 export const getTeacherAssignments = query({
-  args: { schoolId: v.id("school") },
+  args: {
+    schoolId: v.id("school"),
+    canViewAll: v.boolean(),
+    tutorId: v.optional(v.id("user")),
+    teacherId: v.optional(v.id("user"))
+  },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("No estás autenticado.");
@@ -111,24 +116,100 @@ export const getTeacherAssignments = query({
       .unique();
     if (!user) throw new Error("Usuario no encontrado.");
 
-    // Primero obtener todas las clases de la escuela
-    const schoolClasses = await ctx.db
-      .query("classCatalog")
-      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
-      .collect();
+    let assignments = [];
 
-    const schoolClassIds = schoolClasses.map(c => c._id);
+    if (args.canViewAll) {
+      // Superadmin, Admin, Auditor: ver todas las asignaciones de la escuela
+      // Obtener todas las clases de la escuela primero
+      const schoolClasses = await ctx.db
+        .query("classCatalog")
+        .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+        .collect();
 
-    // Buscamos las tareas por el ID del usuario creador que pertenecen a clases de la escuela
-    const allAssignments = await ctx.db
-      .query("assignment")
-      .withIndex("by_createdBy", (q) => q.eq("createdBy", user._id))
-      .collect();
+      const schoolClassIds = schoolClasses.map(c => c._id);
 
-    // Filtrar solo las tareas que pertenecen a clases de la escuela
-    const assignments = allAssignments.filter(a => 
-      schoolClassIds.includes(a.classCatalogId)
-    );
+      // Obtener asignaciones por cada clase (no hay forma directa de filtrar por array)
+      const assignmentPromises = schoolClassIds.map(async (classId) => {
+        return await ctx.db
+          .query("assignment")
+          .withIndex("by_classCatalogId", (q) => q.eq("classCatalogId", classId))
+          .collect();
+      });
+
+      const assignmentsByClass = await Promise.all(assignmentPromises);
+      assignments = assignmentsByClass.flat();
+    } else if (args.teacherId) {
+      console.log('🔍 Query - Teacher filtering:', {
+        teacherId: args.teacherId,
+        schoolId: args.schoolId
+      });
+
+      // Teacher: ver solo sus asignaciones
+      assignments = await ctx.db
+        .query("assignment")
+        .withIndex("by_createdBy", (q) => q.eq("createdBy", args.teacherId!))
+        .collect();
+
+      console.log('🔍 Query - Teacher assignments before school filter:', {
+        count: assignments.length,
+        assignments: assignments.map(a => ({ id: a._id, name: a.name, classCatalogId: a.classCatalogId }))
+      });
+
+      // Filtrar solo las que pertenecen a la escuela
+      const schoolClasses = await ctx.db
+        .query("classCatalog")
+        .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+        .collect();
+
+      const schoolClassIds = schoolClasses.map(c => c._id);
+      console.log('🔍 Query - School classes for filter:', {
+        schoolClassIds,
+        schoolClassesCount: schoolClasses.length
+      });
+
+      assignments = assignments.filter(a => schoolClassIds.includes(a.classCatalogId));
+
+      console.log('🔍 Query - Teacher assignments after school filter:', {
+        count: assignments.length,
+        assignments: assignments.map(a => ({ id: a._id, name: a.name }))
+      });
+    } else if (args.tutorId) {
+      // Tutor: ver asignaciones de las clases donde tiene estudiantes
+      const tutorStudentClasses = await ctx.db
+        .query("studentClass")
+        .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+        .filter((q) => q.eq(q.field("status"), "active"))
+        .collect();
+
+      const tutorStudents = await ctx.db
+        .query("student")
+        .withIndex("by_schoolId", (q) => q.eq("schoolId", args.schoolId))
+        .filter((q) => q.eq(q.field("tutorId"), args.tutorId))
+        .collect();
+
+      const tutorStudentIds = tutorStudents.map(s => s._id);
+
+      // Filtrar clases donde el tutor tiene estudiantes
+      const tutorClassIds = tutorStudentClasses
+        .filter(sc => tutorStudentIds.includes(sc.studentId))
+        .map(sc => sc.classCatalogId);
+
+      const uniqueTutorClassIds = [...new Set(tutorClassIds)];
+
+      // Obtener asignaciones por cada clase del tutor
+      const assignmentPromises = uniqueTutorClassIds.map(async (classId) => {
+        return await ctx.db
+          .query("assignment")
+          .withIndex("by_classCatalogId", (q) => q.eq("classCatalogId", classId))
+          .collect();
+      });
+
+      const assignmentsByClass = await Promise.all(assignmentPromises);
+      assignments = assignmentsByClass.flat();
+    } else {
+      // Sin permisos, devolver array vacío
+      return [];
+    }
 
     // Enriquecer cada tarea con la rúbrica de calificación y la información del grupo
     const enriched = await Promise.all(
@@ -137,22 +218,22 @@ export const getTeacherAssignments = query({
           ctx.db.get(a.gradeRubricId),
           ctx.db.get(a.classCatalogId)
         ]);
-        
+
         let group = null;
         if (classCatalog?.groupId) {
           group = await ctx.db.get(classCatalog.groupId);
         }
-        
-        return { 
-          ...a, 
+
+        return {
+          ...a,
           gradeRubric,
-          group: group ? { 
-            _id: group._id, 
+          group: group ? {
+            _id: group._id,
             name: group.name,
             grade: group.grade,
             section: group.name
           } : null
-        } as typeof a & { 
+        } as typeof a & {
           gradeRubric: { _id: Id<"gradeRubric">; name: string } | null;
           group: { _id: Id<"group">; name: string; grade: number; section: string } | null;
         };
@@ -202,7 +283,12 @@ export const getAdminAssignmentsByClass = query({
  * Retorna información básica de progreso para cada tarea.
  */
 export const getTeacherAssignmentsProgress = query({
-  args: { schoolId: v.id("school") },
+  args: {
+    schoolId: v.id("school"),
+    canViewAll: v.boolean(),
+    tutorId: v.optional(v.id("user")),
+    teacherId: v.optional(v.id("user"))
+  },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("No estás autenticado.");
@@ -213,24 +299,76 @@ export const getTeacherAssignmentsProgress = query({
       .unique();
     if (!user) throw new Error("Usuario no encontrado.");
 
-    // Primero obtener todas las clases de la escuela
-    const schoolClasses = await ctx.db
-      .query("classCatalog")
-      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
-      .collect();
+    let assignments = [];
 
-    const schoolClassIds = schoolClasses.map(c => c._id);
+    if (args.canViewAll) {
+      // Superadmin, Admin, Auditor: ver todas las asignaciones de la escuela
+      const schoolClasses = await ctx.db
+        .query("classCatalog")
+        .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+        .collect();
 
-    // Obtener todas las tareas del profesor
-    const allAssignments = await ctx.db
-      .query("assignment")
-      .withIndex("by_createdBy", (q) => q.eq("createdBy", user._id))
-      .collect();
+      const schoolClassIds = schoolClasses.map(c => c._id);
 
-    // Filtrar solo las tareas que pertenecen a clases de la escuela
-    const assignments = allAssignments.filter(a => 
-      schoolClassIds.includes(a.classCatalogId)
-    );
+      const assignmentPromises = schoolClassIds.map(async (classId) => {
+        return await ctx.db
+          .query("assignment")
+          .withIndex("by_classCatalogId", (q) => q.eq("classCatalogId", classId))
+          .collect();
+      });
+
+      const assignmentsByClass = await Promise.all(assignmentPromises);
+      assignments = assignmentsByClass.flat();
+    } else if (args.teacherId) {
+      // Teacher: ver solo sus asignaciones
+      assignments = await ctx.db
+        .query("assignment")
+        .withIndex("by_createdBy", (q) => q.eq("createdBy", args.teacherId!))
+        .collect();
+
+      // Filtrar solo las que pertenecen a la escuela
+      const schoolClasses = await ctx.db
+        .query("classCatalog")
+        .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+        .collect();
+
+      const schoolClassIds = schoolClasses.map(c => c._id);
+      assignments = assignments.filter(a => schoolClassIds.includes(a.classCatalogId));
+    } else if (args.tutorId) {
+      // Tutor: ver asignaciones de las clases donde tiene estudiantes
+      const tutorStudentClasses = await ctx.db
+        .query("studentClass")
+        .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+        .filter((q) => q.eq(q.field("status"), "active"))
+        .collect();
+
+      const tutorStudents = await ctx.db
+        .query("student")
+        .withIndex("by_schoolId", (q) => q.eq("schoolId", args.schoolId))
+        .filter((q) => q.eq(q.field("tutorId"), args.tutorId))
+        .collect();
+
+      const tutorStudentIds = tutorStudents.map(s => s._id);
+
+      const tutorClassIds = tutorStudentClasses
+        .filter(sc => tutorStudentIds.includes(sc.studentId))
+        .map(sc => sc.classCatalogId);
+
+      const uniqueTutorClassIds = [...new Set(tutorClassIds)];
+
+      const assignmentPromises = uniqueTutorClassIds.map(async (classId) => {
+        return await ctx.db
+          .query("assignment")
+          .withIndex("by_classCatalogId", (q) => q.eq("classCatalogId", classId))
+          .collect();
+      });
+
+      const assignmentsByClass = await Promise.all(assignmentPromises);
+      assignments = assignmentsByClass.flat();
+    } else {
+      // Sin permisos, devolver array vacío
+      return [];
+    }
 
     // Para cada tarea, obtener el progreso de entregas
     const assignmentsWithProgress = await Promise.all(
@@ -263,6 +401,139 @@ export const getTeacherAssignmentsProgress = query({
     );
 
     return assignmentsWithProgress;
+  },
+});
+
+/**
+ * Obtiene todas las asignaciones para propósitos de filtrado
+ * (versión ligera sin enriquecimiento para optimizar rendimiento)
+ */
+export const getAllAssignmentsForFilters = query({
+  args: {
+    schoolId: v.id("school"),
+    canViewAll: v.boolean(),
+    tutorId: v.optional(v.id("user")),
+    teacherId: v.optional(v.id("user"))
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("No estás autenticado.");
+
+    const user = await ctx.db
+      .query("user")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!user) throw new Error("Usuario no encontrado.");
+
+    let assignments = [];
+
+    if (args.canViewAll) {
+      // Superadmin, Admin, Auditor: ver todas las asignaciones de la escuela
+      const schoolClasses = await ctx.db
+        .query("classCatalog")
+        .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+        .collect();
+
+      const schoolClassIds = schoolClasses.map(c => c._id);
+
+      const assignmentPromises = schoolClassIds.map(async (classId) => {
+        return await ctx.db
+          .query("assignment")
+          .withIndex("by_classCatalogId", (q) => q.eq("classCatalogId", classId))
+          .collect();
+      });
+
+      const assignmentsByClass = await Promise.all(assignmentPromises);
+      assignments = assignmentsByClass.flat();
+    } else if (args.teacherId) {
+      // Teacher: ver solo sus asignaciones
+      assignments = await ctx.db
+        .query("assignment")
+        .withIndex("by_createdBy", (q) => q.eq("createdBy", args.teacherId!))
+        .collect();
+
+      // Filtrar solo las que pertenecen a la escuela
+      const schoolClasses = await ctx.db
+        .query("classCatalog")
+        .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+        .collect();
+
+      const schoolClassIds = schoolClasses.map(c => c._id);
+      assignments = assignments.filter(a => schoolClassIds.includes(a.classCatalogId));
+    } else if (args.tutorId) {
+      // Tutor: ver asignaciones de las clases donde tiene estudiantes
+      const tutorStudentClasses = await ctx.db
+        .query("studentClass")
+        .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+        .filter((q) => q.eq(q.field("status"), "active"))
+        .collect();
+
+      const tutorStudents = await ctx.db
+        .query("student")
+        .withIndex("by_schoolId", (q) => q.eq("schoolId", args.schoolId))
+        .filter((q) => q.eq(q.field("tutorId"), args.tutorId))
+        .collect();
+
+      const tutorStudentIds = tutorStudents.map(s => s._id);
+
+      const tutorClassIds = tutorStudentClasses
+        .filter(sc => tutorStudentIds.includes(sc.studentId))
+        .map(sc => sc.classCatalogId);
+
+      const uniqueTutorClassIds = [...new Set(tutorClassIds)];
+
+      const assignmentPromises = uniqueTutorClassIds.map(async (classId) => {
+        return await ctx.db
+          .query("assignment")
+          .withIndex("by_classCatalogId", (q) => q.eq("classCatalogId", classId))
+          .collect();
+      });
+
+      const assignmentsByClass = await Promise.all(assignmentPromises);
+      assignments = assignmentsByClass.flat();
+    } else {
+      // Sin permisos, devolver array vacío
+      return [];
+    }
+
+    // Enriquecimiento mínimo solo para información de filtros
+    const assignmentsWithBasicInfo = await Promise.all(
+      assignments.map(async (a) => {
+        const [gradeRubric, classCatalog] = await Promise.all([
+          ctx.db.get(a.gradeRubricId),
+          ctx.db.get(a.classCatalogId)
+        ]);
+
+        let group = null;
+        if (classCatalog?.groupId) {
+          group = await ctx.db.get(classCatalog.groupId);
+        }
+
+        return {
+          _id: a._id,
+          name: a.name,
+          description: a.description,
+          dueDate: a.dueDate,
+          maxScore: a.maxScore,
+          classCatalogId: a.classCatalogId,
+          termId: a.termId,
+          gradeRubricId: a.gradeRubricId,
+          createdBy: a.createdBy,
+          _creationTime: a._creationTime,
+          gradeRubric: gradeRubric ? {
+            _id: gradeRubric._id,
+            name: gradeRubric.name
+          } : null,
+          group: group ? {
+            _id: group._id,
+            name: group.name,
+            grade: group.grade
+          } : null
+        };
+      })
+    );
+
+    return assignmentsWithBasicInfo;
   },
 });
 
@@ -322,7 +593,7 @@ export const getAssignmentDeliveryDetails = query({
 
         // Verificar si el estudiante entregó (tiene calificación)
         const grade = grades.find(g => g.studentClassId === sc._id);
-        
+
         return {
           studentClassId: sc._id,
           studentId: student._id,
@@ -338,7 +609,7 @@ export const getAssignmentDeliveryDetails = query({
     // Filtrar estudiantes válidos y separar por estado de entrega
     const submittedStudents: any[] = [];
     const pendingStudents: any[] = [];
-    
+
     studentsWithDetails.forEach(student => {
       if (student) {
         if (student.submitted) {

@@ -237,6 +237,9 @@ export const deleteClassCatalog = mutation({
 export const getTeacherClasses = query({
   args: {
     schoolId: v.id("school"),
+    canViewAll: v.boolean(),
+    tutorId: v.optional(v.id("user")),
+    teacherId: v.optional(v.id("user"))
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -248,12 +251,53 @@ export const getTeacherClasses = query({
       .unique();
     if (!user) throw new Error("Usuario no encontrado.");
 
-    // Buscar las clases donde el usuario es el maestro
-    const classes = await ctx.db
-      .query("classCatalog")
-      .withIndex("by_teacher", (q) => q.eq("teacherId", user._id))
-      .filter((q) => q.eq(q.field("schoolId"), args.schoolId))
-      .collect();
+    let classes = [];
+
+    if (args.canViewAll) {
+      // Superadmin, Admin, Auditor: ver todas las clases de la escuela
+      classes = await ctx.db
+        .query("classCatalog")
+        .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+        .collect();
+    } else if (args.teacherId) {
+      // Teacher: ver solo sus clases
+      classes = await ctx.db
+        .query("classCatalog")
+        .withIndex("by_teacher", (q) => q.eq("teacherId", args.teacherId!))
+        .filter((q) => q.eq(q.field("schoolId"), args.schoolId))
+        .collect();
+    } else if (args.tutorId) {
+      // Tutor: ver clases donde tiene estudiantes
+      const tutorStudentClasses = await ctx.db
+        .query("studentClass")
+        .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+        .filter((q) => q.eq(q.field("status"), "active"))
+        .collect();
+
+      const tutorStudents = await ctx.db
+        .query("student")
+        .withIndex("by_schoolId", (q) => q.eq("schoolId", args.schoolId))
+        .filter((q) => q.eq(q.field("tutorId"), args.tutorId))
+        .collect();
+
+      const tutorStudentIds = tutorStudents.map(s => s._id);
+      
+      const tutorClassIds = tutorStudentClasses
+        .filter(sc => tutorStudentIds.includes(sc.studentId))
+        .map(sc => sc.classCatalogId);
+
+      const uniqueTutorClassIds = [...new Set(tutorClassIds)];
+
+      // Obtener información de las clases
+      const classPromises = uniqueTutorClassIds.map(async (classId) => {
+        return await ctx.db.get(classId);
+      });
+
+      classes = (await Promise.all(classPromises)).filter(c => c !== null);
+    } else {
+      // Sin permisos, devolver array vacío
+      return [];
+    }
 
     // Enriquecer con información adicional
     const enrichedClasses = await Promise.all(

@@ -88,6 +88,11 @@ export const usePermissions = (schoolId?: string) => {
     { action: "read", resource: "rubrics" },
     { action: "update", resource: "rubrics" },
     { action: "delete", resource: "rubrics" },
+    // Attendance
+    { action: "create", resource: "assignance" },
+    { action: "read", resource: "assignance" },
+    { action: "update", resource: "assignance" },
+    { action: "delete", resource: "assignance" },
   ];
 
 
@@ -161,6 +166,11 @@ export const usePermissions = (schoolId?: string) => {
       "read:rubrics": true,
       "update:rubrics": true,
       "delete:rubrics": true,
+      // Attendance
+      "create:assignance": false,
+      "read:assignance": true,
+      "update:assignance": true,
+      "delete:assignance": false,
     },
     admin: {
       // Admin tiene casi todos los permisos (excepto eliminar escuelas)
@@ -229,6 +239,11 @@ export const usePermissions = (schoolId?: string) => {
       "read:rubrics": true,
       "update:rubrics": true,
       "delete:rubrics": true,
+      // Attendance
+      "create:assignance": false,
+      "read:assignance": true,
+      "update:assignance": true,
+      "delete:assignance": false,
     },
     auditor: {
       // Auditor solo puede leer y ver reportes
@@ -297,6 +312,11 @@ export const usePermissions = (schoolId?: string) => {
       "read:rubrics": true,
       "update:rubrics": false,
       "delete:rubrics": false,
+      // Attendance
+      "create:assignance": false,
+      "read:assignance": true,
+      "update:assignance": false,
+      "delete:assignance": false,
     },
     teacher: {
       // Profesor similar al tutor pero con menos permisos
@@ -360,6 +380,11 @@ export const usePermissions = (schoolId?: string) => {
       "read:rubrics": true,
       "update:rubrics": true,
       "delete:rubrics": true,
+      // Attendance
+      "create:assignance": true,
+      "read:assignance": true,
+      "update:assignance": true,
+      "delete:assignance": true,
     },
     tutor: {
       // Tutor es el padre
@@ -423,6 +448,11 @@ export const usePermissions = (schoolId?: string) => {
       "read:rubrics": true,
       "update:rubrics": false,
       "delete:rubrics": false,
+      // Attendance
+      "create:assignance": false,
+      "read:assignance": true,
+      "update:assignance": false,
+      "delete:assignance": false,
     },
   };
 
@@ -642,11 +672,16 @@ export const usePermissions = (schoolId?: string) => {
     canReadAttendance: permissions["read:attendance"] || false,
     canUpdateAttendance: permissions["update:attendance"] || false,
     canDeleteAttendance: permissions["delete:attendance"] || false,
-    /** Schedule Assignment */
+    /** Rubrics */
     canCreateRubric: permissions["create:rubrics"] || false,
     canReadRubric: permissions["read:rubrics"] || false,
     canUpdateRubric: permissions["update:rubrics"] || false,
     canDeleteRubric: permissions["delete:rubrics"] || false,
+    /** Assignance */
+    canCreateAssignance: permissions["create:assignance"] || false,
+    canReadAssignance: permissions["read:assignance"] || false,
+    canUpdateAssignance: permissions["update:assignance"] || false,
+    canDeleteAssignance: permissions["delete:assignance"] || false,
 
     // Propiedades específicas por rol
     isSuperAdmin: hasRole("superadmin"),

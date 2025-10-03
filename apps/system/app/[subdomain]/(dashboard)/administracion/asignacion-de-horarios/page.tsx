@@ -102,7 +102,12 @@ export default function HorariosPorClasePage() {
   // Obtener todas las clases con detalles y luego filtrar por ciclo activo
   const allClassCatalogs = useQuery(
     api.functions.classCatalog.getAllClassCatalog,
-    currentSchool?.school._id ? { schoolId: currentSchool.school._id } : 'skip'
+    currentSchool && classFilters ? {
+      schoolId: currentSchool?.school._id as Id<'school'>,
+      canViewAll: classFilters.canViewAll,
+      tutorId: classFilters.tutorId,
+      teacherId: classFilters.teacherId,
+    } : 'skip'
   );
 
   // Filtrar las clases por el ciclo escolar activo
@@ -371,231 +376,230 @@ export default function HorariosPorClasePage() {
           </div>
         )}
 
-      
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Filter className='h-5 w-5' />
-                  Filtros y Búsqueda
-                </CardTitle>
-                <CardDescription>
-                  Encuentra los horarios de la clase y filtra por estado
-                </CardDescription>
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Filter className='h-5 w-5' />
+                Filtros y Búsqueda
+              </CardTitle>
+              <CardDescription>
+                Encuentra los horarios de la clase y filtra por estado
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por clase..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por clase..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+            {(currentRole === 'superadmin' || currentRole === 'admin' || currentRole === 'auditor') && (
+              <div className="flex gap-2">
+                <Select
+                  onValueChange={(v) => setFilter(v === "all" ? "active" : "inactive")}
+                  value={filter || ""}
+                >
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Filtrar estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los estados</SelectItem>
+                    <SelectItem value="active">Activos</SelectItem>
+                    <SelectItem value="inactive">Inactivos</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              {(currentRole === 'superadmin' || currentRole === 'admin' || currentRole === 'auditor') && (
-                <div className="flex gap-2">
-                  <Select
-                    onValueChange={(v) => setFilter(v === "all" ? "active" : "inactive")}
-                    value={filter || ""}
-                  >
-                    <SelectTrigger className="w-[160px]">
-                      <SelectValue placeholder="Filtrar estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos los estados</SelectItem>
-                      <SelectItem value="active">Activos</SelectItem>
-                      <SelectItem value="inactive">Inactivos</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Lista de Asignación de Horarios</span>
-              <Badge variant="outline">{filteredClasses.length} asignaciones</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                  <p className="text-muted-foreground">Cargando asignaciones de horarios...</p>
-                </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Lista de Asignación de Horarios</span>
+            <Badge variant="outline">{filteredClasses.length} asignaciones</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Cargando asignaciones de horarios...</p>
               </div>
-            ) : filteredClasses.length === 0 ? (
-              <div className="text-center py-12">
-                <ClockPlus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">
-                  No se encontraron asignaciones
-                </h3>
-                {currentRole === 'tutor' ? (
+            </div>
+          ) : filteredClasses.length === 0 ? (
+            <div className="text-center py-12">
+              <ClockPlus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">
+                No se encontraron asignaciones
+              </h3>
+              {currentRole === 'tutor' ? (
                 <p className="text-muted-foreground mb-4">
                   Intenta ajustar los filtros o agrega una nueva asignación.
                 </p>
-                ) : (
-                  <p>En caso de alguna inconsistencia con la información comunicate con soporte.</p>
-                )}
-                {canCreateScheduleAssignament &&
-                  <Button
-                    size="lg"
-                    className="gap-2"
-                    onClick={crudDialog.openCreate}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Agregar Horario por Clase
-                  </Button>
-                }
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-9">
-                {filteredClasses.map((classItem, index) => (
-                  <Card key={`${classItem._id}-${classItem.classCatalogId}-${index}`} className="w-full max-w-md hover:shadow-lg transition-shadow duration-200 flex flex-col h-full">
-                    <CardHeader className="flex items-center gap-2 justify-between">
-                      <CardTitle className="text-lg font-semibold leading-tight line-clamp-2 break-words flex-1 min-w-0">
-                        {classItem.name}
-                      </CardTitle>
-                      <Badge
-                        variant={classItem?.status === "active" ? "default" : "secondary"}
-                        className={classItem?.status === "active" ? "bg-green-600 text-white flex-shrink-0 ml-2" : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}>
-                        {classItem?.status === 'active' ? 'Activa' : 'Inactiva'}
-                      </Badge>
-                    </CardHeader>
+              ) : (
+                <p>En caso de alguna inconsistencia con la información comunicate con soporte.</p>
+              )}
+              {canCreateScheduleAssignament &&
+                <Button
+                  size="lg"
+                  className="gap-2"
+                  onClick={crudDialog.openCreate}
+                >
+                  <Plus className="h-4 w-4" />
+                  Agregar Horario por Clase
+                </Button>
+              }
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-9">
+              {filteredClasses.map((classItem, index) => (
+                <Card key={`${classItem._id}-${classItem.classCatalogId}-${index}`} className="w-full max-w-md hover:shadow-lg transition-shadow duration-200 flex flex-col h-full">
+                  <CardHeader className="flex items-center gap-2 justify-between">
+                    <CardTitle className="text-lg font-semibold leading-tight line-clamp-2 break-words flex-1 min-w-0">
+                      {classItem.name}
+                    </CardTitle>
+                    <Badge
+                      variant={classItem?.status === "active" ? "default" : "secondary"}
+                      className={classItem?.status === "active" ? "bg-green-600 text-white flex-shrink-0 ml-2" : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}>
+                      {classItem?.status === 'active' ? 'Activa' : 'Inactiva'}
+                    </Badge>
+                  </CardHeader>
 
-                    <CardContent className="space-y-3">
-                      {/* Materia */}
-                      {classItem.subject && (
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 flex justify-center">
-                            <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{classItem.subject.name}</p>
-                            {classItem.subject.credits && (
-                              <p className="text-xs text-muted-foreground">
-                                {classItem.subject.credits} {classItem.subject.credits === 1 ? "Crédito" : "Créditos"}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Aula */}
-                      {classItem.classroom && (
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 flex justify-center">
-                            <MapPin className="h-4 w-4 text-muted-foreground" />
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{classItem.classroom.name}</p>
-                            {classItem.classroom.location && (
-                              <p className="text-xs text-muted-foreground truncate">
-                                {classItem.classroom.location}
-                              </p>
-                            )}
+                  <CardContent className="space-y-3">
+                    {/* Materia */}
+                    {classItem.subject && (
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 flex justify-center">
+                          <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{classItem.subject.name}</p>
+                          {classItem.subject.credits && (
                             <p className="text-xs text-muted-foreground">
-                              Capacidad: {classItem.classroom.capacity} estudiantes
+                              {classItem.subject.credits} {classItem.subject.credits === 1 ? "Crédito" : "Créditos"}
                             </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Profesor */}
-                      {classItem.teacher && (
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 flex justify-center">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">
-                              {classItem.teacher.name} {classItem.teacher.lastName}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {classItem.teacher.email}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Grupo */}
-                      {classItem.group && (
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 flex justify-center">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{classItem.group.grade} {classItem.group.name}</p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Horarios */}
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span className="w-5 flex justify-center">
-                            <Clock className="h-4 w-4" />
-                          </span>
-                          <span>
-                            {classItem.schedules.length} horario
-                            {classItem.schedules.length !== 1 ? "s" : ""}
-                          </span>
+                          )}
                         </div>
                       </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-end gap-2 pt-2 border-t mt-auto">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          crudDialog.openView(classItem)
-                        }}
-                        className="hover:scale-105 transition-transform cursor-pointer"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {canUpdateScheduleAssignament && <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          crudDialog.openEdit(classItem);
-                        }}
-                        className="hover:scale-105 transition-transform cursor-pointer"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>}
-                      {canDeleteScheduleAssignament && <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          crudDialog.openDelete(classItem)
-                        }}
-                        className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive bg-white"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>}
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      
+                    )}
+
+                    {/* Aula */}
+                    {classItem.classroom && (
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 flex justify-center">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{classItem.classroom.name}</p>
+                          {classItem.classroom.location && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {classItem.classroom.location}
+                            </p>
+                          )}
+                          <p className="text-xs text-muted-foreground">
+                            Capacidad: {classItem.classroom.capacity} estudiantes
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Profesor */}
+                    {classItem.teacher && (
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 flex justify-center">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {classItem.teacher.name} {classItem.teacher.lastName}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {classItem.teacher.email}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Grupo */}
+                    {classItem.group && (
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 flex justify-center">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{classItem.group.grade} {classItem.group.name}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Horarios */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="w-5 flex justify-center">
+                          <Clock className="h-4 w-4" />
+                        </span>
+                        <span>
+                          {classItem.schedules.length} horario
+                          {classItem.schedules.length !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-end gap-2 pt-2 border-t mt-auto">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        crudDialog.openView(classItem)
+                      }}
+                      className="hover:scale-105 transition-transform cursor-pointer"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    {canUpdateScheduleAssignament && <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        crudDialog.openEdit(classItem);
+                      }}
+                      className="hover:scale-105 transition-transform cursor-pointer"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>}
+                    {canDeleteScheduleAssignament && <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        crudDialog.openDelete(classItem)
+                      }}
+                      className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive bg-white"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>}
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
 
       <CrudDialog
         operation={crudDialog.operation}

@@ -576,7 +576,7 @@ export default function RubricDashboard() {
                     <TableHead>Periodo</TableHead>
                     <TableHead>Porcentaje</TableHead>
                     <TableHead>Calificacion Maxima</TableHead>
-                    <TableHead>Estado</TableHead>
+                    {canCreateRubricPermission && <TableHead>Estado</TableHead>}
                     {/* <TableHead className="text-right">Acciones</TableHead> */}
                     {(rubrics.some((r) => r.schoolCycleStatus === "active") && canCreateRubricPermission) && (
                       <TableHead className="text-right">Acciones</TableHead>
@@ -602,7 +602,8 @@ export default function RubricDashboard() {
                         </TableCell>
                         <TableCell>{rubric.maxScore}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
+                          {canCreateRubricPermission &&
+                            <div className="flex items-center gap-2">
                             <Switch
                               checked={rubric.status}
                               onCheckedChange={() =>
@@ -635,6 +636,7 @@ export default function RubricDashboard() {
                                 </div>
                               )}
                           </div>
+                          }
 
                         </TableCell>
                         {((rubric as RubricWithDetails).schoolCycleStatus ===
@@ -684,8 +686,8 @@ export default function RubricDashboard() {
                             {currentRole !== 'tutor' ? <p className="text-muted-foreground mb-4">
                               No hay rúbricas creadas. Crea tu primera rúbrica para comenzar a calificar.
                             </p> : <>
-                              <p>Aún no se han asignado rúbricas al alumno.</p>
-                              <p>Si al alumno ya cuenta con rubricas asignada y no se ve información comunicate con soporte.</p>
+                              <p className="text-muted-foreground">Aún no se han asignado rúbricas al alumno.</p>
+                              <p className="text-muted-foreground">Si al alumno ya cuenta con rubricas asignada y no se ve información comunicate con soporte.</p>
                             </>
                             }
                           </div>
