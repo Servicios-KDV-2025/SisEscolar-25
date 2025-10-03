@@ -1,123 +1,362 @@
-'use client'
+"use client";
 
-import { useUser } from "@clerk/nextjs"
-import { api } from "@repo/convex/convex/_generated/api"
-import { Id } from "@repo/convex/convex/_generated/dataModel"
-import { Badge } from "@repo/ui/components/shadcn/badge"
-import { Button } from "@repo/ui/components/shadcn/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
-import { Input } from "@repo/ui/components/shadcn/input"
-import { Label } from "@repo/ui/components/shadcn/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table"
-import { BookOpen, CheckCircle, FileCheck, FileX, Filter, X, XCircle } from "@repo/ui/icons"
-import { useQuery } from "convex/react"
-import { useMemo, useState } from "react"
-import { useClassCatalog } from "stores/classCatalogStore"
-import { useCurrentSchool } from "stores/userSchoolsStore"
-import { useUserWithConvex } from "stores/userStore"
+import { useUser } from "@clerk/nextjs";
+import { api } from "@repo/convex/convex/_generated/api";
+import { Id } from "@repo/convex/convex/_generated/dataModel";
+import { Badge } from "@repo/ui/components/shadcn/badge";
+import { Button } from "@repo/ui/components/shadcn/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/shadcn/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@repo/ui/components/shadcn/dialog";
+import { Input } from "@repo/ui/components/shadcn/input";
+import { Label } from "@repo/ui/components/shadcn/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@repo/ui/components/shadcn/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@repo/ui/components/shadcn/table";
+import { Textarea } from "@repo/ui/components/shadcn/textarea";
+import {
+  BookOpen,
+  CheckCircle,
+  FileCheck,
+  FileX,
+  Filter,
+  X,
+  XCircle,
+  Loader2,
+  Save,
+  MessageCircleMore,
+  MessageCircleDashed,
+} from "@repo/ui/icons";
+import { useQuery, useMutation } from "convex/react";
+import { useMemo, useState, useEffect } from "react";
+import { toast } from "sonner";
+import { useClassCatalog } from "stores/classCatalogStore";
+import { useCurrentSchool } from "stores/userSchoolsStore";
+import { useUserWithConvex } from "stores/userStore";
 
-type AttendanceState = 'present' | 'absent' | 'justified' | 'unjustified'
+type AttendanceRecord = NonNullable<
+  ReturnType<
+    typeof useQuery<typeof api.functions.attendance.getAttendanceHistory>
+  >
+>[0];
+type AttendanceState = "present" | "absent" | "justified" | "unjustified";
+
+const CharacterCounter = ({
+  current,
+  max,
+}: {
+  current: number;
+  max: number;
+}) => (
+  <div className="text-xs mt-1 text-right text-gray-500">
+    {current}/{max} caracteres
+  </div>
+);
+
+interface CommentEditModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  record: AttendanceRecord | null;
+  onSave: (recordId: Id<"attendance">, newComment: string) => void;
+  isSaving: boolean;
+}
+
+function CommentEditModal({
+  isOpen,
+  onClose,
+  record,
+  onSave,
+  isSaving,
+}: CommentEditModalProps) {
+  const [comment, setComment] = useState("");
+
+  useEffect(() => {
+    if (record) setComment(record.comments || "");
+  }, [record]);
+
+  const handleSave = () => {
+    if (!record || isSaving) return;
+    onSave(record._id, comment);
+  };
+
+  if (!record) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar Comentario</DialogTitle>
+        </DialogHeader>
+        <div className="py-4 space-y-2">
+          <Label htmlFor="comment" className="text-muted-foreground">
+            Comentario para:{" "}
+            <span className="font-semibold text-primary">
+              {record.student.name} {record.student.lastName}
+            </span>
+          </Label>
+          <Textarea
+            id="comment"
+            value={comment}
+            maxLength={300}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Añade una nota..."
+            rows={5}
+            className="mt-2"
+          />
+          <CharacterCounter current={comment.length} max={300} />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isSaving}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            Guardar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 interface AttendanceFilters {
-  classCatalogId?: Id<'classCatalog'>
-  attendanceState?: AttendanceState
-  specificDate?: number
+  classCatalogId?: Id<"classCatalog">;
+  attendanceState?: AttendanceState;
+  specificDate?: number;
 }
 
 export default function AttendanceHistory() {
-  const { user: clerkUser } = useUser()
-  const { currentUser } = useUserWithConvex(clerkUser?.id)
-  const { currentSchool, isLoading } = useCurrentSchool(currentUser?._id)
-  const { classCatalogs } = useClassCatalog(currentSchool?.school._id)
+  const { user: clerkUser } = useUser();
+  const { currentUser } = useUserWithConvex(clerkUser?.id);
+  const { currentSchool, isLoading } = useCurrentSchool(currentUser?._id);
+  const { classCatalogs } = useClassCatalog(currentSchool?.school._id);
 
-  const [filterClass, setFilterClass] = useState('all')
-  const [filterState, setFilterState] = useState('all')
-  const [specificDate, setSpecificDate] = useState('')
+  const [filterClass, setFilterClass] = useState("all");
+  const [filterState, setFilterState] = useState("all");
+  const [specificDate, setSpecificDate] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(
+    null
+  );
+  const [pendingChanges, setPendingChanges] = useState<Set<Id<"attendance">>>(
+    new Set()
+  );
+
+  // Mutaciones de Convex
+  const updateState = useMutation(
+    api.functions.attendance.updateAttendanceState
+  );
+  const updateComment = useMutation(
+    api.functions.attendance.updateAttendanceComment
+  );
 
   // Preparar filtros para el query
   const filters: AttendanceFilters | undefined = useMemo(() => {
-    const filters: AttendanceFilters = {}
+    const filters: AttendanceFilters = {};
 
-    if (filterClass !== 'all') filters.classCatalogId = filterClass as Id<'classCatalog'>
-    if (filterState !== 'all') filters.attendanceState = filterState as AttendanceState
-    if (specificDate) filters.specificDate = Math.floor(new Date(specificDate).getTime() / 1000)
+    if (filterClass !== "all")
+      filters.classCatalogId = filterClass as Id<"classCatalog">;
+    if (filterState !== "all")
+      filters.attendanceState = filterState as AttendanceState;
+    if (specificDate)
+      filters.specificDate = Math.floor(
+        new Date(specificDate).getTime() / 1000
+      );
 
-    return Object.keys(filters).length > 0 ? filters : undefined
-  }, [filterClass, filterState, specificDate])
+    return Object.keys(filters).length > 0 ? filters : undefined;
+  }, [filterClass, filterState, specificDate]);
 
   // Obtener hisotrial se asistencias
-  const attendanceHistory = useQuery(
+  const attHistory = useQuery(
     api.functions.attendance.getAttendanceHistory,
-    currentSchool ? {
-      schoolId: currentSchool.school._id,
-      filters: filters
-    } : 'skip'
-  )
+    currentSchool
+      ? {
+          schoolId: currentSchool.school._id,
+          filters: filters,
+        }
+      : "skip"
+  );
+
+  const attendanceHistory = useMemo(() => {
+  if (!attHistory) {
+    return [];
+  }
+
+  return [...attHistory].sort((a, b) => {
+    // Medidas de seguridad para evitar errores si un registro es nulo
+    if (!a) return 1;
+    if (!b) return -1;
+
+    // --- Nivel 1: Ordenar por fecha (de más reciente a más antigua) ---
+    const dateComparison = b.date - a.date;
+
+    // Si las fechas son diferentes, ese es nuestro resultado y no necesitamos seguir.
+    if (dateComparison !== 0) {
+      return dateComparison;
+    }
+
+    // --- Nivel 2: Si las fechas son iguales, ordenar por nombre (A-Z) ---
+    const nameA = a.student?.name || '';
+    const nameB = b.student?.name || '';
+    
+    return nameA.localeCompare(nameB);
+  });
+}, [attHistory]);
+
+// En tu JSX, asegúrate de usar 'sortedAttHistory' para renderizar la tabla.
 
   // Preparar filtros para estadisticas
-  const statsFilters = useMemo(() => ({
-    classCatalogId: filterClass !== 'all' ? filterClass as Id<'classCatalog'> : undefined,
-    specificDate: specificDate ? Math.floor(new Date(specificDate).getTime() / 1000) : undefined
-  }), [filterClass, specificDate])
+  const statsFilters = useMemo(
+    () => ({
+      classCatalogId:
+        filterClass !== "all" ? (filterClass as Id<"classCatalog">) : undefined,
+      specificDate: specificDate
+        ? Math.floor(new Date(specificDate).getTime() / 1000)
+        : undefined,
+    }),
+    [filterClass, specificDate]
+  );
 
   // Obtener estadisitcas
   const attendanceStats = useQuery(
     api.functions.attendance.getAttendanceStatistics,
-    currentSchool ? {
-      schoolId: currentSchool.school._id,
-      ...statsFilters
-    } : 'skip'
-  )
+    currentSchool
+      ? {
+          schoolId: currentSchool.school._id,
+          ...statsFilters,
+        }
+      : "skip"
+  );
+  const handleStateChange = async (
+    recordId: Id<"attendance">,
+    newState: AttendanceState
+  ) => {
+    if (!currentUser) return;
+    setPendingChanges((prev) => new Set(prev).add(recordId));
+    
+    try {
+      await updateState({ recordId, newState, updatedBy: currentUser._id });
+      toast.success("Estado actualizado.");
+    } catch (error) {
+      toast.error("Error al cambiar el estado. " + error);
+    } finally {
+      setPendingChanges((prev) => {
+        const next = new Set(prev);
+        next.delete(recordId);
+        return next;
+      });
+    }
+  };
+
+  const handleCommentClick = (record: AttendanceRecord) => {
+    setSelectedRecord(record);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveComment = async (
+    recordId: Id<"attendance">,
+    newComment: string
+  ) => {
+    if (!currentUser) return;
+    setPendingChanges((prev) => new Set(prev).add(recordId));
+    try {
+      await updateComment({ recordId, newComment, updatedBy: currentUser._id });
+      toast.success("Comentario guardado.");
+      setIsModalOpen(false);
+    } catch (error) {
+      toast.error("Error al guardar el comentario. " + error);
+    } finally {
+      setPendingChanges((prev) => {
+        const next = new Set(prev);
+        next.delete(recordId);
+        return next;
+      });
+    }
+  };
 
   // Formatear fecha para mostrar
   const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      timeZone: 'UTC'
-    })
-  }
+    return new Date(timestamp * 1000).toLocaleDateString("es-MX", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "UTC",
+    });
+  };
 
   // Formatear fecha y hora para últimas actualizaciones
   const formatDateTime = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+    return new Date(timestamp).toLocaleDateString("es-MX", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
-   // Limpiar filtro de fecha
+  // Limpiar filtro de fecha
   const clearDateFilter = () => {
-    setSpecificDate('')
-  }
+    setSpecificDate("");
+  };
 
-  const getStateBadgeVariant = (state: AttendanceState) => {
-    switch (state) {
-      case 'present': return 'bg-green-100 text-green-800 border-green-200'
-      case 'absent': return 'bg-red-100 text-red-800 border-red-200'
-      case 'justified': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'unjustified': return 'bg-orange-100 text-orange-800 border-orange-200'
-      default: return state
-    }
-  }
+const getAttendanceStatusStyles = (
+  state: AttendanceState,
+  options: { textOnly?: boolean } = {} // Opción para pedir solo el texto
+) => {
+  const { textOnly = true } = options;
 
-  const getStateTranslation = (state: AttendanceState) => {
-    switch (state) {
-      case 'present': return 'Presente'
-      case 'absent': return 'Ausente'
-      case 'justified': return 'Justificado'
-      case 'unjustified': return 'Injustificado'
-      default: return state
-    }
+  switch (state) {
+    case "present":
+      return textOnly
+        ? "text-green-800"
+        : "bg-green-100 text-green-800";
+    case "absent":
+      return textOnly
+        ? "text-red-800"
+        : "bg-red-100 text-red-800 border-red-200";
+    case "justified":
+      return textOnly
+        ? "text-yellow-800"
+        : "bg-yellow-100 text-yellow-800 border-yellow-200";
+    case "unjustified":
+      return textOnly
+        ? "text-orange-800"
+        : "bg-orange-100 text-orange-800 border-orange-200";
+    default:
+      return textOnly ? "text-gray-800" : "bg-gray-100 text-gray-800";
   }
+};
 
   if (isLoading) {
-    return <div className="text-center py-10">Cargando escuala</div>
+    return <div className="text-center py-10">Cargando escuala</div>;
   }
 
   return (
@@ -125,12 +364,8 @@ export default function AttendanceHistory() {
       {/* Estadísticas */}
       {attendanceStats && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 space-x-5">
-          <Card
-            className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
-          >
-            <CardHeader
-              className="flex flex-row items-center justify-between space-y-0 pb-3"
-            >
+          <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Total
               </CardTitle>
@@ -142,9 +377,7 @@ export default function AttendanceHistory() {
               <div className="text-3xl font-bold">{attendanceStats.total}</div>
             </CardContent>
           </Card>
-          <Card
-            className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
-          >
+          <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Presentes
@@ -159,9 +392,7 @@ export default function AttendanceHistory() {
               </div>
             </CardContent>
           </Card>
-          <Card
-            className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
-          >
+          <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Ausentes
@@ -171,14 +402,10 @@ export default function AttendanceHistory() {
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
-              <div className="text-3xl font-bold">
-                {attendanceStats.absent}
-              </div>
+              <div className="text-3xl font-bold">{attendanceStats.absent}</div>
             </CardContent>
           </Card>
-          <Card
-            className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
-          >
+          <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Justificados
@@ -193,9 +420,7 @@ export default function AttendanceHistory() {
               </div>
             </CardContent>
           </Card>
-          <Card
-            className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
-          >
+          <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Injustificados
@@ -220,8 +445,9 @@ export default function AttendanceHistory() {
             <Filter className="h-5 w-5" />
             Filtro de busqueda
           </CardTitle>
-          <CardDescription>Filtra los registros de asistencia por diferentes criterios</CardDescription>
-
+          <CardDescription>
+            Filtra los registros de asistencia por diferentes criterios
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -229,7 +455,7 @@ export default function AttendanceHistory() {
               <Label>Clase</Label>
               <Select value={filterClass} onValueChange={setFilterClass}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder='Todas las clases' />
+                  <SelectValue placeholder="Todas las clases" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas las clases</SelectItem>
@@ -246,7 +472,7 @@ export default function AttendanceHistory() {
               <Label>Estado</Label>
               <Select value={filterState} onValueChange={setFilterState}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder='Todos los estados' />
+                  <SelectValue placeholder="Todos los estados" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los estados</SelectItem>
@@ -263,15 +489,20 @@ export default function AttendanceHistory() {
                 Fecha específica
               </Label>
               <div className="relative">
-                <Input id="date-to" type="date" value={specificDate} onChange={(e) => setSpecificDate(e.target.value)} />
+                <Input
+                  id="date-to"
+                  type="date"
+                  value={specificDate}
+                  onChange={(e) => setSpecificDate(e.target.value)}
+                />
                 {specificDate && (
                   <Button
-                    variant='ghost'
-                    size={'icon'}
+                    variant="ghost"
+                    size={"icon"}
                     className="absolute right-1 top-1 h-6 w-6"
                     onClick={clearDateFilter}
                   >
-                    <X className="h-3 w-3"/>
+                    <X className="h-3 w-3" />
                   </Button>
                 )}
               </div>
@@ -280,8 +511,6 @@ export default function AttendanceHistory() {
         </CardContent>
       </Card>
 
-      
-
       {/* Resultados */}
       <Card>
         <CardHeader>
@@ -289,7 +518,9 @@ export default function AttendanceHistory() {
             <span className="flex items-center gap-2 font-bold">
               Historial de Asistencia
             </span>
-            <Badge variant={'secondary'}>{attendanceHistory?.length || 0} registros</Badge>
+            <Badge variant={"secondary"}>
+              {attendanceHistory?.length || 0} registros
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -313,36 +544,108 @@ export default function AttendanceHistory() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {attendanceHistory && attendanceHistory.length > 0 ? (
-                    attendanceHistory.map((record) => (
-                      <TableRow key={record?._id}>
+                  {attendanceHistory?.map((record) => {
+                    const isRecordPending = pendingChanges.has(record._id);
+
+                    return (
+                      <TableRow
+                        key={record._id}
+                        className={isRecordPending ? "opacity-50" : ""}
+                      >
                         <TableCell className="font-medium">
-                          {record?.student.name} {record?.student.lastName}
+                          {record.student.name} {record.student.lastName}
                         </TableCell>
-                        <TableCell>{record?.student.enrollment}</TableCell>
-                        <TableCell>{record?.classCatalog.name}</TableCell>
-                        <TableCell>{record?.date !== undefined ? formatDate(record.date) : '-'}</TableCell>
-                        <TableCell>
-                          <Badge className={getStateBadgeVariant(record?.attendanceState ?? 'absent')}>
-                            {getStateTranslation(record?.attendanceState ?? 'absent')}
-                          </Badge>
+                        <TableCell>{record.student.enrollment}</TableCell>
+                        <TableCell>{record.classCatalog.name}</TableCell>
+                        <TableCell>{formatDate(record.date)}</TableCell>
+                        <TableCell className="w-[150px]">
+                          {/* Si la fila se está guardando, mostramos el indicador de carga */}
+                          {isRecordPending ? (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Loader2 className="h-4 w-4 animate-spin" />{" "}
+                              Guardando...
+                            </div>
+                          ) : (
+                            <div>
+                              <Select
+                                value={record.attendanceState}
+                                onValueChange={(value: AttendanceState) =>
+                                  handleStateChange(record._id, value)
+                                }
+                              >
+                                <SelectTrigger
+                                  // Estas clases hacen que el botón se vea como una Badge
+                                  className={`rounded-full ${getAttendanceStatusStyles(record.attendanceState)}`}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Escape") {
+                                      // Cierra el menú si se presiona Escape
+                                      (e.target as HTMLElement).blur();
+                                    }
+                                  }}
+                                >
+                                  {/* Muestra el valor seleccionado */}
+                                  <SelectValue />
+                                </SelectTrigger>
+
+                                <SelectContent position="popper">
+                                  <SelectItem value="present">
+                                    Presente
+                                  </SelectItem>
+                                  <SelectItem value="absent">
+                                    Ausente
+                                  </SelectItem>
+                                  <SelectItem value="justified">
+                                    Justificado
+                                  </SelectItem>
+                                  <SelectItem value="unjustified">
+                                    Injustificado
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
                         </TableCell>
-                        <TableCell>{record?.comments || '-'}</TableCell>
-                        <TableCell>{record?.createdBy}</TableCell>
+                        <TableCell className="flex justify-center">
+                          {record.comments ? (
+                            <div>
+                              <MessageCircleMore
+                                onClick={() => handleCommentClick(record)}
+                                className="h-7.5 w-7.5 rounded-lg justify-end p-0.5 cursor-pointer hover:bg-gray-400 hover:text-white transition-colors"
+                              />
+                            </div>
+                          ) : (
+                            <div>
+                              <MessageCircleDashed
+                                onClick={() => handleCommentClick(record)}
+                                className="h-7.5 w-7.5 rounded-lg justify-end p-0.5 cursor-pointer hover:bg-gray-400 hover:text-white transition-colors"
+                              />
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>{record.createdBy}</TableCell>
                         <TableCell>
-                          {record?.updateAt ? formatDateTime(record.updateAt) : '-'}
+                          {record.updateAt
+                            ? formatDateTime(record.updateAt)
+                            : "-"}
                         </TableCell>
                       </TableRow>
-                    ))
-                  ) : (
-                    <TableRow></TableRow>
-                  )}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
           )}
         </CardContent>
       </Card>
+      <CommentEditModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        record={selectedRecord}
+        onSave={handleSaveComment}
+        isSaving={
+          selectedRecord ? pendingChanges.has(selectedRecord._id) : false
+        }
+      />
     </div>
-  )
+  );
 }

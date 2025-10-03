@@ -12,7 +12,7 @@ import { Label } from "@repo/ui/components/shadcn/label";
 import { Textarea } from "@repo/ui/components/shadcn/textarea";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { Edit, GraduationCap, Loader2, Save, X } from "@repo/ui/icons";
+import { Edit, GraduationCap, Loader2, Save, School, X } from "@repo/ui/icons";
 import { useUser } from "@clerk/nextjs";
 import { useCurrentSchool } from "stores/userSchoolsStore";
 import { useMutation } from "convex/react";
@@ -163,23 +163,29 @@ export default function ConfiguracionPage() {
           <div className="col-span-1 space-y-2">
             <Label>Logo Institucional</Label>
             <div className="relative aspect-square max-w-[220px] rounded-2xl shadow-lg overflow-hidden">
-              {imgUrlValue && (
+              {imgUrlValue != " " && imgUrlValue ? (
                 <Image
-                  src={imgUrlValue}
+                  src={imgUrlValue!}
                   alt="Logo de la escuela"
                   fill
                   className="object-cover"
                 />
+              ) : (
+                <div className="relative aspect-square max-w-[220px] rounded-2xl shadow-lg overflow-hidden flex items-center justify-center">
+                <School className="h-20 w-20 " />
+                </div>
               )}
             </div>
-            {isEditing && (<FormField
-              label="URL del Logo"
-              name="imgUrl"
-              isEditing={isEditing}
-              register={register}
-              error={errors.imgUrl}
-              readOnlyValue={currentSchool?.school?.name ?? ""}
-            />)}
+            {isEditing && (
+              <FormField
+                label="URL del Logo"
+                name="imgUrl"
+                isEditing={isEditing}
+                register={register}
+                error={errors.imgUrl}
+                readOnlyValue={currentSchool?.school?.name ?? ""}
+              />
+            )}
           </div>
           <div className="col-span-1 space-y-4">
             <FormField

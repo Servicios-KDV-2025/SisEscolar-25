@@ -1,6 +1,5 @@
 // packages/validators/school.ts
 import { z } from 'zod';
-// nombre 50  nombrecorto-cct 15 dirección 200 telefono 12 email 35 des 200
 export const schoolValidationSchema = z.object({
   name: z.string().min(3, { message: "El nombre debe tener al menos 3 caracteres." }).max(50,{message:"El nombre debe tener maximo 35 caracteres."}),
   shortName: z.string().min(2, { message: "El nombre corto es requerido." }).max(50,{message:"El nombre corto debe tener maximo 15 caracteres."}),

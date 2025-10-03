@@ -18,6 +18,8 @@ import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
+import { usePermissions } from "../../../../../hooks/usePermissions";
+import  NotAuth  from "../../../../../components/NotAuth";
 
 // Icons
 import {
@@ -214,6 +216,13 @@ export default function PeriodsManagement() {
       ? "all"
       : schoolCycleFilter;
 
+      const {
+          canCreateTerm,
+          canReadTerm,
+          canUpdateTerm,
+          canDeleteTerm,
+          
+        } = usePermissions(currentSchool?.school._id);
   // Terms data from store
   const {
     terms,
@@ -352,7 +361,8 @@ export default function PeriodsManagement() {
   };
 
   return (
-    <div className="space-y-8 p-6">
+    <>
+    {canReadTerm ?(<div className="space-y-8 p-6">
       {/* Header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
@@ -371,7 +381,7 @@ export default function PeriodsManagement() {
                 </div>
               </div>
             </div>
-            <Button
+            {canCreateTerm && (<Button
               size="lg"
               className="gap-2"
               onClick={openCreate}
@@ -379,7 +389,7 @@ export default function PeriodsManagement() {
             >
               <Plus className="h-4 w-4" />
               Agregar Periodo
-            </Button>
+            </Button>)}
           </div>
         </div>
       </div>
@@ -637,7 +647,7 @@ export default function PeriodsManagement() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button
+                        {canUpdateTerm&&(<Button
                           variant="ghost"
                           size="sm"
                           onClick={(e) => {
@@ -648,8 +658,8 @@ export default function PeriodsManagement() {
                           disabled={isUpdating || isDeleting}
                         >
                           <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
+                        </Button>)}
+                        {canDeleteTerm&&(<Button
                           variant="ghost"
                           size="sm"
                           onClick={(e) => {
@@ -660,7 +670,7 @@ export default function PeriodsManagement() {
                           disabled={isUpdating || isDeleting}
                         >
                           <Trash2 className="h-4 w-4" />
-                        </Button>
+                        </Button>)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -721,6 +731,11 @@ export default function PeriodsManagement() {
           />
         )}
       </CrudDialog>
-    </div>
+    </div>):(<NotAuth 
+    pageName="Periodos"
+    pageDetails="Administra los periodos académicos"
+    icon={Calendar}
+    />)}
+    </>
   );
 }

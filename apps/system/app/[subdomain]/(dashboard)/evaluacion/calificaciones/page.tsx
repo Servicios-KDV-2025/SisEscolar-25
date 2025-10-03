@@ -511,55 +511,66 @@ export default function GradeManagementDashboard() {
                 </h3>
 
                 <p className="">Registra:</p>
+                <div className= "flex flex-col items-center gap-4 w-full" >
+                  {/*esta es la 1ra fila de botones*/}
+                  <div className= "flex flex-row gap-4 justify-center w-full"  >
+                    {!assignments && (
+                      <Link href={`/evaluacion/asignaciones`}>
+                        <Button>
+                          <Plus className="w-4 h-4" />
+                          Asignaciones
+                        </Button>
+                      </Link>
+                    )}
+                      
+                    {!hasTerms && (
+                      <Link href={`/administracion/periodos`}>
+                        <Button>
+                          <Plus className="w-4 h-4" />
+                          Periodos
+                        </Button>
+                      </Link>
+                    )}
+                    {!hasClasses && (
+                      <Link href={`/administracion/clases`}>
+                        <Button>
+                          <Plus className="w-4 h-4" />
+                          Clases
+                        </Button>
+                      </Link>
+                    )}
 
-                {!assignments && (
-                  <Link href={`/asignaciones`}>
-                    <Button>
-                      <Plus className="w-4 h-4" />
-                      Asignaciones en esta clase.
-                    </Button>
-                  </Link>
-                )}
-                {!hasTerms && (
-                  <Link href={`/periodos`}>
-                    <Button>
-                      <Plus className="w-4 h-4" />
-                      Periodos en este ciclo
-                    </Button>
-                  </Link>
-                )}
-                {!hasClasses && (
-                  <Link href={`/clasesPorAlumnos`}>
-                    <Button>Clases en este ciclo</Button>
-                  </Link>
-                )}
-                {!hasSchoolCycles && (
-                  <Link href={`/CiclosEscolares`}>
-                    <Button>
-                      <Plus className="w-4 h-4" />
-                      Ciclos
-                    </Button>
-                  </Link>
-                )}
-                {(!rubrics || rubrics.length === 0) && (
-                  <Link href={`/RubricaDeCalificaciones`}>
-                    {" "}
-                    <Button>
-                      <Plus className="w-4 h-4" />
-                      Rubricas
-                    </Button>
-                  </Link>
-                )}
-                {(!students || students.length === 0) && (
-                  <Link href={`/clasesPorAlumnos`}>
-                    {" "}
-                    <Button>
-                      <Plus className="w-4 h-4" />
-                      Clases por alumno{" "}
-                    </Button>
-                  </Link>
-                )}
+                  </div>
 
+                  {/*esta es la 2da fila de botones*/}
+                  <div className = "flex flex-row gap-4 justify-center w-full">
+
+                    {!hasSchoolCycles && (
+                      <Link href='/administracion/ciclos-escolares'>
+                        <Button>
+                          <Plus className="w-4 h-4" />
+                          Ciclos Escolares
+                        </Button>
+                      </Link>
+                    )}
+                    {(!rubrics || rubrics.length === 0) && (
+                      <Link href={`/evaluacion/rubricas`}>
+                        <Button>
+                          <Plus className="w-4 h-4" />
+                          Rubricas
+                        </Button>
+                      </Link>
+                    )}
+                    {(!students || students.length === 0) && (
+                      <Link href={`/administracion/asignacion-de-clases`}>
+                        <Button>
+                          <Plus className="w-4 h-4" />
+                          Asignación de clases{" "}
+                        </Button>
+                      </Link>
+                      )}
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
