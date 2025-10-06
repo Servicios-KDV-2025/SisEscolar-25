@@ -139,21 +139,11 @@ export const getTeacherAssignments = query({
       const assignmentsByClass = await Promise.all(assignmentPromises);
       assignments = assignmentsByClass.flat();
     } else if (args.teacherId) {
-      console.log('🔍 Query - Teacher filtering:', {
-        teacherId: args.teacherId,
-        schoolId: args.schoolId
-      });
-
       // Teacher: ver solo sus asignaciones
       assignments = await ctx.db
         .query("assignment")
         .withIndex("by_createdBy", (q) => q.eq("createdBy", args.teacherId!))
         .collect();
-
-      console.log('🔍 Query - Teacher assignments before school filter:', {
-        count: assignments.length,
-        assignments: assignments.map(a => ({ id: a._id, name: a.name, classCatalogId: a.classCatalogId }))
-      });
 
       // Filtrar solo las que pertenecen a la escuela
       const schoolClasses = await ctx.db
@@ -162,17 +152,8 @@ export const getTeacherAssignments = query({
         .collect();
 
       const schoolClassIds = schoolClasses.map(c => c._id);
-      console.log('🔍 Query - School classes for filter:', {
-        schoolClassIds,
-        schoolClassesCount: schoolClasses.length
-      });
 
       assignments = assignments.filter(a => schoolClassIds.includes(a.classCatalogId));
-
-      console.log('🔍 Query - Teacher assignments after school filter:', {
-        count: assignments.length,
-        assignments: assignments.map(a => ({ id: a._id, name: a.name }))
-      });
     } else if (args.tutorId) {
       // Tutor: ver asignaciones de las clases donde tiene estudiantes
       const tutorStudentClasses = await ctx.db
@@ -748,8 +729,42 @@ export const getAssignmentsByClassAndTerm = query({
   args: {
     classCatalogId: v.id("classCatalog"),
     termId: v.id("term"),
+    canViewAll: v.boolean(),
+    tutorId: v.optional(v.id("user")),
+    teacherId: v.optional(v.id("user"))
   },
   handler: async (ctx, args) => {
+    // Primero verificar acceso a la clase (similar a getGradeRubricByClassAndTerm)
+    const classCatalog = await ctx.db.get(args.classCatalogId);
+    if (!classCatalog) return [];
+
+    if (!args.canViewAll) {
+      if (args.tutorId) {
+        // Verificar que el tutor tenga estudiantes en esta clase
+        const tutorStudentsInClass = await ctx.db
+          .query("studentClass")
+          .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", args.classCatalogId))
+          .filter((q) => q.eq(q.field("status"), "active"))
+          .collect();
+
+        if (tutorStudentsInClass.length > 0) {
+          const studentIds = tutorStudentsInClass.map(sc => sc.studentId);
+          const students = await Promise.all(studentIds.map(id => ctx.db.get(id)));
+          const hasAccess = students.some(student =>
+            student && student.tutorId === args.tutorId
+          );
+          if (!hasAccess) return [];
+        } else {
+          return [];
+        }
+      } else if (args.teacherId) {
+        if (classCatalog.teacherId !== args.teacherId) return [];
+      } else {
+        return [];
+      }
+    }
+
+    // Si tiene acceso, proceder con la consulta
     return await ctx.db
       .query("assignment")
       .withIndex("by_classCatalogId", (q) =>

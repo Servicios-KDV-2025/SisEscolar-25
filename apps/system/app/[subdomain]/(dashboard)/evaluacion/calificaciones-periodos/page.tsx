@@ -29,6 +29,7 @@ import { Button } from "@repo/ui/components/shadcn/button";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { BookCheck } from "lucide-react";
+import { usePermissions } from 'hooks/usePermissions';
 
 export default function GradeManagementDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -45,6 +46,13 @@ export default function GradeManagementDashboard() {
     error: schoolError,
   } = useCurrentSchool(currentUser?._id);
 
+  const permissions = usePermissions();
+
+  const {
+    currentRole,
+    canUpdateRubric,
+  } = permissions;
+
   // Fetch data with Convex
   const schoolCycles = useQuery(
     api.functions.schoolCycles.ObtenerCiclosEscolares,
@@ -53,10 +61,13 @@ export default function GradeManagementDashboard() {
   const classes = useQuery(
     api.functions.classCatalog.getClassesBySchoolCycle,
     selectedSchoolCycle && currentSchool
-      ? { 
-          schoolId: currentSchool.school._id as Id<"school">,
-          schoolCycleId: selectedSchoolCycle as Id<"schoolCycle"> 
-        }
+      ? {
+        schoolId: currentSchool.school._id as Id<"school">,
+        schoolCycleId: selectedSchoolCycle as Id<"schoolCycle">,
+        canViewAll: permissions.getStudentFilters().canViewAll,
+        teacherId: permissions.getStudentFilters().teacherId,
+        tutorId: permissions.getStudentFilters().tutorId,
+      }
       : "skip"
   );
 
@@ -70,7 +81,12 @@ export default function GradeManagementDashboard() {
   const students = useQuery(
     api.functions.student.getStudentWithClasses,
     selectedClass
-      ? { classCatalogId: selectedClass as Id<"classCatalog"> }
+      ? {
+        classCatalogId: selectedClass as Id<"classCatalog">,
+        canViewAll: permissions.getStudentFilters().canViewAll,
+        teacherId: permissions.getStudentFilters().teacherId,
+        tutorId: permissions.getStudentFilters().tutorId,
+      }
       : "skip"
   );
   // ✨ Este es el cambio clave: ahora obtienes promedios de todos los términos del ciclo escolar
@@ -319,15 +335,17 @@ export default function GradeManagementDashboard() {
                 </div>
               </div>
             </div>
-            <Button
-              onClick={handleSaveAverages}
-              size="lg"
-              className="gap-2"
-            // disabled={isLoading || !currentSchool || isCrudLoading}
-            >
-              <SaveAll className="w-4 h-4" />
-              Guardar promedios
-            </Button>
+            {currentRole !== 'tutor' && (
+              <Button
+                onClick={handleSaveAverages}
+                size="lg"
+                className="gap-2"
+                disabled={!currentSchool || currentRole === 'auditor'}
+              >
+                <SaveAll className="w-4 h-4" />
+                Guardar promedios
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -427,6 +445,7 @@ export default function GradeManagementDashboard() {
               terms={terms!}
               averages={averagesMap} // ✨ PASAMOS EL MAP CORREGIDO
               onAverageUpdate={handleUpdateGrade}
+              canUpdateRubric={canUpdateRubric}
             />
           ) : (
             <div className="flex justify-center">

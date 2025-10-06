@@ -78,6 +78,7 @@ interface CommentEditModalProps {
   onSave: (recordId: Id<"attendance">, newComment: string) => void;
   isSaving: boolean;
   canUpdateAttendance: boolean;
+  currentRole: UserRole | null
 }
 
 function CommentEditModal({
@@ -87,6 +88,7 @@ function CommentEditModal({
   onSave,
   isSaving,
   canUpdateAttendance,
+  currentRole,
 }: CommentEditModalProps) {
   const [comment, setComment] = useState("");
 
@@ -124,7 +126,8 @@ function CommentEditModal({
             className="mt-2"
             disabled={!canUpdateAttendance}
           />
-          <CharacterCounter current={comment.length} max={300} />
+          {(currentRole === 'tutor' || currentRole === 'auditor') ? (<></>) : <CharacterCounter current={comment.length} max={300} />
+          }
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isSaving}>
@@ -683,6 +686,7 @@ export default function AttendanceHistory({
           selectedRecord ? pendingChanges.has(selectedRecord._id) : false
         }
         canUpdateAttendance={canUpdateAttendance}
+        currentRole={currentRole}
       />
     </div>
   );
