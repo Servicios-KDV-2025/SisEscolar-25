@@ -686,6 +686,9 @@ export default function TaskManagement() {
             <span>Lista de Asignaciones</span>
             <Badge variant="outline">{filteredTasksList.length} asignaciones</Badge>
           </CardTitle>
+          <CardDescription>
+            Haz clic en una asignación para acceder al panel de calificación de estudiantes.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <AuthLoading>
@@ -706,15 +709,15 @@ export default function TaskManagement() {
                     className="border rounded-lg p-4 hover:shadow-md transition-shadow"
                   >
                     <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3 mb-3">
-                      <div className="flex-1">
+                      <div 
+                        className="flex-1 cursor-pointer"
+                        onClick={() => handleListStudent(task._id)}
+                      >
                         <div className="flex flex-col xs:flex-row xs:items-center gap-2 mb-2">
                           <div className="flex items-center">
                             <FileText className="w-5 h-5 text-blue-600" />
                           </div>
-                          <div
-                            onClick={() => handleListStudent(task._id)}
-                            className="cursor-pointer"
-                          >
+                          <div>
                             <h3 className="text-lg font-semibold">
                               {task.gradeRubric?.name ?? "Sin rúbrica"} -{" "}
                               {task.name}

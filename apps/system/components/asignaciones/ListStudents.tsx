@@ -32,7 +32,6 @@ interface DialogPorps {
     submittedCount: number;
     pendingCount: number;
     submittedStudents: any[];
-    pendingStudents: any[];
   } | undefined
 }
 
@@ -85,8 +84,12 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
 
   const students = useQuery(
     api.functions.student.getStudentWithClasses,
-    assignmentDetails?.classCatalog._id
-      ? { classCatalogId: assignmentDetails?.classCatalog._id as Id<"classCatalog"> }
+    assignmentDetails?.classCatalog._id && currentUser
+      ? { 
+          classCatalogId: assignmentDetails?.classCatalog._id as Id<"classCatalog">,
+          canViewAll: true,
+          teacherId: currentUser._id
+        }
       : "skip"
   )
 
@@ -475,7 +478,7 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
                 ...prev,
                 currentComments: e.target.value
               }))}
-              className="min-h-[200px] resize-y"
+              className="min-h-[150px] resize-y"
             />
           </div>
           <div className="flex justify-end gap-2 pt-4">
