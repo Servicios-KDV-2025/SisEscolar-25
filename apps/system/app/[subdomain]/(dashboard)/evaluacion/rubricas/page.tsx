@@ -776,8 +776,8 @@ export default function RubricDashboard() {
                     }
                   }}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una Clase" />
+                  <SelectTrigger className="w-full truncate">
+                    <SelectValue  placeholder="Selecciona una Clase" />
                   </SelectTrigger>
                   <SelectContent>
                     {classes
@@ -788,8 +788,9 @@ export default function RubricDashboard() {
                         <SelectItem
                           key={clase._id}
                           value={clase._id as string}
+                          className="truncate"
                         >
-                          {clase.name}
+                          <span className="truncate block">{clase.name}</span>
                         </SelectItem>
                       ))}
                   </SelectContent>
@@ -802,7 +803,7 @@ export default function RubricDashboard() {
                   value={formData.term}
                   onValueChange={(value) => setFormData({ term: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full truncate">
                     <SelectValue placeholder="Selecciona un Periodo" />
                   </SelectTrigger>
                   <SelectContent>
@@ -826,8 +827,9 @@ export default function RubricDashboard() {
                           <SelectItem
                             key={term._id}
                             value={term._id as string}
+                            className="truncate"
                           >
-                            {term.name}
+                            <span className="truncate block">{term.name}</span>
                           </SelectItem>
                         ));
                     })()}
