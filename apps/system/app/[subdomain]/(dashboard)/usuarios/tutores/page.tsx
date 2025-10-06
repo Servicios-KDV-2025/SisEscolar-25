@@ -296,97 +296,123 @@ export default function TutorPage() {
   }, [allUsers, searchTerm, statusFilter]);
 
   // Funciones CRUD
-  const handleCreate = async (formData: Record<string, unknown>) => {
-    if (!currentSchool?.school?._id) {
-      console.error("No hay escuela actual disponible");
-      throw new Error("No hay escuela actual disponible");
-    }
+const handleCreate = async (formData: Record<string, unknown>) => {
+  if (!currentSchool?.school?._id) {
+    console.error("No hay escuela actual disponible");
+    throw new Error("No hay escuela actual disponible");
+  }
 
-    const email = formData.email as string;
+  const email = formData.email as string;
 
-    try {
-      // PASO 1: Buscar si el usuario ya existe en Convex
-      const existingUsers = await searchUserByEmailAsync(email);
+  try {
+    // PASO 1: Buscar si el usuario ya existe en Convex
+    const existingUsers = await searchUserByEmailAsync(email);
 
-      if (existingUsers && existingUsers.length > 0) {
-        // FLUJO A: Usuario existe, solo asignar a escuela
-        const existingUser = existingUsers[0];
+    if (existingUsers && existingUsers.length > 0) {
+      // FLUJO A: Usuario existe en la base de datos de usuarios
+      const existingUser = existingUsers[0];
 
-        if (
-          !existingUser?.clerkId ||
-          !existingUser?.name ||
-          !existingUser?.email
-        ) {
+      if (
+        !existingUser?.clerkId ||
+        !existingUser?.name ||
+        !existingUser?.email
+      ) {
+        throw new Error(
+          "Error al obtener datos completos del usuario existente"
+        );
+      }
+
+      // Buscar si ya tiene relación en esta escuela (con cualquier rol)
+      const userInCurrentSchool = allUsers?.find(
+        (user: UserFromConvex) => user.clerkId === existingUser.clerkId
+      );
+
+      if (userInCurrentSchool) {
+        // Usuario YA tiene una relación en esta escuela
+        const existingRoles = userInCurrentSchool.schoolRole;
+
+        // Verificar si el rol de tutor ya existe
+        if (existingRoles.includes("tutor")) {
           throw new Error(
-            "Error al obtener datos completos del usuario existente"
+            `El usuario ${email} ya tiene asignado el rol de tutor. No se realizó ningún cambio.`
           );
         }
 
-        await createUserSchoolRelation({
-          clerkId: existingUser.clerkId,
-          schoolId: currentSchool.school._id,
-          role: ["tutor"],
+        // Crear array con los roles combinados (agregando tutor)
+        const newRolesSet = new Set([...existingRoles, "tutor"]);
+        const newRoleArray = Array.from(newRolesSet) as Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
+
+        console.log(
+          `⚠️ Agregando rol de tutor. Roles anteriores: ${existingRoles.join(", ")}. Nuevos roles: ${newRoleArray.join(", ")}`
+        );
+
+        // Actualizar la relación existente con el nuevo rol
+        await updateUserSchoolRelation({
+          id: userInCurrentSchool.userSchoolId,
+          role: newRoleArray,
+          department: userInCurrentSchool.department || null,
           status: "active",
-          department: undefined,
         });
 
         return;
       }
 
-      // FLUJO B: Usuario no existe, crear nuevo en Clerk + asignar
-      const password = formData.password as string;
+      // Usuario existe pero NO está asignado a esta escuela - CREAR relación
+      await createUserSchoolRelation({
+        clerkId: existingUser.clerkId,
+        schoolId: currentSchool.school._id,
+        role: ["tutor"],
+        status: "active",
+        department: undefined,
+      });
 
-      // Validación: Si no existe el usuario, la contraseña es obligatoria
-      if (!password || password.trim() === "") {
-        throw new Error(
-          "La contraseña es requerida para crear un usuario nuevo. Si el usuario ya existe en el sistema, se asignará automáticamente."
-        );
-      }
-
-      const createData = {
-        email: email,
-        password: password,
-        name: formData.name as string,
-        lastName: formData.lastName as string,
-      };
-
-      const result = await userActions.createUser(createData);
-
-      if (result.success && result.userId) {
-        try {
-          // Esperar sincronización del webhook
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-
-          // Asignar rol de tutor en la escuela actual
-          await createUserSchoolRelation({
-            clerkId: result.userId,
-            schoolId: currentSchool.school._id,
-            role: ["tutor"],
-            status: "active",
-            department: undefined,
-          });
-        } catch (error) {
-          console.error("Error al asignar usuario como tutor:", error);
-          const errorMessage = `Usuario creado pero error al asignar como tutor: ${error instanceof Error ? error.message : "Error desconocido"}`;
-          throw new Error(errorMessage);
-        }
-      } else {
-        console.error("Error al crear usuario en Clerk:", result.error);
-        throw new Error(result.error || "Error al crear usuario en Clerk");
-      }
-    } catch (error) {
-      // Si el error menciona que ya está asignado, dar mensaje más amigable
-      if (
-        error instanceof Error &&
-        error.message.includes("ya está asignado")
-      ) {
-        throw new Error(
-          `El usuario ${email} ya tiene un rol asignado en esta escuela`
-        );
-      }
-      throw error;
+      return;
     }
-  };
+
+    // FLUJO B: Usuario no existe, crear nuevo en Clerk + asignar
+    const password = formData.password as string;
+
+    if (!password || password.trim() === "") {
+      throw new Error(
+        "La contraseña es requerida para crear un usuario nuevo. Si el usuario ya existe en el sistema, se asignará automáticamente."
+      );
+    }
+
+    const createData = {
+      email: email,
+      password: password,
+      name: formData.name as string,
+      lastName: formData.lastName as string,
+    };
+
+    const result = await userActions.createUser(createData);
+
+    if (result.success && result.userId) {
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        await createUserSchoolRelation({
+          clerkId: result.userId,
+          schoolId: currentSchool.school._id,
+          role: ["tutor"],
+          status: "active",
+          department: undefined,
+        });
+      } catch (error) {
+        console.error("Error al asignar usuario como tutor:", error);
+        throw new Error(
+          `Usuario creado pero error al asignar como tutor: ${error instanceof Error ? error.message : "Error desconocido"}`
+        );
+      }
+    } else {
+      console.error("Error al crear usuario en Clerk:", result.error);
+      throw new Error(result.error || "Error al crear usuario en Clerk");
+    }
+  } catch (error) {
+    console.error("❌ Error en handleCreate:", error);
+    throw error;
+  }
+};
 
   const handleUpdate = async (formData: Record<string, unknown>) => {
     // Combinar datos del formulario con datos originales para tener clerkId

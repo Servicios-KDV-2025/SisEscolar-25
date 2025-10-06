@@ -298,34 +298,36 @@ export default function PersonalPage() {
   };
 
   const handleOpenEdit = (user: UserFromConvex) => {
-    userActions.clearErrors();
-    userActions.clearLastResult();
+  userActions.clearErrors();
+  userActions.clearLastResult();
 
-    // Preparar datos para edición incluyendo el rol principal y userSchoolId
-    const editData = {
-      ...user,
-      role: user.schoolRole[0], // Tomar el primer rol como principal
-      userSchoolId: user.userSchoolId,
-      status: user.schoolStatus,
-    };
+  // Separar roles editables de tutor
+  const editableRoles = user.schoolRole.filter(role => role !== "tutor");
 
-    openEdit(editData);
+  const editData = {
+    ...user,
+    role: editableRoles, // Solo roles editables en el formulario
+    originalRoles: user.schoolRole, // Guardar roles originales para preservar tutor
+    userSchoolId: user.userSchoolId,
+    status: user.schoolStatus,
   };
 
-  const handleOpenView = (user: UserFromConvex) => {
-    userActions.clearErrors();
-    userActions.clearLastResult();
+  openEdit(editData);
+};
 
-    // Preparar datos para vista incluyendo el rol principal y userSchoolId
-    const viewData = {
-      ...user,
-      role: user.schoolRole[0], // Tomar el primer rol como principal
-      userSchoolId: user.userSchoolId,
-      status: user.schoolStatus, // Usar schoolStatus en lugar del status general
-    };
+const handleOpenView = (user: UserFromConvex) => {
+  userActions.clearErrors();
+  userActions.clearLastResult();
 
-    openView(viewData);
+  const viewData = {
+    ...user,
+    role: user.schoolRole, // Mostrar TODOS los roles incluyendo tutor
+    userSchoolId: user.userSchoolId,
+    status: user.schoolStatus,
   };
+
+  openView(viewData);
+};
 
   const handleOpenDelete = (user: UserFromConvex) => {
     userActions.clearErrors();
@@ -334,38 +336,45 @@ export default function PersonalPage() {
   };
 
   // Filtrado de datos - Excluir tutores
- // Reemplaza el useMemo actual:
-const filteredUsers = useMemo(() => {
-  if (!allUsers) return [];
+  // Reemplaza el useMemo actual:
+  const filteredUsers = useMemo(() => {
+    if (!allUsers) return [];
 
-  return allUsers
-    .filter((user: UserFromConvex) => {
-      const searchMatch =
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    return allUsers
+      .filter((user: UserFromConvex) => {
+        // ✅ Excluir usuarios que SOLO tienen rol de tutor
+        const hasOnlyTutorRole =
+          user.schoolRole.length === 1 &&
+          user.schoolRole[0] === "tutor";
 
-      const statusMatch =
-        statusFilter === "all" ||
-        (user.schoolStatus || "active") === statusFilter;
+        if (hasOnlyTutorRole) return false;
 
-      const roleMatch =
-        roleFilter === "all" ||
-        user.schoolRole.includes(
-          roleFilter as
-          | "superadmin"
-          | "admin"
-          | "auditor"
-          | "teacher"
-          | "tutor"
-        );
+        const searchMatch =
+          user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.email.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const departmentMatch =
-        departmentFilter === "all" || user.department === departmentFilter;
+        const statusMatch =
+          statusFilter === "all" ||
+          (user.schoolStatus || "active") === statusFilter;
 
-      return searchMatch && statusMatch && roleMatch && departmentMatch;
-    });
-}, [allUsers, searchTerm, statusFilter, roleFilter, departmentFilter]);
+        const roleMatch =
+          roleFilter === "all" ||
+          user.schoolRole.includes(
+            roleFilter as
+            | "superadmin"
+            | "admin"
+            | "auditor"
+            | "teacher"
+            | "tutor"
+          );
+
+        const departmentMatch =
+          departmentFilter === "all" || user.department === departmentFilter;
+
+        return searchMatch && statusMatch && roleMatch && departmentMatch;
+      });
+  }, [allUsers, searchTerm, statusFilter, roleFilter, departmentFilter]);
 
   // Funciones CRUD
   const handleCreate = async (formData: Record<string, unknown>) => {
@@ -532,95 +541,88 @@ const filteredUsers = useMemo(() => {
   };
 
   const handleUpdate = async (formData: Record<string, unknown>) => {
-    // Combinar datos del formulario con datos originales para tener clerkId
-    const combinedData = { ...data, ...formData };
+  const combinedData = { ...data, ...formData };
 
-    if (!combinedData.clerkId) {
-      console.error("Clerk ID de usuario no disponible");
-      throw new Error("Clerk ID de usuario no disponible");
-    }
+  if (!combinedData.clerkId) {
+    console.error("Clerk ID de usuario no disponible");
+    throw new Error("Clerk ID de usuario no disponible");
+  }
 
-    if (!combinedData.userSchoolId) {
-      console.error("UserSchool ID no disponible");
-      throw new Error("UserSchool ID no disponible");
-    }
+  if (!combinedData.userSchoolId) {
+    console.error("UserSchool ID no disponible");
+    throw new Error("UserSchool ID no disponible");
+  }
 
-    try {
-      // PASO 1: Actualizar información básica del usuario en Clerk
-      const userUpdateData = {
-        name: combinedData.name as string,
-        lastName: combinedData.lastName as string,
-        email: combinedData.email as string,
-      };
+  try {
+    const userUpdateData = {
+      name: combinedData.name as string,
+      lastName: combinedData.lastName as string,
+      email: combinedData.email as string,
+    };
 
-      const userResult = await userActions.updateUser(
-        combinedData.clerkId as string,
-        userUpdateData
+    const userResult = await userActions.updateUser(
+      combinedData.clerkId as string,
+      userUpdateData
+    );
+
+    if (!userResult.success) {
+      console.error("Error al actualizar usuario en Clerk:", userResult.error);
+      throw new Error(
+        userResult.error || "Error al actualizar información básica del usuario"
       );
-
-      if (!userResult.success) {
-        console.error(
-          "Error al actualizar usuario en Clerk:",
-          userResult.error
-        );
-        throw new Error(
-          userResult.error ||
-          "Error al actualizar información básica del usuario"
-        );
-      }
-
-      // PASO 2: Actualizar rol y departamento en la relación usuario-escuela
-      const selectedRoleData = formData.role;
-      const selectedDepartment = formData.department as string;
-
-      // Convertir selectedRoleData a array de roles
-      let finalRoles: Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
-      
-      if (Array.isArray(selectedRoleData)) {
-        // Si ya es un array, usarlo directamente
-        finalRoles = selectedRoleData as Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
-      } else if (typeof selectedRoleData === "string") {
-        // Si es un string, convertirlo a array
-        finalRoles = [selectedRoleData as "superadmin" | "admin" | "auditor" | "teacher" | "tutor"];
-      } else {
-        // Fallback: usar los roles originales si no hay datos válidos
-        finalRoles = Array.isArray(data?.schoolRole) 
-          ? data.schoolRole 
-          : [data?.role as "superadmin" | "admin" | "auditor" | "teacher" | "tutor"];
-      }
-
-      console.log("🔍 Roles finales a guardar:", finalRoles);
-
-      // LÓGICA DE DEPARTAMENTO:
-      let departmentValue: string | undefined;
-
-      // Verificar si tiene rol de admin en los roles finales
-      const hasAdminRole = finalRoles.includes("admin");
-
-      if (hasAdminRole) {
-        // Tiene rol admin: usar departamento seleccionado
-        departmentValue = selectedDepartment === "none" ? undefined : selectedDepartment;
-      } else {
-        // No tiene rol admin: limpiar departamento
-        departmentValue = undefined;
-      }
-
-      await updateUserSchoolRelation({
-        id: combinedData.userSchoolId as Id<"userSchool">,
-        role: finalRoles, // Usar el array completo de roles preservados
-        department: departmentValue === undefined
-          ? null
-          : (departmentValue as "secretary" | "direction" | "schoolControl" | "technology"),
-        status: (combinedData.status as "active" | "inactive") || "active",
-      });
-
-      console.log("✅ Actualización completada exitosamente");
-
-    } catch (error) {
-      console.error("❌ Error en handleUpdate:", error);
-      throw error;
     }
-  };
+
+    const selectedRoleData = formData.role;
+    const selectedDepartment = formData.department as string;
+
+    let editedRoles: Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
+    
+    if (Array.isArray(selectedRoleData)) {
+      editedRoles = selectedRoleData as Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
+    } else if (typeof selectedRoleData === "string") {
+      editedRoles = [selectedRoleData as "superadmin" | "admin" | "auditor" | "teacher" | "tutor"];
+    } else {
+      editedRoles = Array.isArray(data?.schoolRole) 
+        ? data.schoolRole 
+        : [data?.role as "superadmin" | "admin" | "auditor" | "teacher" | "tutor"];
+    }
+
+    // ✅ PRESERVAR el rol de tutor si existía originalmente
+    const originalRoles = (data?.originalRoles || data?.schoolRole || []) as Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
+    const hadTutorRole = originalRoles.includes("tutor");
+    
+    let finalRoles = editedRoles;
+    if (hadTutorRole && !finalRoles.includes("tutor")) {
+      finalRoles = [...finalRoles, "tutor"]; // Agregar tutor de vuelta
+    }
+
+    console.log("🔍 Roles finales a guardar:", finalRoles);
+
+    const hasAdminRole = finalRoles.includes("admin");
+
+    let departmentValue: string | undefined;
+    if (hasAdminRole) {
+      departmentValue = selectedDepartment === "none" ? undefined : selectedDepartment;
+    } else {
+      departmentValue = undefined;
+    }
+
+    await updateUserSchoolRelation({
+      id: combinedData.userSchoolId as Id<"userSchool">,
+      role: finalRoles,
+      department: departmentValue === undefined
+        ? null
+        : (departmentValue as "secretary" | "direction" | "schoolControl" | "technology"),
+      status: (combinedData.status as "active" | "inactive") || "active",
+    });
+
+    console.log("✅ Actualización completada exitosamente");
+
+  } catch (error) {
+    console.error("❌ Error en handleUpdate:", error);
+    throw error;
+  }
+};
 
   const handleDelete = async (deleteData: Record<string, unknown>) => {
 
@@ -1201,7 +1203,7 @@ const filteredUsers = useMemo(() => {
                 </FormItem>
               )}
             />
-          
+
             <FormField
               control={form.control}
               name="role"
@@ -1230,7 +1232,7 @@ const filteredUsers = useMemo(() => {
                   } else {
                     field.onChange(newRoles.length === 1 ? newRoles[0] : newRoles);
                   }
-                  
+
                   // Limpiar departamento si se elimina el rol admin
                   if (roleToRemove === "admin" && !newRoles.includes("admin")) {
                     form.setValue("department", undefined);
@@ -1313,7 +1315,7 @@ const filteredUsers = useMemo(() => {
                     </FormControl>
                     <FormMessage />
                     <p className="text-xs text-muted-foreground">
-                      {currentOperation === "view" 
+                      {currentOperation === "view"
                         ? "Roles asignados al usuario en esta escuela"
                         : "Puedes asignar múltiples roles. Haz clic en la X para eliminar un rol."}
                     </p>
@@ -1326,48 +1328,48 @@ const filteredUsers = useMemo(() => {
             {/* Campo de departamento solo visible si tiene rol de administrador */}
             {(() => {
               const currentRole = form.watch("role");
-              const hasAdminRole = Array.isArray(currentRole) 
-                ? currentRole.includes("admin") 
+              const hasAdminRole = Array.isArray(currentRole)
+                ? currentRole.includes("admin")
                 : currentRole === "admin";
               return hasAdminRole;
             })() && (
-              <FormField
-                control={form.control}
-                name="department"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Departamento *</FormLabel>
-                    <FormControl>
-                      <Select
-                        value={(field.value as string) || undefined}
-                        onValueChange={(value) =>
-                          field.onChange(value === "none" ? undefined : value)
-                        }
-                        disabled={currentOperation === "view"}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar departamento" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Sin departamento</SelectItem>
-                          <SelectItem value="secretary">Secretaría</SelectItem>
-                          <SelectItem value="direction">Dirección</SelectItem>
-                          <SelectItem value="schoolControl">
-                            Control Escolar
-                          </SelectItem>
-                          <SelectItem value="technology">Tecnología</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                    <p className="text-xs text-muted-foreground">
-                      Los administradores pueden ser asignados a un departamento
-                      específico
-                    </p>
-                  </FormItem>
-                )}
-              />
-            )}
+                <FormField
+                  control={form.control}
+                  name="department"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Departamento *</FormLabel>
+                      <FormControl>
+                        <Select
+                          value={(field.value as string) || undefined}
+                          onValueChange={(value) =>
+                            field.onChange(value === "none" ? undefined : value)
+                          }
+                          disabled={currentOperation === "view"}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar departamento" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Sin departamento</SelectItem>
+                            <SelectItem value="secretary">Secretaría</SelectItem>
+                            <SelectItem value="direction">Dirección</SelectItem>
+                            <SelectItem value="schoolControl">
+                              Control Escolar
+                            </SelectItem>
+                            <SelectItem value="technology">Tecnología</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                      <p className="text-xs text-muted-foreground">
+                        Los administradores pueden ser asignados a un departamento
+                        específico
+                      </p>
+                    </FormItem>
+                  )}
+                />
+              )}
 
             {currentOperation === "create" && (
               <FormField

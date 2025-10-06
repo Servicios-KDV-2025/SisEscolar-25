@@ -22,6 +22,7 @@ import { useStudentsWithPermissions, type CreateStudentData, type UpdateStudentD
 import { useUserWithConvex } from "../../../../../stores/userStore";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { usePermissions } from "../../../../../hooks/usePermissions";
+import NotAuth from "../../../../../components/NotAuth";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
@@ -49,15 +50,16 @@ export default function AlumnosPage() {
   // Hook de permisos
   const {
     getStudentFilters,
-    canCreateUsers,
-    canUpdateUsers,
-    canReadUsers,
-    canDeleteUsers,
+    canCreateUsersAlumnos,
+    canReadUsersAlumnos,
+    canUpdateUsersAlumnos,
+    canDeleteUsersAlumnos,
     isSuperAdmin,
     isAdmin,
     isTeacher,
     isTutor,
-    isLoading: permissionsLoading
+    isLoading: permissionsLoading,
+    error: permissionsError,
   } = usePermissions(currentSchool?.school._id);
 
   // Estados locales para filtros
@@ -103,6 +105,9 @@ export default function AlumnosPage() {
 
   // Estado combinado de loading
   const isLoading = !isLoaded || userLoading || schoolLoading || studentsLoading || permissionsLoading;
+
+  // Flag para mostrar pantalla de no autorización
+  const showNotAuth = (permissionsError || !canReadUsersAlumnos) && !permissionsLoading && !isLoading;
 
   // Default values para el formulario
   const defaultValues = useMemo(() => ({
@@ -364,12 +369,17 @@ export default function AlumnosPage() {
 
 
 
-  return (
-    <>
-      {canReadUsers ? (<div className="space-y-8 p-6">
+  return showNotAuth ? (
+    <NotAuth
+      pageName="Alumnos"
+      pageDetails="Gestión de estudiantes del sistema escolar"
+      icon={GraduationCap}
+    />
+  ) : (
+   <div className="space-y-8 p-6">
 
         {/* Mostrar alerta cuando no hay datos necesarios para crear estudiantes */}
-        {canCreateUsers && (!groups?.length || !tutors?.length) && (
+        {canCreateUsersAlumnos && (!groups?.length || !tutors?.length) && (
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
@@ -412,7 +422,7 @@ export default function AlumnosPage() {
                   </div>
                 </div>
               </div>
-              {canCreateUsers && (
+              {canCreateUsersAlumnos && (
                 <Button
                   size="lg"
                   className="gap-2 bg-blue-600 hover:bg-blue-700"
@@ -537,7 +547,7 @@ export default function AlumnosPage() {
                 <p className="text-muted-foreground mb-4">
                   Intenta ajustar los filtros o agregar un nuevo alumno.
                 </p>
-                {canCreateUsers && (
+                {canCreateUsersAlumnos && (
                   <Button
                     onClick={openCreate}
                     className="gap-2 bg-blue-600 hover:bg-blue-700"
@@ -627,7 +637,7 @@ export default function AlumnosPage() {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {canUpdateUsers && (
+                          {canUpdateUsersAlumnos && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -642,7 +652,7 @@ export default function AlumnosPage() {
                               )}
                             </Button>
                           )}
-                          {canDeleteUsers && (
+                          {canDeleteUsersAlumnos && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -967,12 +977,8 @@ export default function AlumnosPage() {
             </div>
           )}
         </CrudDialog>
-      </div>) : (
-        <div className="p-6">
-          <h1>hola  </h1>
-        </div>
-      )}
+      </div>
 
-    </>
+
   );
 }

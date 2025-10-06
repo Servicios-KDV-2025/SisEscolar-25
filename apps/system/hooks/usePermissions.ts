@@ -46,6 +46,12 @@ export const usePermissions = (schoolId?: string) => {
     { action: "read", resource: "users_personal" },
     { action: "update", resource: "users_personal" },
     { action: "delete", resource: "users_personal" },
+
+    // pagina de alumnos
+    { action: "create", resource: "users_alumnos" },
+    { action: "read", resource: "users_alumnos" },
+    { action: "update", resource: "users_alumnos" },
+    { action: "delete", resource: "users_alumnos" },
     //Aulas
     { action: "create", resource: "classroom" },
     { action: "read", resource: "classroom" },
@@ -111,6 +117,12 @@ export const usePermissions = (schoolId?: string) => {
       "read:users_tutores": true,
       "update:users_tutores": true,
       "delete:users_tutores": true,
+
+      // permisos pagina de alumnos
+      "create:users_alumnos": true,
+      "read:users_alumnos": true,
+      "update:users_alumnos": true,
+      "delete:users_alumnos": true,
 
       //  pagina de personal
       "create:users_personal": true,
@@ -179,6 +191,12 @@ export const usePermissions = (schoolId?: string) => {
       "update:users_tutores": true,
       "delete:users_tutores": true,
 
+      // permisos pagina de alumnos
+      "create:users_alumnos": true,
+      "read:users_alumnos": true,
+      "update:users_alumnos": true,
+      "delete:users_alumnos": true,
+
       //  pagina de personal
       "create:users_personal": true,
       "read:users_personal": true,
@@ -244,6 +262,12 @@ export const usePermissions = (schoolId?: string) => {
       "read:users_tutores": true,
       "update:users_tutores": false,
       "delete:users_tutores": false,
+
+      // permisos pagina de alumnos
+      "create:users_alumnos": false,
+      "read:users_alumnos": true,
+      "update:users_alumnos": false,
+      "delete:users_alumnos": false,
 
       //  pagina de personal
       "create:users_personal": false,
@@ -312,6 +336,12 @@ export const usePermissions = (schoolId?: string) => {
       "update:users_tutores": false,
       "delete:users_tutores": false,
 
+      // permisos pagina de alumnos
+      "create:users_alumnos": false,
+      "read:users_alumnos": false,
+      "update:users_alumnos": false,
+      "delete:users_alumnos": false,
+
       //  pagina de personal
       "create:users_personal": false,
       "read:users_personal": false,
@@ -377,6 +407,12 @@ export const usePermissions = (schoolId?: string) => {
       "read:users_tutores": false,
       "update:users_tutores": false,
       "delete:users_tutores": false,
+
+      // permisos pagina de alumnos
+      "create:users_alumnos": false,
+      "read:users_alumnos": false,
+      "update:users_alumnos": false,
+      "delete:users_alumnos": false,
 
       //  pagina de personal
       "create:users_personal": false,
@@ -646,6 +682,12 @@ export const usePermissions = (schoolId?: string) => {
     canReadUsersTutores: permissions["read:users_tutores"] || false,
     canUpdateUsersTutores: permissions["update:users_tutores"] || false,
     canDeleteUsersTutores: permissions["delete:users_tutores"] || false,
+
+    // Permisos pagina de alumnos
+    canCreateUsersAlumnos: permissions["create:users_alumnos"] || false,
+    canReadUsersAlumnos: permissions["read:users_alumnos"] || false,
+    canUpdateUsersAlumnos: permissions["update:users_alumnos"] || false,
+    canDeleteUsersAlumnos: permissions["delete:users_alumnos"] || false,
 
     // Permisos pagina de personal
     canCreateUsersPersonal: permissions["create:users_personal"] || false,
