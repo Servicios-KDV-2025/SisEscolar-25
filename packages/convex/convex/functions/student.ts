@@ -2,6 +2,46 @@
 import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 
+// Función para generar la siguiente matrícula disponible
+export const generateNextEnrollment = query({
+  args: {
+    schoolId: v.id("school"),
+  },
+  handler: async (ctx, args) => {
+    const currentYear = new Date().getFullYear();
+    const yearSuffix = currentYear.toString().slice(-2); // Obtener los últimos 2 dígitos del año
+    
+    // Obtener todas las matrículas de la escuela que empiecen con el año actual
+    const students = await ctx.db
+      .query("student")
+      .withIndex("by_schoolId", (q) => q.eq("schoolId", args.schoolId))
+      .collect();
+
+    // Filtrar matrículas que empiecen con el año actual
+    const currentYearEnrollments = students
+      .filter(student => student.enrollment.startsWith(yearSuffix))
+      .map(student => student.enrollment)
+      .sort();
+
+    // Encontrar el siguiente número consecutivo
+    let nextNumber = 1;
+    for (const enrollment of currentYearEnrollments) {
+      // Extraer el número de la matrícula (después de los 2 dígitos del año)
+      const enrollmentNumber = parseInt(enrollment.slice(2));
+      if (enrollmentNumber === nextNumber) {
+        nextNumber++;
+      } else {
+        break;
+      }
+    }
+
+    // Formatear el número con ceros a la izquierda (8 dígitos)
+    const formattedNumber = nextNumber.toString().padStart(8, '0');
+    
+    return `${yearSuffix}${formattedNumber}`;
+  },
+});
+
 // CREATE
 export const createStudent = mutation({
   args: {
@@ -9,7 +49,7 @@ export const createStudent = mutation({
     groupId: v.id("group"),
     tutorId: v.id("user"),
     enrollment: v.string(),
-    schoolCycleId:v.id("schoolCycle"), // Agregar schoolCycleId
+    schoolCycleId: v.id("schoolCycle"),
     name: v.string(),
     lastName: v.optional(v.string()),
     birthDate: v.optional(v.number()),

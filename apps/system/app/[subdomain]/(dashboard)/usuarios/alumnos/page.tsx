@@ -109,6 +109,12 @@ export default function AlumnosPage() {
     currentSchool?.school._id ? { escuelaID: currentSchool.school._id as Id<"school"> } : 'skip'
   );
 
+  // Hook para obtener la siguiente matrícula disponible
+  const nextEnrollment = useQuery(
+    api.functions.student.generateNextEnrollment,
+    currentSchool?.school._id ? { schoolId: currentSchool.school._id as Id<"school"> } : 'skip'
+  );
+
   // Estado combinado de loading
   const isLoading = !isLoaded || userLoading || schoolLoading || studentsLoading || permissionsLoading;
 
@@ -118,14 +124,14 @@ export default function AlumnosPage() {
     groupId: "", // Dejar vacío para forzar selección
     tutorId: "", // Dejar vacío para forzar selección
     schoolCycleId: "", // Dejar vacío para forzar selección
-    enrollment: "",
+    enrollment: nextEnrollment || "", // Usar la matrícula generada automáticamente
     name: "",
     lastName: "",
     status: "active" as const,
     admissionDate: Date.now(),
     birthDate: undefined,
     imgUrl: "",
-  }), [currentSchool?.school._id]);
+  }), [currentSchool?.school._id, nextEnrollment]);
 
   // Hook del CRUD Dialog
   const {
@@ -795,8 +801,8 @@ export default function AlumnosPage() {
                       <Input
                         {...field}
                         value={field.value as string || ""}
-                        placeholder="2024-001"
-                        disabled={currentOperation === "view"}
+                        placeholder="Se genera automáticamente"
+                        disabled={currentOperation === "view" || currentOperation === "create"}
                         onChange={(e) => {
                           field.onChange(e);
                           // Limpiar error cuando el usuario empiece a escribir
@@ -807,6 +813,11 @@ export default function AlumnosPage() {
                       />
                     </FormControl>
                     <FormMessage />
+                    {currentOperation === "create" && (
+                      <p className="text-xs text-muted-foreground">
+                        La matrícula se genera automáticamente con el formato: AÑO + número consecutivo
+                      </p>
+                    )}
                   </FormItem>
                 )}
               />
