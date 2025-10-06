@@ -57,6 +57,7 @@ interface TermAverageMatrixProps {
     score: number | null,
     comment: string
   ) => void;
+  canUpdateRubric: boolean;
 }
 
 export function TermAverageMatrix({
@@ -64,6 +65,7 @@ export function TermAverageMatrix({
   terms,
   averages,
   onAverageUpdate,
+  canUpdateRubric,
 }: TermAverageMatrixProps) {
   const [editingCell, setEditingCell] = useState<string | null>(null);
   const [tempValue, setTempValue] = useState<string>("");
@@ -241,7 +243,7 @@ export function TermAverageMatrix({
                         className="p-1 text-center"
                       >
                         <div className="flex items-center justify-center space-x-2">
-                          {isEditing ? (
+                          {(isEditing && canUpdateRubric) ? (
                             <Input
                               type="number"
                               value={tempValue}
@@ -337,6 +339,7 @@ export function TermAverageMatrix({
           onSave={(studentClassId, itemId, score, comment) =>
             handleModalSave(studentClassId, itemId, score, comment)
           }
+          canUpdateRubric={canUpdateRubric}
         />
       </div>
     </TooltipProvider>

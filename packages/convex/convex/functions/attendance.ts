@@ -309,3 +309,105 @@ export const updateAttendanceComment = mutation({
     });
   },
 });
+
+export const getAttendanceWithRoleFilter = query({
+  args: {
+    schoolId: v.id("school"),
+    canViewAll: v.boolean(),
+    tutorId: v.optional(v.id("user")),
+    teacherId: v.optional(v.id("user")),
+  },
+  handler: async (ctx, args) => {
+    // Si puede ver todos, devolver toda la asistencia de la escuela
+    if (args.canViewAll) {
+      return await ctx.db
+        .query("attendance")
+        .withIndex("by_student_class", (q) => q)
+        .filter((q) => {
+          // Necesitamos filtrar por escuela a través de studentClass
+          return q.eq(q.field("schoolId"), args.schoolId);
+        })
+        .collect();
+    }
+
+    // Si es tutor, devolver solo la asistencia de sus estudiantes
+    if (args.tutorId) {
+      // Primero obtenemos los estudiantes del tutor
+      const tutorStudents = await ctx.db
+        .query("student")
+        .withIndex("by_schoolId", (q) => q.eq("schoolId", args.schoolId))
+        .filter((q) => q.eq(q.field("tutorId"), args.tutorId))
+        .collect();
+
+      if (tutorStudents.length === 0) return [];
+
+      // Obtenemos las studentClass de estos estudiantes
+      const studentClassPromises = tutorStudents.map(async (student) => {
+        return await ctx.db
+          .query("studentClass")
+          .withIndex("by_student", (q) => q.eq("studentId", student._id))
+          .filter((q) => q.eq(q.field("status"), "active"))
+          .collect();
+      });
+
+      const allStudentClasses = (await Promise.all(studentClassPromises)).flat();
+      
+      if (allStudentClasses.length === 0) return [];
+
+      // Obtenemos la asistencia de estas studentClass
+      const attendancePromises = allStudentClasses.map(async (studentClass) => {
+        return await ctx.db
+          .query("attendance")
+          .withIndex("by_student_class", (q) => q.eq("studentClassId", studentClass._id))
+          .collect();
+      });
+
+      const allAttendance = (await Promise.all(attendancePromises)).flat();
+      return allAttendance;
+    }
+
+    // Si es maestro, devolver asistencia de sus clases
+    if (args.teacherId) {
+      // Primero obtenemos las clases del maestro
+      const teacherClasses = await ctx.db
+        .query("classCatalog")
+        .withIndex("by_teacher", (q) => q.eq("teacherId", args.teacherId!))
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("schoolId"), args.schoolId),
+            q.eq(q.field("status"), "active")
+          )
+        )
+        .collect();
+
+      if (teacherClasses.length === 0) return [];
+
+      // Obtenemos las studentClass de estas clases
+      const studentClassPromises = teacherClasses.map(async (teacherClass) => {
+        return await ctx.db
+          .query("studentClass")
+          .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", teacherClass._id))
+          .filter((q) => q.eq(q.field("status"), "active"))
+          .collect();
+      });
+
+      const allStudentClasses = (await Promise.all(studentClassPromises)).flat();
+      
+      if (allStudentClasses.length === 0) return [];
+
+      // Obtenemos la asistencia de estas studentClass
+      const attendancePromises = allStudentClasses.map(async (studentClass) => {
+        return await ctx.db
+          .query("attendance")
+          .withIndex("by_student_class", (q) => q.eq("studentClassId", studentClass._id))
+          .collect();
+      });
+
+      const allAttendance = (await Promise.all(attendancePromises)).flat();
+      return allAttendance;
+    }
+
+    // Si no tiene permisos específicos, devolver array vacío
+    return [];
+  },
+});
