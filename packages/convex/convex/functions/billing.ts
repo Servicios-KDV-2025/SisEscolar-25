@@ -568,14 +568,16 @@ export const getPaymentsPageData = query({
           padre: tutor ? `${tutor.name} ${tutor.lastName || ""}` : "N/A",
           telefono: tutor?.phone || "N/A",
           metodoPago: "N/A", // Por defecto, se puede personalizar
-          fechaVencimiento: paymentsWithLateDays.length > 0 
+          fechaVencimiento: paymentsWithLateDays.length > 0 && paymentsWithLateDays[0]
             ? new Date(paymentsWithLateDays[0].dueDate).toISOString().split('T')[0]
             : new Date().toISOString().split('T')[0],
           montoColegiatura: paymentsWithLateDays.reduce((sum, p) => sum + p.amount, 0),
           diasRetraso: Math.max(...paymentsWithLateDays.map(p => p.daysLate), 0),
           estado: studentStatus,
           schoolCycleId: student.schoolCycleId,
-          tipo: (paymentsWithLateDays.length > 0 ? paymentsWithLateDays[0].config?.type || "Colegiatura" : "Colegiatura") as "Inscripciones" | "Colegiatura",
+          tipo: (paymentsWithLateDays.length > 0 && paymentsWithLateDays[0] 
+            ? paymentsWithLateDays[0].config?.type || "Colegiatura" 
+            : "Colegiatura") as "Inscripciones" | "Colegiatura",
           balance: student.balance || 0,
           pagos: paymentsWithLateDays.map(payment => ({
             id: payment._id,
