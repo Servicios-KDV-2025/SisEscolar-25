@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { useQuery, useMutation } from "convex/react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { ClassroomType, CreateBy, SchoolCycleType, TeacherType } from "@/types/temporalSchema";
@@ -121,7 +121,10 @@ export const useClassCatalogStore = create<ClassCatalogStoreState & ClassCatalog
     reset: () => set(initialState),
 }));
 
-export const useClassCatalog = (schoolId?: string) => {
+export const useClassCatalog = (
+    schoolId?: Id<"school">,
+    roleFilters?: { canViewAll: boolean; tutorId?: Id<"user">; teacherId?: Id<"user"> }
+) => {
     const {
         classCatalogs,
         selectedClassCatalog,
@@ -147,13 +150,30 @@ export const useClassCatalog = (schoolId?: string) => {
     // Queries
     const classCatalogsQuery = useQuery(
         api.functions.classCatalog.getAllClassCatalog,
-        schoolId ? { schoolId: schoolId as Id<"school"> } : "skip"
+        schoolId ? {
+            schoolId: schoolId as Id<"school">,
+            canViewAll: roleFilters!.canViewAll,
+            teacherId: roleFilters!.teacherId,
+            tutorId: roleFilters!.tutorId,
+        } : "skip"
     );
+
+    const classCatalogWithRoleFilter = useQuery(
+        api.functions.classCatalog.getClassCatalogWithRoleFilter,
+        schoolId && roleFilters ? {
+            schoolId,
+            canViewAll: roleFilters.canViewAll,
+            tutorId: roleFilters.tutorId,
+            teacherId: roleFilters.teacherId
+        } : 'skip'
+    )
 
     // Mutations
     const createClassCatalogMutation = useMutation(api.functions.classCatalog.createClassCatalog);
     const updateClassCatalogMutation = useMutation(api.functions.classCatalog.updateClassCatalog);
     const deleteClassCatalogMutation = useMutation(api.functions.classCatalog.deleteClassCatalog);
+
+    const classCatWiRol = classCatalogWithRoleFilter as ClassCatalog[];
 
     // CREATE
     const createClassCatalog = useCallback(async (data: CreateClassCatalogData) => {
@@ -226,10 +246,16 @@ export const useClassCatalog = (schoolId?: string) => {
 
     // Update store when query results change
     useEffect(() => {
+        if (classCatalogWithRoleFilter) {
+            setClassCatalogs(classCatWiRol);
+            return;
+        }
+
         if (classCatalogsQuery) {
             setClassCatalogs(classCatalogsQuery as ClassCatalogWithDetails[]);
+            return;
         }
-    }, [classCatalogsQuery, setClassCatalogs]);
+    }, [classCatWiRol, classCatalogWithRoleFilter, classCatalogsQuery, setClassCatalogs])
 
     return {
         classCatalogs,
@@ -249,4 +275,16 @@ export const useClassCatalog = (schoolId?: string) => {
         setSelectedClassCatalog,
         clearErrors,
     };
+};
+// getClassCatalogWithRoleFilter
+
+export const useClassCatalogWithPermissions = (
+    schoolId?: Id<"school">,
+    getStudentFilters?: () => { canViewAll: boolean; tutorId?: Id<"user">; teacherId?: Id<"user"> }
+) => {
+    const studentFilters = useMemo(() => {
+        return getStudentFilters?.() || { canViewAll: false };
+    }, [getStudentFilters]);
+
+    return useClassCatalog(schoolId, studentFilters);
 };

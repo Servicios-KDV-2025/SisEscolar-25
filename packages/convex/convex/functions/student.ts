@@ -317,26 +317,69 @@ export const deleteStudent = mutation({
 
 // Obtener estudiantes con informacion de clases
 export const getStudentWithClasses = query({
-  args: { classCatalogId: v.id('classCatalog') },
+  args: { 
+    classCatalogId: v.id('classCatalog'),
+    canViewAll: v.boolean(),
+    tutorId: v.optional(v.id("user")),
+    teacherId: v.optional(v.id("user"))
+  },
   handler: async (ctx, args) => {
-    // let studentClassesQuery = ctx.db.query('studentClass')
-    // // filtrar studentClass por classCatalogId si se proporciona
-    // if(args.classCatalogId) {
-    //   studentClassesQuery = studentClassesQuery.withIndex('by_class_catalog', (q) => q.eq('classCatalogId', args.classCatalogId!))
-    // }
+    // PRIMERO: Verificar que el usuario tenga acceso a esta clase específica
+    const classCatalog = await ctx.db.get(args.classCatalogId);
+    if (!classCatalog) return [];
 
-    // const studentClasses = await studentClassesQuery.collect()
+    if (!args.canViewAll) {
+      if (args.tutorId) {
+        // Tutor: solo puede ver estudiantes que son sus hijos en esta clase
+        const tutorStudents = await ctx.db
+          .query("student")
+          .withIndex("by_schoolId", (q) => q.eq("schoolId", classCatalog.schoolId))
+          .filter((q) => q.eq(q.field("tutorId"), args.tutorId))
+          .collect();
 
-    let studentClasses;
-    // Filtrar studentClass por classCatalogId si se proporciona
-    if(args.classCatalogId) {
-      studentClasses = await ctx.db.query('studentClass')
-        .withIndex('by_class_catalog', (q) => q.eq('classCatalogId', args.classCatalogId!))
-        .collect();
-    } else {
-      // Si no hay filtro, obtener todos los registros
-      studentClasses = await ctx.db.query('studentClass').collect();
+        const tutorStudentIds = tutorStudents.map(s => s._id);
+        
+        // Filtrar studentClass SOLO por los estudiantes del tutor
+        const studentClasses = await ctx.db
+          .query('studentClass')
+          .withIndex('by_class_catalog', (q) => q.eq('classCatalogId', args.classCatalogId))
+          .filter((q) => q.and(
+            q.eq(q.field("status"), "active"),
+            q.or(...tutorStudentIds.map(studentId => 
+              q.eq(q.field("studentId"), studentId)
+            ))
+          ))
+          .collect();
+
+        const studentsWithDetails = await Promise.all(
+          studentClasses.map(async (sc) => {
+            const student = await ctx.db.get(sc.studentId)
+            const classCatalog = await ctx.db.get(sc.classCatalogId)
+            return {
+              ...sc,
+              student,
+              className: classCatalog?.name || 'Unknown'
+            }
+          })
+        )
+
+        return studentsWithDetails;
+
+      } else if (args.teacherId) {
+        // Teacher: verificar que sea el profesor de esta clase
+        if (classCatalog.teacherId !== args.teacherId) {
+          return [];
+        }
+        // Si es el profesor, proceder con consulta normal
+      } else {
+        return [];
+      }
     }
+
+    // Superadmin/Admin/Auditor o Teacher con acceso: consulta normal
+    const studentClasses = await ctx.db.query('studentClass')
+      .withIndex('by_class_catalog', (q) => q.eq('classCatalogId', args.classCatalogId))
+      .collect();
 
     const studentsWithDetails = await Promise.all(
       studentClasses.map(async (sc) => {
@@ -345,11 +388,11 @@ export const getStudentWithClasses = query({
         return {
           ...sc,
           student,
-          className: classCatalog?.name || 'Unknow'
+          className: classCatalog?.name || 'Unknown'
         }
       })
     )
 
-    return studentsWithDetails
+    return studentsWithDetails;
   },
 })

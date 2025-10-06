@@ -294,6 +294,7 @@ const applicationTable = defineSchema({
 
   //Asistencia
   attendance: defineTable({
+    schoolId: v.optional(v.id('school')),
     studentClassId: v.id("studentClass"),
     date: v.number(),
     attendanceState: v.union(
@@ -309,7 +310,8 @@ const applicationTable = defineSchema({
   })
     .index("by_student_class", ["studentClassId"])
     .index("by_date", ["date"])
-    .index("by_student_class_and_date", ["studentClassId", "date"]),
+    .index("by_student_class_and_date", ["studentClassId", "date"])
+    .index("by_school", ["schoolId"]),
 
   //Eventos del calendario escolar
   calendar: defineTable({
