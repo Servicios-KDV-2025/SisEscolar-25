@@ -207,6 +207,7 @@ export const updateStudent = mutation({
       admissionDate: v.optional(v.number()),
       imgUrl: v.optional(v.string()),
       status: v.optional(v.union(v.literal("active"), v.literal("inactive"))),
+      schoolCycleId: v.optional(v.id("schoolCycle")),
     }),
   },
   handler: async (ctx, args) => {

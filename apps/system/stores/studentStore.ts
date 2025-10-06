@@ -26,6 +26,7 @@ export interface Student {
   schoolId: Id<"school">;
   groupId: Id<"group">;
   tutorId: Id<"user">;
+  schoolCycleId?: Id<"schoolCycle">;
   enrollment: string;
   name: string;
   lastName?: string;
@@ -59,6 +60,7 @@ export interface UpdateStudentData {
   enrollment?: string;
   groupId?: Id<"group">;
   tutorId?: Id<"user">;
+  schoolCycleId?: Id<"schoolCycle">;
   birthDate?: number;
   admissionDate?: number;
   imgUrl?: string;
@@ -358,6 +360,7 @@ export const useStudentWithConvex = (
           schoolId: data.schoolId,
           groupId: data.groupId,
           tutorId: data.tutorId,
+          schoolCycleId: data.schoolCycleId,
           enrollment: data.enrollment,
           name: data.name,
           lastName: data.lastName,
