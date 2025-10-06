@@ -14,14 +14,14 @@ export const createGradeRubric = mutation({
     createdBy: v.id("user")
   },
   handler: async (ctx, args) => {
-      const user = await ctx.auth.getUserIdentity();
+    const user = await ctx.auth.getUserIdentity();
     if (!user) {
       throw new Error("El usuario debe estar autenticado para crear un criterio de rúbrica.");
     }
     const now = Date.now();
 
     const id = await ctx.db.insert("gradeRubric", {
-      ...args,      
+      ...args,
       updatedAt: undefined,
     });
   },
@@ -32,9 +32,54 @@ export const getGradeRubricByClassAndTerm = query({
   args: {
     classCatalogId: v.id("classCatalog"),
     termId: v.id("term"),
+    canViewAll: v.boolean(),
+    tutorId: v.optional(v.id("user")),
+    teacherId: v.optional(v.id("user")),
   },
   handler: async (ctx, args) => {
-    // 1. Obtener los criterios de la rúbrica que coincidan con los IDs
+    // Primero verificamos que el usuario tenga acceso a esta clase
+    const classCatalog = await ctx.db.get(args.classCatalogId);
+    if (!classCatalog) {
+      throw new Error("Class Catalog not found.");
+    }
+
+    // Verificar permisos usando la lógica de roles
+    if (!args.canViewAll) {
+      if (args.tutorId) {
+        // Verificar si el tutor tiene estudiantes en esta clase
+        const tutorStudentsInClass = await ctx.db
+          .query("studentClass")
+          .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", args.classCatalogId))
+          .filter((q) => {
+            // Necesitamos verificar si estos estudiantes pertenecen al tutor
+            return q.eq(q.field("status"), "active");
+          })
+          .collect();
+
+        if (tutorStudentsInClass.length > 0) {
+          const studentIds = tutorStudentsInClass.map(sc => sc.studentId);
+          const students = await Promise.all(studentIds.map(id => ctx.db.get(id)));
+          const hasAccess = students.some(student =>
+            student && student.tutorId === args.tutorId
+          );
+
+          if (!hasAccess) {
+            return []; // No tiene acceso
+          }
+        } else {
+          return []; // No tiene acceso
+        }
+      } else if (args.teacherId) {
+        // Verificar si el teacher es el profesor de esta clase
+        if (classCatalog.teacherId !== args.teacherId) {
+          return []; // No tiene acceso
+        }
+      } else {
+        return []; // No tiene permisos
+      }
+    }
+
+    // Si tiene permisos, proceder con la consulta original
     const gradeRubrics = await ctx.db
       .query("gradeRubric")
       .withIndex("by_class_term", (q) =>
@@ -42,32 +87,24 @@ export const getGradeRubricByClassAndTerm = query({
       )
       .collect();
 
-    // Si no se encuentran rúbricas, retornar un array vacío.
     if (gradeRubrics.length === 0) {
       return [];
     }
-    
-    // 2. Obtener los datos del periodo y del catálogo de clase de forma eficiente
-    const classCatalog = await ctx.db.get(args.classCatalogId);
-    const term = await ctx.db.get(args.termId);
 
-    // Si alguno de los documentos principales no existe, retornar un error o null.
-    if (!classCatalog || !term) {
-        throw new Error("Class Catalog or Term not found.");
-    }
-    
-    // 3. Obtener el ciclo escolar de la clase
+    const term = await ctx.db.get(args.termId);
     const schoolCycle = classCatalog.schoolCycleId ? await ctx.db.get(classCatalog.schoolCycleId) : null;
 
-    // 4. Combinar todos los datos
-    // Mapear cada rúbrica y adjuntar los nombres del catálogo, periodo y ciclo escolar
+    if (!term) {
+      throw new Error("Term not found.");
+    }
+
     const result = gradeRubrics.map((rubric) => {
       return {
-        ...rubric, // Copia todas las propiedades de la rúbrica
-        classCatalogName: classCatalog.name, // Añade el nombre del catálogo de clase
-        termName: term.name, // Añade el nombre del periodo
-        schoolCycleName: schoolCycle?.name || "—", // Añade el nombre del ciclo escolar
-        schoolCycleStatus: schoolCycle?.status || "—", // Añade el estado del ciclo escolar
+        ...rubric,
+        classCatalogName: classCatalog.name,
+        termName: term.name,
+        schoolCycleName: schoolCycle?.name || "—",
+        schoolCycleStatus: schoolCycle?.status || "—",
       };
     });
 
@@ -94,8 +131,8 @@ export const updateGradeRubric = mutation({
     const existingRubric = await ctx.db.get(args.gradeRubricId);
     if (!existingRubric) {
       throw new Error("Criterio de rúbrica no encontrado.");
-    } 
-    
+    }
+
     // 3. Verificar si el usuario es el creador del documento
     if (existingRubric.createdBy !== (args.data.createdBy as Id<"user">)) {
       throw new Error("No tienes permiso para actualizar este criterio de rúbrica.");
@@ -115,7 +152,7 @@ export const updateGradeRubric = mutation({
 export const deleteGradeRubric = mutation({
   args: { gradeRubricId: v.id("gradeRubric") },
   handler: async (ctx, args) => {
-    
+
     // Buscar el documento antes de intentar eliminarlo
     const rubric = await ctx.db.get(args.gradeRubricId);
 
@@ -131,11 +168,51 @@ export const getGradeRubricsByClass = query({
   args: {
     classCatalogId: v.id("classCatalog"),
     termId: v.id("term"),
+    canViewAll: v.boolean(),
+    tutorId: v.optional(v.id("user")),
+    teacherId: v.optional(v.id("user")),
   },
   handler: async (ctx, args) => {
+    // Primero verificamos permisos (similar a la función anterior)
+    const classCatalog = await ctx.db.get(args.classCatalogId);
+    if (!classCatalog) {
+      return [];
+    }
+
+    if (!args.canViewAll) {
+      if (args.tutorId) {
+        // Lógica de verificación para tutor...
+        const tutorStudentsInClass = await ctx.db
+          .query("studentClass")
+          .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", args.classCatalogId))
+          .filter((q) => q.eq(q.field("status"), "active"))
+          .collect();
+
+        if (tutorStudentsInClass.length > 0) {
+          const studentIds = tutorStudentsInClass.map(sc => sc.studentId);
+          const students = await Promise.all(studentIds.map(id => ctx.db.get(id)));
+          const hasAccess = students.some(student =>
+            student && student.tutorId === args.tutorId
+          );
+
+          if (!hasAccess) {
+            return [];
+          }
+        } else {
+          return [];
+        }
+      } else if (args.teacherId) {
+        if (classCatalog.teacherId !== args.teacherId) {
+          return [];
+        }
+      } else {
+        return [];
+      }
+    }
+
     const gradeRubrics = await ctx.db
       .query("gradeRubric")
-      .withIndex("by_class_term", (q) => 
+      .withIndex("by_class_term", (q) =>
         q.eq("classCatalogId", args.classCatalogId).eq("termId", args.termId)
       )
       .filter((q) => q.eq(q.field("status"), true))
@@ -146,24 +223,89 @@ export const getGradeRubricsByClass = query({
 });
 
 
-
 // Obtener todas las rúbricas de una escuela filtradas por ciclo escolar
 export const getAllGradeRubricsBySchool = query({
   args: {
     schoolId: v.id("school"),
     schoolCycleId: v.optional(v.id("schoolCycle")),
+    canViewAll: v.boolean(),
+    tutorId: v.optional(v.id("user")),
+    teacherId: v.optional(v.id("user")),
   },
   handler: async (ctx, args) => {
-    // Obtener todas las clases de la escuela, filtradas por ciclo escolar si se proporciona
-    let classesQuery = ctx.db
-      .query("classCatalog")
-      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId));
+    // Obtener clases según los permisos del usuario
+    let classesQuery;
 
-    if (args.schoolCycleId) {
-      classesQuery = classesQuery.filter((q) => q.eq(q.field("schoolCycleId"), args.schoolCycleId));
+    const { schoolId, schoolCycleId, canViewAll, tutorId, teacherId } = args
+
+    if (canViewAll) {
+      // Si puede ver todos, obtener todas las clases de la escuela
+      classesQuery = ctx.db
+        .query("classCatalog")
+        .withIndex("by_school", (q) => q.eq("schoolId", schoolId));
+    } else if (tutorId) {
+      // Si es tutor, obtener solo las clases de sus estudiantes
+      // Primero obtenemos los estudiantes del tutor
+      const tutorStudents = await ctx.db
+        .query("student")
+        .withIndex("by_schoolId", (q) => q.eq("schoolId", schoolId))
+        .filter((q) => q.eq(q.field("tutorId"), tutorId))
+        .collect();
+
+      if (tutorStudents.length === 0) {
+        return [];
+      }
+
+      // Obtenemos las studentClass de estos estudiantes
+      const studentClassPromises = tutorStudents.map(async (student) => {
+        return await ctx.db
+          .query("studentClass")
+          .withIndex("by_student", (q) => q.eq("studentId", student._id))
+          .filter((q) => q.eq(q.field("status"), "active"))
+          .collect();
+      });
+
+      const allStudentClasses = (await Promise.all(studentClassPromises)).flat();
+
+      if (allStudentClasses.length === 0) {
+        return [];
+      }
+
+      // Obtenemos los IDs únicos de classCatalog
+      const uniqueClassCatalogIds = [...new Set(allStudentClasses.map(sc => sc.classCatalogId))];
+
+      // Obtenemos las clases correspondientes
+      classesQuery = ctx.db
+        .query("classCatalog")
+        .withIndex("by_school", (q) => q.eq("schoolId", schoolId))
+        .filter((q) => q.and(
+          q.eq(q.field("status"), "active"),
+          q.or(...uniqueClassCatalogIds.map(id => q.eq(q.field("_id"), id)))
+        ));
+    } else if (args.teacherId) {
+      // Si es maestro, obtener solo sus clases
+      if (args.teacherId) {
+        classesQuery = ctx.db
+          .query("classCatalog")
+          .withIndex("by_teacher", (q) => q.eq("teacherId", teacherId!))
+          .filter((q) =>
+            q.and(
+              q.eq(q.field("schoolId"), args.schoolId),
+              q.eq(q.field("status"), "active")
+            )
+          );
+      }
+    } else {
+      // Si no tiene permisos específicos, devolver array vacío
+      return [];
     }
 
-    const classes = await classesQuery.collect();
+    // Aplicar filtro por ciclo escolar si se proporciona
+    if (args.schoolCycleId) {
+      classesQuery = classesQuery!.filter((q) => q.eq(q.field("schoolCycleId"), schoolCycleId));
+    }
+
+    const classes = await classesQuery!.collect();
 
     if (classes.length === 0) {
       return [];
@@ -174,7 +316,7 @@ export const getAllGradeRubricsBySchool = query({
       classes.map(async (clase) => {
         const rubrics = await ctx.db
           .query("gradeRubric")
-          .withIndex("by_class_term", (q) => 
+          .withIndex("by_class_term", (q) =>
             q.eq("classCatalogId", clase._id)
           )
           .collect();
@@ -187,13 +329,13 @@ export const getAllGradeRubricsBySchool = query({
               clase.schoolCycleId ? ctx.db.get(clase.schoolCycleId) : null,
             ]);
 
-        return {
-          ...rubric,
-          classCatalogName: clase.name,
-          termName: term?.name || "—",
-          schoolCycleName: schoolCycle?.name || "—",
-          schoolCycleStatus: schoolCycle?.status || "—",
-        };
+            return {
+              ...rubric,
+              classCatalogName: clase.name,
+              termName: term?.name || "—",
+              schoolCycleName: schoolCycle?.name || "—",
+              schoolCycleStatus: schoolCycle?.status || "—",
+            };
           })
         );
       })
@@ -209,11 +351,71 @@ export const getRubricPercentageByClassAndTerm = query({
   args: {
     classCatalogId: v.id("classCatalog"),
     termId: v.id("term"),
+    canViewAll: v.boolean(),
+    tutorId: v.optional(v.id("user")),
+    teacherId: v.optional(v.id("user")),
   },
   handler: async (ctx, args) => {
+    // Verificación de permisos similar...
+    const classCatalog = await ctx.db.get(args.classCatalogId);
+    if (!classCatalog) {
+      return {
+        totalPercentage: 0,
+        availablePercentage: 100,
+        rubricsCount: 0,
+      };
+    }
+
+    if (!args.canViewAll) {
+      if (args.tutorId) {
+        // Lógica de verificación para tutor...
+        const tutorStudentsInClass = await ctx.db
+          .query("studentClass")
+          .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", args.classCatalogId))
+          .filter((q) => q.eq(q.field("status"), "active"))
+          .collect();
+
+        if (tutorStudentsInClass.length > 0) {
+          const studentIds = tutorStudentsInClass.map(sc => sc.studentId);
+          const students = await Promise.all(studentIds.map(id => ctx.db.get(id)));
+          const hasAccess = students.some(student =>
+            student && student.tutorId === args.tutorId
+          );
+
+          if (!hasAccess) {
+            return {
+              totalPercentage: 0,
+              availablePercentage: 100,
+              rubricsCount: 0,
+            };
+          }
+        } else {
+          return {
+            totalPercentage: 0,
+            availablePercentage: 100,
+            rubricsCount: 0,
+          };
+        }
+      } else if (args.teacherId) {
+        if (classCatalog.teacherId !== args.teacherId) {
+          return {
+            totalPercentage: 0,
+            availablePercentage: 100,
+            rubricsCount: 0,
+          };
+        }
+      } else {
+        return {
+          totalPercentage: 0,
+          availablePercentage: 100,
+          rubricsCount: 0,
+        };
+      }
+    }
+
     const rubrics = await ctx.db
       .query("gradeRubric")
-      .withIndex("by_class_term", (q) => 
+      .withIndex("by_class_term", (q) =>
         q.eq("classCatalogId", args.classCatalogId).eq("termId", args.termId)
       )
       .filter((q) => q.eq(q.field("status"), true))
