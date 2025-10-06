@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@repo/ui/components/shadcn/card";
@@ -49,6 +49,7 @@ import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { useUser } from "@clerk/nextjs";
 import { useUserWithConvex } from "../../../../../stores/userStore";
 import { useGradeRubricStore } from "../../../../../stores/gradeRubricStore";
+import { usePermissions } from 'hooks/usePermissions';
 
 // Tipo para rúbricas con datos extendidos
 type RubricWithDetails = {
@@ -116,6 +117,19 @@ export default function RubricDashboard() {
     currentUser?._id
   );
 
+  const {
+    currentRole,
+    canCreateRubric: canCreateRubricPermission,
+    canUpdateRubric,
+    canDeleteRubric,
+    getStudentFilters,
+    // isLoading: permissionsLoading
+  } = usePermissions(currentSchool?.school._id);
+
+  const studentFilters = useMemo(() => {
+    return getStudentFilters?.() || { canViewAll: false };
+  }, [getStudentFilters]);
+
   // Obtener el ciclo escolar activo
   const activeSchoolCycle = useQuery(
     api.functions.schoolCycles.ObtenerCicloActivo,
@@ -127,15 +141,15 @@ export default function RubricDashboard() {
     currentSchool ? { escuelaID: currentSchool.school._id } : "skip"
   );
 
-  console.log(currentUser?._id);
-  console.log(currentSchool?.school._id);
-
   const classes = useQuery(
     api.functions.classCatalog.getAllClassCatalog,
-    currentSchool ? { schoolId: currentSchool?.school._id as Id<'school'> } : 'skip'
+    currentSchool ? {
+      schoolId: currentSchool?.school._id as Id<'school'>,
+      canViewAll: studentFilters.canViewAll,
+      teacherId: studentFilters.teacherId,
+      tutorId: studentFilters.tutorId,
+    } : 'skip'
   );
-
-  console.log(classes);
 
   const terms = useQuery(
     api.functions.terms.getTermsByCycleId,
@@ -147,10 +161,13 @@ export default function RubricDashboard() {
   // Consulta para obtener todas las rúbricas cuando no hay filtros específicos
   const allRubricsQuery = useQuery(
     api.functions.gradeRubrics.getAllGradeRubricsBySchool,
-    currentSchool && selectedSchoolCycle
+    (currentSchool && selectedSchoolCycle)
       ? {
         schoolId: currentSchool.school._id,
         schoolCycleId: selectedSchoolCycle as Id<"schoolCycle">,
+        canViewAll: studentFilters.canViewAll,
+        teacherId: studentFilters.teacherId,
+        tutorId: studentFilters.tutorId,
       }
       : "skip"
   );
@@ -162,6 +179,9 @@ export default function RubricDashboard() {
       ? {
         classCatalogId: selectedClass as Id<"classCatalog">,
         termId: selectedTerm as Id<"term">,
+        canViewAll: studentFilters.canViewAll,
+        teacherId: studentFilters.teacherId,
+        tutorId: studentFilters.tutorId,
       }
       : "skip"
   );
@@ -173,6 +193,9 @@ export default function RubricDashboard() {
       ? {
         classCatalogId: selectedClass as Id<"classCatalog">,
         termId: selectedTerm as Id<"term">,
+        canViewAll: studentFilters.canViewAll,
+        teacherId: studentFilters.teacherId,
+        tutorId: studentFilters.tutorId,
       }
       : "skip"
   );
@@ -244,17 +267,6 @@ export default function RubricDashboard() {
   );
   const deleteGradeRubric = useMutation(
     api.functions.gradeRubrics.deleteGradeRubric
-  );
-
-  console.log(
-    "rubricas: ",
-    rubrics,
-    "clases ",
-    classes,
-    "periodo: ",
-    terms,
-    "ciclos: ",
-    schoolCycles
   );
 
   const handleOpenModal = (rubric?: RubricWithDetails) => {
@@ -372,14 +384,16 @@ export default function RubricDashboard() {
                 </div>
               </div>
             </div>
-            <Button
-              onClick={() => handleOpenModal()}
-              className="gap-2 cursor-pointer"
-              disabled={false}
-            >
-              <Plus className="w-4 h-4" />
-              Agregar Rubrica
-            </Button>
+            {canCreateRubricPermission &&
+              <Button
+                onClick={() => handleOpenModal()}
+                className="gap-2 cursor-pointer"
+                disabled={false}
+              >
+                <Plus className="w-4 h-4" />
+                Agregar Rubrica
+              </Button>
+            }
           </div>
         </div>
       </div>
@@ -562,9 +576,9 @@ export default function RubricDashboard() {
                     <TableHead>Periodo</TableHead>
                     <TableHead>Porcentaje</TableHead>
                     <TableHead>Calificacion Maxima</TableHead>
-                    <TableHead>Estado</TableHead>
+                    {canCreateRubricPermission && <TableHead>Estado</TableHead>}
                     {/* <TableHead className="text-right">Acciones</TableHead> */}
-                    {rubrics.some((r) => r.schoolCycleStatus === "active") && (
+                    {(rubrics.some((r) => r.schoolCycleStatus === "active") && canCreateRubricPermission) && (
                       <TableHead className="text-right">Acciones</TableHead>
                     )}
                   </TableRow>
@@ -588,7 +602,8 @@ export default function RubricDashboard() {
                         </TableCell>
                         <TableCell>{rubric.maxScore}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
+                          {canCreateRubricPermission &&
+                            <div className="flex items-center gap-2">
                             <Switch
                               checked={rubric.status}
                               onCheckedChange={() =>
@@ -621,26 +636,30 @@ export default function RubricDashboard() {
                                 </div>
                               )}
                           </div>
+                          }
+
                         </TableCell>
-                        {(rubric as RubricWithDetails).schoolCycleStatus ===
-                          "active" && (
+                        {((rubric as RubricWithDetails).schoolCycleStatus ===
+                          "active" && canCreateRubricPermission) && (
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
-                                <Button
+                                {canUpdateRubric && <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleOpenModal(rubric as RubricWithDetails)}
                                 >
                                   <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDeleteRubric(rubric._id)}
-                                  className="text-destructive hover:text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                </Button>}
+                                {canDeleteRubric && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteRubric(rubric._id)}
+                                    className="text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
                               </div>
                             </TableCell>
                           )}
@@ -664,18 +683,24 @@ export default function RubricDashboard() {
                             <h3 className="text-lg font-medium text-foreground mb-2">
                               No se encontraron rúbricas
                             </h3>
-                            <p className="text-muted-foreground mb-4">
+                            {currentRole !== 'tutor' ? <p className="text-muted-foreground mb-4">
                               No hay rúbricas creadas. Crea tu primera rúbrica para comenzar a calificar.
-                            </p>
+                            </p> : <>
+                              <p className="text-muted-foreground">Aún no se han asignado rúbricas al alumno.</p>
+                              <p className="text-muted-foreground">Si al alumno ya cuenta con rubricas asignada y no se ve información comunicate con soporte.</p>
+                            </>
+                            }
                           </div>
-                          <Button
-                            onClick={() => setModalOpen(true)}
-                            className="gap-2"
-                            disabled={false}
-                          >
-                            <Plus className="h-4 w-4" />
-                            Agregar Rúbrica
-                          </Button>
+                          {canCreateRubricPermission && (
+                            <Button
+                              onClick={() => setModalOpen(true)}
+                              className="gap-2"
+                              disabled={false}
+                            >
+                              <Plus className="h-4 w-4" />
+                              Agregar Rúbrica
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

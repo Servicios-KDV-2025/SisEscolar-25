@@ -31,6 +31,7 @@ import Link from "next/link";
 import { useUserWithConvex } from "stores/userStore";
 import { useCurrentSchool } from "stores/userSchoolsStore";
 import { TaskCreateForm } from "components/TaskCreateForm";
+import { usePermissions } from 'hooks/usePermissions';
 
 export default function GradeManagementDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,6 +49,16 @@ export default function GradeManagementDashboard() {
     error: schoolError,
   } = useCurrentSchool(currentUser?._id);
 
+  const permissions = usePermissions();
+
+  const {
+    canCreateAssignance,
+    canCreateRubric,
+    canUpdateRubric,
+    currentRole,
+    isLoading,
+  } = permissions;
+
   // Fetch data with Convex
   const schoolCycles = useQuery(
     api.functions.schoolCycles.ObtenerCiclosEscolares,
@@ -56,10 +67,13 @@ export default function GradeManagementDashboard() {
   const classes = useQuery(
     api.functions.classCatalog.getClassesBySchoolCycle,
     selectedSchoolCycle && currentSchool
-      ? { 
-          schoolId: currentSchool.school._id as Id<"school">,
-          schoolCycleId: selectedSchoolCycle as Id<"schoolCycle"> 
-        }
+      ? {
+        schoolId: currentSchool.school._id as Id<"school">,
+        schoolCycleId: selectedSchoolCycle as Id<"schoolCycle">,
+        canViewAll: permissions.getStudentFilters().canViewAll,
+        tutorId: permissions.getStudentFilters().tutorId,
+        teacherId: permissions.getStudentFilters().teacherId
+      }
       : "skip"
   );
   const terms = useQuery(
@@ -74,13 +88,21 @@ export default function GradeManagementDashboard() {
       ? {
         classCatalogId: selectedClass as Id<"classCatalog">,
         termId: selectedTerm as Id<"term">,
+        canViewAll: permissions.getStudentFilters().canViewAll,
+        teacherId: permissions.getStudentFilters().teacherId,
+        tutorId: permissions.getStudentFilters().tutorId,
       }
       : "skip"
   );
   const students = useQuery(
     api.functions.student.getStudentWithClasses,
     selectedClass
-      ? { classCatalogId: selectedClass as Id<"classCatalog"> }
+      ? {
+        classCatalogId: selectedClass as Id<"classCatalog">,
+        canViewAll: permissions.getStudentFilters().canViewAll,
+        tutorId: permissions.getStudentFilters().tutorId,
+        teacherId: permissions.getStudentFilters().teacherId
+      }
       : "skip"
   );
   const assignments = useQuery(
@@ -89,6 +111,9 @@ export default function GradeManagementDashboard() {
       ? {
         classCatalogId: selectedClass as Id<"classCatalog">,
         termId: selectedTerm as Id<"term">,
+        canViewAll: permissions.getStudentFilters().canViewAll,
+        tutorId: permissions.getStudentFilters().tutorId,
+        teacherId: permissions.getStudentFilters().teacherId
       }
       : "skip"
   );
@@ -98,6 +123,9 @@ export default function GradeManagementDashboard() {
       ? {
         classCatalogId: selectedClass as Id<"classCatalog">,
         termId: selectedTerm as Id<"term">,
+        canViewAll: permissions.getStudentFilters().canViewAll,
+        tutorId: permissions.getStudentFilters().tutorId,
+        teacherId: permissions.getStudentFilters().teacherId
       }
       : "skip"
   );
@@ -110,7 +138,6 @@ export default function GradeManagementDashboard() {
 
   // State synchronization and initial value setting
   useEffect(() => {
-
     // Establece el ciclo escolar por defecto si no hay uno seleccionado
     if (schoolCycles && schoolCycles.length > 0 && !selectedSchoolCycle) {
       setSelectedSchoolCycle(schoolCycles[0]!._id as string);
@@ -211,27 +238,6 @@ export default function GradeManagementDashboard() {
     rubrics === undefined ||
     rubrics.length === 0 ||
     grades === undefined;
-
-  // Show a general loading screen for initial data fetching
-  // if (
-  //   !isLoaded ||
-  //   userLoading ||
-  //   schoolLoading ||
-  //   (currentUser && !currentSchool && !schoolError)
-  // ) {
-  //   return (
-  //     <div className="space-y-8 p-6 max-w-7xl mx-auto">
-  //       <div className="flex items-center justify-center min-h-[400px]">
-  //         <div className="space-y-4 text-center">
-  //           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-  //           <p className="text-muted-foreground">
-  //             Cargando información de las materias...
-  //           </p>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // }
 
   // Logic to handle grade updates. This now uses the upsert mutation.
   const handleUpdateGrade = async (
@@ -342,21 +348,26 @@ export default function GradeManagementDashboard() {
               </div>
             </div>
             <div className="flex flex-col gap-4 sm:flex-col sm:items-center sm:gap-8 lg:gap-2">
-              <TaskCreateForm />
-              <Button
-                onClick={handleSaveAverages}
-                size="lg"
-                className="gap-2"
-                disabled={
-                  isDataLoading ||
-                  !currentSchool ||
-                  !students ||
-                  students.length === 0
-                }
-              >
-                <SaveAll className="w-4 h-4" />
-                Guardar Promedios
-              </Button>
+              {canCreateAssignance &&
+                <TaskCreateForm />
+              }
+              {currentRole !== 'tutor' && (
+                <Button
+                  onClick={handleSaveAverages}
+                  size="lg"
+                  className="gap-2"
+                  disabled={
+                    isDataLoading ||
+                    !currentSchool ||
+                    !students ||
+                    students.length === 0 ||
+                    currentRole === 'auditor'
+                  }
+                >
+                  <SaveAll className="w-4 h-4" />
+                  Guardar Promedios
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -440,7 +451,11 @@ export default function GradeManagementDashboard() {
               </SelectContent>
             </Select>
             {hasClasses && (
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <Select
+                value={selectedClass}
+                onValueChange={setSelectedClass}
+                disabled={students?.length === 0}
+              >
                 <SelectTrigger className="w-full md:w-48">
                   <SelectValue placeholder="Clase" />
                 </SelectTrigger>
@@ -494,6 +509,7 @@ export default function GradeManagementDashboard() {
             !isLoaded ||
             userLoading ||
             schoolLoading ||
+            isLoading ||
             (currentUser && !currentSchool && !schoolError)
           ) ? (
             <div className="space-y-4 text-center">
@@ -510,11 +526,15 @@ export default function GradeManagementDashboard() {
                   No se pueden mostrar las calificaciones
                 </h3>
 
-                <p className="">Registra:</p>
-                <div className= "flex flex-col items-center gap-4 w-full" >
+                {currentRole !== 'tutor' ? (
+                  <p className="">Registra:</p>
+                ) : (
+                  <p className="">Comunicate con soporte para más información.</p>
+                )}
+                <div className="flex flex-col items-center gap-4 w-full" >
                   {/*esta es la 1ra fila de botones*/}
-                  <div className= "flex flex-row gap-4 justify-center w-full"  >
-                    {!assignments && (
+                  <div className="flex flex-row gap-4 justify-center w-full"  >
+                    {(!assignments && canCreateRubric) && (
                       <Link href={`/evaluacion/asignaciones`}>
                         <Button>
                           <Plus className="w-4 h-4" />
@@ -522,7 +542,7 @@ export default function GradeManagementDashboard() {
                         </Button>
                       </Link>
                     )}
-                      
+
                     {!hasTerms && (
                       <Link href={`/administracion/periodos`}>
                         <Button>
@@ -543,33 +563,35 @@ export default function GradeManagementDashboard() {
                   </div>
 
                   {/*esta es la 2da fila de botones*/}
-                  <div className = "flex flex-row gap-4 justify-center w-full">
+                  {canCreateRubric &&
+                    <div className="flex flex-row gap-4 justify-center w-full">
 
-                    {!hasSchoolCycles && (
-                      <Link href='/administracion/ciclos-escolares'>
-                        <Button>
-                          <Plus className="w-4 h-4" />
-                          Ciclos Escolares
-                        </Button>
-                      </Link>
-                    )}
-                    {(!rubrics || rubrics.length === 0) && (
-                      <Link href={`/evaluacion/rubricas`}>
-                        <Button>
-                          <Plus className="w-4 h-4" />
-                          Rubricas
-                        </Button>
-                      </Link>
-                    )}
-                    {(!students || students.length === 0) && (
-                      <Link href={`/administracion/asignacion-de-clases`}>
-                        <Button>
-                          <Plus className="w-4 h-4" />
-                          Asignación de clases{" "}
-                        </Button>
-                      </Link>
+                      {!hasSchoolCycles && (
+                        <Link href='/administracion/ciclos-escolares'>
+                          <Button>
+                            <Plus className="w-4 h-4" />
+                            Ciclos Escolares
+                          </Button>
+                        </Link>
                       )}
-                  </div>
+                      {(!rubrics || rubrics.length === 0) && (
+                        <Link href={`/evaluacion/rubricas`}>
+                          <Button>
+                            <Plus className="w-4 h-4" />
+                            Rubricas
+                          </Button>
+                        </Link>
+                      )}
+                      {(!students || students.length === 0) && (
+                        <Link href={`/administracion/asignacion-de-clases`}>
+                          <Button>
+                            <Plus className="w-4 h-4" />
+                            Asignación de clases{" "}
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
+                  }
                 </div>
               </div>
             </div>
@@ -581,6 +603,7 @@ export default function GradeManagementDashboard() {
                 grades={grades!}
                 onGradeUpdate={handleUpdateGrade}
                 calculateAverage={calculateAverage}
+                canUpdateRubric={canUpdateRubric}
               />
             </div>
           )}
