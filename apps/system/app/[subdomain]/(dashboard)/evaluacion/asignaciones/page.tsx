@@ -80,6 +80,8 @@ export default function TaskManagement() {
     isUpdating,
 
     // Datos
+    allAssignmentsForFilters,
+    allClassesForFilters,
     teacherAssignments: filteredTasks,
     teacherClasses,
     allTerms,
@@ -95,6 +97,11 @@ export default function TaskManagement() {
     updateTask,
     deleteTask,
     getTaskProgressFromQuery,
+    canCreateTask,
+    canReadTask,
+    canUpdateTask,
+    canDeleteTask,
+    currentRole,
   } = useTask(currentSchool?.school._id);
 
   // Estados para filtros (estos se mantienen locales)
@@ -221,7 +228,7 @@ export default function TaskManagement() {
   };
 
   const uniqueRubrics =
-    filteredTasks?.reduce(
+    allAssignmentsForFilters?.reduce(
       (acc, task) => {
         if (
           task.gradeRubric &&
@@ -239,7 +246,7 @@ export default function TaskManagement() {
     ) || [];
 
   const uniqueTerm =
-    filteredTasks?.reduce<Array<{ _id: string; name: string }>>((acc, task) => {
+    allAssignmentsForFilters?.reduce<Array<{ _id: string; name: string }>>((acc, task) => {
       const term = allTerms?.find((t) => t._id === task.termId);
       if (term && !acc.find((r) => r._id === term._id)) {
         acc.push({ _id: term._id, name: term.name });
@@ -248,22 +255,16 @@ export default function TaskManagement() {
     }, []) ?? [];
 
   const uniqueSubject =
-    filteredTasks?.reduce<Array<{ _id: string; name: string }>>((acc, task) => {
-      const subject = teacherClasses?.find(
-        (t) => t._id === task.classCatalogId
-      );
-      if (subject && !acc.find((r) => r._id === subject._id)) {
-        acc.push({ _id: subject._id, name: subject.name });
-      }
-      return acc;
-    }, []) ?? [];
+    allClassesForFilters?.map(clase => ({
+      _id: clase?._id,
+      name: clase?.name
+    })) || [];
 
   const uniqueGradeGroups =
-    filteredTasks?.reduce<
+    allAssignmentsForFilters?.reduce<
       Array<{ id: string; groupId: string; label: string }>
     >((acc, task) => {
       const group = task.group;
-
       if (group?.grade) {
         const comboId = `${group.grade}-${group._id}`;
         if (!acc.find((gg) => gg.id === comboId)) {
@@ -274,7 +275,6 @@ export default function TaskManagement() {
           });
         }
       }
-
       return acc;
     }, []) ?? [];
 
@@ -332,7 +332,7 @@ export default function TaskManagement() {
                 </div>
               </div>
             </div>
-            <TaskCreateForm />
+            {canCreateTask && <TaskCreateForm />}
           </div>
         </div>
       </div>
@@ -638,7 +638,7 @@ export default function TaskManagement() {
                   <SelectContent>
                     <SelectItem value="all">Todas las materias</SelectItem>
                     {uniqueSubject.map((subject) => (
-                      <SelectItem key={subject._id} value={subject._id}>
+                      <SelectItem key={subject._id} value={subject._id!}>
                         {subject.name}
                       </SelectItem>
                     ))}
@@ -742,49 +742,53 @@ export default function TaskManagement() {
                         </div>
                       </div>
                       <div className="flex flex-col md:flex-row gap-2 mt-3 md:mt-0">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEditModal(task)}
-                          className="cursor-pointer"
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          Editar
-                        </Button>
+                        {canUpdateTask && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditModal(task)}
+                            className="cursor-pointer"
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Editar
+                          </Button>
+                        )}
 
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-red-600 hover:text-red-700 cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4 mr-1" />
-                              Eliminar
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta acción no se puede deshacer. Esto eliminará
-                                permanentemente la asignación y afectara los datos
-                                relacionados a ella.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel className="cursor-pointer">
-                                Cancelar
-                              </AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteTask(task._id)}
-                                className=" bg-white text-red-600 border-2 border-red-600 hover:bg-red-600 hover:text-white cursor-pointer"
+                        {canDeleteTask && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700 cursor-pointer"
                               >
+                                <Trash2 className="w-4 h-4 mr-1" />
                                 Eliminar
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta acción no se puede deshacer. Esto eliminará
+                                  permanentemente la asignación y afectara los datos
+                                  relacionados a ella.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="cursor-pointer">
+                                  Cancelar
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteTask(task._id)}
+                                  className=" bg-white text-red-600 border-2 border-red-600 hover:bg-red-600 hover:text-white cursor-pointer"
+                                >
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </div>
                     </div>
                     <div className="flex flex-col gap-3 pt-3 border-t md:flex-row md:justify-between md:items-center">
@@ -815,17 +819,19 @@ export default function TaskManagement() {
                         </div>
                       </div>
 
-                      <div className="mt-2 md:mt-0 flex-shrink-0">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewDetails(task._id)}
-                          className="cursor-pointer w-full md:w-auto"
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                          Ver Entregas
-                        </Button>
-                      </div>
+                      {canReadTask && (
+                        <div className="mt-2 md:mt-0 flex-shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewDetails(task._id)}
+                            className="cursor-pointer w-full md:w-auto"
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Ver Entregas
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -840,11 +846,19 @@ export default function TaskManagement() {
                       <h3 className="text-lg font-medium text-foreground mb-2">
                         No se encontraron asignaciones
                       </h3>
-                      <p className="text-muted-foreground mb-4">
-                        No hay asignaciones creadas. Crea tu primera asignación para comenzar a calificar.
-                      </p>
+                      {currentRole !== 'tutor' ? (
+                        <p className="text-muted-foreground mb-4">
+                          No hay asignaciones creadas. Crea tu primera asignación para comenzar a calificar.
+                        </p>
+                      ) : (
+                        <>
+                          <p className="text-muted-foreground">Aún no se tiene asignaciones al alumno.</p>
+                          <p className="text-muted-foreground">Si al alumno ya cuenta con asignaciones y no se ve información comunicate con soporte.</p>
+                        </>
+                      )
+                      }
                     </div>
-                    <TaskCreateForm />
+                    {canCreateTask && <TaskCreateForm />}
                   </div>
                 </div>
               )}
