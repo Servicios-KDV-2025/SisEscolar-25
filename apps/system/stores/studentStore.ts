@@ -26,6 +26,7 @@ export interface Student {
   schoolId: Id<"school">;
   groupId: Id<"group">;
   tutorId: Id<"user">;
+  schoolCycleId?: Id<"schoolCycle">;
   enrollment: string;
   name: string;
   lastName?: string;
@@ -42,6 +43,7 @@ export interface CreateStudentData {
   schoolId: Id<"school">;
   groupId: Id<"group">;
   tutorId: Id<"user">;
+  schoolCycleId: Id<"schoolCycle">;
   enrollment: string;
   name: string;
   lastName?: string;
@@ -58,6 +60,7 @@ export interface UpdateStudentData {
   enrollment?: string;
   groupId?: Id<"group">;
   tutorId?: Id<"user">;
+  schoolCycleId?: Id<"schoolCycle">;
   birthDate?: number;
   admissionDate?: number;
   imgUrl?: string;
@@ -160,6 +163,7 @@ export const useStudentStore = create<StudentState>((set, get) => ({
     
     try {
       // Esta función se implementará en el hook que usa Convex
+      console.log('Creating student:', data);
       set({ isCreating: false });
       return null;
     } catch (error) {
@@ -175,6 +179,7 @@ export const useStudentStore = create<StudentState>((set, get) => ({
     
     try {
       // Esta función se implementará en el hook que usa Convex
+      console.log('Updating student:', studentId, data);
       set({ isUpdating: false });
       return null;
     } catch (error) {
@@ -190,6 +195,7 @@ export const useStudentStore = create<StudentState>((set, get) => ({
     
     try {
       // Esta función se implementará en el hook que usa Convex
+      console.log('Updating student status:', studentId, status);
       set({ isUpdating: false });
       return false;
     } catch (error) {
@@ -205,6 +211,7 @@ export const useStudentStore = create<StudentState>((set, get) => ({
     
     try {
       // Esta función se implementará en el hook que usa Convex
+      console.log('Deleting student:', studentId);
       set({ isDeleting: false });
       return false;
     } catch (error) {
@@ -330,13 +337,13 @@ export const useStudentWithConvex = (
     if (studentsWithRoleFilter) {
       store.setStudents(studentsWithRoleFilter);
     }
-  }, [studentsWithRoleFilter]);
+  }, [studentsWithRoleFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => {
     if (studentsByGroup) {
       store.setStudents(studentsByGroup);
     }
-  }, [studentsByGroup]);
+  }, [studentsByGroup]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Función para crear estudiante
   const createStudent = React.useCallback(async (data: CreateStudentData) => {
@@ -344,15 +351,23 @@ export const useStudentWithConvex = (
       store.setCreating(true);
       store.clearError();
       
-      const newStudentId = await createStudentMutation(data);
+      const result = await createStudentMutation(data);
       
-      if (newStudentId) {
-        // La mutación devuelve solo el ID, necesitamos recargar la lista
-        // o crear el objeto estudiante con los datos que tenemos
+      if (result && result.studentId) {
+        // La mutación devuelve un objeto complejo, extraemos el studentId
         const newStudent: Student = {
-          _id: newStudentId,
-          ...data,
-          status: data.status || 'active' as const,
+          _id: result.studentId,
+          schoolId: data.schoolId,
+          groupId: data.groupId,
+          tutorId: data.tutorId,
+          schoolCycleId: data.schoolCycleId,
+          enrollment: data.enrollment,
+          name: data.name,
+          lastName: data.lastName,
+          birthDate: data.birthDate,
+          admissionDate: data.admissionDate,
+          imgUrl: data.imgUrl,
+          status: data.status || 'active',
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
@@ -373,7 +388,7 @@ export const useStudentWithConvex = (
       store.setCreating(false);
       return null;
     }
-  }, [createStudentMutation]);
+  }, [createStudentMutation]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Función para actualizar estudiante
   const updateStudent = React.useCallback(async (studentId: Id<"student">, data: UpdateStudentData) => {
@@ -409,7 +424,7 @@ export const useStudentWithConvex = (
       store.setUpdating(false);
       return null;
     }
-  }, [updateStudentMutation]);
+  }, [updateStudentMutation]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Función para actualizar estado del estudiante
   const updateStudentStatus = React.useCallback(async (studentId: Id<"student">, status: 'active' | 'inactive') => {
@@ -445,7 +460,7 @@ export const useStudentWithConvex = (
       store.setUpdating(false);
       return false;
     }
-  }, [updateStudentStatusMutation]);
+  }, [updateStudentStatusMutation]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Función para eliminar estudiante
   const deleteStudent = React.useCallback(async (studentId: Id<"student">) => {
@@ -474,7 +489,7 @@ export const useStudentWithConvex = (
       store.setDeleting(false);
       return false;
     }
-  }, [deleteStudentMutation]);
+  }, [deleteStudentMutation]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return React.useMemo(() => ({
     // Estado del store
@@ -508,7 +523,7 @@ export const useStudentWithConvex = (
     setCurrentStudent: store.setCurrentStudent,
     clearError: store.clearError,
     reset: store.reset,
-  }), [
+  }), [ // eslint-disable-line react-hooks/exhaustive-deps
     store.students,
     store.filteredStudents,
     store.currentStudent,
@@ -554,7 +569,7 @@ export const useStudentById = (studentId?: Id<"student">) => {
     if (student) {
       store.setCurrentStudent(student);
     }
-  }, [student]);
+  }, [student]); // eslint-disable-line react-hooks/exhaustive-deps
   
   return {
     student,

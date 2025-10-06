@@ -41,6 +41,7 @@ interface Tutor {
   email: string;
 }
 
+
 export default function AlumnosPage() {
   // Hooks de autenticación y contexto
   const { user: clerkUser, isLoaded } = useUser();
@@ -65,6 +66,7 @@ export default function AlumnosPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [groupFilter, setGroupFilter] = useState<string>("all");
   const [tutorPopoverOpen, setTutorPopoverOpen] = useState(false);
+  const [cyclePopoverOpen, setCyclePopoverOpen] = useState(false);
 
   // Hook del student store con filtros por rol
   const {
@@ -101,6 +103,18 @@ export default function AlumnosPage() {
     } : 'skip'
   );
 
+  // Obtener ciclos escolares de la escuela actual
+  const schoolCycles = useQuery(
+    api.functions.schoolCycles.ObtenerCiclosEscolares,
+    currentSchool?.school._id ? { escuelaID: currentSchool.school._id as Id<"school"> } : 'skip'
+  );
+
+  // Hook para obtener la siguiente matrícula disponible
+  const nextEnrollment = useQuery(
+    api.functions.student.generateNextEnrollment,
+    currentSchool?.school._id ? { schoolId: currentSchool.school._id as Id<"school"> } : 'skip'
+  );
+
   // Estado combinado de loading
   const isLoading = !isLoaded || userLoading || schoolLoading || studentsLoading || permissionsLoading;
 
@@ -109,14 +123,15 @@ export default function AlumnosPage() {
     schoolId: currentSchool?.school._id || "",
     groupId: "", // Dejar vacío para forzar selección
     tutorId: "", // Dejar vacío para forzar selección
-    enrollment: "",
+    schoolCycleId: "", // Dejar vacío para forzar selección
+    enrollment: nextEnrollment || "", // Usar la matrícula generada automáticamente
     name: "",
     lastName: "",
     status: "active" as const,
     admissionDate: Date.now(),
     birthDate: undefined,
     imgUrl: "",
-  }), [currentSchool?.school._id]);
+  }), [currentSchool?.school._id, nextEnrollment]);
 
   // Hook del CRUD Dialog
   const {
@@ -132,14 +147,13 @@ export default function AlumnosPage() {
 
   // Aplicar filtros cuando cambien
   useEffect(() => {
-    if (students.length > 0) {
-      filterStudents({
-        schoolId: currentSchool?.school._id as Id<"school">,
-        groupId: groupFilter !== "all" ? groupFilter as Id<"group"> : undefined,
-        status: statusFilter !== "all" ? statusFilter as "active" | "inactive" : undefined,
-        searchTerm: searchTerm || undefined,
-      });
-    }
+    // Siempre aplicar filtros, incluso si no hay estudiantes
+    filterStudents({
+      schoolId: currentSchool?.school._id as Id<"school">,
+      groupId: groupFilter !== "all" ? groupFilter as Id<"group"> : undefined,
+      status: statusFilter !== "all" ? statusFilter as "active" | "inactive" : undefined,
+      searchTerm: searchTerm || undefined,
+    });
   }, [searchTerm, statusFilter, groupFilter, students, filterStudents, currentSchool]);
 
   // Limpiar errores al cambiar
@@ -162,6 +176,7 @@ export default function AlumnosPage() {
       schoolId: currentSchool.school._id as Id<"school">,
       groupId: formData.groupId as Id<"group">,
       tutorId: formData.tutorId as Id<"user">,
+      schoolCycleId: formData.schoolCycleId as Id<"schoolCycle">,
       enrollment: formData.enrollment as string,
       name: formData.name as string,
       lastName: formData.lastName as string || undefined,
@@ -194,6 +209,7 @@ export default function AlumnosPage() {
       enrollment: formData.enrollment as string,
       groupId: formData.groupId as Id<"group">,
       tutorId: formData.tutorId as Id<"user">,
+      schoolCycleId: formData.schoolCycleId as Id<"schoolCycle">,
       birthDate: formData.birthDate as number || undefined,
       admissionDate: formData.admissionDate as number || undefined,
       imgUrl: formData.imgUrl as string || undefined,
@@ -251,6 +267,12 @@ export default function AlumnosPage() {
     if (!tutors) return "Cargando...";
     const tutor = tutors.find((t: Tutor) => t._id === tutorId);
     return tutor ? `${tutor.name} ${tutor.lastName || ''}`.trim() : "No asignado";
+  };
+  const getSchoolCycleInfo = (schoolCycleId?: string) => {
+    if (!schoolCycleId) return "No asignado";
+    if (!schoolCycles) return "Cargando...";
+    const schoolCycle = schoolCycles.find((s) => s._id === schoolCycleId);
+    return schoolCycle ? `${schoolCycle.name}` : "No asignado";
   };
 
   const calculateAge = (birthDate?: number) => {
@@ -527,7 +549,7 @@ export default function AlumnosPage() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
                 <p className="text-muted-foreground">Cargando asignaciones...</p>
               </div>
-            ) : (filteredStudents.length === 0 && students.length === 0 && isLoading) ? (
+            ) : filteredStudents.length === 0 ? (
               <div className="text-center py-12">
                 <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">No se encontraron alumnos</h3>
@@ -556,6 +578,7 @@ export default function AlumnosPage() {
                     <TableHead className="w-[110px] px-4">Estudiante</TableHead>
                     <TableHead className="text-center">Matrícula</TableHead>
                     <TableHead className="text-center">Grupo</TableHead>
+                    <TableHead className="text-center">Ciclo Escolar</TableHead>
                     <TableHead className="text-center">Tutor</TableHead>
                     <TableHead className="text-center">Estado</TableHead>
                     <TableHead >Fecha de Ingreso</TableHead>
@@ -594,6 +617,11 @@ export default function AlumnosPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
+                        <Badge variant="secondary">
+                          {getSchoolCycleInfo(student.schoolCycleId)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
                         <div className="text-sm">
                           {getTutorInfo(student.tutorId)}
                         </div>
@@ -614,8 +642,8 @@ export default function AlumnosPage() {
                           {formatDate(student.admissionDate)}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <TableCell className="flex  justify-center">
+                        <div className="flex items-center  gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -657,10 +685,10 @@ export default function AlumnosPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ))} 
                 </TableBody>
               </Table>
-            )}
+            )} 
           </div>
         </CardContent>
       </Card>
@@ -773,8 +801,8 @@ export default function AlumnosPage() {
                       <Input
                         {...field}
                         value={field.value as string || ""}
-                        placeholder="2024-001"
-                        disabled={currentOperation === "view"}
+                        placeholder="Se genera automáticamente"
+                        disabled={currentOperation === "view" || currentOperation === "create"}
                         onChange={(e) => {
                           field.onChange(e);
                           // Limpiar error cuando el usuario empiece a escribir
@@ -785,6 +813,11 @@ export default function AlumnosPage() {
                       />
                     </FormControl>
                     <FormMessage />
+                    {currentOperation === "create" && (
+                      <p className="text-xs text-muted-foreground">
+                        La matrícula se genera automáticamente con el formato: AÑO + número consecutivo
+                      </p>
+                    )}
                   </FormItem>
                 )}
               />
@@ -804,7 +837,7 @@ export default function AlumnosPage() {
                         <SelectTrigger>
                           <SelectValue placeholder="Seleccionar estado" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent>  
                           <SelectItem value="active">Activo</SelectItem>
                           <SelectItem value="inactive">Inactivo</SelectItem>
                         </SelectContent>
@@ -852,6 +885,82 @@ export default function AlumnosPage() {
                     <FormMessage />
                   </FormItem>
                 )}
+              />
+
+              <FormField
+                control={form.control}
+                name="schoolCycleId"
+                render={({ field }) => {
+                  const selectedCycle = schoolCycles?.find((cycle) => cycle._id === field.value);
+
+                  return (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Ciclo Escolar *</FormLabel>
+                      <Popover open={cyclePopoverOpen} onOpenChange={setCyclePopoverOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={`w-full justify-between ${!field.value && "text-muted-foreground"}`}
+                              disabled={currentOperation === "view"}
+                            >
+                              {selectedCycle
+                                ? selectedCycle.name
+                                : "Seleccionar ciclo escolar"
+                              }
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Buscar ciclo escolar..." />
+                            <CommandEmpty>No se encontró ningún ciclo escolar.</CommandEmpty>
+                            <CommandList>
+                              <CommandGroup>
+                                {schoolCycles && schoolCycles.length > 0 ? (
+                                  schoolCycles.map((cycle) => (
+                                    <CommandItem
+                                      key={cycle._id}
+                                      value={cycle.name}
+                                      onSelect={() => {
+                                        field.onChange(cycle._id);
+                                        setCyclePopoverOpen(false);
+                                      }}
+                                    >
+                                      <Check
+                                        className={`mr-2 h-4 w-4 ${
+                                          field.value === cycle._id ? "opacity-100" : "opacity-0"
+                                        }`}
+                                      />
+                                      <div className="flex flex-col">
+                                        <span className="font-medium">{cycle.name}</span>
+                                        <span className="text-xs text-muted-foreground">
+                                          {new Date(cycle.startDate).toLocaleDateString()} - {new Date(cycle.endDate).toLocaleDateString()}
+                                        </span>
+                                      </div>
+                                    </CommandItem>
+                                  ))
+                                ) : schoolCycles === undefined ? (
+                                  <CommandItem disabled>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Cargando ciclos escolares...
+                                  </CommandItem>
+                                ) : (
+                                  <CommandItem disabled>
+                                    No hay ciclos escolares disponibles
+                                  </CommandItem>
+                                )}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <FormField
