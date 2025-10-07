@@ -425,6 +425,7 @@ billing: defineTable({
     v.literal("otro")
   ),
   amount: v.number(),
+  deposit: v.optional(v.number()),
   startDate: v.number(),
   endDate: v.number(),
   createdBy: v.id("user"),
