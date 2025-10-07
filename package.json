@@ -30,8 +30,11 @@
       "@tailwindcss/oxide"
     ],
     "overrides": {
-      "@types/react": "19.1.0",
-      "@types/react-dom": "19.1.0"
+      "react": "19.1.1",
+      "react-dom": "19.1.1",
+      "@types/react": "19.2.1",
+      "@types/react-dom": "19.2.1",
+      "react-hook-form": "7.62.0"
     }
   }
 }
