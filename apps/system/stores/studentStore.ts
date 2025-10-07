@@ -22,6 +22,7 @@ const cleanConvexError = (error: unknown): string => {
 
 // Tipos para el estudiante basados en el schema
 export interface Student {
+  studentClassId?: Id<'studentClass'>;
   _id: Id<"student">;
   schoolId: Id<"school">;
   groupId: Id<"group">;
