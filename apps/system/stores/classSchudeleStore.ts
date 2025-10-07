@@ -191,10 +191,10 @@ export const useClassScheduleStore = create<ClassScheduleState>()(
 );
 
 // Selectores derivados
-export const useFilteredClasses = () => {
-  const { classes, filter, searchTerm } = useClassScheduleStore();
+export const useFilteredClasses = (classS: ClassItem[] | null | undefined) => {
+  const { filter, searchTerm } = useClassScheduleStore();
   
-  return classes.filter((classItem) => {
+  return (classS?.filter(Boolean) || []).filter((classItem) => {
     const matchesFilter =
       filter === "all" || classItem.status === filter;
     

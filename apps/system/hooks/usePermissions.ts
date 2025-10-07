@@ -3,7 +3,7 @@ import { useUserSchoolsWithConvex } from "../stores/userSchoolsStore";
 import { useActiveRole } from "./useActiveRole";
 import React, { useState, useEffect, useMemo } from "react";
 
-type UserRole = "superadmin" | "admin" | "auditor" | "teacher" | "tutor";
+export type UserRole = "superadmin" | "admin" | "auditor" | "teacher" | "tutor";
 
 export const usePermissions = (schoolId?: string) => {
   const { currentUser } = useUserStore();
@@ -94,7 +94,39 @@ export const usePermissions = (schoolId?: string) => {
     { action: "update", resource: "suscripciones" },
     { action: "delete", resource: "suscripciones" },
     
+
+    //Class Catalog
+    { action: "create", resource: "classCatalog" },
+    { action: "read", resource: "classCatalog" },
+    { action: "update", resource: "classCatalog" },
+    { action: "delete", resource: "classCatalog" },
+    //Students Classes
+    { action: "create", resource: "studentsClasses" },
+    { action: "read", resource: "studentsClasses" },
+    { action: "update", resource: "studentsClasses" },
+    { action: "delete", resource: "studentsClasses" },
+    //Schedule Assignment
+    { action: "create", resource: "scheduleAssignament" },
+    { action: "read", resource: "scheduleAssignament" },
+    { action: "update", resource: "scheduleAssignament" },
+    { action: "delete", resource: "scheduleAssignament" },
+    // Attendance
+    { action: "create", resource: "attendance" },
+    { action: "read", resource: "attendance" },
+    { action: "update", resource: "attendance" },
+    { action: "delete", resource: "attendance" },
+    // Rubrics
+    { action: "create", resource: "rubrics" },
+    { action: "read", resource: "rubrics" },
+    { action: "update", resource: "rubrics" },
+    { action: "delete", resource: "rubrics" },
+    // Attendance
+    { action: "create", resource: "assignance" },
+    { action: "read", resource: "assignance" },
+    { action: "update", resource: "assignance" },
+    { action: "delete", resource: "assignance" },
   ];
+
 
   // Definir permisos por rol (basado en tu sistema actual)
   const rolePermissions: Record<UserRole, Record<string, boolean>> = {
@@ -170,6 +202,37 @@ export const usePermissions = (schoolId?: string) => {
       "read:suscripciones": true,
       "update:suscripciones": true,
       "delete:suscripciones": true,
+
+      //Class Catalog
+      "create:classCatalog": true,
+      "read:classCatalog": true,
+      "update:classCatalog": true,
+      "delete:classCatalog": true,
+      //Students Classes
+      "create:studentsClasses": true,
+      "read:studentsClasses": true,
+      "update:studentsClasses": true,
+      "delete:studentsClasses": true,
+      //Schedule Assignment
+      "create:scheduleAssignament": true,
+      "read:scheduleAssignament": true,
+      "update:scheduleAssignament": true,
+      "delete:scheduleAssignament": true,
+      //Attendance
+      "create:attendance": true,
+      "read:attendance": true,
+      "update:attendance": true,
+      "delete:attendance": false,
+      // Rubrics
+      "create:rubrics": true,
+      "read:rubrics": true,
+      "update:rubrics": true,
+      "delete:rubrics": true,
+      // Attendance
+      "create:assignance": false,
+      "read:assignance": true,
+      "update:assignance": true,
+      "delete:assignance": false,
     },
     admin: {
       // Admin tiene casi todos los permisos (excepto eliminar escuelas)
@@ -242,6 +305,37 @@ export const usePermissions = (schoolId?: string) => {
       "read:suscripciones": false,
       "update:suscripciones": false,
       "delete:suscripciones": false,
+
+      //Class Catalog
+      "create:classCatalog": true,
+      "read:classCatalog": true,
+      "update:classCatalog": true,
+      "delete:classCatalog": true,
+      //Students Classes
+      "create:studentsClasses": true,
+      "read:studentsClasses": true,
+      "update:studentsClasses": true,
+      "delete:studentsClasses": true,
+      //Schedule Assignment
+      "create:scheduleAssignament": true,
+      "read:scheduleAssignament": true,
+      "update:scheduleAssignament": true,
+      "delete:scheduleAssignament": true,
+      //Attendance
+      "create:attendance": true,
+      "read:attendance": true,
+      "update:attendance": true,
+      "delete:attendance": false,
+      //Rubrics
+      "create:rubrics": true,
+      "read:rubrics": true,
+      "update:rubrics": true,
+      "delete:rubrics": true,
+      // Attendance
+      "create:assignance": false,
+      "read:assignance": true,
+      "update:assignance": true,
+      "delete:assignance": false,
     },
     auditor: {
       // Auditor solo puede leer y ver reportes
@@ -315,6 +409,37 @@ export const usePermissions = (schoolId?: string) => {
       "update:suscripciones": false,
       "delete:suscripciones": false,
       
+
+      //Class Catalog
+      "create:classCatalog": false,
+      "read:classCatalog": true,
+      "update:classCatalog": false,
+      "delete:classCatalog": false,
+      //Students Classes
+      "create:studentsClasses": false,
+      "read:studentsClasses": true,
+      "update:studentsClasses": false,
+      "delete:studentsClasses": false,
+      //Schedule Assignment
+      "create:scheduleAssignament": false,
+      "read:scheduleAssignament": true,
+      "update:scheduleAssignament": false,
+      "delete:scheduleAssignament": false,
+      //Attendance
+      "create:attendance": false,
+      "read:attendance": true,
+      "update:attendance": false,
+      "delete:attendance": false,
+      // Rubrics
+      "create:rubrics": false,
+      "read:rubrics": true,
+      "update:rubrics": false,
+      "delete:rubrics": false,
+      // Attendance
+      "create:assignance": false,
+      "read:assignance": true,
+      "update:assignance": false,
+      "delete:assignance": false,
     },
     teacher: {
       // Profesor similar al tutor pero con menos permisos
@@ -387,6 +512,32 @@ export const usePermissions = (schoolId?: string) => {
       "read:suscripciones": false,
       "update:suscripciones": false,
       "delete:suscripciones": false,
+
+      //Students Classes
+      "create:studentsClasses": false,
+      "read:studentsClasses": true,
+      "update:studentsClasses": false,
+      "delete:studentsClasses": false,
+      //Schedule Assignment
+      "create:scheduleAssignament": true,
+      "read:scheduleAssignament": true,
+      "update:scheduleAssignament": true,
+      "delete:scheduleAssignament": false,
+      //Attendance
+      "create:attendance": true,
+      "read:attendance": true,
+      "update:attendance": true,
+      "delete:attendance": false,
+      // Rubrics
+      "create:rubrics": true,
+      "read:rubrics": true,
+      "update:rubrics": true,
+      "delete:rubrics": true,
+      // Attendance
+      "create:assignance": true,
+      "read:assignance": true,
+      "update:assignance": true,
+      "delete:assignance": true,
     },
     tutor: {
       // Tutor es el padre
@@ -459,6 +610,32 @@ export const usePermissions = (schoolId?: string) => {
       "read:suscripciones": false,
       "update:suscripciones": false,
       "delete:suscripciones": false,
+
+      //Students Classes
+      "create:studentsClasses": false,
+      "read:studentsClasses": true,
+      "update:studentsClasses": false,
+      "delete:studentsClasses": false,
+      //Schedule Assignment
+      "create:scheduleAssignament": false,
+      "read:scheduleAssignament": true,
+      "update:scheduleAssignament": false,
+      "delete:scheduleAssignament": false,
+      //Attendance
+      "create:attendance": false,
+      "read:attendance": true,
+      "update:attendance": false,
+      "delete:attendance": false,
+      // Rubrics
+      "create:rubrics": false,
+      "read:rubrics": true,
+      "update:rubrics": false,
+      "delete:rubrics": false,
+      // Attendance
+      "create:assignance": false,
+      "read:assignance": true,
+      "update:assignance": false,
+      "delete:assignance": false,
     },
   };
 
@@ -662,6 +839,37 @@ export const usePermissions = (schoolId?: string) => {
     canReadSuscripciones: permissions["read:suscripciones"] || false,
     canUpdateSuscripciones: permissions["update:suscripciones"] || false,
     canDeleteSuscripciones: permissions["delete:suscripciones"] || false,
+
+    /** Class Catalog */
+    canCreateClassCatalog: permissions["create:classCatalog"] || false,
+    canReadClassCatalog: permissions["read:classCatalog"] || false,
+    canUpdateClassCatalog: permissions["update:classCatalog"] || false,
+    canDeleteClassCatalog: permissions["delete:classCatalog"] || false,
+    /** Students Classes */
+    canCreateStudentsClasses: permissions["create:studentsClasses"] || false,
+    canReadStudentsClasses: permissions["read:studentsClasses"] || false,
+    canUpdateStudentsClasses: permissions["update:studentsClasses"] || false,
+    canDeleteStudentsClasses: permissions["delete:studentsClasses"] || false,
+    /** Schedule Assignment */
+    canCreateScheduleAssignament: permissions["create:scheduleAssignament"] || false,
+    canReadScheduleAssignament: permissions["read:scheduleAssignament"] || false,
+    canUpdateScheduleAssignament: permissions["update:scheduleAssignament"] || false,
+    canDeleteScheduleAssignament: permissions["delete:scheduleAssignament"] || false,
+    /** Attendance */
+    canCreateAttendance: permissions["create:attendance"] || false,
+    canReadAttendance: permissions["read:attendance"] || false,
+    canUpdateAttendance: permissions["update:attendance"] || false,
+    canDeleteAttendance: permissions["delete:attendance"] || false,
+    /** Rubrics */
+    canCreateRubric: permissions["create:rubrics"] || false,
+    canReadRubric: permissions["read:rubrics"] || false,
+    canUpdateRubric: permissions["update:rubrics"] || false,
+    canDeleteRubric: permissions["delete:rubrics"] || false,
+    /** Assignance */
+    canCreateAssignance: permissions["create:assignance"] || false,
+    canReadAssignance: permissions["read:assignance"] || false,
+    canUpdateAssignance: permissions["update:assignance"] || false,
+    canDeleteAssignance: permissions["delete:assignance"] || false,
 
     // Propiedades específicas por rol
     isSuperAdmin: hasRole("superadmin"),
