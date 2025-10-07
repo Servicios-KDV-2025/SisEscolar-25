@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 
 import { es } from 'date-fns/locale'; // Importa el locale en español
-import { formatDate } from "date-fns";
+import { format } from "date-fns";
 
 // Tipos de datos que ya tienes
 interface Student {
@@ -168,8 +168,8 @@ export function GradingModal({
   }
 
   const termItem = data.item as TermData;
-  const formattedStartDate = termItem.startDate ? formatDate(termItem.startDate, 'P', { locale: es }) : 'N/A';
-  const formattedEndDate = termItem.endDate ? formatDate(termItem.endDate, 'P', { locale: es }) : 'N/A';
+  const formattedStartDate = termItem.startDate ? format(termItem.startDate, 'P', { locale: es }) : 'N/A';
+  const formattedEndDate = termItem.endDate ? format(termItem.endDate, 'P', { locale: es }) : 'N/A';
 
   // ✅ Contenido dinámico según el contexto
   const isAssignment = context === "assignment";
