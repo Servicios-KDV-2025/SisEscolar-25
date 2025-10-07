@@ -647,7 +647,7 @@ export const createUserSchool = mutation({
           q.eq(q.field('schoolId'), args.schoolId)
         )
       )
-      .first();
+      .unique();
 
     if (existingUserSchool) {
       throw new Error('El usuario ya está asignado a esta escuela');
