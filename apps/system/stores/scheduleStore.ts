@@ -3,7 +3,7 @@ import { api } from "@repo/convex/convex/_generated/api";
 import { useQuery, useMutation } from "convex/react";
 import { useCallback, useEffect } from "react";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
-import { hasTimeOverlap } from "app/[subdomain]/(dashboard)/schedule/scheduleUtils";
+import { hasTimeOverlap } from "utils/scheduleUtils";
 
 // Tipo de HORARIO basado en tu schema de Convex
 export type Schedule = {
@@ -131,6 +131,7 @@ export const useSchedule = (schoolId?: Id<'school'>) => {
     setUpdateError,
     setDeleteError,
     clearErrors,
+    setLoading,
   } = useScheduleStore();
 
   // Query para obtener los horario de la escuela
@@ -272,8 +273,16 @@ export const useSchedule = (schoolId?: Id<'school'>) => {
           updatedAt: p.updatedAt,
         }))
       );
+    } else if (scheduleQuery === null) {
+      // Maneja el caso en que no hay horarios y la query devuelve null
+      setSchedule([]);
     }
   }, [scheduleQuery, setSchedule]);
+
+  // Manejar el estado de carga general
+  useEffect(() => {
+    setLoading(scheduleQuery === undefined);
+  }, [scheduleQuery, setLoading]);
 
   return {
     schedule,

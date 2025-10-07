@@ -22,6 +22,7 @@ const cleanConvexError = (error: unknown): string => {
 
 // Tipos para el estudiante basados en el schema
 export interface Student {
+  studentClassId?: Id<'studentClass'>;
   _id: Id<"student">;
   schoolId: Id<"school">;
   groupId: Id<"group">;
@@ -156,6 +157,7 @@ export const useStudentStore = create<StudentState>((set, get) => ({
 
   // Crear estudiante
   createStudent: async (data: CreateStudentData) => {
+    console.log(data)
     set({ isCreating: true, error: null });
     
     try {
@@ -171,6 +173,7 @@ export const useStudentStore = create<StudentState>((set, get) => ({
 
   // Actualizar estudiante
   updateStudent: async (studentId: Id<"student">, data: UpdateStudentData) => {
+    console.log(data)
     set({ isUpdating: true, error: null });
     
     try {
@@ -186,6 +189,8 @@ export const useStudentStore = create<StudentState>((set, get) => ({
 
   // Actualizar estado del estudiante
   updateStudentStatus: async (studentId: Id<"student">, status: 'active' | 'inactive') => {
+    console.log(studentId)
+    console.log(status)
     set({ isUpdating: true, error: null });
     
     try {
@@ -201,6 +206,7 @@ export const useStudentStore = create<StudentState>((set, get) => ({
 
   // Eliminar estudiante
   deleteStudent: async (studentId: Id<"student">) => {
+    console.log(studentId)
     set({ isDeleting: true, error: null });
     
     try {
