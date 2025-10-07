@@ -11,6 +11,7 @@ import { MessageCircleDashed, MessageCircleMore } from "@repo/ui/icons";
 import { useMutation, useQuery } from "convex/react";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Student } from "stores/studentStore";
 import { useUserWithConvex } from "stores/userStore";
 
 interface DialogPorps {
@@ -31,7 +32,7 @@ interface DialogPorps {
     totalStudents: number;
     submittedCount: number;
     pendingCount: number;
-    submittedStudents: any[];
+    submittedStudents: Student[];
   } | undefined
 }
 
