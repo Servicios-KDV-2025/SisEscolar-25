@@ -9,20 +9,12 @@ import { SiteHeaderWithData } from "components/SiteHeaderWithData";
 
 export const dynamic = "force-dynamic";
 
-// export default function EscuelaLayout({
-//   children,
-// }: {
-//   children: ReactNode;
-//   params: { subdomain: string };
-// }) {
-
-interface EscuelaLayoutProps {
+export default function EscuelaLayout({
+  children,
+}: {
   children: ReactNode;
-  // params opcional
-  params?: { subdomain: string };
-}
-
-export default function EscuelaLayout({ children }: EscuelaLayoutProps) {
+  params: { subdomain: string };
+}) {
 
   return (
     <SchoolErrorBoundary>
