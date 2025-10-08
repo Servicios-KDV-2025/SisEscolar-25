@@ -61,6 +61,18 @@ export const settingsQuery = defineQuery(`
         title
       }
     },
+    nav{
+      menus[]{
+        ...,
+        "slug": link.reference -> slug.current,
+        "type_reference" : link.reference-> _type,
+        submenus[]{
+          ...,
+          "slug": link.reference -> slug.current,
+          "type_reference" : link.reference-> _type,
+        }
+      }
+    },
     ogImage,
   }
 `)

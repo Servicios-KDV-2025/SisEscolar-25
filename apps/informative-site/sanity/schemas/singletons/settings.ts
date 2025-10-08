@@ -68,6 +68,12 @@ export default defineType({
         hotspot: true,
       },
     }),
+    defineField({
+      name: 'nav',
+      title: 'Navegador',
+      type: 'nav',
+      description: 'Configuración del navegador.',
+    })
   ],
   preview: {
     prepare() {
