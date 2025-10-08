@@ -35,17 +35,38 @@ export const getBySchoolId = query({
 // Obtener por rol específico
 export const getByRole = query({
   args: {
+    schoolId: v.id("school"),
     role: v.union(
-      v.literal('superadmin'),
-      v.literal('admin'),
-      v.literal('auditor'),
-      v.literal('teacher'),
-      v.literal('tutor')
+      v.literal("superadmin"),
+      v.literal("admin"),
+      v.literal("auditor"),
+      v.literal("teacher"),
+      v.literal("tutor")
     ),
   },
   handler: async (ctx, args) => {
-    const allRelations = await ctx.db.query("userSchool").collect();
-    return allRelations.filter((relation) => relation.role.includes(args.role));
+    // 1. Obtenemos todas las relaciones de una escuela (esto es eficiente si tienes un índice).
+    const relationsForSchool = await ctx.db
+      .query("userSchool")
+      .withIndex("by_schoolId", (q) => q.eq("schoolId", args.schoolId))
+      .collect();
+
+    // 2. Filtramos en memoria para encontrar las relaciones cuyo arreglo "role" INCLUYE el rol que buscamos.
+    // ¡Esta es la forma correcta de hacerlo cuando el campo es un arreglo!
+    const matchingRelations = relationsForSchool.filter((relation) =>
+      relation.role.includes(args.role)
+    );
+
+    if (matchingRelations.length === 0) {
+      return [];
+    }
+
+    // 3. (Recomendado) Obtenemos los documentos completos de los usuarios encontrados.
+    const users = await Promise.all(
+      matchingRelations.map((relation) => ctx.db.get(relation.userId))
+    );
+
+    return users.filter((user) => user !== null);
   },
 });
 

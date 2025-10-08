@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
+import { usePermissions } from 'hooks/usePermissions';
 
 // Tipos para las tareas
 export type Task = {
@@ -142,20 +143,20 @@ const initialState: TaskStoreState = {
 
 export const useTaskStore = create<TaskStoreState & TaskStoreActions>((set, get) => ({
   ...initialState,
-  
+
   setTasks: (tasks) => set({ tasks }),
   setSelectedTask: (selectedTask) => set({ selectedTask }),
-  
-  setFormData: (newFormData) => 
-    set((state) => ({ 
-      formData: { ...state.formData, ...newFormData } 
+
+  setFormData: (newFormData) =>
+    set((state) => ({
+      formData: { ...state.formData, ...newFormData }
     })),
-  
+
   resetFormData: () => set({ formData: initialFormData }),
-  
+
   setValidationErrors: (validationErrors) => set({ validationErrors }),
-  
-  clearFieldError: (fieldName) => 
+
+  clearFieldError: (fieldName) =>
     set((state) => {
       if (state.validationErrors[fieldName]) {
         const newErrors = { ...state.validationErrors };
@@ -164,13 +165,13 @@ export const useTaskStore = create<TaskStoreState & TaskStoreActions>((set, get)
       }
       return state;
     }),
-  
+
   setLoading: (isLoading) => set({ isLoading }),
   setCreating: (isCreating) => set({ isCreating }),
   setUpdating: (isUpdating) => set({ isUpdating }),
   setDeleting: (isDeleting) => set({ isDeleting }),
   setError: (error) => set({ error }),
-  
+
   setCreateDialogOpen: (isCreateDialogOpen) => {
     set({ isCreateDialogOpen });
     if (isCreateDialogOpen) {
@@ -179,7 +180,7 @@ export const useTaskStore = create<TaskStoreState & TaskStoreActions>((set, get)
       get().setValidationErrors({});
     }
   },
-  
+
   setEditDialogOpen: (isEditDialogOpen) => {
     set({ isEditDialogOpen });
     if (!isEditDialogOpen) {
@@ -188,13 +189,13 @@ export const useTaskStore = create<TaskStoreState & TaskStoreActions>((set, get)
       get().setValidationErrors({});
     }
   },
-  
+
   openEditModal: (task) => {
     // Crear fecha local para evitar problemas de zona horaria
     const taskDate = new Date(task.dueDate);
     const localDate = new Date(taskDate.getTime() - (taskDate.getTimezoneOffset() * 60000));
     const originalTime = taskDate.toTimeString().slice(0, 5);
-    
+
     // Establecer datos del formulario
     set({
       selectedTask: task,
@@ -212,7 +213,7 @@ export const useTaskStore = create<TaskStoreState & TaskStoreActions>((set, get)
       isEditDialogOpen: true,
     });
   },
-  
+
   closeEditModal: () => {
     set({
       isEditDialogOpen: false,
@@ -220,18 +221,18 @@ export const useTaskStore = create<TaskStoreState & TaskStoreActions>((set, get)
       validationErrors: {},
     });
   },
-  
+
   clearErrors: () => set({ error: null, validationErrors: {} }),
   reset: () => set(initialState),
-  
+
   // Acciones para el progreso
   setTasksProgress: (tasksProgress) => set({ tasksProgress }),
-  
+
   getTaskProgress: (taskId) => {
     const state = get();
     return state.tasksProgress.find(progress => progress.assignmentId === taskId);
   },
-  
+
   // Función para obtener progreso desde la query directamente
   getTaskProgressFromQuery: (taskId: string, progressData: TaskProgress[] | undefined) => {
     return progressData?.find((progress: TaskProgress) => progress.assignmentId === taskId);
@@ -239,34 +240,115 @@ export const useTaskStore = create<TaskStoreState & TaskStoreActions>((set, get)
 }));
 
 // Hook personalizado para usar el store con Convex
-export const useTask = () => {
+// Hook personalizado para usar el store con Convex
+export const useTask = (schoolId?: string) => {
   const store = useTaskStore();
-  
-  // Queries
-  const teacherAssignments = useQuery(api.functions.assignment.getTeacherAssignments);
-  const teacherClasses = useQuery(api.functions.classCatalog.getTeacherClasses);
-  const allTerms = useQuery(api.functions.classCatalog.getAllTerms);
-  const assignmentsProgress = useQuery(api.functions.assignment.getTeacherAssignmentsProgress);
-  
+
+  // Obtener permisos de autorización
+  const permissions = usePermissions(schoolId);
+
+  const {
+    canCreateAssignance,
+    canReadAssignance,
+    canUpdateAssignance,
+    canDeleteAssignance,
+    currentRole,
+  } = permissions;
+
+  // Obtener el ciclo escolar activo
+  const activeCycle = useQuery(
+    api.functions.schoolCycles.ObtenerCicloActivo,
+    schoolId ? { escuelaID: schoolId as Id<"school"> } : "skip"
+  );
+
+  const allAssignmentsForFilters = useQuery(
+    api.functions.assignment.getAllAssignmentsForFilters,
+    schoolId ? {
+      schoolId: schoolId as Id<"school">,
+      canViewAll: permissions.getStudentFilters().canViewAll,
+      tutorId: permissions.getStudentFilters().tutorId,
+      teacherId: permissions.getStudentFilters().teacherId
+    } : "skip"
+  );
+
+  const allClassesForFilters = useQuery(
+    api.functions.classCatalog.getClassCatalogWithRoleFilter,
+    schoolId ? {
+      schoolId: schoolId as Id<"school">,
+      canViewAll: permissions.getStudentFilters().canViewAll,
+      tutorId: permissions.getStudentFilters().tutorId,
+      teacherId: permissions.getStudentFilters().teacherId
+    } : "skip"
+  );
+
+  // Queries con autorización
+  const teacherAssignments = useQuery(
+    api.functions.assignment.getTeacherAssignments,
+    schoolId ? {
+      schoolId: schoolId as Id<"school">,
+      canViewAll: permissions.getStudentFilters().canViewAll,
+      tutorId: permissions.getStudentFilters().tutorId,
+      teacherId: permissions.getStudentFilters().teacherId
+    } : "skip"
+  );
+
+  // Obtener todas las clases del maestro y luego filtrar por ciclo activo
+  const allTeacherClasses = useQuery(
+    api.functions.classCatalog.getTeacherClasses,
+    schoolId ? {
+      schoolId: schoolId as Id<"school">,
+      canViewAll: permissions.getStudentFilters().canViewAll,
+      tutorId: permissions.getStudentFilters().tutorId,
+      teacherId: permissions.getStudentFilters().teacherId
+    } : "skip"
+  );
+
+  // Filtrar las clases del maestro por el ciclo escolar activo
+  const teacherClasses = allTeacherClasses?.filter(
+    (classCatalog) => {
+      // Forzar el tipo para acceder a schoolCycleId
+      const classWithCycle = classCatalog as typeof classCatalog & { schoolCycleId: string };
+      return classWithCycle.schoolCycleId === activeCycle?._id;
+    }
+  );
+
+  const allTerms = useQuery(
+    api.functions.terms.getTermsByCycleId,
+    activeCycle ? { schoolCycleId: activeCycle._id } : "skip"
+  );
+
+  const assignmentsProgress = useQuery(
+    api.functions.assignment.getTeacherAssignmentsProgress,
+    schoolId ? {
+      schoolId: schoolId as Id<"school">,
+      canViewAll: permissions.getStudentFilters().canViewAll,
+      tutorId: permissions.getStudentFilters().tutorId,
+      teacherId: permissions.getStudentFilters().teacherId
+    } : "skip"
+  );
+
   // Obtener las rúbricas de calificación para la clase y término seleccionados
   const gradeRubrics = useQuery(
     api.functions.gradeRubrics.getGradeRubricsByClass,
     (store.formData.classCatalogId && store.formData.termId) ||
       (store.selectedTask && store.selectedTask.classCatalogId && store.selectedTask.termId)
       ? {
-          classCatalogId: (store.formData.classCatalogId ||
-            store.selectedTask?.classCatalogId) as Id<"classCatalog"> ,
-          termId: (store.formData.termId || store.selectedTask?.termId) as Id<"term"> ,
-        }
+        classCatalogId: (store.formData.classCatalogId ||
+          store.selectedTask?.classCatalogId) as Id<"classCatalog">,
+        termId: (store.formData.termId || store.selectedTask?.termId) as Id<"term">,
+        canViewAll: permissions.getStudentFilters().canViewAll,
+        tutorId: permissions.getStudentFilters().tutorId,
+        teacherId: permissions.getStudentFilters().teacherId
+      }
       : "skip"
   );
-  
-  // Mutations
+
+  // Mutations (se mantienen igual)
   const createAssignmentMutation = useMutation(api.functions.assignment.createAssignment);
   const updateAssignmentMutation = useMutation(api.functions.assignment.updateAssignment);
   const deleteAssignmentMutation = useMutation(api.functions.assignment.deleteAssignment);
-  
-  // CREATE
+
+  // CREATE (se mantiene igual)
   const createTask = async (data: CreateTaskData) => {
     store.setCreating(true);
     store.setError(null);
@@ -289,8 +371,8 @@ export const useTask = () => {
       store.setCreating(false);
     }
   };
-  
-  // UPDATE
+
+  // UPDATE (se mantiene igual)
   const updateTask = async (data: UpdateTaskData) => {
     store.setUpdating(true);
     store.setError(null);
@@ -316,8 +398,8 @@ export const useTask = () => {
       store.setUpdating(false);
     }
   };
-  
-  // DELETE
+
+  // DELETE (se mantiene igual)
   const deleteTask = async (id: string) => {
     store.setDeleting(true);
     store.setError(null);
@@ -331,25 +413,32 @@ export const useTask = () => {
       store.setDeleting(false);
     }
   };
-  
-  // No sincronizamos automáticamente para evitar setState durante render
-  // El progreso se obtiene directamente de la query
-  
+
   return {
     // Estado
     ...store,
-    
+
     // Datos de las queries
+    allAssignmentsForFilters,
+    allClassesForFilters,
     teacherAssignments,
     teacherClasses,
     allTerms,
     gradeRubrics,
     assignmentsProgress,
-    
+
+    // Información de permisos
+    permissions,
+
     // Acciones
     createTask,
     updateTask,
     deleteTask,
     getTaskProgressFromQuery: store.getTaskProgressFromQuery,
+    canCreateTask: canCreateAssignance,
+    canReadTask: canReadAssignance,
+    canUpdateTask: canUpdateAssignance,
+    canDeleteTask: canDeleteAssignance,
+    currentRole,
   };
 };

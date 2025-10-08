@@ -108,23 +108,59 @@ export const getGradesByClassAndTerm = query({
   args: {
     classCatalogId: v.id("classCatalog"),
     termId: v.id("term"),
+    canViewAll: v.boolean(),
+    tutorId: v.optional(v.id("user")),
+    teacherId: v.optional(v.id("user"))
   },
   handler: async (ctx, args) => {
-    // Obtener los IDs de todas las tareas para esa clase y periodo
+    // Primero verificar acceso a la clase
+    const classCatalog = await ctx.db.get(args.classCatalogId);
+    if (!classCatalog) return [];
+
+    if (!args.canViewAll) {
+      if (args.tutorId) {
+        // Verificar que el tutor tenga estudiantes en esta clase
+        const tutorStudentsInClass = await ctx.db
+          .query("studentClass")
+          .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", args.classCatalogId))
+          .filter((q) => q.eq(q.field("status"), "active"))
+          .collect();
+
+        if (tutorStudentsInClass.length > 0) {
+          const studentIds = tutorStudentsInClass.map(sc => sc.studentId);
+          const students = await Promise.all(studentIds.map(id => ctx.db.get(id)));
+          const hasAccess = students.some(student =>
+            student && student.tutorId === args.tutorId
+          );
+          if (!hasAccess) return [];
+        } else {
+          return [];
+        }
+      } else if (args.teacherId) {
+        // Verificar que el teacher sea el profesor de esta clase
+        if (classCatalog.teacherId !== args.teacherId) {
+          return [];
+        }
+      } else {
+        return [];
+      }
+    }
+
+    // Si tiene acceso, proceder con la consulta original
     const assignments = await ctx.db
       .query("assignment")
       .withIndex("by_classCatalogId", (q) => q.eq("classCatalogId", args.classCatalogId))
       .filter((q) => q.eq(q.field("termId"), args.termId))
       .collect();
- 
+
     const assignmentIds = assignments.map(a => a._id);
- 
+
     // Obtener todas las calificaciones que coinciden con esos IDs de tarea
     const grades = await ctx.db
       .query("grade")
       .filter((q) => q.or(...assignmentIds.map(id => q.eq(q.field("assignmentId"), id))))
       .collect();
- 
+
     return grades;
   },
 });
