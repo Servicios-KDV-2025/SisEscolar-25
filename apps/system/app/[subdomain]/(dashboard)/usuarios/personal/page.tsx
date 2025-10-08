@@ -298,36 +298,37 @@ export default function PersonalPage() {
   };
 
   const handleOpenEdit = (user: UserFromConvex) => {
-  userActions.clearErrors();
-  userActions.clearLastResult();
+    console.log("✏️ departamento que tiene puesto: " + user.department);
+    userActions.clearErrors();
+    userActions.clearLastResult();
 
-  // Separar roles editables de tutor
-  const editableRoles = user.schoolRole.filter(role => role !== "tutor");
+    // Separar roles editables de tutor
+    const editableRoles = user.schoolRole;
 
-  const editData = {
-    ...user,
-    role: editableRoles, // Solo roles editables en el formulario
-    originalRoles: user.schoolRole, // Guardar roles originales para preservar tutor
-    userSchoolId: user.userSchoolId,
-    status: user.schoolStatus,
+    const editData = {
+      ...user,
+      role: editableRoles, // Solo roles editables en el formulario
+      originalRoles: user.schoolRole, // Guardar roles originales para preservar tutor
+      userSchoolId: user.userSchoolId,
+      status: user.schoolStatus,
+    };
+
+    openEdit(editData);
   };
 
-  openEdit(editData);
-};
+  const handleOpenView = (user: UserFromConvex) => {
+    userActions.clearErrors();
+    userActions.clearLastResult();
 
-const handleOpenView = (user: UserFromConvex) => {
-  userActions.clearErrors();
-  userActions.clearLastResult();
+    const viewData = {
+      ...user,
+      role: user.schoolRole, // Mostrar TODOS los roles incluyendo tutor
+      userSchoolId: user.userSchoolId,
+      status: user.schoolStatus,
+    };
 
-  const viewData = {
-    ...user,
-    role: user.schoolRole, // Mostrar TODOS los roles incluyendo tutor
-    userSchoolId: user.userSchoolId,
-    status: user.schoolStatus,
+    openView(viewData);
   };
-
-  openView(viewData);
-};
 
   const handleOpenDelete = (user: UserFromConvex) => {
     userActions.clearErrors();
@@ -377,194 +378,195 @@ const handleOpenView = (user: UserFromConvex) => {
   }, [allUsers, searchTerm, statusFilter, roleFilter, departmentFilter]);
 
   // Funciones CRUD
-const handleCreate = async (formData: Record<string, unknown>) => {
-  if (!currentSchool?.school?._id) {
-    console.error("No hay escuela actual disponible");
-    throw new Error("No hay escuela actual disponible");
-  }
+  const handleCreate = async (formData: Record<string, unknown>) => {
+    if (!currentSchool?.school?._id) {
+      console.error("No hay escuela actual disponible");
+      throw new Error("No hay escuela actual disponible");
+    }
 
-  const email = formData.email as string;
+    const email = formData.email as string;
 
-  try {
-    // PASO 1: Buscar si el usuario ya existe en Convex
-    const existingUsers = await searchUserByEmailAsync(email);
+    try {
+      // PASO 1: Buscar si el usuario ya existe en Convex
+      const existingUsers = await searchUserByEmailAsync(email);
 
-    if (existingUsers && existingUsers.length > 0) {
-      // FLUJO A: Usuario existe en la base de datos de usuarios
-      const existingUser = existingUsers[0];
+      if (existingUsers && existingUsers.length > 0) {
+        // FLUJO A: Usuario existe en la base de datos de usuarios
+        const existingUser = existingUsers[0];
 
-      if (
-        !existingUser?.clerkId ||
-        !existingUser?.name ||
-        !existingUser?.email
-      ) {
-        throw new Error(
-          "Error al obtener datos completos del usuario existente"
-        );
-      }
-
-      // Buscar si ya tiene relación en esta escuela (con cualquier rol)
-      const userInCurrentSchool = allUsers?.find(
-        (user: UserFromConvex) => user.clerkId === existingUser.clerkId
-      );
-
-      if (userInCurrentSchool) {
-        // Usuario YA tiene una relación en esta escuela
-        const existingRoles = userInCurrentSchool.schoolRole;
-
-        // Verificar si el rol de tutor ya existe
-        if (existingRoles.includes("tutor")) {
+        if (
+          !existingUser?.clerkId ||
+          !existingUser?.name ||
+          !existingUser?.email
+        ) {
           throw new Error(
-            `El usuario ${email} ya tiene asignado el rol de tutor. No se realizó ningún cambio.`
+            "Error al obtener datos completos del usuario existente"
           );
         }
 
-        // Logging para debugging
-        console.log(
-          `⚠️ Agregando rol de tutor al usuario existente. Roles anteriores: ${existingRoles.join(", ")}`
+        // Buscar si ya tiene relación en esta escuela (con cualquier rol)
+        const userInCurrentSchool = allUsers?.find(
+          (user: UserFromConvex) => user.clerkId === existingUser.clerkId
         );
-      }
 
-      // Crear o actualizar la relación (createUserSchool maneja ambos casos)
-      await createUserSchoolRelation({
-        clerkId: existingUser.clerkId,
-        schoolId: currentSchool.school._id,
-        role: ["tutor"],
-        status: "active",
-        department: undefined,
-      });
+        if (userInCurrentSchool) {
+          // Usuario YA tiene una relación en esta escuela
+          const existingRoles = userInCurrentSchool.schoolRole;
 
-      return;
-    }
+          // Verificar si el rol de tutor ya existe
+          if (existingRoles.includes("tutor")) {
+            throw new Error(
+              `El usuario ${email} ya tiene asignado el rol de tutor. No se realizó ningún cambio.`
+            );
+          }
 
-    // FLUJO B: Usuario no existe, crear nuevo en Clerk + asignar
-    const password = formData.password as string;
+          // Logging para debugging
+          console.log(
+            `⚠️ Agregando rol de tutor al usuario existente. Roles anteriores: ${existingRoles.join(", ")}`
+          );
+        }
 
-    if (!password || password.trim() === "") {
-      throw new Error(
-        "La contraseña es requerida para crear un usuario nuevo. Si el usuario ya existe en el sistema, se asignará automáticamente."
-      );
-    }
-
-    const createData = {
-      email: email,
-      password: password,
-      name: formData.name as string,
-      lastName: formData.lastName as string,
-    };
-
-    const result = await userActions.createUser(createData);
-
-    if (result.success && result.userId) {
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-
+        // Crear o actualizar la relación (createUserSchool maneja ambos casos)
         await createUserSchoolRelation({
-          clerkId: result.userId,
+          clerkId: existingUser.clerkId,
           schoolId: currentSchool.school._id,
           role: ["tutor"],
           status: "active",
           department: undefined,
         });
-      } catch (error) {
-        console.error("Error al asignar usuario como tutor:", error);
+
+        return;
+      }
+
+      // FLUJO B: Usuario no existe, crear nuevo en Clerk + asignar
+      const password = formData.password as string;
+
+      if (!password || password.trim() === "") {
         throw new Error(
-          `Usuario creado pero error al asignar como tutor: ${error instanceof Error ? error.message : "Error desconocido"}`
+          "La contraseña es requerida para crear un usuario nuevo. Si el usuario ya existe en el sistema, se asignará automáticamente."
         );
       }
-    } else {
-      console.error("Error al crear usuario en Clerk:", result.error);
-      throw new Error(result.error || "Error al crear usuario en Clerk");
+
+      const createData = {
+        email: email,
+        password: password,
+        name: formData.name as string,
+        lastName: formData.lastName as string,
+      };
+
+      const result = await userActions.createUser(createData);
+
+      if (result.success && result.userId) {
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+
+          await createUserSchoolRelation({
+            clerkId: result.userId,
+            schoolId: currentSchool.school._id,
+            role: ["tutor"],
+            status: "active",
+            department: undefined,
+          });
+        } catch (error) {
+          console.error("Error al asignar usuario como tutor:", error);
+          throw new Error(
+            `Usuario creado pero error al asignar como tutor: ${error instanceof Error ? error.message : "Error desconocido"}`
+          );
+        }
+      } else {
+        console.error("Error al crear usuario en Clerk:", result.error);
+        throw new Error(result.error || "Error al crear usuario en Clerk");
+      }
+    } catch (error) {
+      console.error("❌ Error en handleCreate:", error);
+      throw error;
     }
-  } catch (error) {
-    console.error("❌ Error en handleCreate:", error);
-    throw error;
-  }
-};
+  };
 
   const handleUpdate = async (formData: Record<string, unknown>) => {
-  const combinedData = { ...data, ...formData };
+    const combinedData = { ...data, ...formData };
 
-  if (!combinedData.clerkId) {
-    console.error("Clerk ID de usuario no disponible");
-    throw new Error("Clerk ID de usuario no disponible");
-  }
+    if (!combinedData.clerkId) {
+      console.error("Clerk ID de usuario no disponible");
+      throw new Error("Clerk ID de usuario no disponible");
+    }
 
-  if (!combinedData.userSchoolId) {
-    console.error("UserSchool ID no disponible");
-    throw new Error("UserSchool ID no disponible");
-  }
+    if (!combinedData.userSchoolId) {
+      console.error("UserSchool ID no disponible");
+      throw new Error("UserSchool ID no disponible");
+    }
 
-  try {
-    const userUpdateData = {
-      name: combinedData.name as string,
-      lastName: combinedData.lastName as string,
-      email: combinedData.email as string,
-    };
+    try {
+      const userUpdateData = {
+        name: combinedData.name as string,
+        lastName: combinedData.lastName as string,
+        email: combinedData.email as string,
+      };
 
-    const userResult = await userActions.updateUser(
-      combinedData.clerkId as string,
-      userUpdateData
-    );
-
-    if (!userResult.success) {
-      console.error("Error al actualizar usuario en Clerk:", userResult.error);
-      throw new Error(
-        userResult.error || "Error al actualizar información básica del usuario"
+      const userResult = await userActions.updateUser(
+        combinedData.clerkId as string,
+        userUpdateData
       );
+
+      if (!userResult.success) {
+        console.error("Error al actualizar usuario en Clerk:", userResult.error);
+        throw new Error(
+          userResult.error || "Error al actualizar información básica del usuario"
+        );
+      }
+
+      const selectedRoleData = formData.role;
+      const selectedDepartment = formData.department as string | undefined;
+
+      let finalRoles: Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
+
+      if (Array.isArray(selectedRoleData)) {
+        finalRoles = selectedRoleData as Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
+      } else if (typeof selectedRoleData === "string") {
+        finalRoles = [selectedRoleData as "superadmin" | "admin" | "auditor" | "teacher" | "tutor"];
+      } else {
+        finalRoles = Array.isArray(data?.schoolRole)
+          ? data.schoolRole
+          : [data?.role as "superadmin" | "admin" | "auditor" | "teacher" | "tutor"];
+      }
+
+      console.log("🔍 Roles finales seleccionados:", finalRoles);
+      console.log("🔍 Departamento seleccionado:", selectedDepartment);
+
+      const hasAdminRole = finalRoles.includes("admin");
+
+      // Determinar el valor del departamento
+      let departmentValue: string | undefined | null;
+      if (hasAdminRole) {
+        // Si tiene rol admin, usar el departamento seleccionado
+        if (selectedDepartment === "none" || selectedDepartment === undefined) {
+          departmentValue = null; // Sin departamento
+        } else {
+          departmentValue = selectedDepartment;
+        }
+      } else {
+        // Si NO tiene rol admin, siempre limpia departamento
+        departmentValue = null;
+      }
+
+      console.log("🔍 Departamento final a guardar:", departmentValue);
+
+      await updateUserSchoolRelation({
+        id: combinedData.userSchoolId as Id<"userSchool">,
+        role: finalRoles,
+        department: departmentValue === null
+          ? null
+          : (departmentValue as "secretary" | "direction" | "schoolControl" | "technology"),
+        status: (combinedData.status as "active" | "inactive") || "active",
+      });
+
+      console.log("✅ Actualización completada exitosamente");
+
+    } catch (error) {
+      console.error("❌ Error en handleUpdate:", error);
+      throw error;
     }
-
-    const selectedRoleData = formData.role;
-    const selectedDepartment = formData.department as string;
-
-    let editedRoles: Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
-    
-    if (Array.isArray(selectedRoleData)) {
-      editedRoles = selectedRoleData as Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
-    } else if (typeof selectedRoleData === "string") {
-      editedRoles = [selectedRoleData as "superadmin" | "admin" | "auditor" | "teacher" | "tutor"];
-    } else {
-      editedRoles = Array.isArray(data?.schoolRole) 
-        ? data.schoolRole 
-        : [data?.role as "superadmin" | "admin" | "auditor" | "teacher" | "tutor"];
-    }
-
-    // ✅ PRESERVAR el rol de tutor si existía originalmente
-    const originalRoles = (data?.originalRoles || data?.schoolRole || []) as Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
-    const hadTutorRole = originalRoles.includes("tutor");
-    
-    let finalRoles = editedRoles;
-    if (hadTutorRole && !finalRoles.includes("tutor")) {
-      finalRoles = [...finalRoles, "tutor"]; // Agregar tutor de vuelta
-    }
-
-    console.log("🔍 Roles finales a guardar:", finalRoles);
-
-    const hasAdminRole = finalRoles.includes("admin");
-
-    let departmentValue: string | undefined;
-    if (hasAdminRole) {
-      departmentValue = selectedDepartment === "none" ? undefined : selectedDepartment;
-    } else {
-      departmentValue = undefined;
-    }
-
-    await updateUserSchoolRelation({
-      id: combinedData.userSchoolId as Id<"userSchool">,
-      role: finalRoles,
-      department: departmentValue === undefined
-        ? null
-        : (departmentValue as "secretary" | "direction" | "schoolControl" | "technology"),
-      status: (combinedData.status as "active" | "inactive") || "active",
-    });
-
-    console.log("✅ Actualización completada exitosamente");
-
-  } catch (error) {
-    console.error("❌ Error en handleUpdate:", error);
-    throw error;
-  }
-};
+  };
 
   const handleDelete = async (deleteData: Record<string, unknown>) => {
 
@@ -1228,9 +1230,13 @@ const handleCreate = async (formData: Record<string, unknown>) => {
                             value=""
                             onValueChange={(value) => {
                               handleAddRole(value);
-                              // Limpiar departamento si se cambia de admin a otro rol
-                              const previousHasAdmin = selectedRoles.includes("admin");
-                              if (previousHasAdmin && value !== "admin") {
+                              // Solo limpiar departamento si después de agregar el rol, ya no tiene admin
+                              const newRoles = selectedRoles.includes(value)
+                                ? selectedRoles
+                                : [...selectedRoles, value];
+                              const stillHasAdmin = newRoles.includes("admin");
+
+                              if (!stillHasAdmin) {
                                 form.setValue("department", undefined);
                               }
                             }}
