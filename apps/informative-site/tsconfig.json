@@ -21,7 +21,6 @@
       }
     ],
     "paths": {
-<<<<<<< HEAD:apps/informative-site/tsconfig.json
       "@payload-config": [
         "./src/payload.config.ts"
       ],
@@ -31,9 +30,6 @@
       "@/*": [
         "./src/*"
       ],
-=======
-      "@/*": ["./*"]
->>>>>>> a865194b180782963ebc5bbe2ff2c8b521545d97:apps/marketing/tsconfig.json
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
