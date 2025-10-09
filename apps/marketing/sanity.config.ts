@@ -21,6 +21,7 @@ import {structureTool} from 'sanity/structure'
 import nav from './sanity/schemas/objects/global/nav'
 import linkExternal from './sanity/schemas/objects/link/linkExternal'
 import linkInternal from './sanity/schemas/objects/link/linkInternal'
+import footer from './sanity/schemas/objects/global/footer'
 
 
 const title =
@@ -43,6 +44,7 @@ export default defineConfig({
       project,
       //Global
       nav,
+      footer,
       //Link
       linkExternal,
       linkInternal,

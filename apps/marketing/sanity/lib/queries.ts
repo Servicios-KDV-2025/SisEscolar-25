@@ -73,7 +73,23 @@ export const settingsQuery = defineQuery(`
           "type_reference" : link.reference-> _type,
         }
       }
-    }
+    },
+    footer{
+      ...,
+      columns[]{
+        ...,
+        links[]{
+          ...,
+          "url" : select(
+          _type == 'linkExternal' =>url,
+          _type == 'linkInternal' =>reference->slug.current
+          ),
+          _type == 'linkInternal' => {
+            "type_reference": reference->_type
+          }
+        }
+      }
+    },
   }
 `)
 

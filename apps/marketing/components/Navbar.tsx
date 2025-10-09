@@ -29,7 +29,7 @@ export function Navbar(props: NavbarProps) {
           <NavigationMenu className='my-2'>
             <NavigationMenuList>
         {
-          data?.nav?.menus?.map((menu, index) => {
+          data?.nav?.menus?.map((menu) => {
             if (menu._type === 'simpleMenu') {
               return <SimpleMenu key={menu._key} slug={menu.slug} type_reference={menu.type_reference} link={menu.link!} />;
             }
