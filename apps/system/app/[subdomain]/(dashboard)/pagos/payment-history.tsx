@@ -1,165 +1,19 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@repo/ui/components/shadcn/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table"
-import { Filter, AlertTriangle, CheckCircle, Clock, Search, History, FileText, TrendingUp } from "lucide-react"
+import { Filter, AlertTriangle, CheckCircle, Clock, Search, History, TrendingUp, Loader2, Eye, Download, FileX } from "lucide-react"
 import { Badge } from "@repo/ui/components/shadcn/badge"
 import { Input } from "@repo/ui/components/shadcn/input"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@repo/ui/components/shadcn/select"
-
-interface SchoolCycle {
-  id: string
-  name: string
-  startDate: string
-  endDate: string
-  isActive: boolean
-}
-
-interface PaymentConfig {
-  id: string
-  schoolCycleId: string
-  type: string
-  amount: number
-  startDate: string
-  endDate: string
-  status: "active" | "inactive"
-}
-
-interface PaymentHistory {
-  id: string
-  studentId: string
-  paymentConfigId: string
-  status: string
-  amount: number
-  paidAt: string
-  paymentMethod: string
-  invoiceId: string
-}
-
-const schoolCyclesMock: SchoolCycle[] = [
-  {
-    id: "2024-2025",
-    name: "Ciclo Escolar 2024-2025",
-    startDate: "2024-08-01",
-    endDate: "2025-07-31",
-    isActive: true,
-  },
-  {
-    id: "2023-2024",
-    name: "Ciclo Escolar 2023-2024",
-    startDate: "2023-08-01",
-    endDate: "2024-07-31",
-    isActive: false,
-  },
-  {
-    id: "2022-2023",
-    name: "Ciclo Escolar 2022-2023",
-    startDate: "2022-08-01",
-    endDate: "2023-07-31",
-    isActive: false,
-  },
-]
-
-const paymentConfigsMock: PaymentConfig[] = [
-  {
-    id: "1",
-    schoolCycleId: "2024-2025",
-    type: "Colegiatura Mensual",
-    amount: 2500,
-    startDate: "2024-01-01",
-    endDate: "2024-12-31",
-    status: "active",
-  },
-  {
-    id: "2",
-    schoolCycleId: "2024-2025",
-    type: "Inscripción",
-    amount: 5000,
-    startDate: "2024-08-01",
-    endDate: "2024-08-31",
-    status: "active",
-  },
-  {
-    id: "3",
-    schoolCycleId: "2024-2025",
-    type: "Material Escolar",
-    amount: 1200,
-    startDate: "2024-08-15",
-    endDate: "2024-09-15",
-    status: "inactive",
-  },
-  {
-    id: "4",
-    schoolCycleId: "2024-2025",
-    type: "Seguro Escolar",
-    amount: 800,
-    startDate: "2024-09-01",
-    endDate: "2024-09-30",
-    status: "active",
-  },
-  {
-    id: "5",
-    schoolCycleId: "2023-2024",
-    type: "Colegiatura Mensual",
-    amount: 2300,
-    startDate: "2023-01-01",
-    endDate: "2023-12-31",
-    status: "inactive",
-  },
-]
-
-const paymentHistoryMock: PaymentHistory[] = [
-  {
-    id: "1",
-    studentId: "Ana García López",
-    paymentConfigId: "1",
-    status: "Pagado",
-    amount: 2500,
-    paidAt: "2024-01-05",
-    paymentMethod: "Transferencia Bancaria",
-    invoiceId: "INV-2024-001",
-  },
-  {
-    id: "2",
-    studentId: "Luis Martínez Ruiz",
-    paymentConfigId: "1",
-    status: "Pendiente",
-    amount: 2500,
-    paidAt: "",
-    paymentMethod: "Efectivo",
-    invoiceId: "INV-2024-002",
-  },
-  {
-    id: "3",
-    studentId: "Luis Martínez Ruiz",
-    paymentConfigId: "2",
-    status: "Pagado",
-    amount: 5000,
-    paidAt: "2024-08-15",
-    paymentMethod: "Tarjeta de Crédito",
-    invoiceId: "INV-2024-003",
-  },
-  {
-    id: "4",
-    studentId: "Sofia Hernández Cruz",
-    paymentConfigId: "1",
-    status: "Pagado",
-    amount: 2500,
-    paidAt: "2024-01-03",
-    paymentMethod: "Transferencia Bancaria",
-    invoiceId: "INV-2024-004",
-  },
-  {
-    id: "5",
-    studentId: "Luis Martínez Ruiz",
-    paymentConfigId: "3",
-    status: "Vencido",
-    amount: 1200,
-    paidAt: "",
-    paymentMethod: "Efectivo",
-    invoiceId: "INV-2024-005",
-  },
-]
+import { Button } from "@repo/ui/components/shadcn/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@repo/ui/components/shadcn/tooltip"
+import { useQuery } from "convex/react"
+import { api } from "@repo/convex/convex/_generated/api"
+import { Id } from "@repo/convex/convex/_generated/dataModel"
+import { useUser } from "@clerk/nextjs"
+import { useUserWithConvex } from "../../../../stores/userStore"
+import { useCurrentSchool } from "../../../../stores/userSchoolsStore"
 
 interface PaymentHistoryProps {
   selectedSchoolCycle: string
@@ -172,50 +26,197 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
   const [historyStartDateFilter, setHistoryStartDateFilter] = useState<string>("")
   const [historyEndDateFilter, setHistoryEndDateFilter] = useState<string>("")
 
-  const totalPayments = paymentHistoryMock.length
-  const paidPayments = paymentHistoryMock.filter((p) => p.status === "Pagado").length
-  const pendingPayments = paymentHistoryMock.filter((p) => p.status === "Pendiente").length
-  const overduePayments = paymentHistoryMock.filter((p) => p.status === "Vencido").length
-  const totalAmountCollected = paymentHistoryMock
-    .filter((p) => p.status === "Pagado")
-    .reduce((sum, p) => sum + p.amount, 0)
+  // Hooks para obtener datos del usuario y escuela
+  const { user: clerkUser } = useUser()
+  const { currentUser } = useUserWithConvex(clerkUser?.id)
+  const { currentSchool } = useCurrentSchool(currentUser?._id)
 
-  const filteredHistory = paymentHistoryMock.filter((payment) => {
+  // Obtener ciclos escolares
+  const schoolCycles = useQuery(
+    api.functions.schoolCycles.getAllSchoolCycles,
+    currentSchool?.school._id ? { schoolId: currentSchool.school._id } : "skip"
+  )
+
+  // Obtener historial de pagos
+  const paymentHistory = useQuery(
+    api.functions.payments.getPaymentHistory,
+    currentSchool?.school._id && selectedSchoolCycle
+      ? {
+          schoolId: currentSchool.school._id,
+          schoolCycleId: selectedSchoolCycle as Id<"schoolCycle">,
+        }
+      : "skip"
+  )
+
+  // Obtener estadísticas
+  const paymentStats = useQuery(
+    api.functions.payments.getPaymentStats,
+    currentSchool?.school._id && selectedSchoolCycle
+      ? {
+          schoolId: currentSchool.school._id,
+          schoolCycleId: selectedSchoolCycle as Id<"schoolCycle">,
+        }
+      : "skip"
+  )
+
+  // Establecer el ciclo activo por defecto
+  useEffect(() => {
+    if (schoolCycles && schoolCycles.length > 0 && !selectedSchoolCycle) {
+      const activeCycle = schoolCycles.find((cycle) => cycle.isActive)
+      if (activeCycle) {
+        setSelectedSchoolCycle(activeCycle.id)
+      } else if (schoolCycles[0]) {
+        setSelectedSchoolCycle(schoolCycles[0].id)
+      }
+    }
+  }, [schoolCycles, selectedSchoolCycle, setSelectedSchoolCycle])
+
+  const totalPayments = paymentStats?.totalPayments || 0
+  const paidPayments = paymentStats?.paidPayments || 0
+  const pendingPayments = (paymentStats?.pendingPayments || 0) + (paymentStats?.overduePayments || 0)
+  const totalAmountCollected = paymentStats?.totalAmountCollected || 0
+
+  const filteredHistory = (paymentHistory || []).filter((payment) => {
     const matchesSearch =
-      payment.studentId.toLowerCase().includes(historySearchTerm.toLowerCase()) ||
-      payment.invoiceId.toLowerCase().includes(historySearchTerm.toLowerCase())
-    const matchesStatus = !historyStatusFilter || payment.status === historyStatusFilter
+      payment.studentName.toLowerCase().includes(historySearchTerm.toLowerCase()) ||
+      payment.studentEnrollment.toLowerCase().includes(historySearchTerm.toLowerCase()) ||
+      payment.paymentType.toLowerCase().includes(historySearchTerm.toLowerCase())
+    
+    const matchesStatus = !historyStatusFilter || payment.billingStatus === historyStatusFilter
 
-    // Get payment config to check date range
-    const paymentConfig = paymentConfigsMock.find((config) => config.id === payment.paymentConfigId)
-    const matchesStartDate =
-      !historyStartDateFilter || !paymentConfig || paymentConfig.startDate >= historyStartDateFilter
-    const matchesEndDate = !historyEndDateFilter || !paymentConfig || paymentConfig.endDate <= historyEndDateFilter
+    // Filtrar por fecha de pago
+    const paymentDate = new Date(payment.paidAt).toISOString().split('T')[0]
+    const matchesStartDate = !historyStartDateFilter || (paymentDate && paymentDate >= historyStartDateFilter)
+    const matchesEndDate = !historyEndDateFilter || (paymentDate && paymentDate <= historyEndDateFilter)
 
     return matchesSearch && matchesStatus && matchesStartDate && matchesEndDate
   })
 
+  const handleViewInvoice = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
+  const handleDownloadInvoice = async (url: string, studentName: string, filename?: string | null, mimeType?: string | null) => {
+    try {
+      const response = await fetch(url)
+      const blob = await response.blob()
+      
+      // Detectar la extensión desde múltiples fuentes
+      let extension = 'pdf' // Por defecto
+      let finalFilename = `Factura_${studentName.replace(/\s/g, '_')}`
+      
+      // 1. Si tenemos el nombre del archivo guardado, usar su extensión
+      if (filename) {
+        const fileExtension = filename.split('.').pop()
+        if (fileExtension && fileExtension.length <= 5) { // Validar que sea una extensión válida
+          extension = fileExtension
+          // Usar el nombre original si está disponible
+          finalFilename = filename
+        }
+      }
+      // 2. Si tenemos el mimeType guardado, usarlo
+      else if (mimeType) {
+        const mimeToExtension: Record<string, string> = {
+          'application/pdf': 'pdf',
+          'image/jpeg': 'jpg',
+          'image/jpg': 'jpg',
+          'image/png': 'png',
+          'image/gif': 'gif',
+          'image/webp': 'webp',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+          'application/msword': 'doc',
+          'application/vnd.ms-excel': 'xls',
+          'text/plain': 'txt',
+        }
+        extension = mimeToExtension[mimeType] || extension
+        finalFilename = `${finalFilename}.${extension}`
+      }
+      // 3. Intentar desde Content-Disposition del response
+      else {
+        const contentDisposition = response.headers.get('content-disposition')
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+          if (filenameMatch && filenameMatch[1]) {
+            const headerFilename = filenameMatch[1].replace(/['"]/g, '')
+            const fileExtension = headerFilename.split('.').pop()
+            if (fileExtension) {
+              extension = fileExtension
+            }
+          }
+        }
+        
+        // 4. Usar Content-Type como último recurso
+        const contentType = response.headers.get('content-type')
+        if (contentType) {
+          const mimeToExtension: Record<string, string> = {
+            'application/pdf': 'pdf',
+            'image/jpeg': 'jpg',
+            'image/jpg': 'jpg',
+            'image/png': 'png',
+            'image/gif': 'gif',
+            'image/webp': 'webp',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+            'application/msword': 'doc',
+            'application/vnd.ms-excel': 'xls',
+            'text/plain': 'txt',
+          }
+          extension = mimeToExtension[contentType] || extension
+        }
+        
+        finalFilename = `${finalFilename}.${extension}`
+      }
+      
+      const downloadUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = downloadUrl
+      link.download = finalFilename
+      
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(downloadUrl)
+    } catch (error) {
+      console.error('Error descargando la factura:', error)
+    }
+  }
+
   const getPaymentStatusBadge = (status: string) => {
     switch (status) {
-      case "Pagado":
+      case "Pago cumplido":
         return (
           <Badge className="bg-transparent text-green-800">
             <CheckCircle className="w-4 h-4 mr-1 text-green-800" />
-            Pagado
+            Pago cumplido
           </Badge>
         )
-      case "Pendiente":
+      case "Pago parcial":
+        return (
+          <Badge className="bg-transparent text-blue-800">
+            <Clock className="w-4 h-4 mr-1 text-blue-800" />
+            Pago parcial
+          </Badge>
+        )
+      case "Pago pendiente":
         return (
           <Badge className="bg-transparent text-yellow-800">
             <Clock className="w-4 h-4 mr-1 text-yellow-800" />
-            Pendiente
+            Pago pendiente
           </Badge>
         )
-      case "Vencido":
+      case "Pago vencido":
         return (
           <Badge className="bg-transparent text-red-500">
             <AlertTriangle className="w-4 h-4 mr-1 text-red-500" />
-            Vencido
+            Pago vencido
+          </Badge>
+        )
+      case "Pago retrasado":
+        return (
+          <Badge className="bg-transparent text-orange-600">
+            <AlertTriangle className="w-4 h-4 mr-1 text-orange-600" />
+            Pago retrasado
           </Badge>
         )
       default:
@@ -241,7 +242,7 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 lg:pb-3">
             <CardTitle className="text-xs lg:text-sm font-medium text-muted-foreground">Pagos Completados</CardTitle>
             <div className="p-1.5 lg:p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-              <CheckCircle className="h-3 w-3 lg:h-4 lg:w-4 text-green-600" />
+              <CheckCircle className="h-3 w-3 lg:h-4 lg:w-4 text-primary" />
             </div>
           </CardHeader>
           <CardContent className="space-y-1 lg:space-y-2">
@@ -252,11 +253,11 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 lg:pb-3">
             <CardTitle className="text-xs lg:text-sm font-medium text-muted-foreground">Pagos Pendientes</CardTitle>
             <div className="p-1.5 lg:p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-              <Clock className="h-3 w-3 lg:h-4 lg:w-4 text-yellow-600" />
+              <Clock className="h-3 w-3 lg:h-4 lg:w-4 text-primary" />
             </div>
           </CardHeader>
           <CardContent className="space-y-1 lg:space-y-2">
-            <div className="text-xl lg:text-3xl font-bold">{pendingPayments + overduePayments}</div>
+            <div className="text-xl lg:text-3xl font-bold">{pendingPayments}</div>
           </CardContent>
         </Card>
         <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
@@ -298,13 +299,13 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
                   />
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 max-md:flex-col">
                 <Select value={selectedSchoolCycle} onValueChange={setSelectedSchoolCycle}>
-                  <SelectTrigger className="w-[200px]">
+                  <SelectTrigger className="w-[200px] max-md:w-full">
                     <SelectValue placeholder="Ciclo escolar" />
                   </SelectTrigger>
                   <SelectContent>
-                    {schoolCyclesMock.map((cycle) => (
+                    {schoolCycles?.map((cycle) => (
                       <SelectItem key={cycle.id} value={cycle.id}>
                         {cycle.name} {cycle.isActive && "(Activo)"}
                       </SelectItem>
@@ -315,14 +316,16 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
                   onValueChange={(v) => setHistoryStatusFilter(v === "all" ? null : v)}
                   value={historyStatusFilter || ""}
                 >
-                  <SelectTrigger className="w-[160px]">
+                  <SelectTrigger className="w-[160px] max-md:w-full">
                     <SelectValue placeholder="Filtrar estado" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="Pagado">Pagados</SelectItem>
-                    <SelectItem value="Pendiente">Pendientes</SelectItem>
-                    <SelectItem value="Vencido">Vencidos</SelectItem>
+                    <SelectItem value="Pago cumplido">Pagos cumplidos</SelectItem>
+                    <SelectItem value="Pago parcial">Pagos parciales</SelectItem>
+                    <SelectItem value="Pago pendiente">Pagos pendientes</SelectItem>
+                    <SelectItem value="Pago vencido">Pagos vencidos</SelectItem>
+                    <SelectItem value="Pago retrasado">Pagos retrasados</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -360,66 +363,165 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
           <CardDescription>Consulta el historial completo de pagos realizados por los estudiantes.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="w-full overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
-            <Table >
-              <TableHeader>
-                <TableRow className="bg-gray-50/80 border-b border-gray-200">
-                  <TableHead className="font-semibold text-gray-900 border-r border-gray-200 px-4 py-3">
-                    Estudiante
-                  </TableHead>
-                  <TableHead className="font-semibold text-gray-900 border-r border-gray-200 px-4 py-3">
-                    Config. Pago
-                  </TableHead>
-                  <TableHead className="font-semibold text-gray-900 border-r border-gray-200 px-4 py-3">
-                    Estado
-                  </TableHead>
-                  <TableHead className="font-semibold text-gray-900 border-r border-gray-200 px-4 py-3">
-                    Monto
-                  </TableHead>
-                  <TableHead className="font-semibold text-gray-900 border-r border-gray-200 px-4 py-3">
-                    Fecha de Pago
-                  </TableHead>
-                  <TableHead className="font-semibold text-gray-900 border-r border-gray-200 px-4 py-3">
-                    Método de Pago
-                  </TableHead>
-                  <TableHead className="font-semibold text-gray-900 px-4 py-3">Factura</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredHistory.map((payment, index) => (
-                  <TableRow
-                    key={payment.id}
-                    className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50/30"} border-b border-gray-100 hover:bg-blue-50/50 transition-colors`}
-                  >
-                    <TableCell className="font-medium text-gray-900 border-r border-gray-100 px-4 py-3">
-                      {payment.studentId}
-                    </TableCell>
-                    <TableCell className="text-gray-700 border-r border-gray-100 px-4 py-3">
-                      {payment.paymentConfigId}
-                    </TableCell>
-                    <TableCell className="border-r border-gray-100 px-4 py-3">
-                      {getPaymentStatusBadge(payment.status)}
-                    </TableCell>
-                    <TableCell className="font-semibold text-gray-900 border-r border-gray-100 px-4 py-3">
-                      ${payment.amount.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-gray-700 border-r border-gray-100 px-4 py-3">
-                      {payment.paidAt || "N/A"}
-                    </TableCell>
-                    <TableCell className="text-gray-700 border-r border-gray-100 px-4 py-3">
-                      {payment.paymentMethod}
-                    </TableCell>
-                    <TableCell className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-gray-700">{payment.invoiceId}</span>
-                      </div>
-                    </TableCell>
+          {paymentHistory === undefined ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">Cargando historial de pagos...</span>
+              </div>
+            </div>
+          ) : filteredHistory.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-sm text-muted-foreground">
+                No hay pagos registrados en este ciclo escolar
+              </div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Estudiante</TableHead>
+                    <TableHead>Matrícula</TableHead>
+                    <TableHead>Grado/Grupo</TableHead>
+                    <TableHead>Tipo de Cobro</TableHead>
+                    <TableHead>Estado del Cobro</TableHead>
+                    <TableHead>Monto Pagado</TableHead>
+                    <TableHead>Monto Total</TableHead>
+                    <TableHead>Restante</TableHead>
+                    <TableHead>Fecha de Pago</TableHead>
+                    <TableHead>Método de Pago</TableHead>
+                    <TableHead>Pagado por</TableHead>
+                    <TableHead>Factura</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {filteredHistory.map((payment) => (
+                    <TableRow key={payment.id}>
+                      <TableCell className="font-medium">{payment.studentName}</TableCell>
+                      <TableCell>{payment.studentEnrollment}</TableCell>
+                      <TableCell>
+                        {payment.studentGrade} {payment.studentGroup}
+                      </TableCell>
+                      <TableCell>{payment.paymentType}</TableCell>
+                      <TableCell>{getPaymentStatusBadge(payment.billingStatus)}</TableCell>
+                      <TableCell className="font-semibold">${payment.amount.toLocaleString()}</TableCell>
+                      <TableCell>${payment.billingAmount.toLocaleString()}</TableCell>
+                      <TableCell>
+                        {(() => {
+                          // Calcular el remanente correctamente: Total - Pagado
+                          const remaining = payment.billingAmount - payment.amount;
+                          
+                          if (remaining > 0) {
+                            // Hay deuda pendiente
+                            return (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-orange-600 font-medium cursor-help">
+                                      ${remaining.toLocaleString()}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Adeudo pendiente</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          } else if (remaining < 0) {
+                            // Hay sobrepago
+                            const overpayment = Math.abs(remaining);
+                            return (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-blue-600 font-medium cursor-help">
+                                      ${overpayment.toLocaleString()} (Sobrepago)
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Se pagó de más</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          } else {
+                            // Pago exacto
+                            return (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-green-600 font-medium cursor-help">
+                                      $0
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Pago completo</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          }
+                        })()}
+                      </TableCell>
+                      <TableCell>{new Date(payment.paidAt).toLocaleDateString('es-MX')}</TableCell>
+                      <TableCell>{payment.methodLabel}</TableCell>
+                      <TableCell>{payment.createdBy}</TableCell>
+                      <TableCell>
+                        {payment.invoiceUrl ? (
+                          <TooltipProvider>
+                            <div className="flex items-center gap-2">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleViewInvoice(payment.invoiceUrl!)}
+                                    className="h-8 w-8 p-0 hover:bg-blue-100 cursor-pointer"
+                                  >
+                                    <Eye className="h-4 w-4 text-primary" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Ver factura</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDownloadInvoice(
+                                      payment.invoiceUrl!, 
+                                      payment.studentName,
+                                      payment.invoiceFilename,
+                                      payment.invoiceMimeType
+                                    )}
+                                    className="h-8 w-8 p-0 hover:bg-green-100 cursor-pointer"
+                                  >
+                                    <Download className="h-4 w-4 text-primary" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Descargar factura</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TooltipProvider>
+                        ) : (
+                          <div className="flex items-center gap-1 text-gray-400">
+                            <FileX className="h-4 w-4" />
+                            <span className="text-xs">Sin factura</span>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

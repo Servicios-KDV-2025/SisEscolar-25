@@ -150,50 +150,25 @@ export const generatePaymentsForConfig = internalMutation({
           billingConfigId: args.billingConfigId,
           status: "Pago pendiente",
           amount: billingConfig.amount,
+          totalAmount: billingConfig.amount, 
           createdAt: now,
           updatedAt: now,
         });
 
-        // SOLO actualizar el balance si el status es "required"
-        if (billingConfig.status === "required") {
-          const currentBalance = student.balance || 0;
-          const newBalance = currentBalance - billingConfig.amount;
-
-          await ctx.db.patch(student._id, {
-            balance: newBalance,
-            updatedAt: now,
-          });
-          const group = await ctx.db.get(student.groupId as Id<"group">)
-          createdPayments.push({
-            studentId: student._id,
-            studentName: `${student.name} ${student.lastName || ""}`,
-            enrollment: student.enrollment,
-            balance: newBalance,
-            group: `${group?.grade} ${group?.name || ""}`,
-            paymentId,
-            previousBalance: currentBalance,
-            balanceUpdated: true,
-          });
-        } else {
-          const group = await ctx.db.get(student.groupId as Id<"group">)
-          // Para "optional", solo crear el pago sin actualizar balance
-          createdPayments.push({
-            studentId: student._id,
-            studentName: `${student.name} ${student.lastName || ""}`,
-            balance: student.balance,
-            enrollment: student.enrollment,
-            group: `${group?.grade} ${group?.name || ""}`,
-            paymentId,
-            balanceUpdated: false,
-          });
-        }
+        createdPayments.push({
+          studentId: student._id,
+          studentName: `${student.name} ${student.lastName || ""}`,
+          enrollment: student.enrollment,
+          groupId: student.groupId,
+          paymentId,
+        });
       }
     }
 
     const schoolCycle = await ctx.db.get(billingConfig.schoolCycleId as Id<"schoolCycle">)
 
     return {
-      message: `Se generaron ${createdPayments.length} cobros${billingConfig.status === "required" ? " y se actualizaron los balances" : " (sin actualizar balances - estatus opcional)"}`,
+      message: `Se generaron ${createdPayments.length} pagos`,
       paymentConfig: {
         id: billingConfig._id,
         type: billingConfig.type,
@@ -268,46 +243,24 @@ export const generatePaymentsForActiveStudents = mutation({
             billingConfigId: args.billingConfigId,
             status: "Pago pendiente",
             amount: billingConfig.amount,
+            totalAmount: billingConfig.amount, // Inicialmente es igual al monto total
             createdAt: now,
             updatedAt: now,
           });
 
-          // SOLO actualizar el balance si el status es "required"
-          if (billingConfig.status === "required") {
-            const currentBalance = student.balance || 0;
-            const newBalance = currentBalance - billingConfig.amount;
-
-            await ctx.db.patch(student._id, {
-              balance: newBalance,
-              updatedAt: now,
-            });
-
-            createdPayments.push({
-              studentId: student._id,
-              studentName: `${student.name} ${student.lastName || ""}`,
-              enrollment: student.enrollment,
-              paymentId,
-              previousBalance: currentBalance,
-              newBalance: newBalance,
-              debtAdded: billingConfig.amount,
-              balanceUpdated: true,
-            });
-          } else {
-            // Para "optional", solo crear el pago sin actualizar balance
-            createdPayments.push({
-              studentId: student._id,
-              studentName: `${student.name} ${student.lastName || ""}`,
-              enrollment: student.enrollment,
-              paymentId,
-              balanceUpdated: false,
-            });
-          }
+          // No se actualiza el credit al generar pagos, solo al procesarlos
+          createdPayments.push({
+            studentId: student._id,
+            studentName: `${student.name} ${student.lastName || ""}`,
+            enrollment: student.enrollment,
+            paymentId,
+          });
         }
       }
     }
 
     return {
-      message: `Se generaron ${createdPayments.length} pagos${billingConfig.status === "required" ? " y se actualizaron los balances" : " (sin actualizar balances - status opcional)"}`,
+      message: `Se generaron ${createdPayments.length} pagos`,
       paymentConfig: {
         id: billingConfig._id,
         type: billingConfig.type,
@@ -569,28 +522,40 @@ export const getPaymentsPageData = query({
           grupo: group?.name || "N/A",
           matricula: student.enrollment,
           padre: tutor ? `${tutor.name} ${tutor.lastName || ""}` : "N/A",
+          tutorId: student.tutorId,
           telefono: tutor?.phone || "N/A",
           metodoPago: "N/A", // Por defecto, se puede personalizar
           fechaVencimiento: paymentsWithLateDays.length > 0 && paymentsWithLateDays[0]
             ? new Date(paymentsWithLateDays[0].dueDate).toISOString().split('T')[0]
             : new Date().toISOString().split('T')[0],
-          montoColegiatura: paymentsWithLateDays.reduce((sum, p) => sum + p.amount, 0),
+          montoColegiatura: paymentsWithLateDays.reduce((sum, p) => {
+            // totalAmount ahora ES el monto restante por pagar
+            const montoPendiente = p.totalAmount || p.amount;
+            return sum + montoPendiente;
+          }, 0),
           diasRetraso: Math.max(...paymentsWithLateDays.map(p => p.daysLate), 0),
           estado: studentStatus,
           schoolCycleId: student.schoolCycleId,
           tipo: (paymentsWithLateDays.length > 0 && paymentsWithLateDays[0]
             ? paymentsWithLateDays[0].config?.type || "Colegiatura"
             : "Colegiatura") as "Inscripciones" | "Colegiatura",
-          balance: student.balance || 0,
-          pagos: paymentsWithLateDays.map(payment => ({
-            id: payment._id,
-            tipo: payment.config?.type || "Pago",
-            monto: payment.amount,
-            fechaVencimiento: new Date(payment.dueDate).toISOString().split('T')[0],
-            estado: (payment.status === "Pago cumplido" ? "Pagado" :
-              payment.status === "Pago vencido" ? "Vencido" : "Pendiente") as "Pendiente" | "Vencido" | "Pagado",
-            diasRetraso: payment.daysLate,
-          })),
+          credit: student.credit || 0,
+          pagos: paymentsWithLateDays.map(payment => {
+            // totalAmount ES el monto restante por pagar
+            const montoPendiente = payment.totalAmount || payment.amount;
+            const montoPagado = payment.amount - montoPendiente; // Lo pagado = total - restante
+            return {
+              id: payment._id,
+              tipo: payment.config?.type || "Pago",
+              monto: montoPendiente, // Monto pendiente (totalAmount)
+              montoTotal: payment.amount, // Monto total original
+              montoPagado: montoPagado, // Lo que ya se ha pagado
+              fechaVencimiento: new Date(payment.dueDate).toISOString().split('T')[0],
+              estado: (payment.status === "Pago cumplido" ? "Pagado" : 
+                     payment.status === "Pago vencido" ? "Vencido" : "Pendiente") as "Pendiente" | "Vencido" | "Pagado",
+              diasRetraso: payment.daysLate,
+            };
+          }),
         };
       })
     );
@@ -603,6 +568,111 @@ export const getPaymentsPageData = query({
         startDate: new Date(schoolCycle.startDate).toISOString().split('T')[0],
         endDate: new Date(schoolCycle.endDate).toISOString().split('T')[0],
         isActive: schoolCycle.status === "active",
+      },
+    };
+  },
+});
+
+// Procesar un pago
+export const processPayment = mutation({
+  args: {
+    billingId: v.id("billing"),
+    tutorId: v.id("user"),
+    studentId: v.id("student"),
+    method: v.union(
+      v.literal("cash"),
+      v.literal("bank_transfer"),
+      v.literal("card"),
+      v.literal("other")
+    ),
+    amount: v.number(),
+    createdBy: v.id("user"),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+
+    // Obtener el billing actual
+    const billing = await ctx.db.get(args.billingId);
+    if (!billing) {
+      throw new Error("Registro de cobro no encontrado");
+    }
+
+    // Obtener el estudiante
+    const student = await ctx.db.get(args.studentId);
+    if (!student) {
+      throw new Error("Estudiante no encontrado");
+    }
+
+    // Crear el registro de pago
+    const paymentId = await ctx.db.insert("payments", {
+      billingId: args.billingId,
+      studentId: args.studentId,
+      method: args.method,
+      amount: args.amount,
+      createdBy: args.createdBy,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // totalAmount es el monto RESTANTE por pagar, no lo acumulado
+    const previousTotalAmount = billing.totalAmount || billing.amount; // Si es nuevo, usar amount
+    const newTotalAmount = previousTotalAmount - args.amount; // Restar el pago
+
+    let newStatus: typeof billing.status;
+    let paidAt: number | undefined;
+    let creditToAdd = 0;
+
+    if (newTotalAmount === 0) {
+      // Pago exacto - se completó el cobro
+      newStatus = "Pago cumplido";
+      paidAt = now;
+    } else if (newTotalAmount < 0) {
+      // Pago superior al monto requerido - se pagó de más
+      newStatus = "Pago cumplido";
+      paidAt = now;
+      creditToAdd = Math.abs(newTotalAmount); // El sobrante se convierte en crédito positivo
+    } else {
+      // Pago parcial - aún falta por pagar
+      newStatus = "Pago parcial";
+      paidAt = undefined;
+    }
+
+    // Actualizar el billing
+    await ctx.db.patch(args.billingId, {
+      status: newStatus,
+      totalAmount: Math.max(0, newTotalAmount), // Nunca negativo, el exceso va a credit
+      paidAt: paidAt,
+      updatedAt: now,
+    });
+
+    // Actualizar el credit del estudiante
+    const currentCredit = student.credit || 0;
+    const newCredit = currentCredit + creditToAdd;
+
+    await ctx.db.patch(args.studentId, {
+      credit: newCredit,
+      updatedAt: now,
+    });
+
+    return {
+      success: true,
+      paymentId,
+      billing: {
+        id: billing._id,
+        previousStatus: billing.status,
+        newStatus: newStatus,
+        previousTotalAmount: previousTotalAmount,
+        newTotalAmount: Math.max(0, newTotalAmount),
+        amount: billing.amount,
+        remaining: Math.max(0, newTotalAmount), // Monto que aún falta por pagar
+        overpayment: creditToAdd, // Monto pagado de más
+      },
+      student: {
+        id: student._id,
+        previousCredit: currentCredit,
+        newCredit: newCredit,
+        paymentAmount: args.amount,
+        creditAdded: creditToAdd,
       },
     };
   },
