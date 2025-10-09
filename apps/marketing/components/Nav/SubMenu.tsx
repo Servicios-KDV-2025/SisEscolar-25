@@ -1,6 +1,6 @@
 import { SubMenuItem } from '@/types';
 import React from 'react'
-import { NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuTrigger, navigationMenuTriggerStyle } from '../ui/navigation-menu';
+import { NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuTrigger } from '../ui/navigation-menu';
 import { resolveHref } from '@/sanity/lib/utils';
 import { stegaClean } from 'next-sanity'
 
