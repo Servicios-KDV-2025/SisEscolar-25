@@ -9,6 +9,7 @@
     "./postcss.config": "./postcss.config.mjs",
     "./styles/*": "./src/styles/*",
     "./icons": "./src/icons.ts",
+    "./sonner": "./src/sonner.ts",
     "./components/dialog": "./src/components/dialog/crud-dialog.tsx"
   },
   "scripts": {
