@@ -22,6 +22,13 @@ import { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@repo/ui/components/shadcn/select';
 import { Input } from '@repo/ui/components/shadcn/input';
 import { Badge } from '@repo/ui/components/shadcn/badge';
+import { z } from 'zod';
+
+import { UseFormReturn } from 'react-hook-form';
+
+
+type ClassCatalogFormData = z.infer<typeof classCatalogSchema>;
+
 
 export default function ClassCatalogPage() {
     // Get current user from Clerk
@@ -533,7 +540,7 @@ export default function ClassCatalogPage() {
             >
                 {(form, operation) => (
                     <ClassCatalogForm
-                        form={form}
+                         form={form as unknown as UseFormReturn<ClassCatalogFormData>}
                         operation={operation}
                         subjects={subjects}
                         groups={groups || []}

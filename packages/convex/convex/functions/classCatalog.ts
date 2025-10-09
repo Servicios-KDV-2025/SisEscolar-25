@@ -1,5 +1,36 @@
 import { v } from "convex/values";
-import { mutation, query } from "../_generated/server";
+import { mutation, query, internalMutation } from "../_generated/server";
+
+
+// ++ NUEVA FUNCIÓN INTERNA PARA CREAR ++
+export const internalCreateClassCatalog = internalMutation({
+  args: {
+    schoolId: v.id("school"),
+    schoolCycleId: v.id("schoolCycle"),
+    subjectId: v.id("subject"),
+    classroomId: v.id("classroom"),
+    teacherId: v.id("user"),
+    groupId: v.id("group"),
+    name: v.string(),
+    status: v.union(v.literal('active'), v.literal('inactive')),
+    createdBy: v.optional(v.id("user"))
+  },
+  handler: async (ctx, args) => {
+    const id = await ctx.db.insert("classCatalog", {
+        ...args,
+        updatedAt: Date.now()
+    });
+    return id;
+  },
+});
+
+// ++ NUEVA FUNCIÓN INTERNA PARA ELIMINAR (para el rollback) ++
+export const internalDeleteClassCatalog = internalMutation({
+    args: { classCatalogId: v.id("classCatalog") },
+    handler: async (ctx, args) => {
+        await ctx.db.delete(args.classCatalogId);
+    }
+});
 
 // Create
 export const createClassCatalog = mutation({
@@ -150,17 +181,17 @@ export const updateClassCatalog = mutation({
   }
 });
 
-export const deleteClassCatalog = mutation({
-  args: {
-    _id: v.id("classCatalog"),
-    schoolId: v.id("school"),
-  },
-  handler: async (ctx, args) => {
-    const catalog = await ctx.db.get(args._id);
-    if (!catalog || catalog.schoolId !== args.schoolId) return null;
-    await ctx.db.delete(args._id);
-  }
-});
+// export const deleteClassCatalog = mutation({
+//   args: {
+//     _id: v.id("classCatalog"),
+//     schoolId: v.id("school"),
+//   },
+//   handler: async (ctx, args) => {
+//     const catalog = await ctx.db.get(args._id);
+//     if (!catalog || catalog.schoolId !== args.schoolId) return null;
+//     await ctx.db.delete(args._id);
+//   }
+// });
 
 //borrar si es necesario
 
@@ -292,3 +323,10 @@ export const getClassesByClassroom = query({
     return classes;
   },
 }); 
+
+export const deleteClassCatalog = internalMutation({
+  args: { classCatalogId: v.id("classCatalog") },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.classCatalogId);
+  },
+});

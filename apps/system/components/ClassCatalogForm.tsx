@@ -6,9 +6,11 @@ import { Input } from "@repo/ui/components/shadcn/input";
 import { Subject } from "stores/subjectStore";
 import { Group } from "stores/groupStore";
 import { ClassroomType, SchoolCycleType, TeacherType } from '@/types/temporalSchema';
+import { z } from "zod";
+import { FullClassSchema } from "@/types/fullClassSchema";
 
 interface FormularioCatalogoDeClasesProps {
-    form: UseFormReturn<Record<string, unknown>>;
+    form: UseFormReturn<z.infer<typeof FullClassSchema>>;
     operation: "create" | "edit" | "view" | "delete";
     subjects: Subject[] | undefined;
     groups: Group[] | undefined;
