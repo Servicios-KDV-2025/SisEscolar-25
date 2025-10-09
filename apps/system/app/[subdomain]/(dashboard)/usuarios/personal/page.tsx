@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@repo/ui/components/shadcn/card";
+import { toast } from 'sonner'
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Input } from "@repo/ui/components/shadcn/input";
@@ -452,7 +453,10 @@ export default function PersonalPage() {
         password: password,
         name: formData.name as string,
         lastName: formData.lastName as string,
+        phone: formData.phone as string,
+        address: formData.address as string,
       };
+
 
       const result = await userActions.createUser(createData);
 
@@ -467,12 +471,15 @@ export default function PersonalPage() {
             status: "active",
             department: undefined,
           });
+
+          
         } catch (error) {
           console.error("Error al asignar usuario como tutor:", error);
           throw new Error(
             `Usuario creado pero error al asignar como tutor: ${error instanceof Error ? error.message : "Error desconocido"}`
           );
         }
+        toast.success("Usuario creado y asignado como tutor exitosamente");
       } else {
         console.error("Error al crear usuario en Clerk:", result.error);
         throw new Error(result.error || "Error al crear usuario en Clerk");
@@ -501,7 +508,11 @@ export default function PersonalPage() {
         name: combinedData.name as string,
         lastName: combinedData.lastName as string,
         email: combinedData.email as string,
+        phone: combinedData.phone as string,
+        address: combinedData.address as string,
       };
+
+
 
       const userResult = await userActions.updateUser(
         combinedData.clerkId as string,
@@ -561,6 +572,7 @@ export default function PersonalPage() {
       });
 
       console.log("✅ Actualización completada exitosamente");
+      toast.success("Usuario actualizado exitosamente");
 
     } catch (error) {
       console.error("❌ Error en handleUpdate:", error);
@@ -867,6 +879,7 @@ export default function PersonalPage() {
 
           </CardDescription>
         </CardHeader>
+
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -878,176 +891,272 @@ export default function PersonalPage() {
           ) : filteredUsers.length === 0 ? (
             <div className="text-center py-12">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">
-                No se encontró personal
-              </h3>
+              <h3 className="text-lg font-medium mb-2">No se encontró personal</h3>
               <p className="text-muted-foreground mb-4">
-                {searchTerm ||
-                  statusFilter !== "all" ||
-                  roleFilter !== "all" ||
-                  departmentFilter !== "all"
+                {searchTerm || statusFilter !== "all" || roleFilter !== "all" || departmentFilter !== "all"
                   ? "Intenta ajustar los filtros para ver más resultados."
                   : "Aún no hay personal registrado en esta escuela."}
               </p>
-              <Button
-                onClick={handleOpenCreate}
-                className="gap-2"
-                disabled={!currentSchool || isCrudLoading}
-              >
+              <Button onClick={handleOpenCreate} className="gap-2" disabled={!currentSchool || isCrudLoading}>
                 <Plus className="h-4 w-4" />
                 Agregar Personal
               </Button>
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[110px] px-4">Usuario</TableHead>
-                    <TableHead className="text-center">Roles</TableHead>
-                    <TableHead className="text-center">Departamento</TableHead>
-                    <TableHead className="text-center">Contacto</TableHead>
-                    <TableHead className="text-center">Estado</TableHead>
-                    <TableHead>Fecha de Ingreso</TableHead>
-                    <TableHead className="text-center">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((user: UserFromConvex) => {
-                    const departmentInfo = user.department
-                      ? departmentConfig[user.department]
-                      : null;
+            <>
+              {/* Vista de tabla para pantallas medianas y grandes */}
+              <div className="hidden md:block rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[250px]">Usuario</TableHead>
+                      <TableHead className="text-center">Roles</TableHead>
+                      <TableHead className="text-center hidden lg:table-cell">Departamento</TableHead>
+                      <TableHead className="text-center hidden xl:table-cell">Contacto</TableHead>
+                      <TableHead className="text-center">Estado</TableHead>
+                      <TableHead className="text-center hidden lg:table-cell">Fecha de Ingreso</TableHead>
+                      <TableHead className="text-center">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers.map((user: UserFromConvex) => {
+                      const departmentInfo = user.department ? departmentConfig[user.department] : null;
 
-                    return (
-                      <TableRow key={user._id}>
-                        <TableCell>
+                      return (
+                        <TableRow key={user._id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={user.imgUrl} alt={user.name} />
+                                <AvatarFallback className="bg-primary/10">
+                                  {getInitials(user.name, user.lastName)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium">{user.name} {user.lastName}</div>
+                                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                  <Mail className="h-3 w-3" />
+                                  {user.email}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="text-center">
+                            <div className="flex flex-wrap gap-1 justify-center">
+                              {user.schoolRole.map((role) => {
+                                const roleInfo = roleConfig[role as keyof typeof roleConfig];
+                                return (
+                                  <Badge key={role} variant="outline" className={`${roleInfo?.color} text-xs`}>
+                                    <roleInfo.icon className="h-4 w-4" />
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="text-center hidden lg:table-cell">
+                            {departmentInfo ? (
+                              <Badge variant="outline" className={departmentInfo.color}>
+                                {departmentInfo.label}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">No asignado</span>
+                            )}
+                          </TableCell>
+
+                          <TableCell className="text-center hidden xl:table-cell">
+                            <div className="space-y-1">
+                              {user.phone && (
+                                <div className="text-sm flex items-center gap-1 justify-center">
+                                  <Phone className="h-3 w-3 text-muted-foreground" />
+                                  {user.phone}
+                                </div>
+                              )}
+                              {user.address && (
+                                <div className="text-sm text-muted-foreground flex items-center gap-1 justify-center">
+                                  <MapPin className="h-3 w-3" />
+                                  <span className="truncate max-w-[150px]">{user.address}</span>
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="text-center">
+                            <Badge
+                              variant={(user.schoolStatus || "active") === "active" ? "default" : "secondary"}
+                              className={(user.schoolStatus || "active") === "active"
+                                ? "bg-green-600 text-white"
+                                : "bg-gray-600/70 text-white"}
+                            >
+                              {(user.schoolStatus || "active") === "active" ? "Activo" : "Inactivo"}
+                            </Badge>
+                          </TableCell>
+
+                          <TableCell className="text-center hidden lg:table-cell">
+                            <div className="flex items-center gap-1 text-sm justify-center">
+                              <Calendar className="h-3 w-3 text-muted-foreground" />
+                              {formatDate(user.admissionDate || user.createdAt)}
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenView(user)}
+                                className="h-8 w-8 p-0"
+                                disabled={isCrudLoading}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              {canUpdateUsersPersonal && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleOpenEdit(user)}
+                                  className="h-8 w-8 p-0"
+                                  disabled={isCrudLoading}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {canDeleteUsersPersonal && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleOpenDelete(user)}
+                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                  disabled={isCrudLoading}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Vista de tarjetas para pantallas pequeñas */}
+              <div className="md:hidden space-y-4">
+                {filteredUsers.map((user: UserFromConvex) => {
+                  const departmentInfo = user.department ? departmentConfig[user.department] : null;
+
+                  return (
+                    <Card key={user._id} className="overflow-hidden">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
+                            <Avatar className="h-12 w-12">
                               <AvatarImage src={user.imgUrl} alt={user.name} />
                               <AvatarFallback className="bg-primary/10">
                                 {getInitials(user.name, user.lastName)}
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <div className="font-medium">
-                                {user.name} {user.lastName}
-                              </div>
-                              <div className="text-sm text-muted-foreground flex items-center gap-1">
-                                <Mail className="h-3 w-3" />
-                                {user.email}
-                              </div>
+                              <div className="font-medium">{user.name} {user.lastName}</div>
+                              <div className="text-xs text-muted-foreground">{user.email}</div>
                             </div>
                           </div>
-                        </TableCell>
-
-                        {/* Columna de Roles - Ahora muestra TODOS los roles */}
-                        <TableCell className="text-center">
-                          <div className="flex flex-wrap gap-1 justify-center">
-                            {user.schoolRole.map((role) => {
-                              const roleInfo = roleConfig[role as keyof typeof roleConfig];
-                              return (
-                                <Badge
-                                  key={role}
-                                  variant="outline"
-                                  className={`${roleInfo?.color} text-center text-xs m-x-2 space-x-2`}
-                                >
-                                  <roleInfo.icon className="h-5 w-5 mr-1 ml-1" />
-                                </Badge>
-                              );
-                            })}
-                          </div>
-                        </TableCell>
-
-                        <TableCell className="text-center">
-                          {departmentInfo ? (
-                            <Badge variant="outline" className={departmentInfo.color}>
-                              {departmentInfo.label}
-                            </Badge>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">
-                              No asignado
-                            </span>
-                          )}
-                        </TableCell>
-
-                        <TableCell className="text-center">
-                          <div className="space-y-1">
-                            {user.phone && (
-                              <div className="text-sm flex items-center gap-1">
-                                <Phone className="h-3 w-3 text-muted-foreground" />
-                                {user.phone}
-                              </div>
-                            )}
-                            {user.address && (
-                              <div className="text-sm text-muted-foreground flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {user.address}
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-
-                        <TableCell className="text-center">
                           <Badge
                             variant={(user.schoolStatus || "active") === "active" ? "default" : "secondary"}
-                            className={
-                              (user.schoolStatus || "active") === "active"
-                                ? "bg-green-600 text-white flex-shrink-0 ml-2"
-                                : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"
-                            }
+                            className={(user.schoolStatus || "active") === "active"
+                              ? "bg-green-600 text-white"
+                              : "bg-gray-600/70 text-white"}
                           >
                             {(user.schoolStatus || "active") === "active" ? "Activo" : "Inactivo"}
                           </Badge>
-                        </TableCell>
+                        </div>
 
-                        <TableCell className="text-center">
-                          <div className="flex items-center gap-1 text-sm">
-                            <Calendar className="h-3 w-3 text-muted-foreground" />
-                            {formatDate(user.admissionDate || user.createdAt)}
+                        <div className="space-y-2 mb-3">
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="text-muted-foreground font-medium">Roles:</span>
+                            <div className="flex flex-wrap gap-1">
+                              {user.schoolRole.map((role) => {
+                                const roleInfo = roleConfig[role as keyof typeof roleConfig];
+                                return (
+                                  <Badge key={role} variant="outline" className={`${roleInfo?.color} text-xs`}>
+                                    <roleInfo.icon className="h-3 w-3 mr-1" />
+                                    {roleInfo?.label}
+                                  </Badge>
+                                );
+                              })}
+                            </div>
                           </div>
-                        </TableCell>
 
-                        <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-2">
+                          {departmentInfo && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-muted-foreground font-medium">Departamento:</span>
+                              <Badge variant="outline" className={departmentInfo.color}>
+                                {departmentInfo.label}
+                              </Badge>
+                            </div>
+                          )}
+
+                          {user.phone && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Phone className="h-3 w-3 text-muted-foreground" />
+                              <span>{user.phone}</span>
+                            </div>
+                          )}
+
+                          {user.address && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <MapPin className="h-3 w-3 text-muted-foreground" />
+                              <span className="truncate">{user.address}</span>
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-2 text-sm">
+                            <Calendar className="h-3 w-3 text-muted-foreground" />
+                            <span>{formatDate(user.admissionDate || user.createdAt)}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2 pt-3 border-t">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenView(user)}
+                            disabled={isCrudLoading}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Ver
+                          </Button>
+                          {canUpdateUsersPersonal && (
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
-                              onClick={() => handleOpenView(user)}
-                              className="hover:scale-105 transition-transform cursor-pointer"
+                              onClick={() => handleOpenEdit(user)}
                               disabled={isCrudLoading}
                             >
-                              <Eye className="h-8 w-8 p-0" />
+                              <Pencil className="h-4 w-4 mr-1" />
+                              Editar
                             </Button>
-                            {canUpdateUsersPersonal && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleOpenEdit(user)}
-                                className="hover:scale-105 transition-transform cursor-pointer"
-                                disabled={isCrudLoading}
-                              >
-                                <Pencil className="h-8 w-8 p-0" />
-                              </Button>
-                            )}
-                            {canDeleteUsersPersonal && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleOpenDelete(user)}
-                                className="text-destructive hover:text-destructive hover:scale-105 transition-transform cursor-pointer"
-                                disabled={isCrudLoading}
-                              >
-                                <Trash2 className="h-8 w-8 p-0" />
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                          )}
+                          {canDeleteUsersPersonal && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenDelete(user)}
+                              className="text-destructive hover:text-destructive"
+                              disabled={isCrudLoading}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
