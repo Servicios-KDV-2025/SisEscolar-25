@@ -60,6 +60,11 @@ export default defineType({
       ],
     }),
     defineField({
+      name: 'nav',
+      title: 'Navegador',
+      type: 'nav',
+    }),
+    defineField({
       name: 'ogImage',
       title: 'Open Graph Image',
       type: 'image',

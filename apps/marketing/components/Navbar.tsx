@@ -4,6 +4,9 @@ import {studioUrl} from '@/sanity/lib/api'
 import {resolveHref} from '@/sanity/lib/utils'
 import {createDataAttribute, stegaClean} from 'next-sanity'
 import Link from 'next/link'
+import SimpleMenu from './Nav/SimpleMenu'
+import SubMenu from './Nav/SubMenu'
+import { NavigationMenu, NavigationMenuList } from './ui/navigation-menu'
 
 interface NavbarProps {
   data: SettingsQueryResult
@@ -20,11 +23,30 @@ export function Navbar(props: NavbarProps) {
       : null
   return (
     <header
-      className="sticky top-0 z-10 flex flex-wrap items-center gap-x-5 bg-white/80 px-4 py-4 backdrop-blur md:px-16 md:py-5 lg:px-32"
-      data-sanity={dataAttribute?.('menuItems')}
+      className=" sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      data-sanity={dataAttribute?.('nav')}
     >
-      <OptimisticSortOrder id={data?._id} path="menuItems">
-        {data?.menuItems?.map((menuItem) => {
+      <div className="flex-1 flex justify-center">
+        <OptimisticSortOrder id={data?._id} path="nav">
+          <NavigationMenu className='my-2'>
+            <NavigationMenuList>
+        {
+          data?.nav?.menus?.map((menu, index) => {
+            if (menu._type === 'simpleMenu') {
+              return <SimpleMenu key={menu._key} slug={menu.slug} type_reference={menu.type_reference} link={menu.link!} />;
+            }
+            if (menu._type === 'menuWithSubmenu') {
+              return (
+                <SubMenu key={menu._key} title={menu.title} submenus={menu.submenus ?? []} />
+              )
+            }
+
+            return null;
+          })
+
+        }
+
+        {/* {data?.menuItems?.map((menuItem) => {
           const href = resolveHref(menuItem?._type, menuItem?.slug)
           if (!href) {
             return null
@@ -44,8 +66,11 @@ export function Navbar(props: NavbarProps) {
               {stegaClean(menuItem.title)}
             </Link>
           )
-        })}
-      </OptimisticSortOrder>
+        })} */}
+              </NavigationMenuList>
+            </NavigationMenu>
+        </OptimisticSortOrder>
+      </div>
     </header>
   )
 }
