@@ -5,7 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
-import { toast } from "sonner";
+import { toast } from '@repo/ui/sonner'
 import { UseFormReturn } from "react-hook-form";
 
 // UI Components
@@ -19,7 +19,7 @@ import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
 import { usePermissions } from "../../../../../hooks/usePermissions";
-import  NotAuth  from "../../../../../components/NotAuth";
+import NotAuth from "../../../../../components/NotAuth";
 
 // Icons
 import {
@@ -194,7 +194,7 @@ export default function PeriodsManagement() {
 
   // User and school data
   const { user: clerkUser } = useUser();
-  const { currentUser} = useUserWithConvex(clerkUser?.id);
+  const { currentUser } = useUserWithConvex(clerkUser?.id);
   const { currentSchool } = useCurrentSchool(currentUser?._id);
 
   // School cycles query
@@ -210,19 +210,19 @@ export default function PeriodsManagement() {
   );
 
   // Determine which school cycle ID to use for terms query
-  const effectiveSchoolCycleId = schoolCycleFilter === "current" 
-    ? activeSchoolCycle?._id 
-    : schoolCycleFilter === "all" 
+  const effectiveSchoolCycleId = schoolCycleFilter === "current"
+    ? activeSchoolCycle?._id
+    : schoolCycleFilter === "all"
       ? "all"
       : schoolCycleFilter;
 
-      const {
-          canCreateTerm,
-          canReadTerm,
-          canUpdateTerm,
-          canDeleteTerm,
-          
-        } = usePermissions(currentSchool?.school._id);
+  const {
+    canCreateTerm,
+    canReadTerm,
+    canUpdateTerm,
+    canDeleteTerm,
+
+  } = usePermissions(currentSchool?.school._id);
   // Terms data from store
   const {
     terms,
@@ -362,227 +362,26 @@ export default function PeriodsManagement() {
 
   return (
     <>
-    {canReadTerm ?(<div className="space-y-8 p-6">
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
-        <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
-        <div className="relative p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-primary/10 rounded-xl">
-                  <Calendar className="h-8 w-8 text-primary" />
+      {canReadTerm ? (<div className="space-y-8 p-6">
+        {/* Header */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
+          <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
+          <div className="relative p-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-primary/10 rounded-xl">
+                    <Calendar className="h-8 w-8 text-primary" />
+                  </div>
+                  <div>
+                    <h1 className="text-4xl font-bold tracking-tight">Periodos</h1>
+                    <p className="text-lg text-muted-foreground">
+                      Administra los periodos académicos
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-4xl font-bold tracking-tight">Periodos</h1>
-                  <p className="text-lg text-muted-foreground">
-                    Administra los periodos académicos
-                  </p>
-                </div>
               </div>
-            </div>
-            {canCreateTerm && (<Button
-              size="lg"
-              className="gap-2"
-              onClick={openCreate}
-              disabled={isCreating}
-            >
-              <Plus className="h-4 w-4" />
-              Agregar Periodo
-            </Button>)}
-          </div>
-        </div>
-      </div>
-
-      {/* Error Alerts */}
-      {(createError || updateError || deleteError) && (
-        <div className="space-y-4">
-          {createError && (
-            <Alert variant="destructive">
-              <AlertCircle className='h-4 w-4' />
-              <AlertDescription>
-                Error al crear periodo: {createError}
-              </AlertDescription>
-            </Alert>
-          )}
-          {updateError && (
-            <Alert variant="destructive">
-              <AlertCircle className='h-4 w-4' />
-              <AlertDescription>
-                Error al actualizar periodo: {updateError}
-              </AlertDescription>
-            </Alert>
-          )}
-          {deleteError && (
-            <Alert variant="destructive">
-              <AlertCircle className='h-4 w-4' />
-              <AlertDescription>
-                Error al eliminar periodo: {deleteError}
-              </AlertDescription>
-            </Alert>
-          )}
-          <button
-            onClick={clearErrors}
-            className="text-xs text-blue-500 underline mt-1"
-          >
-            Limpiar errores
-          </button>
-        </div>
-      )}
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total de Periodos
-            </CardTitle>
-            <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-              <Calendar className="h-4 w-4 text-primary" />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="text-3xl font-bold">{terms?.length || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {schoolCycleFilter === "current" && activeSchoolCycle 
-                ? `Ciclo: ${activeSchoolCycle.name}`
-                : schoolCycleFilter === "all" 
-                  ? "Todos los ciclos"
-                  : schoolCycles?.find(c => c._id === schoolCycleFilter)?.name || ""}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Activos
-            </CardTitle>
-            <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-              <CheckCircle className="h-4 w-4 text-primary" />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="text-3xl font-bold">
-              {terms?.filter((term: Term) => term.status === "active").length || 0}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Cerrados
-            </CardTitle>
-            <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-              <XCircle className="h-4 w-4 text-gray-600" />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="text-3xl font-bold">
-              {terms?.filter((term: Term) => term.status === "closed").length || 0}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters Card */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Filter className="h-5 w-5" />
-                Filtros y Búsqueda
-              </CardTitle>
-              <CardDescription>
-                Encuentra los periodos por nombre, clave o estado
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar periodo..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Select
-                onValueChange={(v) => setStatusFilter(v === "all" ? null : v)}
-                value={statusFilter || "all"}
-              >
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Todos los estados" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los estados</SelectItem>
-                  <SelectItem value="active">Activos</SelectItem>
-                  <SelectItem value="inactive">Inactivos</SelectItem>
-                  <SelectItem value="closed">Cerrados</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select onValueChange={setSchoolCycleFilter} value={schoolCycleFilter}>
-                <SelectTrigger className="w-[220px]">
-                  <SelectValue placeholder="Filtrar ciclo escolar" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="current">
-                    
-                    {activeSchoolCycle && (
-                      <span className="">
-                        {activeSchoolCycle.name}
-                      </span>
-                    )}
-                  </SelectItem>
-                  {schoolCycles
-                    ?.filter(cycle => cycle._id !== activeSchoolCycle?._id)
-                    .map(cycle => (
-                      <SelectItem key={cycle._id} value={cycle._id}>
-                        {cycle.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Terms Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Lista de Periodos</span>
-            <Badge variant="outline">{filteredTerms.length} periodos</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isTermsLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-muted-foreground">Cargando periodos...</p>
-              </div>
-            </div>
-          ) : filteredTerms.length === 0 ? (
-            <div className="text-center py-12">
-              <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">
-                No se encontraron periodos
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                Intenta ajustar los filtros o no hay periodos registrados.
-              </p>
-              <Button
+              {canCreateTerm && (<Button
                 size="lg"
                 className="gap-2"
                 onClick={openCreate}
@@ -590,152 +389,353 @@ export default function PeriodsManagement() {
               >
                 <Plus className="h-4 w-4" />
                 Agregar Periodo
-              </Button>
+              </Button>)}
             </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Clave</TableHead>
-                    <TableHead>Fecha Inicio</TableHead>
-                    <TableHead>Fecha Fin</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Ciclo Escolar</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredTerms.map((term: Term) => (
-                    <TableRow key={term._id}>
-                      <TableCell className="font-medium">{term.name}</TableCell>
-                      <TableCell className="font-mono text-sm">{term.key}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          {term.startDate ? new Date(term.startDate).toLocaleDateString("es-ES") : 'Sin fecha'}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          {term.endDate ? new Date(term.endDate).toLocaleDateString("es-ES") : 'Sin fecha'}
-                        </div>
-                      </TableCell>
-                      <TableCell>{getStatusBadge(term.status)}</TableCell>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          {getCycleName(term.schoolCycleId)}
-                          {isActiveCycle(term.schoolCycleId) && (
-                            <Badge variant="outline" className="text-xs bg-green-100 text-green-800">
-                              Actual
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openView(term);
-                          }}
-                          className="hover:scale-105 transition-transform cursor-pointer"
-                          disabled={isUpdating || isDeleting}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        {canUpdateTerm&&(<Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEdit(term);
-                          }}
-                          className="hover:scale-105 transition-transform cursor-pointer"
-                          disabled={isUpdating || isDeleting}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>)}
-                        {canDeleteTerm&&(<Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openDelete(term);
-                          }}
-                          className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive"
-                          disabled={isUpdating || isDeleting}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        </div>
 
-      {/* CRUD Dialog */}
-      <CrudDialog
-        operation={operation}
-        title={operation === 'create'
-          ? 'Crear Agregar Periodo'
-          : operation === 'edit'
-            ? 'Editar Periodo'
-            : 'Ver Periodo'
-        }
-        description={operation === 'create'
-          ? 'Completa la información del periodo'
-          : operation === 'edit'
-            ? 'Modifica la información del periodo'
-            : 'Información del periodo'
-        }
-        schema={termSchema}
-        defaultValues={{
-          name: '',
-          key: '',
-          startDate: '',
-          endDate: '',
-          status: 'active',
-          schoolCycleId: schoolCycleFilter === "current" 
-            ? activeSchoolCycle?._id || ''
-            : schoolCycleFilter !== "all" 
-              ? schoolCycleFilter 
-              : (schoolCycles?.[0]?._id || ''),
-        }}
-        data={data ? {
-          ...data,
-          startDate: (typeof data?.startDate === 'string' || typeof data?.startDate === 'number' || data?.startDate instanceof Date)
-            ? new Date(data.startDate).toISOString().split('T')[0]
-            : '',
-          endDate: (typeof data.endDate === 'string' || typeof data.endDate === 'number' || data.endDate instanceof Date)
-            ? new Date(data.endDate).toISOString().split('T')[0]
-            : '',
-        } : undefined}
-        isOpen={isOpen}
-        onOpenChange={close}
-        onSubmit={handleSubmit}
-        onDelete={handleDelete}
-      >
-        {(form, operation) => (
-          <TermForm
-            form={form}
-            operation={operation}
-            schoolCycles={schoolCycles || []}
-          />
+        {/* Error Alerts */}
+        {(createError || updateError || deleteError) && (
+          <div className="space-y-4">
+            {createError && (
+              <Alert variant="destructive">
+                <AlertCircle className='h-4 w-4' />
+                <AlertDescription>
+                  Error al crear periodo: {createError}
+                </AlertDescription>
+              </Alert>
+            )}
+            {updateError && (
+              <Alert variant="destructive">
+                <AlertCircle className='h-4 w-4' />
+                <AlertDescription>
+                  Error al actualizar periodo: {updateError}
+                </AlertDescription>
+              </Alert>
+            )}
+            {deleteError && (
+              <Alert variant="destructive">
+                <AlertCircle className='h-4 w-4' />
+                <AlertDescription>
+                  Error al eliminar periodo: {deleteError}
+                </AlertDescription>
+              </Alert>
+            )}
+            <button
+              onClick={clearErrors}
+              className="text-xs text-blue-500 underline mt-1"
+            >
+              Limpiar errores
+            </button>
+          </div>
         )}
-      </CrudDialog>
-    </div>):(<NotAuth 
-    pageName="Periodos"
-    pageDetails="Administra los periodos académicos"
-    icon={Calendar}
-    />)}
+
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total de Periodos
+              </CardTitle>
+              <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                <Calendar className="h-4 w-4 text-primary" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-3xl font-bold">{terms?.length || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                {schoolCycleFilter === "current" && activeSchoolCycle
+                  ? `Ciclo: ${activeSchoolCycle.name}`
+                  : schoolCycleFilter === "all"
+                    ? "Todos los ciclos"
+                    : schoolCycles?.find(c => c._id === schoolCycleFilter)?.name || ""}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Activos
+              </CardTitle>
+              <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                <CheckCircle className="h-4 w-4 text-primary" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-3xl font-bold">
+                {terms?.filter((term: Term) => term.status === "active").length || 0}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Cerrados
+              </CardTitle>
+              <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                <XCircle className="h-4 w-4 text-gray-600" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-3xl font-bold">
+                {terms?.filter((term: Term) => term.status === "closed").length || 0}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters Card */}
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Filter className="h-5 w-5" />
+                  Filtros y Búsqueda
+                </CardTitle>
+                <CardDescription>
+                  Encuentra los periodos por nombre, clave o estado
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar periodo..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Select
+                  onValueChange={(v) => setStatusFilter(v === "all" ? null : v)}
+                  value={statusFilter || "all"}
+                >
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Todos los estados" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los estados</SelectItem>
+                    <SelectItem value="active">Activos</SelectItem>
+                    <SelectItem value="inactive">Inactivos</SelectItem>
+                    <SelectItem value="closed">Cerrados</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select onValueChange={setSchoolCycleFilter} value={schoolCycleFilter}>
+                  <SelectTrigger className="w-[220px]">
+                    <SelectValue placeholder="Filtrar ciclo escolar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="current">
+
+                      {activeSchoolCycle && (
+                        <span className="">
+                          {activeSchoolCycle.name}
+                        </span>
+                      )}
+                    </SelectItem>
+                    {schoolCycles
+                      ?.filter(cycle => cycle._id !== activeSchoolCycle?._id)
+                      .map(cycle => (
+                        <SelectItem key={cycle._id} value={cycle._id}>
+                          {cycle.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Terms Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Lista de Periodos</span>
+              <Badge variant="outline">{filteredTerms.length} periodos</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isTermsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Cargando periodos...</p>
+                </div>
+              </div>
+            ) : filteredTerms.length === 0 ? (
+              <div className="text-center py-12">
+                <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">
+                  No se encontraron periodos
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  Intenta ajustar los filtros o no hay periodos registrados.
+                </p>
+                <Button
+                  size="lg"
+                  className="gap-2"
+                  onClick={openCreate}
+                  disabled={isCreating}
+                >
+                  <Plus className="h-4 w-4" />
+                  Agregar Periodo
+                </Button>
+              </div>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nombre</TableHead>
+                      <TableHead>Clave</TableHead>
+                      <TableHead>Fecha Inicio</TableHead>
+                      <TableHead>Fecha Fin</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Ciclo Escolar</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTerms.map((term: Term) => (
+                      <TableRow key={term._id}>
+                        <TableCell className="font-medium">{term.name}</TableCell>
+                        <TableCell className="font-mono text-sm">{term.key}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            {term.startDate ? new Date(term.startDate).toLocaleDateString("es-ES") : 'Sin fecha'}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            {term.endDate ? new Date(term.endDate).toLocaleDateString("es-ES") : 'Sin fecha'}
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(term.status)}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {getCycleName(term.schoolCycleId)}
+                            {isActiveCycle(term.schoolCycleId) && (
+                              <Badge variant="outline" className="text-xs bg-green-100 text-green-800">
+                                Actual
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openView(term);
+                            }}
+                            className="hover:scale-105 transition-transform cursor-pointer"
+                            disabled={isUpdating || isDeleting}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {canUpdateTerm && (<Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEdit(term);
+                            }}
+                            className="hover:scale-105 transition-transform cursor-pointer"
+                            disabled={isUpdating || isDeleting}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>)}
+                          {canDeleteTerm && (<Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openDelete(term);
+                            }}
+                            className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive"
+                            disabled={isUpdating || isDeleting}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* CRUD Dialog */}
+        <CrudDialog
+          operation={operation}
+          title={operation === 'create'
+            ? 'Crear Agregar Periodo'
+            : operation === 'edit'
+              ? 'Editar Periodo'
+              : 'Ver Periodo'
+          }
+          description={operation === 'create'
+            ? 'Completa la información del periodo'
+            : operation === 'edit'
+              ? 'Modifica la información del periodo'
+              : 'Información del periodo'
+          }
+          schema={termSchema}
+          defaultValues={{
+            name: '',
+            key: '',
+            startDate: '',
+            endDate: '',
+            status: 'active',
+            schoolCycleId: schoolCycleFilter === "current"
+              ? activeSchoolCycle?._id || ''
+              : schoolCycleFilter !== "all"
+                ? schoolCycleFilter
+                : (schoolCycles?.[0]?._id || ''),
+          }}
+          data={data ? {
+            ...data,
+            startDate: (typeof data?.startDate === 'string' || typeof data?.startDate === 'number' || data?.startDate instanceof Date)
+              ? new Date(data.startDate).toISOString().split('T')[0]
+              : '',
+            endDate: (typeof data.endDate === 'string' || typeof data.endDate === 'number' || data.endDate instanceof Date)
+              ? new Date(data.endDate).toISOString().split('T')[0]
+              : '',
+          } : undefined}
+          isOpen={isOpen}
+          onOpenChange={close}
+          onSubmit={handleSubmit}
+          onDelete={handleDelete}
+        >
+          {(form, operation) => (
+            <TermForm
+              form={form}
+              operation={operation}
+              schoolCycles={schoolCycles || []}
+            />
+          )}
+        </CrudDialog>
+      </div>) : (<NotAuth
+        pageName="Periodos"
+        pageDetails="Administra los periodos académicos"
+        icon={Calendar}
+      />)}
     </>
   );
 }
