@@ -111,7 +111,7 @@ const paymentConfigsMock: PaymentConfig[] = [
 const paymentHistoryMock: PaymentHistory[] = [
   {
     id: "1",
-    studentId: "EST001",
+    studentId: "Ana García López",
     paymentConfigId: "1",
     status: "Pagado",
     amount: 2500,
@@ -121,7 +121,7 @@ const paymentHistoryMock: PaymentHistory[] = [
   },
   {
     id: "2",
-    studentId: "EST002",
+    studentId: "Luis Martínez Ruiz",
     paymentConfigId: "1",
     status: "Pendiente",
     amount: 2500,
@@ -131,7 +131,7 @@ const paymentHistoryMock: PaymentHistory[] = [
   },
   {
     id: "3",
-    studentId: "EST003",
+    studentId: "Luis Martínez Ruiz",
     paymentConfigId: "2",
     status: "Pagado",
     amount: 5000,
@@ -141,7 +141,7 @@ const paymentHistoryMock: PaymentHistory[] = [
   },
   {
     id: "4",
-    studentId: "EST004",
+    studentId: "Sofia Hernández Cruz",
     paymentConfigId: "1",
     status: "Pagado",
     amount: 2500,
@@ -151,7 +151,7 @@ const paymentHistoryMock: PaymentHistory[] = [
   },
   {
     id: "5",
-    studentId: "EST005",
+    studentId: "Luis Martínez Ruiz",
     paymentConfigId: "3",
     status: "Vencido",
     amount: 1200,
@@ -360,37 +360,66 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
           <CardDescription>Consulta el historial completo de pagos realizados por los estudiantes.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Estudiante</TableHead>
-                <TableHead>Config. Pago</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Monto</TableHead>
-                <TableHead>Fecha de Pago</TableHead>
-                <TableHead>Método de Pago</TableHead>
-                <TableHead>Factura</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredHistory.map((payment) => (
-                <TableRow key={payment.id}>
-                  <TableCell className="font-medium">{payment.studentId}</TableCell>
-                  <TableCell>{payment.paymentConfigId}</TableCell>
-                  <TableCell>{getPaymentStatusBadge(payment.status)}</TableCell>
-                  <TableCell>${payment.amount.toLocaleString()}</TableCell>
-                  <TableCell>{payment.paidAt || "N/A"}</TableCell>
-                  <TableCell>{payment.paymentMethod}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      {payment.invoiceId}
-                    </div>
-                  </TableCell>
+          <div className="w-full overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
+            <Table >
+              <TableHeader>
+                <TableRow className="bg-gray-50/80 border-b border-gray-200">
+                  <TableHead className="font-semibold text-gray-900 border-r border-gray-200 px-4 py-3">
+                    Estudiante
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-900 border-r border-gray-200 px-4 py-3">
+                    Config. Pago
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-900 border-r border-gray-200 px-4 py-3">
+                    Estado
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-900 border-r border-gray-200 px-4 py-3">
+                    Monto
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-900 border-r border-gray-200 px-4 py-3">
+                    Fecha de Pago
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-900 border-r border-gray-200 px-4 py-3">
+                    Método de Pago
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-900 px-4 py-3">Factura</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredHistory.map((payment, index) => (
+                  <TableRow
+                    key={payment.id}
+                    className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50/30"} border-b border-gray-100 hover:bg-blue-50/50 transition-colors`}
+                  >
+                    <TableCell className="font-medium text-gray-900 border-r border-gray-100 px-4 py-3">
+                      {payment.studentId}
+                    </TableCell>
+                    <TableCell className="text-gray-700 border-r border-gray-100 px-4 py-3">
+                      {payment.paymentConfigId}
+                    </TableCell>
+                    <TableCell className="border-r border-gray-100 px-4 py-3">
+                      {getPaymentStatusBadge(payment.status)}
+                    </TableCell>
+                    <TableCell className="font-semibold text-gray-900 border-r border-gray-100 px-4 py-3">
+                      ${payment.amount.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-gray-700 border-r border-gray-100 px-4 py-3">
+                      {payment.paidAt || "N/A"}
+                    </TableCell>
+                    <TableCell className="text-gray-700 border-r border-gray-100 px-4 py-3">
+                      {payment.paymentMethod}
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-gray-700">{payment.invoiceId}</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

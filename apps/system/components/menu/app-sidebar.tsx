@@ -67,9 +67,19 @@ const defaultNavData = {
       ],
     },
     {
-      title: "Inscripciones/Colegiaturas",
-      url: `/pagos`,
+      title: "Pagos",
       icon: BanknoteArrowUp,
+      url: "#",
+      items: [
+        {
+          title: "Pagos",
+          url: `/pagos`,
+        },
+        {
+          title: "Reglas de Negocio",
+          url: `/pagos/reglas-de-negocio`,
+        },
+      ],
     },
     {
       title: "Plataforma",

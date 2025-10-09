@@ -326,7 +326,7 @@ export default function GradeManagementDashboard() {
 
   // Main UI when all data is available
   return (
-    <div className="space-y-8 p-6 min-w-full max-w-5xl mx-auto">
+    <div className="space-y-8 p-6">
       {/* Header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
@@ -596,15 +596,17 @@ export default function GradeManagementDashboard() {
               </div>
             </div>
           ) : (
-            <div className="w-full">
-              <GradeMatrix
-                students={filteredAndSortedStudents}
-                assignments={assignments!}
-                grades={grades!}
-                onGradeUpdate={handleUpdateGrade}
-                calculateAverage={calculateAverage}
-                canUpdateRubric={canUpdateRubric}
-              />
+            <div className="w-full overflow-x-auto">
+              <div className="min-w-full">
+                <GradeMatrix
+                  students={filteredAndSortedStudents}
+                  assignments={assignments!}
+                  grades={grades!}
+                  onGradeUpdate={handleUpdateGrade}
+                  calculateAverage={calculateAverage}
+                  canUpdateRubric={canUpdateRubric}
+                />
+              </div>
             </div>
           )}
         </CardContent>

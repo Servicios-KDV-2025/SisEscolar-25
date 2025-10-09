@@ -965,7 +965,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
               Cancelar
             </Button>
             <Button 
-              onClick={closePaymentModal} 
+              onClick={handleRealizarPagos} 
               disabled={selectedPayments.length === 0 && !selectedPaymentInModal}
               className="w-full sm:w-auto order-1 sm:order-2"
             >
