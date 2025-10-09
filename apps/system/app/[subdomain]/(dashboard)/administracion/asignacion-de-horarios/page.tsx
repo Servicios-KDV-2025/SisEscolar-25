@@ -328,24 +328,23 @@ export default function HorariosPorClasePage() {
     api.functions.schedule.getOccupiedScheduleIds,
     currentSchool?.school._id ? { schoolId: currentSchool.school._id } : "skip"
   );
-  const classBeingEdited = crudDialog.data as ClassItem | null; // Obtenemos la clase que se está editando
+  // const classBeingEdited = crudDialog.data as ClassItem | null; // Obtenemos la clase que se está editando
 
-  const conflictScheduleIdsEdit = useQuery(
-    api.functions.schedule.getScheduleConflictsForEdit, // <-- Usamos la nueva consulta
-    // Solo se ejecuta si estamos editando una clase y tenemos los datos necesarios
-    classBeingEdited &&
-      currentSchool?.school._id &&
-      classBeingEdited.teacher &&
-      classBeingEdited.classroom
-      ? {
-          schoolId: currentSchool.school._id,
-          teacherId: classBeingEdited.teacher._id as Id<"user">,
-          classroomId: classBeingEdited.classroom._id as Id<"classroom">,
-          classCatalogIdToExclude:
-            classBeingEdited.classCatalogId as Id<"classCatalog">,
-        }
-      : "skip"
-  );
+  // const conflictScheduleIdsEdit = useQuery(
+  //   api.functions.schedule.getScheduleConflictsForEdit, 
+  //   classBeingEdited &&
+  //     currentSchool?.school._id &&
+  //     classBeingEdited.teacher &&
+  //     classBeingEdited.classroom
+  //     ? {
+  //         schoolId: currentSchool.school._id,
+  //         teacherId: classBeingEdited.teacher._id as Id<"user">,
+  //         classroomId: classBeingEdited.classroom._id as Id<"classroom">,
+  //         classCatalogIdToExclude:
+  //           classBeingEdited.classCatalogId as Id<"classCatalog">,
+  //       }
+  //     : "skip"
+  // );
   const conflictScheduleIds = useQuery(
     api.functions.schedule.getScheduleConflicts, // Ajusta la ruta si es necesario
     // Solo ejecuta la consulta si tenemos los tres IDs necesarios
@@ -910,13 +909,13 @@ export default function HorariosPorClasePage() {
                     <FormControl>
                       <div className="grid gap-2 max-h-60 overflow-y-auto border rounded-md p-4">
                         {schedules?.map((schedule) => {
-                          const isOccupied = (
-                            occupiedScheduleIds || []
-                          ).includes(schedule._id);
-                          const isConflict = (
-                            conflictScheduleIdsEdit || []
-                          ).includes(schedule._id);
-                          const isDisabled = isOccupied || isConflict;
+                          // const isOccupied = (
+                          //   occupiedScheduleIds || []
+                          // ).includes(schedule._id);
+                          // const isConflict = (
+                          //   conflictScheduleIdsEdit || []
+                          // ).includes(schedule._id);
+                          // const isDisabled = isOccupied || isConflict;
                           return (
                             <div
                               key={schedule._id}
