@@ -77,7 +77,6 @@ export const createStudent = mutation({
     const studentId = await ctx.db.insert("student", {
       ...args,
       status: args.status || "active",
-      balance: 0, // Inicializar balance en 0
       createdAt: now,
       updatedAt: now,
     });
@@ -133,29 +132,18 @@ export const createStudent = mutation({
                 updatedAt: now,
               });
 
-              // SOLO sumar al balance si el status es "required"
-              if (config.status === "required") {
-                totalDebt += config.amount;
-              }
 
               paymentsCreated.push({
                 paymentId,
                 configName: `${config.type} - ${config.recurrence_type}`,
                 amount: config.amount,
                 status: config.status,
-                balanceUpdated: config.status === "required",
               });
             }
           }
         }
 
-        // Actualizar el balance del estudiante SOLO si hay deuda requerida
-        if (totalDebt > 0) {
-          await ctx.db.patch(studentId, {
-            balance: -totalDebt, // Negativo porque es deuda
-            updatedAt: now,
-          });
-        }
+        
       } catch (error) {
         console.error("Error creando pagos para el estudiante:", error);
       }

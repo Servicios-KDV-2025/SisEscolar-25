@@ -32,12 +32,14 @@ import {
   DialogTitle,
 } from "@repo/ui/components/shadcn/dialog"
 import { toast } from "sonner"
-import { useQuery } from "convex/react"
+import { useQuery, useMutation } from "convex/react"
 import { api } from "@repo/convex/convex/_generated/api"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
 import { useUser } from "@clerk/nextjs"
 import { useUserWithConvex } from "../../../../stores/userStore"
 import { useCurrentSchool } from "../../../../stores/userSchoolsStore"
+import { Label } from "@repo/ui/components/shadcn/label"
+import { RadioGroup, RadioGroupItem } from "@repo/ui/components/shadcn/radio-group"
 
 
 interface Estudiante {
@@ -47,6 +49,7 @@ interface Estudiante {
   grupo: string
   matricula: string
   padre: string
+  tutorId: string
   telefono: string
   metodoPago: string
   fechaVencimiento: string
@@ -55,11 +58,13 @@ interface Estudiante {
   estado: "al-dia" | "retrasado" | "moroso"
   schoolCycleId: string
   tipo: "Inscripciones" | "Colegiatura"
-  balance: number
+  credit: number
   pagos: Array<{
     id: string
     tipo: string
     monto: number
+    montoTotal: number
+    montoPagado: number
     fechaVencimiento: string
     estado: "Pendiente" | "Vencido" | "Pagado"
     diasRetraso: number
@@ -106,6 +111,10 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
   const [selectedPayments, setSelectedPayments] = useState<string[]>([])
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [selectedPaymentInModal, setSelectedPaymentInModal] = useState<string | null>(null)
+  const [showPaymentFormModal, setShowPaymentFormModal] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "bank_transfer" | "card" | "other">("cash")
+  const [paymentAmount, setPaymentAmount] = useState<string>("")
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false)
 
   // Hooks para obtener datos del usuario y escuela
   const { user: clerkUser } = useUser()
@@ -136,6 +145,9 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
     api.functions.group.getAllGroupsBySchool,
     currentSchool?.school._id ? {schoolId: currentSchool.school._id} : "skip"
   )
+
+  // Mutation para procesar el pago
+  const processPayment = useMutation(api.functions.billing.processPayment)
 
   // Establecer el ciclo activo por defecto cuando se cargan los datos
   useEffect(() => {
@@ -197,13 +209,9 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
   })
 
   const calcularMontoPagar = (estudiante: Estudiante) => {
-    if (estudiante.estado === "al-dia") {
-      return estudiante.montoColegiatura
-    } else if (estudiante.estado === "retrasado") {
-      return estudiante.montoColegiatura + estudiante.diasRetraso * 150
-    } else {
-      return estudiante.montoColegiatura + estudiante.diasRetraso * 150
-    }
+    // montoColegiatura ahora ya incluye solo el monto pendiente (amount - deposit)
+    // Sumamos las penalizaciones por días de retraso
+    return estudiante.montoColegiatura + (estudiante.diasRetraso * 150)
   }
 
   const getEstadoBadge = (estado: string) => {
@@ -245,6 +253,11 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
 
     filteredEstudiantesByCycle.forEach((estudiante) => {
       estudiante.pagos.forEach((pago) => {
+        // pago.monto ahora ya es el monto pendiente (amount - deposit)
+        // Solo agregamos las penalizaciones por días de retraso si hay pagos pendientes
+        const montoPendiente = pago.monto
+        const penalizacion = pago.estado !== "Pagado" ? pago.diasRetraso * 150 : 0
+        
         records.push({
           id: pago.id,
           studentId: estudiante.id,
@@ -253,7 +266,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
           studentGroup: estudiante.grupo,
           studentMatricula: estudiante.matricula,
           paymentType: pago.tipo,
-          amount: pago.monto + pago.diasRetraso * 150, // Include late fees
+          amount: montoPendiente + penalizacion, // Monto pendiente + penalización
           dueDate: (pago.fechaVencimiento || new Date().toISOString().split('T')[0]) as string,
           status: pago.estado,
           daysLate: pago.diasRetraso,
@@ -303,6 +316,12 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
     setSelectedPaymentInModal(null)
   }
 
+  const closePaymentFormModal = () => {
+    setShowPaymentFormModal(false)
+    setPaymentMethod("cash")
+    setPaymentAmount("")
+  }
+
   const handlePaymentSelectionInModal = (paymentId: string) => {
     const paymentRecord = paymentRecords.find((p) => p.id === paymentId)
 
@@ -314,6 +333,92 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
     }
 
     setSelectedPaymentInModal(paymentId)
+  }
+
+  const handleOpenPaymentForm = () => {
+    const paymentsToProcess = getSelectedPaymentsData()
+    
+    if (paymentsToProcess.length === 0) {
+      toast.error("No hay pagos seleccionados", {
+        description: "Por favor selecciona al menos un pago para continuar.",
+      })
+      return
+    }
+
+    // Calcular el monto total
+    const totalAmount = paymentsToProcess.reduce((sum, payment) => sum + payment.amount, 0)
+    setPaymentAmount(totalAmount.toString())
+    
+    // Cerrar el primer modal y abrir el formulario
+    setShowPaymentModal(false)
+    setShowPaymentFormModal(true)
+  }
+
+  const handleConfirmPayment = async () => {
+    if (!currentUser || !currentSchool) {
+      toast.error("Error de autenticación", {
+        description: "No se pudo verificar tu identidad.",
+      })
+      return
+    }
+
+    const paymentsToProcess = getSelectedPaymentsData()
+    
+    if (paymentsToProcess.length === 0) {
+      toast.error("No hay pagos seleccionados")
+      return
+    }
+
+    const amount = parseFloat(paymentAmount)
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Monto inválido", {
+        description: "Por favor ingresa un monto válido mayor a 0.",
+      })
+      return
+    }
+
+    setIsProcessingPayment(true)
+
+    try {
+      // Procesar cada pago seleccionado
+      const results = []
+      
+      for (const paymentRecord of paymentsToProcess) {
+        const estudiante = filteredEstudiantesByCycle.find((e) => e.id === paymentRecord.studentId)
+        if (!estudiante) continue
+
+        // Calcular el monto a pagar para este cobro específico
+        const amountForThisBilling = paymentsToProcess.length === 1 
+          ? amount 
+          : Math.min(amount / paymentsToProcess.length, paymentRecord.amount)
+
+        const result = await processPayment({
+          billingId: paymentRecord.id as Id<"billing">,
+          tutorId: estudiante.tutorId as Id<"user">,
+          studentId: paymentRecord.studentId as Id<"student">,
+          method: paymentMethod,
+          amount: amountForThisBilling,
+          createdBy: currentUser._id,
+        })
+        
+        results.push(result)
+      }
+
+      toast.success("Pago procesado exitosamente", {
+        description: `Se procesaron ${results.length} pago(s) correctamente.`,
+      })
+
+      // Limpiar y cerrar modales
+      closePaymentFormModal()
+      closePaymentModal()
+      
+    } catch (error: unknown) {
+      toast.error("Error al procesar el pago", {
+        description: error instanceof Error ? error.message : "Ocurrió un error inesperado.",
+      })
+    } finally {
+      setIsProcessingPayment(false)
+    }
   }
 
   return (
@@ -644,7 +749,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
                                     <p
                                       className={`font-semibold text-sm sm:text-base ${isPaymentSelected ? "text-blue-900" : "text-gray-700"}`}
                                     >
-                                      ${(pago.monto + pago.diasRetraso * 150).toLocaleString()}
+                                      ${(pago.monto + (pago.estado !== "Pagado" ? pago.diasRetraso * 150 : 0)).toLocaleString()}
                                     </p>
                                   </div>
                                 </div>
@@ -965,11 +1070,142 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
               Cancelar
             </Button>
             <Button 
-              onClick={closePaymentModal} 
+              onClick={handleOpenPaymentForm} 
               disabled={selectedPayments.length === 0 && !selectedPaymentInModal}
               className="w-full sm:w-auto order-1 sm:order-2"
             >
-              Aceptar
+              Continuar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Formulario de Pago */}
+      <Dialog open={showPaymentFormModal} onOpenChange={setShowPaymentFormModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-2 sm:mx-4">
+          <DialogHeader className="pb-4">
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <DollarSign className="h-5 w-5" />
+              Procesar Pago
+            </DialogTitle>
+            <DialogDescription>
+              Completa la información del pago a procesar
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Resumen de pagos seleccionados */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Resumen de Cobros</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {getSelectedPaymentsData().map((payment) => (
+                    <div key={payment.id} className="flex justify-between items-center text-sm border-b pb-2">
+                      <div>
+                        <p className="font-medium">{payment.studentName}</p>
+                        <p className="text-xs text-muted-foreground">{payment.paymentType}</p>
+                      </div>
+                      <p className="font-semibold">${payment.amount.toLocaleString()}</p>
+                    </div>
+                  ))}
+                  <div className="flex justify-between items-center pt-2 font-bold">
+                    <p>Total:</p>
+                    <p className="text-lg">
+                      ${getSelectedPaymentsData()
+                        .reduce((sum, payment) => sum + payment.amount, 0)
+                        .toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Método de Pago */}
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Método de Pago</Label>
+              <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as "cash" | "bank_transfer" | "card" | "other")}>
+                <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
+                  <RadioGroupItem value="cash" id="cash" />
+                  <Label htmlFor="cash" className="flex items-center gap-2 cursor-pointer flex-1">
+                    <Banknote className="h-4 w-4" />
+                    Efectivo
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
+                  <RadioGroupItem value="bank_transfer" id="bank_transfer" />
+                  <Label htmlFor="bank_transfer" className="flex items-center gap-2 cursor-pointer flex-1">
+                    <CreditCard className="h-4 w-4" />
+                    Transferencia Bancaria
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
+                  <RadioGroupItem value="card" id="card" />
+                  <Label htmlFor="card" className="flex items-center gap-2 cursor-pointer flex-1">
+                    <CreditCard className="h-4 w-4" />
+                    Tarjeta
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
+                  <RadioGroupItem value="other" id="other" />
+                  <Label htmlFor="other" className="flex items-center gap-2 cursor-pointer flex-1">
+                    <DollarSign className="h-4 w-4" />
+                    Otro
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {/* Monto a Pagar */}
+            <div className="space-y-3">
+              <Label htmlFor="paymentAmount" className="text-base font-semibold">
+                Monto a Pagar
+              </Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="paymentAmount"
+                  type="number"
+                  placeholder="0.00"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  className="pl-8 text-lg"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Puedes pagar el monto completo o realizar un abono parcial
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 flex-col sm:flex-row pt-4">
+            <Button 
+              variant="outline" 
+              onClick={closePaymentFormModal} 
+              disabled={isProcessingPayment}
+              className="w-full sm:w-auto order-2 sm:order-1"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleConfirmPayment} 
+              disabled={isProcessingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0}
+              className="w-full sm:w-auto order-1 sm:order-2"
+            >
+              {isProcessingPayment ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Procesando...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Confirmar Pago
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

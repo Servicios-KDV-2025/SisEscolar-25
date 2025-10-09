@@ -80,7 +80,8 @@ const applicationTable = defineSchema({
     tutorId: v.id("user"),
     enrollment: v.string(),
     schoolCycleId: v.optional(v.id("schoolCycle")),
-    balance: v.optional(v.number()),
+    // balance: v.optional(v.number()),
+    credit: v.optional(v.number()),
     name: v.string(),
     lastName: v.optional(v.string()),
     birthDate: v.optional(v.number()),
@@ -383,6 +384,8 @@ billing: defineTable({
     v.literal("Pago retrasado")
   ),
   amount: v.number(),
+  lateFee: v.optional(v.number()),
+  totalAmount: v.optional(v.number()),
   paidAt: v.optional(v.number()),
   createdAt: v.number(),
   updatedAt: v.number(),
@@ -425,7 +428,6 @@ billing: defineTable({
     v.literal("otro")
   ),
   amount: v.number(),
-  deposit: v.optional(v.number()),
   startDate: v.number(),
   endDate: v.number(),
   createdBy: v.id("user"),
@@ -441,8 +443,29 @@ billing: defineTable({
   .index("by_scope", ["scope"])
   .index("by_group", ["targetGroup"])
   .index("by_grade", ["targetGrade"])
-  .index("by_student", ["targetStudent"])
+  .index("by_student", ["targetStudent"]),
 
+  payments: defineTable({
+  billingId: v.id("billing"),
+  studentId: v.id("student"),
+  method: v.union(
+    v.literal("cash"),
+    v.literal("bank_transfer"),
+    v.literal("card"),
+    v.literal("other")
+  ),
+  amount: v.number(),
+  invoiceId: v.optional(v.string()),
+  invoiceFilename: v.optional(v.string()), // Nombre original del archivo
+  invoiceMimeType: v.optional(v.string()), // Tipo MIME del archivo
+  createdBy: v.id("user"),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+  }) 
+  .index("by_billing", ["billingId"])
+  .index("by_student", ["studentId"])
+  .index("by_method", ["method"]),
 });
+
 
 export default applicationTable;
