@@ -1,5 +1,6 @@
 import {HomeIcon} from '@sanity/icons'
 import {defineArrayMember, defineField, defineType} from 'sanity'
+import body from '../objects/modules/body'
 
 export default defineType({
   name: 'home',
@@ -58,6 +59,7 @@ export default defineType({
       ],
       validation: (rule) => rule.max(155).required(),
     }),
+    body,
     defineField({
       name: 'showcaseProjects',
       title: 'Showcase projects',

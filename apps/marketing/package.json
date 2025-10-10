@@ -14,7 +14,9 @@
   },
   "dependencies": {
     "@next/env": "15.5.4",
+    "@portabletext/react": "^4.0.3",
     "@radix-ui/react-navigation-menu": "^1.2.13",
+    "@radix-ui/react-slot": "^1.2.3",
     "@sanity/client": "7.11.2",
     "@sanity/demo": "2.0.0",
     "@sanity/icons": "3.7.4",
@@ -28,6 +30,7 @@
     "classnames": "2.5.1",
     "clsx": "^2.1.1",
     "date-fns": "4.1.0",
+    "embla-carousel-react": "^8.6.0",
     "lucide-react": "^0.545.0",
     "next": "15.5.4",
     "next-sanity": "11.4.2",

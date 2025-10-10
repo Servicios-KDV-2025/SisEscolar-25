@@ -1,11 +1,6 @@
-import {Header} from '@/components/Header'
-import {OptimisticSortOrder} from '@/components/OptimisticSortOrder'
-import {ProjectListItem} from '@/components/ProjectListItem'
 import type {HomePageQueryResult} from '@/sanity.types'
-import {studioUrl} from '@/sanity/lib/api'
-import {resolveHref} from '@/sanity/lib/utils'
-import {createDataAttribute} from 'next-sanity'
-import Link from 'next/link'
+import { PortableTextBlock} from 'next-sanity'
+import { CustomPortableText } from './CustomPortableText'
 
 export interface HomePageProps {
   data: HomePageQueryResult | null
@@ -13,21 +8,21 @@ export interface HomePageProps {
 
 export async function HomePage({data}: HomePageProps) {
   // Default to an empty object to allow previews on non-existent documents
-  const {overview = [], showcaseProjects = [], title = ''} = data ?? {}
+  const {body, _id, _type} = data ?? {}
 
-  const dataAttribute =
-    data?._id && data?._type
-      ? createDataAttribute({
-          baseUrl: studioUrl,
-          id: data._id,
-          type: data._type,
-        })
-      : null
+  // const dataAttribute =
+  //   data?._id && data?._type
+  //     ? createDataAttribute({
+  //         baseUrl: studioUrl,
+  //         id: data._id,
+  //         type: data._type,
+  //       })
+  //     : null
 
   return (
     <div className="space-y-20">
       {/* Header */}
-      {title && (
+      {/* {title && (
         <Header
           id={data?._id || null}
           type={data?._type || null}
@@ -36,9 +31,9 @@ export async function HomePage({data}: HomePageProps) {
           title={title}
           description={overview}
         />
-      )}
+      )} */}
       {/* Showcase projects */}
-      <div className="mx-auto max-w-[100rem] rounded-md border">
+      {/* <div className="mx-auto max-w-[100rem] rounded-md border">
         <OptimisticSortOrder id={data?._id} path={'showcaseProjects'}>
           {showcaseProjects &&
             showcaseProjects.length > 0 &&
@@ -59,7 +54,14 @@ export async function HomePage({data}: HomePageProps) {
               )
             })}
         </OptimisticSortOrder>
-      </div>
+      </div> */}
+      <CustomPortableText
+          id={_id || null}
+          type={_type || null}
+          path={['body']}
+          paragraphClasses="font-serif max-w-3xl text-gray-600 text-xl"
+          value={body as unknown as PortableTextBlock[]}
+        />
     </div>
   )
 }
