@@ -36,6 +36,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@repo/ui/components/shadcn/avatar";
+import { Checkbox } from "@repo/ui/components/shadcn/checkbox";
 import {
   CrudDialog,
   useCrudDialog,
@@ -312,11 +313,13 @@ export default function PersonalPage() {
     userActions.clearLastResult();
 
     // Separar roles editables de tutor
-    const editableRoles = user.schoolRole;
+    const editableRoles = user.schoolRole.filter((r) => r !== "tutor");
+    const isTutor = user.schoolRole.includes("tutor");
 
     const editData = {
       ...user,
       role: editableRoles, // Solo roles editables en el formulario
+      isTutor: isTutor, // Establecer el valor del checkbox
       originalRoles: user.schoolRole, // Guardar roles originales para preservar tutor
       userSchoolId: user.userSchoolId,
       status: user.schoolStatus,
@@ -399,6 +402,8 @@ export default function PersonalPage() {
   }, [searchTerm, statusFilter, roleFilter, departmentFilter]);
 
   // Funciones CRUD
+  // 🔥 VERSIÓN MEJORADA: handleCreate con lógica clara del checkbox isTutor
+
   const handleCreate = async (formData: Record<string, unknown>) => {
     if (!currentSchool?.school?._id) {
       console.error("No hay escuela actual disponible");
@@ -407,22 +412,19 @@ export default function PersonalPage() {
 
     const email = formData.email as string;
 
+    // 👇 Obtener valor del checkbox (campo auxiliar de UI)
+    const isTutorChecked = formData.isTutor === true;
+
     try {
-      // PASO 1: Buscar si el usuario ya existe en Convex
+      // PASO 1: Buscar si el usuario ya existe
       const existingUsers = await searchUserByEmailAsync(email);
 
       if (existingUsers && existingUsers.length > 0) {
-        // FLUJO A: Usuario existe en la base de datos de usuarios
+        // FLUJO A: Usuario existe, asignar a esta escuela
         const existingUser = existingUsers[0];
 
-        if (
-          !existingUser?.clerkId ||
-          !existingUser?.name ||
-          !existingUser?.email
-        ) {
-          throw new Error(
-            "Error al obtener datos completos del usuario existente"
-          );
+        if (!existingUser?.clerkId || !existingUser?.name || !existingUser?.email) {
+          throw new Error("Error al obtener datos completos del usuario existente");
         }
 
         // Buscar si ya tiene relación en esta escuela (con cualquier rol)
@@ -430,20 +432,22 @@ export default function PersonalPage() {
           (user: UserFromConvex) => user.clerkId === existingUser.clerkId
         );
 
+        // 📋 Construir array de roles
+        let rolesToAssign = (
+          Array.isArray(formData.role) ? formData.role : [formData.role]
+        ) as Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
+
+        // ✅ Aplicar lógica del checkbox: agregar/quitar "tutor"
+        if (isTutorChecked && !rolesToAssign.includes("tutor")) {
+          rolesToAssign.push("tutor");
+        } else if (!isTutorChecked) {
+          rolesToAssign = rolesToAssign.filter(r => r !== "tutor");
+        }
+
         if (userInCurrentSchool) {
-          // Usuario YA tiene una relación en esta escuela
           const existingRoles = userInCurrentSchool.schoolRole;
-
-          // Verificar si el rol de tutor ya existe
-          if (existingRoles.includes("tutor")) {
-            throw new Error(
-              `El usuario ${email} ya tiene asignado el rol de tutor. No se realizó ningún cambio.`
-            );
-          }
-
-          // Logging para debugging
           console.log(
-            `⚠️ Agregando rol de tutor al usuario existente. Roles anteriores: ${existingRoles.join(", ")}`
+            `⚠️ Usuario ya existe en esta escuela. Roles anteriores: ${existingRoles.join(", ")}, Nuevos roles: ${rolesToAssign.join(", ")}`
           );
         }
 
@@ -451,20 +455,21 @@ export default function PersonalPage() {
         await createUserSchoolRelation({
           clerkId: existingUser.clerkId,
           schoolId: currentSchool.school._id,
-          role: ["tutor"],
+          role: rolesToAssign.length > 0 ? rolesToAssign : ["teacher"],
           status: "active",
           department: undefined,
         });
 
+        toast.success("Usuario asignado exitosamente");
         return;
       }
 
-      // FLUJO B: Usuario no existe, crear nuevo en Clerk + asignar
+      // FLUJO B: Usuario no existe, crear nuevo
       const password = formData.password as string;
 
       if (!password || password.trim() === "") {
         throw new Error(
-          "La contraseña es requerida para crear un usuario nuevo. Si el usuario ya existe en el sistema, se asignará automáticamente."
+          "La contraseña es requerida para crear un usuario nuevo."
         );
       }
 
@@ -473,10 +478,9 @@ export default function PersonalPage() {
         password: password,
         name: formData.name as string,
         lastName: formData.lastName as string,
-        phone: formData.phone as string ,
-        address: formData.address as string ,
+        phone: formData.phone as string,
+        address: formData.address as string,
       };
-
 
       const result = await userActions.createUser(createData);
 
@@ -484,29 +488,34 @@ export default function PersonalPage() {
         try {
           await new Promise((resolve) => setTimeout(resolve, 2000));
 
-          // Obtener roles del formulario
-          const selectedRoles = (
+          // 📋 Construir array de roles
+          let selectedRoles = (
             Array.isArray(formData.role) ? formData.role : [formData.role]
           ) as Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
+
+          // ✅ Aplicar lógica del checkbox: agregar/quitar "tutor"
+          if (isTutorChecked && !selectedRoles.includes("tutor")) {
+            selectedRoles.push("tutor");
+          } else if (!isTutorChecked) {
+            selectedRoles = selectedRoles.filter(r => r !== "tutor");
+          }
 
           await createUserSchoolRelation({
             clerkId: result.userId,
             schoolId: currentSchool.school._id,
-            role: selectedRoles.length > 0 ? selectedRoles : ["teacher"], // Usar roles del form, con 'teacher' como fallback
+            role: selectedRoles.length > 0 ? selectedRoles : ["teacher"],
             status: "active",
-            department: undefined, // El departamento se gestiona en la edición
+            department: undefined,
           });
 
-          
+          toast.success("Usuario creado exitosamente");
         } catch (error) {
-          console.error("Error al asignar usuario como tutor:", error);
+          console.error("Error al asignar usuario:", error);
           throw new Error(
-            `Usuario creado pero error al asignar como tutor: ${error instanceof Error ? error.message : "Error desconocido"}`
+            `Usuario creado pero error al asignar roles: ${error instanceof Error ? error.message : "Error desconocido"}`
           );
         }
-        toast.success("Usuario creado y asignado como tutor exitosamente");
       } else {
-        console.error("Error al crear usuario en Clerk:", result.error);
         throw new Error(result.error || "Error al crear usuario en Clerk");
       }
     } catch (error) {
@@ -515,16 +524,16 @@ export default function PersonalPage() {
     }
   };
 
+  // Actualiza handleUpdate para manejar el checkbox de tutor:
+
   const handleUpdate = async (formData: Record<string, unknown>) => {
     const combinedData = { ...data, ...formData };
 
     if (!combinedData.clerkId) {
-      console.error("Clerk ID de usuario no disponible");
       throw new Error("Clerk ID de usuario no disponible");
     }
 
     if (!combinedData.userSchoolId) {
-      console.error("UserSchool ID no disponible");
       throw new Error("UserSchool ID no disponible");
     }
 
@@ -537,15 +546,12 @@ export default function PersonalPage() {
         address: combinedData.address as string,
       };
 
-
-
       const userResult = await userActions.updateUser(
         combinedData.clerkId as string,
         userUpdateData
       );
 
       if (!userResult.success) {
-        console.error("Error al actualizar usuario en Clerk:", userResult.error);
         throw new Error(
           userResult.error || "Error al actualizar información básica del usuario"
         );
@@ -553,6 +559,7 @@ export default function PersonalPage() {
 
       const selectedRoleData = formData.role;
       const selectedDepartment = formData.department as string | undefined;
+      const isTutor = formData.isTutor as boolean || false; // 👈 Obtener valor del checkbox
 
       let finalRoles: Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
 
@@ -566,26 +573,27 @@ export default function PersonalPage() {
           : [data?.role as "superadmin" | "admin" | "auditor" | "teacher" | "tutor"];
       }
 
+      // Agregar o quitar el rol de tutor según el checkbox
+      if (isTutor && !finalRoles.includes("tutor")) {
+        finalRoles.push("tutor");
+      } else if (!isTutor && finalRoles.includes("tutor")) {
+        finalRoles = finalRoles.filter(r => r !== "tutor");
+      }
+
       console.log("🔍 Roles finales seleccionados:", finalRoles);
-      console.log("🔍 Departamento seleccionado:", selectedDepartment);
 
       const hasAdminRole = finalRoles.includes("admin");
 
-      // Determinar el valor del departamento
       let departmentValue: string | undefined | null;
       if (hasAdminRole) {
-        // Si tiene rol admin, usar el departamento seleccionado
         if (selectedDepartment === "none" || selectedDepartment === undefined) {
-          departmentValue = null; // Sin departamento
+          departmentValue = null;
         } else {
           departmentValue = selectedDepartment;
         }
       } else {
-        // Si NO tiene rol admin, siempre limpia departamento
         departmentValue = null;
       }
-
-      console.log("🔍 Departamento final a guardar:", departmentValue);
 
       await updateUserSchoolRelation({
         id: combinedData.userSchoolId as Id<"userSchool">,
@@ -1523,6 +1531,29 @@ export default function PersonalPage() {
               }}
             />
 
+            {(operation === "create" || operation === "edit") && (
+              <FormField
+                control={form.control}
+                name="isTutor"
+                render={({ field }) => (
+                  <FormItem className="md:col-span-2 flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
+                    <FormControl>
+                      <Checkbox
+                        checked={!!field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>¿Es también Tutor?</FormLabel>
+                      <p className="text-sm text-muted-foreground">
+                        Marque esta casilla si el usuario también debe tener
+                        permisos de tutor.
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
 
             {/* Campo de departamento solo visible si tiene rol de administrador */}
             {(() => {

@@ -118,6 +118,7 @@ export const unifiedUserCreateSchema = userSchema.extend({
     message: "Debe seleccionar un rol"
   }),
   department: z.enum(["secretary", "direction", "schoolControl", "technology"]).optional(),
+  isTutor: z.boolean().optional(), // 👈 Campo auxiliar solo para UI
 }).refine((data) => {
   // Si el rol es admin (o incluye admin en el array), el departamento es requerido
   const roles = Array.isArray(data.role) ? data.role : [data.role];
@@ -138,6 +139,7 @@ export const unifiedUserEditSchema = userSchema.extend({
     message: "Debe seleccionar un rol"
   }),
   department: z.enum(["secretary", "direction", "schoolControl", "technology"]).optional(),
+  isTutor: z.boolean().optional(), // 👈 Campo auxiliar solo para UI
 }).refine((data) => {
   // Si el rol es admin (o incluye admin en el array), el departamento es requerido
   const roles = Array.isArray(data.role) ? data.role : [data.role];
@@ -150,6 +152,9 @@ export const unifiedUserEditSchema = userSchema.extend({
   path: ["department"]
 });
 
+/**
+ * Schema unificado para visualización o casos generales
+ */
 export const unifiedUserSchema = userSchema.extend({
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").optional(),
   role: z.union([
@@ -159,6 +164,7 @@ export const unifiedUserSchema = userSchema.extend({
     message: "Debe seleccionar un rol"
   }),
   department: z.enum(["secretary", "direction", "schoolControl", "technology"]).optional(),
+  isTutor: z.boolean().optional(), // 👈 Campo auxiliar solo para UI
 }).refine((data) => {
   // Si el rol es admin (o incluye admin en el array), el departamento es requerido
   const roles = Array.isArray(data.role) ? data.role : [data.role];
