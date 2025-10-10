@@ -71,7 +71,7 @@ export const deleteClassAndSchedules = action({
     }
 
     // Paso 3: Una vez borrados los horarios, borrar la clase principal
-    await ctx.runMutation(internal.functions.classCatalog.deleteClassCatalog, {
+    await ctx.runMutation(internal.functions.classCatalog.internalDeleteClassCatalog, {
       classCatalogId: args.classCatalogId,
     });
 
