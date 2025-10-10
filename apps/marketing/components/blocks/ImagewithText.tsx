@@ -2,13 +2,13 @@
 import React from "react";
 import { urlForImage } from "@/sanity/lib/utils";
 
-interface ImagenSanity {
-  _type: 'image',
-  asset: {
-    _ref: string
-  },
-  alt?: string;
-}
+// interface ImagenSanity {
+//   _type: 'image',
+//   asset: {
+//     _ref: string
+//   },
+//   alt?: string;
+// }
 
 interface ImagewithTextProps {
   Titulo?: string;

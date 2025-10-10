@@ -69,7 +69,7 @@ export function CustomPortableText({
       },
       hero: (({ value }) => {
         const { titulo } = value || {};
-        return <HeroSection titulo={titulo} type={type!}  />
+        return <HeroSection titulo={titulo} />
       }),
       featureSection: ({ value }) => {
       const {title, subtitle, features} = value || {}

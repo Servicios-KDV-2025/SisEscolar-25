@@ -1,5 +1,3 @@
-
-
 import { FeatureItem } from "@/sanity.types";
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
@@ -8,11 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui
 interface FeatureProps { 
     title: string;
     description: string;
-    icon?: React.ReactNode; // Optional icon for each feature
     features: FeatureItem[];
 }
 
-export const FeatureSection = ({title, description, icon, features}: FeatureProps) => {
+export const FeatureSection = ({title, description, features}: FeatureProps) => {
     return <section id="features" className="py-20 sm:py-32 bg-muted/30">
       <div className="container max-w-screen-xl px-4">
         <div className="mx-auto max-w-2xl text-center">

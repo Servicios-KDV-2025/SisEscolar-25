@@ -48,7 +48,7 @@ export default defineType({
             title: 'titulo',
             image: 'icon',
         },
-        prepare : ({ title, image }) => ({
+        prepare : () => ({
             title: 'Hero Section',
             media: LayoutDashboard,
         })

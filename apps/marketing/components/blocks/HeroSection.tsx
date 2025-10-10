@@ -5,9 +5,8 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 
 
-export const HeroSection = ({ titulo, type }: {
+export const HeroSection = ({ titulo }: {
     titulo: PortableTextBlock;
-    type: string | null
 }) => {
     
   const myComponents: Partial<PortableTextReactComponents> = {

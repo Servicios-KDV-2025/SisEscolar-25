@@ -1,5 +1,4 @@
 import {CustomPortableText} from '@/components/CustomPortableText'
-import {Header} from '@/components/Header'
 import {sanityFetch} from '@/sanity/lib/live'
 import {pagesBySlugQuery, slugsByTypeQuery} from '@/sanity/lib/queries'
 import type {Metadata, ResolvingMetadata} from 'next'
@@ -45,7 +44,7 @@ export default async function PageSlugRoute({params}: Props) {
     notFound()
   }
 
-  const {body, overview, title} = data ?? {}
+  const {body} = data ?? {}
 
   return (
     <div>

@@ -1,4 +1,4 @@
-import {defineType, defineField} from 'sanity'
+import {defineType} from 'sanity'
 import { ImageIcon } from '@sanity/icons'
 
 export default defineType({

@@ -45,7 +45,7 @@ export default defineType({
                     number: 'number',
                     label: 'label'  
                 },
-                prepare: ({ number, label }) => ({
+                prepare: ({ label }) => ({
                     title: 'Stat',
                     subtitle: label
                 })
@@ -58,7 +58,7 @@ export default defineType({
             subtitle: 'subtitle',
             stats: 'stats'
         },
-        prepare: ({ title, subtitle, stats }) => {
+        prepare: ({ subtitle, stats }) => {
             return {
                 title: 'Stats Section',
                 subtitle: subtitle ? `${subtitle} - ${stats?.length || 0} stats` : `${stats?.length || 0} stats`,

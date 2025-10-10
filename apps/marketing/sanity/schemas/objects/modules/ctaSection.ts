@@ -43,7 +43,7 @@ export default defineType({
             title: 'titulo',
             subtitle: 'subtitulo',
         },
-        prepare : ({ title, subtitle }) => ({
+        prepare : ({ subtitle }) => ({
             title: 'CTA Section',
             subtitle: subtitle,
             media : Rocket

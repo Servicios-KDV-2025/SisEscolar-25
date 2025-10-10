@@ -36,7 +36,7 @@ export default defineType({
             subtitle: 'subtitle',
             featureCount: 'features.length'
         },
-        prepare({ title, subtitle, featureCount }) {
+        prepare({ subtitle, featureCount }) {
             return {
                 title: 'Feature Section',
                 subtitle: `${subtitle} - ${featureCount} ${featureCount === 1 ? 'característica' : 'características'}`,

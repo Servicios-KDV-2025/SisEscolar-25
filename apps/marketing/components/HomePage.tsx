@@ -1,11 +1,5 @@
-import {Header} from '@/components/Header'
-import {OptimisticSortOrder} from '@/components/OptimisticSortOrder'
-import {ProjectListItem} from '@/components/ProjectListItem'
 import type {HomePageQueryResult} from '@/sanity.types'
-import {studioUrl} from '@/sanity/lib/api'
-import {resolveHref} from '@/sanity/lib/utils'
-import {createDataAttribute, PortableTextBlock} from 'next-sanity'
-import Link from 'next/link'
+import { PortableTextBlock} from 'next-sanity'
 import { CustomPortableText } from './CustomPortableText'
 
 export interface HomePageProps {
@@ -14,16 +8,16 @@ export interface HomePageProps {
 
 export async function HomePage({data}: HomePageProps) {
   // Default to an empty object to allow previews on non-existent documents
-  const {overview = [], showcaseProjects = [], title = '', body, _id, _type} = data ?? {}
+  const {body, _id, _type} = data ?? {}
 
-  const dataAttribute =
-    data?._id && data?._type
-      ? createDataAttribute({
-          baseUrl: studioUrl,
-          id: data._id,
-          type: data._type,
-        })
-      : null
+  // const dataAttribute =
+  //   data?._id && data?._type
+  //     ? createDataAttribute({
+  //         baseUrl: studioUrl,
+  //         id: data._id,
+  //         type: data._type,
+  //       })
+  //     : null
 
   return (
     <div className="space-y-20">
