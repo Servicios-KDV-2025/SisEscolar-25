@@ -3,6 +3,14 @@ import {TimelineSection} from '@/components/TimelineSection'
 import type {PathSegment} from '@sanity/client/csm'
 import {PortableText, type PortableTextBlock, type PortableTextComponents} from 'next-sanity'
 import type {Image} from 'sanity'
+import { HeroSection } from '@/components/blocks/HeroSection'
+import { FeatureSection } from '@/components/blocks/FeatureSection'
+import { StatsSection } from '@/components/blocks/StatsSection'
+import { CTASection } from '@/components/blocks/CTASection'
+import { InfoBlock } from '@/components/blocks/InfoBlock'
+import { urlForImage } from '@/sanity/lib/utils'
+import ImagewithText from '@/components/blocks/ImagewithText'
+import { CarouselBlock } from '@/components/blocks/CarouselBlock'
 
 export function CustomPortableText({
   id,
@@ -58,6 +66,35 @@ export function CustomPortableText({
             timelines={items}
           />
         )
+      },
+      hero: (({ value }) => {
+        const { titulo } = value || {};
+        return <HeroSection titulo={titulo} type={type!}  />
+      }),
+      featureSection: ({ value }) => {
+      const {title, subtitle, features} = value || {}
+        return <FeatureSection title={title} description={subtitle} features={features}/>
+      },
+      statsSection: ({ value }) => {
+        const {title, subtitle, stats} = value || {}
+        return <StatsSection title={title} subtitle={subtitle} stats={stats}/>
+      },
+      ctaSection: ({ value }) => { 
+        const {titulo, subtitulo, beneficios} = value || {}
+        return <CTASection titulo={titulo} subtitulo={subtitulo} beneficios={beneficios} />
+      },
+      infoBlock: ({value}) => {
+        const {title, subtitle, description, icon, accentColor} = value || {} 
+        const iconUrl = icon ? urlForImage(icon)?.url() : null;
+        return <InfoBlock title={title} subtitle={subtitle} description={description} iconUrl={iconUrl} accentColor={accentColor} />
+      },
+      ImagewithText: ({value}) => { 
+        const {Titulo, Descripcion, Imagen, Alineacion} = value || {}
+        return <ImagewithText Titulo={Titulo} Descripcion={Descripcion} Imagen={Imagen} Alineacion={Alineacion}/>
+      },
+      carousel: ({ value }) => {
+        const { title, images } = value || {};
+      return <CarouselBlock title={title} images={images} />;
       },
     },
   }

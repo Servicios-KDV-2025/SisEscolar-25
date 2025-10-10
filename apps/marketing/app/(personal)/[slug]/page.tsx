@@ -51,13 +51,13 @@ export default async function PageSlugRoute({params}: Props) {
     <div>
       <div className="mb-14">
         {/* Header */}
-        <Header
+        {/* <Header
           id={data?._id || null}
           type={data?._type || null}
           path={['overview']}
           title={title || (data?._id ? 'Untitled' : '404 Page Not Found')}
           description={overview}
-        />
+        /> */}
 
         {/* Body */}
         {body && (
@@ -70,7 +70,7 @@ export default async function PageSlugRoute({params}: Props) {
           />
         )}
       </div>
-      <div className="absolute left-0 w-screen border-t" />
+      {/* <div className="absolute left-0 w-screen border-t" /> */}
     </div>
   )
 }
