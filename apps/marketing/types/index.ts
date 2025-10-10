@@ -14,6 +14,17 @@ export interface MilestoneItem {
   title?: string
 }
 
+export interface StatsItems {
+  number: string
+  label: string
+}
+
+export interface BeneficioItem {
+  _key: string
+  beneficio: string
+}
+
+
 export interface ShowcaseProject {
   _id: string
   _type: string

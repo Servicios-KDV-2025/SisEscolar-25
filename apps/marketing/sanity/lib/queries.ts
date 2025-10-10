@@ -17,6 +17,7 @@ export const homePageQuery = defineQuery(`
         title,
       }
     },
+    body,
     title,
   }
 `)

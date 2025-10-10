@@ -13,23 +13,29 @@
  */
 
 // Source: schema.json
-export type Timeline = {
-  _type: "timeline";
-  items?: Array<{
-    title?: string;
-    milestones?: Array<{
-      _key: string;
-    } & Milestone>;
-    _type: "item";
+export type Carousel = {
+  _type: "carousel";
+  title?: string;
+  images?: Array<{
+    asset?: {
+      _ref: string;
+      _type: "reference";
+      _weak?: boolean;
+      [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+    };
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
     _key: string;
   }>;
 };
 
-export type Milestone = {
-  _type: "milestone";
-  title?: string;
-  description?: string;
-  image?: {
+export type ImagewithText = {
+  _type: "ImagewithText";
+  Titulo?: string;
+  Descripcion?: string;
+  Imagen?: {
     asset?: {
       _ref: string;
       _type: "reference";
@@ -41,8 +47,87 @@ export type Milestone = {
     crop?: SanityImageCrop;
     _type: "image";
   };
-  tags?: Array<string>;
-  duration?: Duration;
+  Alineacion?: "left" | "right";
+};
+
+export type InfoBlock = {
+  _type: "infoBlock";
+  icon?: {
+    asset?: {
+      _ref: string;
+      _type: "reference";
+      _weak?: boolean;
+      [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+    };
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  accentColor?: string;
+};
+
+export type CtaSection = {
+  _type: "ctaSection";
+  titulo?: string;
+  subtitulo?: string;
+  beneficios?: Array<{
+    beneficio?: string;
+    _type: "benefitItem";
+    _key: string;
+  }>;
+};
+
+export type StatsSection = {
+  _type: "statsSection";
+  title?: string;
+  subtitle?: string;
+  stats?: Array<{
+    number?: string;
+    label?: string;
+    _type: "statItem";
+    _key: string;
+  }>;
+};
+
+export type FeatureSection = {
+  _type: "featureSection";
+  title?: string;
+  subtitle?: string;
+  features?: Array<{
+    _key: string;
+  } & FeatureItem>;
+};
+
+export type FeatureItem = {
+  _type: "featureItem";
+  title?: string;
+  description?: string;
+};
+
+export type HeroSection = {
+  _type: "heroSection";
+  titulo?: Array<{
+    children?: Array<{
+      marks?: Array<string>;
+      text?: string;
+      _type: "span";
+      _key: string;
+    }>;
+    style?: "normal" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "blockquote";
+    listItem?: "bullet" | "number";
+    markDefs?: Array<{
+      href?: string;
+      _type: "link";
+      _key: string;
+    }>;
+    level?: number;
+    _type: "block";
+    _key: string;
+  }>;
 };
 
 export type LinkExternal = {
@@ -107,8 +192,6 @@ export type Project = {
     _type: "block";
     _key: string;
   } | {
-    _key: string;
-  } & Timeline | {
     asset?: {
       _ref: string;
       _type: "reference";
@@ -166,7 +249,19 @@ export type Page = {
     _key: string;
   } | {
     _key: string;
-  } & Timeline | {
+  } & FeatureSection | {
+    _key: string;
+  } & HeroSection | {
+    _key: string;
+  } & StatsSection | {
+    _key: string;
+  } & CtaSection | {
+    _key: string;
+  } & InfoBlock | {
+    _key: string;
+  } & ImagewithText | {
+    _key: string;
+  } & Carousel | {
     asset?: {
       _ref: string;
       _type: "reference";
@@ -195,22 +290,6 @@ export type Settings = {
   _createdAt: string;
   _updatedAt: string;
   _rev: string;
-  menuItems?: Array<{
-    _ref: string;
-    _type: "reference";
-    _weak?: boolean;
-    [internalGroqTypeReferenceTo]?: "home";
-  } | {
-    _ref: string;
-    _type: "reference";
-    _weak?: boolean;
-    [internalGroqTypeReferenceTo]?: "page";
-  } | {
-    _ref: string;
-    _type: "reference";
-    _weak?: boolean;
-    [internalGroqTypeReferenceTo]?: "project";
-  }>;
   nav?: Nav;
   footer?: Footer;
   ogImage?: {
@@ -299,6 +378,52 @@ export type Home = {
     }>;
     level?: number;
     _type: "block";
+    _key: string;
+  }>;
+  body?: Array<{
+    children?: Array<{
+      marks?: Array<string>;
+      text?: string;
+      _type: "span";
+      _key: string;
+    }>;
+    style?: "normal";
+    listItem?: "bullet" | "number";
+    markDefs?: Array<{
+      href?: string;
+      _type: "link";
+      _key: string;
+    }>;
+    level?: number;
+    _type: "block";
+    _key: string;
+  } | {
+    _key: string;
+  } & FeatureSection | {
+    _key: string;
+  } & HeroSection | {
+    _key: string;
+  } & StatsSection | {
+    _key: string;
+  } & CtaSection | {
+    _key: string;
+  } & InfoBlock | {
+    _key: string;
+  } & ImagewithText | {
+    _key: string;
+  } & Carousel | {
+    asset?: {
+      _ref: string;
+      _type: "reference";
+      _weak?: boolean;
+      [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+    };
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    caption?: string;
+    alt?: string;
+    _type: "image";
     _key: string;
   }>;
   showcaseProjects?: Array<{
@@ -428,11 +553,11 @@ export type SanityAssetSourceData = {
   url?: string;
 };
 
-export type AllSanitySchemaTypes = Timeline | Milestone | LinkExternal | Project | Page | Duration | Settings | Footer | LinkInternal | Nav | Home | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageHotspot | SanityImageCrop | SanityFileAsset | SanityImageAsset | SanityImageMetadata | Geopoint | Slug | SanityAssetSourceData;
+export type AllSanitySchemaTypes = Carousel | ImagewithText | InfoBlock | CtaSection | StatsSection | FeatureSection | FeatureItem | HeroSection | LinkExternal | Project | Page | Duration | Settings | Footer | LinkInternal | Nav | Home | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageHotspot | SanityImageCrop | SanityFileAsset | SanityImageAsset | SanityImageMetadata | Geopoint | Slug | SanityAssetSourceData;
 export declare const internalGroqTypeReferenceTo: unique symbol;
 // Source: ./sanity/lib/queries.ts
 // Variable: homePageQuery
-// Query: *[_type == "home"][0]{    _id,    _type,    overview,    showcaseProjects[]{      _key,      ...@->{        _id,        _type,        coverImage,        overview,        "slug": slug.current,        tags,        title,      }    },    title,  }
+// Query: *[_type == "home"][0]{    _id,    _type,    overview,    showcaseProjects[]{      _key,      ...@->{        _id,        _type,        coverImage,        overview,        "slug": slug.current,        tags,        title,      }    },    body,    title,  }
 export type HomePageQueryResult = {
   _id: string;
   _type: "home";
@@ -488,6 +613,52 @@ export type HomePageQueryResult = {
     tags: Array<string> | null;
     title: string | null;
   }> | null;
+  body: Array<{
+    _key: string;
+  } & Carousel | {
+    _key: string;
+  } & CtaSection | {
+    _key: string;
+  } & FeatureSection | {
+    _key: string;
+  } & HeroSection | {
+    _key: string;
+  } & ImagewithText | {
+    _key: string;
+  } & InfoBlock | {
+    _key: string;
+  } & StatsSection | {
+    children?: Array<{
+      marks?: Array<string>;
+      text?: string;
+      _type: "span";
+      _key: string;
+    }>;
+    style?: "normal";
+    listItem?: "bullet" | "number";
+    markDefs?: Array<{
+      href?: string;
+      _type: "link";
+      _key: string;
+    }>;
+    level?: number;
+    _type: "block";
+    _key: string;
+  } | {
+    asset?: {
+      _ref: string;
+      _type: "reference";
+      _weak?: boolean;
+      [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+    };
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    caption?: string;
+    alt?: string;
+    _type: "image";
+    _key: string;
+  }> | null;
   title: string | null;
 } | null;
 // Variable: pagesBySlugQuery
@@ -497,7 +668,19 @@ export type PagesBySlugQueryResult = {
   _type: "page";
   body: Array<{
     _key: string;
-  } & Timeline | {
+  } & Carousel | {
+    _key: string;
+  } & CtaSection | {
+    _key: string;
+  } & FeatureSection | {
+    _key: string;
+  } & HeroSection | {
+    _key: string;
+  } & ImagewithText | {
+    _key: string;
+  } & InfoBlock | {
+    _key: string;
+  } & StatsSection | {
     children?: Array<{
       marks?: Array<string>;
       text?: string;
@@ -565,8 +748,6 @@ export type ProjectBySlugQueryResult = {
     _type: "image";
   } | null;
   description: Array<{
-    _key: string;
-  } & Timeline | {
     children?: Array<{
       marks?: Array<string>;
       text?: string;
@@ -654,22 +835,7 @@ export type SettingsQueryResult = {
       _key: string;
     }> | null;
   } | null;
-  menuItems: Array<{
-    _key: null;
-    _type: "home";
-    slug: null;
-    title: string | null;
-  } | {
-    _key: null;
-    _type: "page";
-    slug: string | null;
-    title: string | null;
-  } | {
-    _key: null;
-    _type: "project";
-    slug: string | null;
-    title: string | null;
-  }> | null;
+  menuItems: null;
   ogImage: {
     asset?: {
       _ref: string;
@@ -717,7 +883,7 @@ export type SlugsByTypeQueryResult = Array<{
 import "@sanity/client";
 declare module "@sanity/client" {
   interface SanityQueries {
-    "\n  *[_type == \"home\"][0]{\n    _id,\n    _type,\n    overview,\n    showcaseProjects[]{\n      _key,\n      ...@->{\n        _id,\n        _type,\n        coverImage,\n        overview,\n        \"slug\": slug.current,\n        tags,\n        title,\n      }\n    },\n    title,\n  }\n": HomePageQueryResult;
+    "\n  *[_type == \"home\"][0]{\n    _id,\n    _type,\n    overview,\n    showcaseProjects[]{\n      _key,\n      ...@->{\n        _id,\n        _type,\n        coverImage,\n        overview,\n        \"slug\": slug.current,\n        tags,\n        title,\n      }\n    },\n    body,\n    title,\n  }\n": HomePageQueryResult;
     "\n  *[_type == \"page\" && slug.current == $slug][0] {\n    _id,\n    _type,\n    body,\n    overview,\n    title,\n    \"slug\": slug.current,\n  }\n": PagesBySlugQueryResult;
     "\n  *[_type == \"project\" && slug.current == $slug][0] {\n    _id,\n    _type,\n    client,\n    coverImage,\n    description,\n    duration,\n    overview,\n    site,\n    \"slug\": slug.current,\n    tags,\n    title,\n  }\n": ProjectBySlugQueryResult;
     "\n  *[_type == \"settings\"][0]{\n    _id,\n    _type,\n    footer,\n    menuItems[]{\n      _key,\n      ...@->{\n        _type,\n        \"slug\": slug.current,\n        title\n      }\n    },\n    ogImage,\n    nav{\n      menus[]{\n        ...,\n        \"slug\": link.reference -> slug.current,\n        \"type_reference\" : link.reference-> _type,\n        submenus[]{\n          ...,\n          \"slug\": link.reference -> slug.current,\n          \"type_reference\" : link.reference-> _type,\n        }\n      }\n    },\n    footer{\n      ...,\n      columns[]{\n        ...,\n        links[]{\n          ...,\n          \"url\" : select(\n          _type == 'linkExternal' =>url,\n          _type == 'linkInternal' =>reference->slug.current\n          ),\n          _type == 'linkInternal' => {\n            \"type_reference\": reference->_type\n          }\n        }\n      }\n    },\n  }\n": SettingsQueryResult;
