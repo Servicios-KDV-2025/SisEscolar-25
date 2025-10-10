@@ -250,17 +250,17 @@ export const updateClassCatalog = mutation({
   }
 });
 
-// export const deleteClassCatalog = mutation({
-//   args: {
-//     _id: v.id("classCatalog"),
-//     schoolId: v.id("school"),
-//   },
-//   handler: async (ctx, args) => {
-//     const catalog = await ctx.db.get(args._id);
-//     if (!catalog || catalog.schoolId !== args.schoolId) return null;
-//     await ctx.db.delete(args._id);
-//   }
-// });
+export const deleteClassCatalog = mutation({
+  args: {
+    _id: v.id("classCatalog"),
+    schoolId: v.id("school"),
+  },
+  handler: async (ctx, args) => {
+    const catalog = await ctx.db.get(args._id);
+    if (!catalog || catalog.schoolId !== args.schoolId) return null;
+    await ctx.db.delete(args._id);
+  }
+});
 
 //borrar si es necesario
 
