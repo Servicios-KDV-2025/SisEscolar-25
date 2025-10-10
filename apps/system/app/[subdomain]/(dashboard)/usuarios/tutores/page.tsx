@@ -378,14 +378,14 @@ const handleCreate = async (formData: Record<string, unknown>) => {
       );
     }
 
-    const createData = {
-      email: email,
-      password: password,
-      name: formData.name as string,
-      lastName: formData.lastName as string,
-      phone: formData.phone as string,
-      address: formData.address as string,
-    };
+      const createData = {
+        email: email,
+        password: password,
+        name: formData.name as string,
+        lastName: formData.lastName as string,
+        phone: formData.phone as string,
+        address: formData.address as string,
+      };
 
     const result = await userActions.createUser(createData);
 

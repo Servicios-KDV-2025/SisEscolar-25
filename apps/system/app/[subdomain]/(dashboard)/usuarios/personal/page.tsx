@@ -473,8 +473,8 @@ export default function PersonalPage() {
         password: password,
         name: formData.name as string,
         lastName: formData.lastName as string,
-        phone: formData.phone as string,
-        address: formData.address as string,
+        phone: formData.phone as string ,
+        address: formData.address as string ,
       };
 
 
