@@ -7,7 +7,7 @@ import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialo
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table";
 import { AlertCircle, CheckCircle, ClipboardList, Eye, Filter, Pencil, Plus, Search, Trash2, XCircle } from "@repo/ui/icons";
-import { useClassCatalog } from "stores/classCatalogStore";
+import { useClassCatalogWithPermissions } from "stores/classCatalogStore";
 import { useGroup } from "stores/groupStore";
 import { useSubject } from "stores/subjectStore";
 import { useCurrentSchool } from "stores/userSchoolsStore";
@@ -22,6 +22,8 @@ import { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@repo/ui/components/shadcn/select';
 import { Input } from '@repo/ui/components/shadcn/input';
 import { Badge } from '@repo/ui/components/shadcn/badge';
+import { usePermissions } from 'hooks/usePermissions';
+import NotAuth from 'components/NotAuth';
 import { z } from 'zod';
 
 import { UseFormReturn } from 'react-hook-form';
@@ -44,7 +46,19 @@ export default function ClassCatalogPage() {
         isLoading: schoolLoading,
     } = useCurrentSchool(currentUser?._id);
 
-    const isLoading = !isLoaded || userLoading || schoolLoading;
+    const {
+        canCreateClassCatalog,
+        canReadClassCatalog,
+        canUpdateClassCatalog,
+        canDeleteClassCatalog,
+        isSuperAdmin,
+        isAdmin,
+        isAuditor,
+        isLoading: permissionsLoading,
+        getStudentFilters
+    } = usePermissions(currentSchool?.school._id);
+
+    const isLoading = !isLoaded || userLoading || schoolLoading || permissionsLoading;
 
     const { subjects } = useSubject(currentSchool?.school._id);
     const { groups } = useGroup(currentSchool?.school._id);
@@ -56,7 +70,10 @@ export default function ClassCatalogPage() {
     // En tu componente principal
     const teachers = useQuery(
         api.functions.userSchool.getByRole,
-        currentSchool?.school._id ? { schoolId: currentSchool?.school._id, role: 'teacher' } : 'skip',
+        currentSchool?.school._id ? {
+            schoolId: currentSchool.school._id as Id<"school">,
+            role: 'teacher'
+        } : 'skip'
     );
 
     // Obtener los IDs de usuarios
@@ -90,7 +107,10 @@ export default function ClassCatalogPage() {
         updateClassCatalog,
         deleteClassCatalog,
         clearErrors: clearSubjectErrors,
-    } = useClassCatalog(currentSchool?.school._id);
+    } = useClassCatalogWithPermissions(
+        currentSchool?.school._id,
+        getStudentFilters
+    );
 
     const {
         isOpen,
@@ -109,6 +129,10 @@ export default function ClassCatalogPage() {
         const matchesCycle = !cycleFilter || c.schoolCycle?._id === cycleFilter;
         return matchesSearch && matchesStatus && matchesCycle;
     });
+
+    const icon = ClipboardList;
+
+    const showRoleAlert = isAuditor && !isSuperAdmin && !isAdmin;
 
     const handleSubmit = async (values: Record<string, unknown>) => {
         if (!currentSchool?.school._id || !currentUser?._id) {
@@ -135,7 +159,12 @@ export default function ClassCatalogPage() {
             console.log('Submission data:', submissionData);
 
             if (operation === 'create') {
-                console.log('Calling createClassCatalog...');
+                if (!canCreateClassCatalog) {
+                    toast.error('Permiso denegado', {
+                        description: 'No tienes permisos para crear clases'
+                    });
+                    return;
+                }
                 const result = await createClassCatalog({
                     schoolId: submissionData.schoolId as Id<"school">,
                     schoolCycleId: submissionData.schoolCycleId as Id<'schoolCycle'>,
@@ -150,9 +179,14 @@ export default function ClassCatalogPage() {
 
                 console.log('Create operation completed successfully:', result);
                 toast.success('Clase creada correctamente');
- 
+
             } else if (operation === 'edit' && data?._id) {
-                console.log('Calling updateClassCatalog...');
+                if (!canCreateClassCatalog) {
+                    toast.error('Permiso denegado', {
+                        description: 'No tienes permisos para editar clases'
+                    });
+                    return;
+                }
                 await updateClassCatalog({
                     _id: data._id as Id<"classCatalog">,
                     schoolId: submissionData.schoolId as Id<"school">,
@@ -183,6 +217,12 @@ export default function ClassCatalogPage() {
     }
 
     const handleDelete = async (id: string) => {
+        if (!canDeleteClassCatalog) {
+            toast.error('Permiso denegado', {
+                description: 'No tienes permisos para eliminar clases'
+            });
+            return;
+        }
         if (!currentSchool?.school?._id) {
             toast.error('Error', { description: 'No se pudo identificar la escuela' })
             return
@@ -197,186 +237,222 @@ export default function ClassCatalogPage() {
     }
 
     return (
-        <div className="space-y-8 p-6 min-w-full max-w-5xl mx-auto">
-            {/* Header */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
-                <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
-                <div className="relative p-8">
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-3">
-                                <div className="p-3 bg-primary/10 rounded-xl">
-                                    <ClipboardList className="h-8 w-8 text-primary" />
-                                </div>
-                                <div>
-                                    <h1 className="text-4xl font-bold tracking-tight">Clases</h1>
-                                    <p className="text-lg text-muted-foreground">
-                                        Administra el listado de las clases registradas.
-                                    </p>
+        <>
+            {canReadClassCatalog ?
+                (
+                    <div className="space-y-8 p-6">
+                        {showRoleAlert && (
+                            <Alert>
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>
+                                    Como auditor, solo puedes ver la información de las clases. No tienes permisos para crear, editar o eliminar.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                        {/* Mostrar alerta cuando no hay datos necesarios para crear estudiantes */}
+                        {canCreateClassCatalog && (
+                            !groups?.length ||
+                            !teachers?.length ||
+                            !subjects?.length ||
+                            !classrooms?.length
+                        ) && (
+                                <Alert>
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertDescription>
+                                        {!groups?.length && !subjects?.length && !classrooms?.length && !teachers?.length
+                                            ? "No se pueden crear clases porque no hay grupos, materias, salones ni maestros disponibles."
+                                            : !groups?.length
+                                                ? "No se pueden crear clases porque no hay grupos disponibles."
+                                                : !subjects?.length
+                                                    ? "No se pueden crear clases porque no hay materias disponibles."
+                                                    : !classrooms?.length
+                                                        ? "No se pueden crear clases porque no hay salones disponibles."
+                                                        : "No se pueden crear clases porque no hay maestros disponibles."
+                                        }
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                        {/* Header */}
+                        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
+                            <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
+                            <div className="relative p-8">
+                                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-3 bg-primary/10 rounded-xl">
+                                                <ClipboardList className="h-8 w-8 text-primary" />
+                                            </div>
+                                            <div>
+                                                <h1 className="text-4xl font-bold tracking-tight">Clases</h1>
+                                                <p className="text-lg text-muted-foreground">
+                                                    Administra el listado de las clases registradas.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {canCreateClassCatalog && (
+                                        <Button
+                                            size="lg"
+                                            className="gap-2"
+                                            onClick={openCreate}
+                                            disabled={isCreatingClassCat}
+                                        >
+                                            <Plus className="h-4 w-4" />
+                                            Agregar Clase
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
                         </div>
-                        <Button
-                            size="lg"
-                            className="gap-2"
-                            onClick={openCreate}
-                            disabled={isCreatingClassCat}
-                        >
-                            <Plus className="h-4 w-4" />
-                            Agregar Clase
-                        </Button>
-                    </div>
-                </div>
-            </div>
 
-            {/* Error Alerts */}
-            {(createClassCatError || updateClassCatError || deleteClassCatError) && (
-                <div className="space-y-4">
-                    {createClassCatError && (
-                        <Alert variant="destructive">
-                            <AlertCircle className='h-4 w-4' />
-                            <AlertDescription>
-                                Error al crear materia: {createClassCatError}
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                    {updateClassCatError && (
-                        <Alert variant="destructive">
-                            <AlertCircle className='h-4 w-4' />
-                            <AlertDescription>
-                                Error al actualizar materia: {updateClassCatError}
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                    {deleteClassCatError && (
-                        <Alert variant="destructive">
-                            <AlertCircle className='h-4 w-4' />
-                            <AlertDescription>
-                                Error al eliminar materia: {deleteClassCatError}
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                    <button
-                        onClick={clearSubjectErrors}
-                        className="text-xs text-blue-500 underline mt-1"
-                    >
-                        Limpiar errores
-                    </button>
-                </div>
-            )}
-
-            {/* Estadísticas */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card
-                    className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
-                >
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                            Total de Clases
-                        </CardTitle>
-                        <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                            <ClipboardList className="h-4 w-4 text-primary" />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        <div className="text-3xl font-bold">{classCatalogs?.length || 0}</div>
-                    </CardContent>
-                </Card>
-
-                <Card
-                    className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
-                >
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                            Activas
-                        </CardTitle>
-                        <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                            <CheckCircle className="h-4 w-4" />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        <div className="text-3xl font-bold">
-                            {classCatalogs?.filter(c => c.status === "active").length || 0}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card
-                    className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
-                >
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                            Inactivas
-                        </CardTitle>
-                        <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                            <XCircle className="h-4 w-4" />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        <div className="text-3xl font-bold">
-                            {classCatalogs?.filter(c => c.status === "inactive").length || 0}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Filtros y búsqueda */}
-            <Card>
-                <CardHeader>
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div>
-                            <CardTitle className="flex items-center gap-2">
-                                <Filter className='h-5 w-5' />
-                                Filtros y Búsqueda
-                            </CardTitle>
-                            <CardDescription>
-                                Encuentra las clases por nombre, activas o inactivas
-                            </CardDescription>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-col md:flex-row gap-4">
-                        <div className="flex-1">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Buscar clase..."
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    className="pl-10"
-                                />
+                        {/* Error Alerts */}
+                        {(createClassCatError || updateClassCatError || deleteClassCatError) && (
+                            <div className="space-y-4">
+                                {createClassCatError && (
+                                    <Alert variant="destructive">
+                                        <AlertCircle className='h-4 w-4' />
+                                        <AlertDescription>
+                                            Error al crear materia: {createClassCatError}
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+                                {updateClassCatError && (
+                                    <Alert variant="destructive">
+                                        <AlertCircle className='h-4 w-4' />
+                                        <AlertDescription>
+                                            Error al actualizar materia: {updateClassCatError}
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+                                {deleteClassCatError && (
+                                    <Alert variant="destructive">
+                                        <AlertCircle className='h-4 w-4' />
+                                        <AlertDescription>
+                                            Error al eliminar materia: {deleteClassCatError}
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+                                <button
+                                    onClick={clearSubjectErrors}
+                                    className="text-xs text-blue-500 underline mt-1"
+                                >
+                                    Limpiar errores
+                                </button>
                             </div>
-                        </div>
-                        <div className="flex gap-2">
-                            <Select
-                                onValueChange={(v) => setStatusFilter(v === "all" ? null : v)}
-                                value={statusFilter || ""}
+                        )}
+
+                        {/* Estadísticas */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <Card
+                                className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
                             >
-                                <SelectTrigger className="w-[160px]">
-                                    <SelectValue placeholder="Filtrar estado" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Todas</SelectItem>
-                                    <SelectItem value="active">Activas</SelectItem>
-                                    <SelectItem value="inactive">Inactivas</SelectItem>
-                                </SelectContent>
-                            </Select>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                                        Total de Clases
+                                    </CardTitle>
+                                    <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                                        <ClipboardList className="h-4 w-4 text-primary" />
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                    <div className="text-3xl font-bold">{classCatalogs?.length || 0}</div>
+                                </CardContent>
+                            </Card>
 
-                            <Select onValueChange={(v) => setCycleFilter(v)} value={cycleFilter || ""}>
-                                <SelectTrigger className="w-[200px]">
-                                    <SelectValue placeholder="Filtrar ciclo escolar" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {schoolCycles?.map(cycle => (
-                                        <SelectItem key={cycle._id} value={cycle._id}>{cycle.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Card
+                                className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
+                            >
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                                        Activas
+                                    </CardTitle>
+                                    <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                                        <CheckCircle className="h-4 w-4" />
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                    <div className="text-3xl font-bold">
+                                        {classCatalogs?.filter(c => c.status === "active").length || 0}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card
+                                className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
+                            >
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                                        Inactivas
+                                    </CardTitle>
+                                    <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                                        <XCircle className="h-4 w-4" />
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                    <div className="text-3xl font-bold">
+                                        {classCatalogs?.filter(c => c.status === "inactive").length || 0}
+                                    </div>
+                                </CardContent>
+                            </Card>
                         </div>
-                    </div>
-                </CardContent>
-            </Card>
+
+                        {/* Filtros y búsqueda */}
+                        <Card>
+                            <CardHeader>
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                    <div>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Filter className='h-5 w-5' />
+                                            Filtros y Búsqueda
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Encuentra las clases por nombre, activas o inactivas
+                                        </CardDescription>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex flex-col md:flex-row gap-4">
+                                    <div className="flex-1">
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <Input
+                                                placeholder="Buscar clase..."
+                                                value={search}
+                                                onChange={(e) => setSearch(e.target.value)}
+                                                className="pl-10"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Select
+                                            onValueChange={(v) => setStatusFilter(v === "all" ? null : v)}
+                                            value={statusFilter || ""}
+                                        >
+                                            <SelectTrigger className="w-[160px]">
+                                                <SelectValue placeholder="Filtrar estado" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Todas</SelectItem>
+                                                <SelectItem value="active">Activas</SelectItem>
+                                                <SelectItem value="inactive">Inactivas</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+
+                                        <Select onValueChange={(v) => setCycleFilter(v)} value={cycleFilter || ""}>
+                                            <SelectTrigger className="w-[200px]">
+                                                <SelectValue placeholder="Filtrar ciclo escolar" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {schoolCycles?.map(cycle => (
+                                                    <SelectItem key={cycle._id} value={cycle._id}>{cycle.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
 
             {/* Tabla de Personal */}
             <Card>
@@ -507,49 +583,59 @@ export default function ClassCatalogPage() {
 
 
 
-            {/* CrudDialog */}
-            <CrudDialog
-                operation={operation}
-                title={operation === 'create'
-                    ? 'Crear Nueva Clase'
-                    : operation === 'edit'
-                        ? 'Editar Clase'
-                        : 'Ver Clase'
-                }
-                description={operation === 'create'
-                    ? 'Completa la información de la Clase'
-                    : operation === 'edit'
-                        ? 'Modifica la información de la Clase'
-                        : 'Información de la Clase'
-                }
-                schema={classCatalogSchema}
-                defaultValues={{
-                    schoolCycleId: '',
-                    subjectId: '',
-                    classroomId: '',
-                    teacherId: '',
-                    groupId: '',
-                    name: '',
-                    status: 'active',
-                }}
-                data={data}
-                isOpen={isOpen}
-                onOpenChange={close}
-                onSubmit={handleSubmit} // ← Esta es la clave: tu función se pasa aquí
-                onDelete={handleDelete}
-            >
-                {(form, operation) => (
-                    <ClassCatalogForm
-                         form={form as unknown as UseFormReturn<ClassCatalogFormData>}
-                        operation={operation}
-                        subjects={subjects}
-                        groups={groups || []}
-                        schoolCycles={schoolCycles || []}
-                        classrooms={classrooms || []}
-                        teachers={teachersData || []}
+                        {/* CrudDialog */}
+                        <CrudDialog
+                            operation={operation}
+                            title={operation === 'create'
+                                ? 'Crear Nueva Clase'
+                                : operation === 'edit'
+                                    ? 'Editar Clase'
+                                    : 'Ver Clase'
+                            }
+                            description={operation === 'create'
+                                ? 'Completa la información de la Clase'
+                                : operation === 'edit'
+                                    ? 'Modifica la información de la Clase'
+                                    : 'Información de la Clase'
+                            }
+                            schema={classCatalogSchema}
+                            defaultValues={{
+                                schoolCycleId: '',
+                                subjectId: '',
+                                classroomId: '',
+                                teacherId: '',
+                                groupId: '',
+                                name: '',
+                                status: 'active',
+                            }}
+                            data={data}
+                            isOpen={isOpen}
+                            onOpenChange={close}
+                            onSubmit={handleSubmit} // ← Esta es la clave: tu función se pasa aquí
+                            onDelete={handleDelete}
+                        >
+                            {(form, operation) => (
+                                <ClassCatalogForm
+                                     form={form as unknown as UseFormReturn<ClassCatalogFormData>}
+                                    operation={operation}
+                                    subjects={subjects}
+                                    groups={groups || []}
+                                    schoolCycles={schoolCycles || []}
+                                    classrooms={classrooms || []}
+                                    teachers={teachersData || []}
+                                />
+                            )}
+                        </CrudDialog>
+                    </div >
+                )
+                : (
+                    <NotAuth
+                        pageName={'Clases'}
+                        pageDetails={'Administra el listado de las clases registradas.'}
+                        icon={icon}
                     />
-                )}
-            </CrudDialog>
-        </div >
+                )
+            }
+        </>
     );
 }

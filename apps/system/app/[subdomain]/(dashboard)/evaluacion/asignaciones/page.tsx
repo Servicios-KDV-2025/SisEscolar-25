@@ -56,7 +56,6 @@ import {
   BookText,
   X
 } from "@repo/ui/icons";
-import Link from "next/link";
 import {
   validateTaskForm,
   getValidationErrors,
@@ -65,6 +64,7 @@ import { useTask } from "../../../../../stores/taskStore";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { TaskCreateForm } from "../../../../../components/TaskCreateForm";
 import { useUserWithConvex } from "stores/userStore";
+import ListStudents from "components/asignaciones/ListStudents";
 
 // Componente principal de contenido (solo se ejecuta cuando está autenticado)
 export default function TaskManagement() {
@@ -80,6 +80,8 @@ export default function TaskManagement() {
     isUpdating,
 
     // Datos
+    allAssignmentsForFilters,
+    allClassesForFilters,
     teacherAssignments: filteredTasks,
     teacherClasses,
     allTerms,
@@ -95,6 +97,11 @@ export default function TaskManagement() {
     updateTask,
     deleteTask,
     getTaskProgressFromQuery,
+    canCreateTask,
+    canReadTask,
+    canUpdateTask,
+    canDeleteTask,
+    currentRole,
   } = useTask(currentSchool?.school._id);
 
   // Estados para filtros (estos se mantienen locales)
@@ -106,6 +113,7 @@ export default function TaskManagement() {
 
   // Estado para el dialog de detalles
   const [detailsDialogOpen, setDetailsDialogOpen] = useState<boolean>(false);
+  const [listStudentDialogOpen, setListStudentDialogOpen] = useState<boolean>(false)
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<
     string | null
   >(null);
@@ -123,6 +131,11 @@ export default function TaskManagement() {
     setSelectedTaskForDetails(taskId);
     setDetailsDialogOpen(true);
   };
+
+  const handleListStudent = (taskId: string) => {
+    setSelectedTaskForDetails(taskId)
+    setListStudentDialogOpen(true)
+  }
 
   const handleUpdateTask = async () => {
     try {
@@ -215,7 +228,7 @@ export default function TaskManagement() {
   };
 
   const uniqueRubrics =
-    filteredTasks?.reduce(
+    allAssignmentsForFilters?.reduce(
       (acc, task) => {
         if (
           task.gradeRubric &&
@@ -233,7 +246,7 @@ export default function TaskManagement() {
     ) || [];
 
   const uniqueTerm =
-    filteredTasks?.reduce<Array<{ _id: string; name: string }>>((acc, task) => {
+    allAssignmentsForFilters?.reduce<Array<{ _id: string; name: string }>>((acc, task) => {
       const term = allTerms?.find((t) => t._id === task.termId);
       if (term && !acc.find((r) => r._id === term._id)) {
         acc.push({ _id: term._id, name: term.name });
@@ -242,22 +255,16 @@ export default function TaskManagement() {
     }, []) ?? [];
 
   const uniqueSubject =
-    filteredTasks?.reduce<Array<{ _id: string; name: string }>>((acc, task) => {
-      const subject = teacherClasses?.find(
-        (t) => t._id === task.classCatalogId
-      );
-      if (subject && !acc.find((r) => r._id === subject._id)) {
-        acc.push({ _id: subject._id, name: subject.name });
-      }
-      return acc;
-    }, []) ?? [];
+    allClassesForFilters?.map(clase => ({
+      _id: clase?._id,
+      name: clase?.name
+    })) || [];
 
   const uniqueGradeGroups =
-    filteredTasks?.reduce<
+    allAssignmentsForFilters?.reduce<
       Array<{ id: string; groupId: string; label: string }>
     >((acc, task) => {
       const group = task.group;
-
       if (group?.grade) {
         const comboId = `${group.grade}-${group._id}`;
         if (!acc.find((gg) => gg.id === comboId)) {
@@ -268,7 +275,6 @@ export default function TaskManagement() {
           });
         }
       }
-
       return acc;
     }, []) ?? [];
 
@@ -326,7 +332,7 @@ export default function TaskManagement() {
                 </div>
               </div>
             </div>
-            <TaskCreateForm />
+            {canCreateTask && <TaskCreateForm />}
           </div>
         </div>
       </div>
@@ -632,7 +638,7 @@ export default function TaskManagement() {
                   <SelectContent>
                     <SelectItem value="all">Todas las materias</SelectItem>
                     {uniqueSubject.map((subject) => (
-                      <SelectItem key={subject._id} value={subject._id}>
+                      <SelectItem key={subject._id} value={subject._id!}>
                         {subject.name}
                       </SelectItem>
                     ))}
@@ -680,6 +686,9 @@ export default function TaskManagement() {
             <span>Lista de Asignaciones</span>
             <Badge variant="outline">{filteredTasksList.length} asignaciones</Badge>
           </CardTitle>
+          <CardDescription>
+            Haz clic en una asignación para acceder al panel de calificación de estudiantes.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <AuthLoading>
@@ -700,12 +709,15 @@ export default function TaskManagement() {
                     className="border rounded-lg p-4 hover:shadow-md transition-shadow"
                   >
                     <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3 mb-3">
-                      <div className="flex-1">
+                      <div 
+                        className="flex-1 cursor-pointer"
+                        onClick={() => handleListStudent(task._id)}
+                      >
                         <div className="flex flex-col xs:flex-row xs:items-center gap-2 mb-2">
                           <div className="flex items-center">
                             <FileText className="w-5 h-5 text-blue-600" />
                           </div>
-                          <Link href={`/teacher/classid/tasks/${task._id}`}>
+                          <div>
                             <h3 className="text-lg font-semibold">
                               {task.gradeRubric?.name ?? "Sin rúbrica"} -{" "}
                               {task.name}
@@ -716,7 +728,7 @@ export default function TaskManagement() {
                                 </span>
                               )}
                             </h3>
-                          </Link>
+                          </div>
                         </div>
                         <p className="text-gray-600 mb-2 break-words">{task.description}</p>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-500">
@@ -733,49 +745,53 @@ export default function TaskManagement() {
                         </div>
                       </div>
                       <div className="flex flex-col md:flex-row gap-2 mt-3 md:mt-0">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEditModal(task)}
-                          className="cursor-pointer"
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          Editar
-                        </Button>
+                        {canUpdateTask && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditModal(task)}
+                            className="cursor-pointer"
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Editar
+                          </Button>
+                        )}
 
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-red-600 hover:text-red-700 cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4 mr-1" />
-                              Eliminar
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta acción no se puede deshacer. Esto eliminará
-                                permanentemente la asignación y afectara los datos
-                                relacionados a ella.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel className="cursor-pointer">
-                                Cancelar
-                              </AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteTask(task._id)}
-                                className=" bg-white text-red-600 border-2 border-red-600 hover:bg-red-600 hover:text-white cursor-pointer"
+                        {canDeleteTask && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700 cursor-pointer"
                               >
+                                <Trash2 className="w-4 h-4 mr-1" />
                                 Eliminar
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta acción no se puede deshacer. Esto eliminará
+                                  permanentemente la asignación y afectara los datos
+                                  relacionados a ella.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="cursor-pointer">
+                                  Cancelar
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteTask(task._id)}
+                                  className=" bg-white text-red-600 border-2 border-red-600 hover:bg-red-600 hover:text-white cursor-pointer"
+                                >
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </div>
                     </div>
                     <div className="flex flex-col gap-3 pt-3 border-t md:flex-row md:justify-between md:items-center">
@@ -806,17 +822,19 @@ export default function TaskManagement() {
                         </div>
                       </div>
 
-                      <div className="mt-2 md:mt-0 flex-shrink-0">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewDetails(task._id)}
-                          className="cursor-pointer w-full md:w-auto"
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                          Ver Entregas
-                        </Button>
-                      </div>
+                      {canReadTask && (
+                        <div className="mt-2 md:mt-0 flex-shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewDetails(task._id)}
+                            className="cursor-pointer w-full md:w-auto"
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Ver Entregas
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -831,11 +849,19 @@ export default function TaskManagement() {
                       <h3 className="text-lg font-medium text-foreground mb-2">
                         No se encontraron asignaciones
                       </h3>
-                      <p className="text-muted-foreground mb-4">
-                        No hay asignaciones creadas. Crea tu primera asignación para comenzar a calificar.
-                      </p>
+                      {currentRole !== 'tutor' ? (
+                        <p className="text-muted-foreground mb-4">
+                          No hay asignaciones creadas. Crea tu primera asignación para comenzar a calificar.
+                        </p>
+                      ) : (
+                        <>
+                          <p className="text-muted-foreground">Aún no se tiene asignaciones al alumno.</p>
+                          <p className="text-muted-foreground">Si al alumno ya cuenta con asignaciones y no se ve información comunicate con soporte.</p>
+                        </>
+                      )
+                      }
                     </div>
-                    <TaskCreateForm />
+                    {canCreateTask && <TaskCreateForm />}
                   </div>
                 </div>
               )}
@@ -996,6 +1022,12 @@ export default function TaskManagement() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ListStudents
+        open={listStudentDialogOpen}
+        close={setListStudentDialogOpen}
+        assignmentDetails={assignmentDetails}
+      />
     </div>
   );
 }

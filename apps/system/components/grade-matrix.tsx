@@ -56,6 +56,7 @@ interface GradeMatrixProps {
     comment: string // <-- New argument
   ) => void;
   calculateAverage: (studentClassId: string) => number | null;
+  canUpdateRubric: boolean;
 }
 
 export function GradeMatrix({
@@ -64,13 +65,14 @@ export function GradeMatrix({
   grades,
   onGradeUpdate,
   calculateAverage,
+  canUpdateRubric,
 }: GradeMatrixProps) {
   const [editingCell, setEditingCell] = useState<string | null>(null);
   const [tempValue, setTempValue] = useState<string>("");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStudentClass, setSelectedStudentClass] = useState<StudentWithClass | null>(null);
-  
+
   // ✅ Usamos un estado único para los datos del modal
   const [selectedData, setSelectedData] = useState<{
     item: Assignment | null;
@@ -226,7 +228,7 @@ export function GradeMatrix({
                         className="p-1 text-center"
                       >
                         <div className="flex items-center justify-center space-x-2">
-                          {isEditing ? (
+                          {(isEditing && canUpdateRubric) ? (
                             <Input
                               type="number"
                               value={tempValue}
@@ -248,13 +250,12 @@ export function GradeMatrix({
                                 handleCellClick(student._id, assignment._id)
                               }
                               className={`
-            ${
-              grade! > assignment.maxScore * 0.7
-                ? "text-green-600"
-                : grade! < assignment.maxScore * 0.7
-                  ? "text-red-700"
-                  : "text-gray-700"
-            }
+            ${grade! > assignment.maxScore * 0.7
+                                  ? "text-green-600"
+                                  : grade! < assignment.maxScore * 0.7
+                                    ? "text-red-700"
+                                    : "text-gray-700"
+                                }
             cursor-pointer hover:bg-gray-400 hover:text-white rounded px-2 py-1 min-w-[40px
           `}
                             >
@@ -323,7 +324,8 @@ export function GradeMatrix({
           studentClass={selectedStudentClass}
           context="assignment"
           data={selectedData}
-          onSave={handleModalSave} 
+          onSave={handleModalSave}
+          canUpdateRubric={canUpdateRubric}
         />
       </div>
     </TooltipProvider>

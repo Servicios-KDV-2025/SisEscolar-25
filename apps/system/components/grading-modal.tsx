@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 
 import { es } from 'date-fns/locale'; // Importa el locale en español
-import { formatDate } from "date-fns";
+import { format } from "date-fns";
 
 // Tipos de datos que ya tienes
 interface Student {
@@ -80,27 +80,28 @@ interface GradingModalProps {
     score: number | null,
     comments: string
   ) => void;
+  canUpdateRubric: boolean;
 }
 
 const CharacterCounter = ({
-    current,
-    max,
-  }: {
-    current: number;
-    max: number;
-  }) => {
-    const remaining = max - current;
-    const isNearLimit = remaining <= 10;
-    const isOverLimit = remaining < 0;
+  current,
+  max,
+}: {
+  current: number;
+  max: number;
+}) => {
+  const remaining = max - current;
+  const isNearLimit = remaining <= 10;
+  const isOverLimit = remaining < 0;
 
-    return (
-      <div
-        className={`text-xs mt-1 text-right ${isOverLimit ? "text-red-600" : isNearLimit ? "text-amber-600" : "text-gray-500"}`}
-      >
-        {current}/{max} caracteres{" "}
-      </div>
-    );
-  };
+  return (
+    <div
+      className={`text-xs mt-1 text-right ${isOverLimit ? "text-red-600" : isNearLimit ? "text-amber-600" : "text-gray-500"}`}
+    >
+      {current}/{max} caracteres{" "}
+    </div>
+  );
+};
 
 export function GradingModal({
   isOpen,
@@ -109,6 +110,7 @@ export function GradingModal({
   context,
   data,
   onSave,
+  canUpdateRubric,
 }: GradingModalProps) {
   const [currentScoreValue, setCurrentScoreValue] = useState("");
   const [comment, setComment] = useState("");
@@ -134,12 +136,12 @@ export function GradingModal({
 
   const handleSave = () => {
     if (!studentClass || !data.item) {
-      toast.error("Error: Información del estudiante o la tarea/período no disponible."+ error);
+      toast.error("Error: Información del estudiante o la tarea/período no disponible." + error);
       return;
     }
 
     const score = currentScoreValue === "" ? null : Number.parseFloat(currentScoreValue);
-    
+
     // Obtener la puntuación máxima según el contexto
     const maxScore = context === "assignment"
       ? (data.item as AssignmentData).maxScore
@@ -153,21 +155,21 @@ export function GradingModal({
     }
 
     onSave(studentClass._id, data.item._id as Id<"assignment"> | Id<"term">, score, comment);
-    
+
     onClose();
   };
 
   const handleClose = () => {
     onClose();
   };
-  
+
   if (!studentClass || !studentClass.student || !data.item) {
     return null;
   }
 
   const termItem = data.item as TermData;
-  const formattedStartDate = termItem.startDate ? formatDate(termItem.startDate, 'P', { locale: es }) : 'N/A';
-  const formattedEndDate = termItem.endDate ? formatDate(termItem.endDate, 'P', { locale: es }) : 'N/A';
+  const formattedStartDate = termItem.startDate ? format(termItem.startDate, 'P', { locale: es }) : 'N/A';
+  const formattedEndDate = termItem.endDate ? format(termItem.endDate, 'P', { locale: es }) : 'N/A';
 
   // ✅ Contenido dinámico según el contexto
   const isAssignment = context === "assignment";
@@ -222,23 +224,23 @@ export function GradingModal({
                 </div>
                 <div className="text-sm text-muted-foreground">
                   {isAssignment ? (
-            <div className="text-sm text-muted-foreground">
-              <p>Puntuación máxima: {maxScore} puntos</p>
-            </div>
-          ) : (
-            // ✅ Muestra las fechas solo en el contexto de "term"
-            <div className="text-sm text-muted-foreground">
-              <p>Inicio: {formattedStartDate}</p>
-              
-              <p>Fin: {formattedEndDate}</p>
-              
-            </div>
-          )}
+                    <div className="text-sm text-muted-foreground">
+                      <p>Puntuación máxima: {maxScore} puntos</p>
+                    </div>
+                  ) : (
+                    // ✅ Muestra las fechas solo en el contexto de "term"
+                    <div className="text-sm text-muted-foreground">
+                      <p>Inicio: {formattedStartDate}</p>
+
+                      <p>Fin: {formattedEndDate}</p>
+
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </div>
-          
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="score">{scoreLabel} (0 - {maxScore})</Label>
@@ -250,6 +252,7 @@ export function GradingModal({
                 value={currentScoreValue}
                 onChange={(e) => setCurrentScoreValue(e.target.value)}
                 placeholder="Ingresa la calificación"
+                disabled={!canUpdateRubric}
               />
             </div>
             {currentScoreValue !== "" && (Number(currentScoreValue) < 0 || Number(currentScoreValue) > maxScore) && (
@@ -266,17 +269,21 @@ export function GradingModal({
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Escribe un comentario sobre el trabajo del estudiante..."
                 rows={4}
+                disabled={!canUpdateRubric}
               />
-              <CharacterCounter
-                current={comment.length}
-                max={500}
-
-              />
+              {(canUpdateRubric) && (
+                <CharacterCounter
+                  current={comment.length}
+                  max={500}
+                />
+              )}
             </div>
-            <Button onClick={handleSave} className="w-full">
-              <Save className="h-4 w-4 mr-2" />
-              Guardar {scoreLabel}
-            </Button>
+            {canUpdateRubric && (
+              <Button onClick={handleSave} className="w-full">
+                <Save className="h-4 w-4 mr-2" />
+                Guardar {scoreLabel}
+              </Button>
+            )}
           </div>
         </div>
         <DialogFooter className="hidden"></DialogFooter>
