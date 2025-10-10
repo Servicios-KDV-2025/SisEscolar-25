@@ -1,3 +1,4 @@
+import { LinkInternal } from '@/sanity.types'
 import type {PortableTextBlock} from 'next-sanity'
 import type {Image} from 'sanity'
 
@@ -21,4 +22,13 @@ export interface ShowcaseProject {
   slug?: string
   tags?: string[]
   title?: string
+}
+
+
+export interface SubMenuItem{
+  _key: string;
+  type_reference: "home" | "page" | null;
+  title?: string | undefined;
+  slug: string | null;
+  link?: LinkInternal | undefined;
 }
