@@ -18,6 +18,11 @@ import {defineConfig} from 'sanity'
 import {unsplashImageAsset} from 'sanity-plugin-asset-source-unsplash'
 import {presentationTool} from 'sanity/presentation'
 import {structureTool} from 'sanity/structure'
+import nav from './sanity/schemas/objects/global/nav'
+import linkExternal from './sanity/schemas/objects/link/linkExternal'
+import linkInternal from './sanity/schemas/objects/link/linkInternal'
+import footer from './sanity/schemas/objects/global/footer'
+
 
 const title =
   process.env.NEXT_PUBLIC_SANITY_PROJECT_TITLE || 'Next.js Personal Website with Sanity.io'
@@ -37,6 +42,12 @@ export default defineConfig({
       duration,
       page,
       project,
+      //Global
+      nav,
+      footer,
+      //Link
+      linkExternal,
+      linkInternal,
       // Objects
       milestone,
       timeline,

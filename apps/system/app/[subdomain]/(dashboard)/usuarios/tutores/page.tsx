@@ -344,6 +344,8 @@ export default function TutorPage() {
         password: password,
         name: formData.name as string,
         lastName: formData.lastName as string,
+        phone: formData.phone as string,
+        address: formData.address as string,
       };
 
       const result = await userActions.createUser(createData);
