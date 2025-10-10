@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@repo/ui/components/shadcn/card";
+import { toast } from 'sonner'
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Input } from "@repo/ui/components/shadcn/input";
@@ -35,6 +36,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@repo/ui/components/shadcn/avatar";
+import { Checkbox } from "@repo/ui/components/shadcn/checkbox";
 import {
   CrudDialog,
   useCrudDialog,
@@ -64,7 +66,15 @@ import {
   Building2,
   BookOpen,
   Search as SearchIcon,
+  X,
 } from "@repo/ui/icons";
+import {
+  FolderClosed,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import {
   unifiedUserSchema,
@@ -74,6 +84,9 @@ import {
 import { useUserWithConvex } from "../../../../../stores/userStore";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { useUserActionsWithConvex } from "../../../../../stores/userActionsStore";
+import { usePermissions } from "../../../../../hooks/usePermissions";
+import NotAuth from "../../../../../components/NotAuth";
+
 
 // Tipo para los usuarios que vienen de Convex
 type UserFromConvex = {
@@ -108,6 +121,8 @@ type SearchUserResult = {
   updatedAt: number;
 };
 
+
+
 // Función para obtener el esquema correcto según la operación
 const getSchemaForOperation = (operation: string) => {
   switch (operation) {
@@ -124,31 +139,31 @@ const getSchemaForOperation = (operation: string) => {
 const roleConfig = {
   superadmin: {
     label: "Super-Admin",
-    color: "bg-red-100 text-red-800",
+    color: "bg-yellow-500 text-gray-50",
     icon: Shield,
     description: "Acceso completo sin restricciones",
   },
   admin: {
     label: "Administrador",
-    color: "bg-blue-100 text-blue-800",
-    icon: Building2,
+    color: "bg-amber-400 text-gray-50",
+    icon: FolderClosed,
     description: "Acceso administrativo departamental",
   },
   auditor: {
     label: "Auditor",
-    color: "bg-green-100 text-green-800",
+    color: "bg-sky-700 text-white",
     icon: SearchIcon,
     description: "Acceso de auditoría y verificación",
   },
   teacher: {
     label: "Docente",
-    color: "bg-purple-100 text-purple-800",
+    color: "bg-sky-600 text-white",
     icon: BookOpen,
     description: "Acceso de enseñanza y evaluación",
   },
   tutor: {
     label: "Tutor",
-    color: "bg-orange-100 text-orange-800",
+    color: "bg-sky-500 text-white",
     icon: Users,
     description: "Acceso a información de alumnos",
   },
@@ -175,11 +190,24 @@ export default function PersonalPage() {
     currentUser?._id
   );
 
+  // Obtener permisos del usuario
+  const {
+    canCreateUsersPersonal,
+    canReadUsersPersonal,
+    canUpdateUsersPersonal,
+    canDeleteUsersPersonal,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+
+  } = usePermissions(currentSchool?.school?._id);
+
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Obtener usuarios de la escuela actual (todos los roles)
   const activeUsers = useQuery(
@@ -187,7 +215,7 @@ export default function PersonalPage() {
     currentSchool?.school?._id
       ? {
         schoolId: currentSchool.school._id,
-        roles: ["superadmin", "admin", "auditor", "teacher"],
+        roles: ["superadmin", "admin", "auditor", "teacher", "tutor"],
         status: "active",
       }
       : "skip"
@@ -198,13 +226,13 @@ export default function PersonalPage() {
     currentSchool?.school?._id
       ? {
         schoolId: currentSchool.school._id,
-        roles: ["superadmin", "admin", "auditor", "teacher"],
+        roles: ["superadmin", "admin", "auditor", "teacher", "tutor"],
         status: "inactive",
       }
       : "skip"
   );
 
-  const allUsers = activeUsers?.concat(inactiveUsers || []);
+  const allUsers: UserFromConvex[] = (activeUsers || []).concat(inactiveUsers || []);
 
   // User Actions Store para CRUD operations
   const userActions = useUserActionsWithConvex();
@@ -280,13 +308,19 @@ export default function PersonalPage() {
   };
 
   const handleOpenEdit = (user: UserFromConvex) => {
+    console.log("✏️ departamento que tiene puesto: " + user.department);
     userActions.clearErrors();
     userActions.clearLastResult();
 
-    // Preparar datos para edición incluyendo el rol principal y userSchoolId
+    // Separar roles editables de tutor
+    const editableRoles = user.schoolRole.filter((r) => r !== "tutor");
+    const isTutor = user.schoolRole.includes("tutor");
+
     const editData = {
       ...user,
-      role: user.schoolRole[0], // Tomar el primer rol como principal
+      role: editableRoles, // Solo roles editables en el formulario
+      isTutor: isTutor, // Establecer el valor del checkbox
+      originalRoles: user.schoolRole, // Guardar roles originales para preservar tutor
       userSchoolId: user.userSchoolId,
       status: user.schoolStatus,
     };
@@ -298,12 +332,11 @@ export default function PersonalPage() {
     userActions.clearErrors();
     userActions.clearLastResult();
 
-    // Preparar datos para vista incluyendo el rol principal y userSchoolId
     const viewData = {
       ...user,
-      role: user.schoolRole[0], // Tomar el primer rol como principal
+      role: user.schoolRole, // Mostrar TODOS los roles incluyendo tutor
       userSchoolId: user.userSchoolId,
-      status: user.schoolStatus, // Usar schoolStatus en lugar del status general
+      status: user.schoolStatus,
     };
 
     openView(viewData);
@@ -316,12 +349,19 @@ export default function PersonalPage() {
   };
 
   // Filtrado de datos - Excluir tutores
+  // Reemplaza el useMemo actual:
   const filteredUsers = useMemo(() => {
     if (!allUsers) return [];
 
     return allUsers
-      .filter((user: UserFromConvex) => !user.schoolRole.includes("tutor")) // Excluir tutores
       .filter((user: UserFromConvex) => {
+        // ✅ Excluir usuarios que SOLO tienen rol de tutor
+        const hasOnlyTutorRole =
+          user.schoolRole.length === 1 &&
+          user.schoolRole[0] === "tutor";
+
+        if (hasOnlyTutorRole) return false;
+
         const searchMatch =
           user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -349,79 +389,87 @@ export default function PersonalPage() {
       });
   }, [allUsers, searchTerm, statusFilter, roleFilter, departmentFilter]);
 
-  // Funciones CRUD
-  const handleCreate = async (formData: Record<string, unknown>) => {
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredUsers.slice(startIndex, endIndex);
+  }, [filteredUsers, currentPage, itemsPerPage]);
 
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, roleFilter, departmentFilter]);
+
+  // Funciones CRUD
+  // 🔥 VERSIÓN MEJORADA: handleCreate con lógica clara del checkbox isTutor
+
+  const handleCreate = async (formData: Record<string, unknown>) => {
     if (!currentSchool?.school?._id) {
       console.error("No hay escuela actual disponible");
       throw new Error("No hay escuela actual disponible");
     }
 
     const email = formData.email as string;
-    const selectedRole = formData.role as string;
-    const selectedDepartment = formData.department as string;
 
-    // IMPORTANTE: Solo los administradores pueden tener departamento
-    // Para cualquier otro rol, el departamento debe ser undefined
-    const departmentValue =
-      selectedRole === "admin"
-        ? selectedDepartment === "none"
-          ? undefined
-          : selectedDepartment
-        : undefined; // Forzar undefined para roles que no son admin
-
+    // 👇 Obtener valor del checkbox (campo auxiliar de UI)
+    const isTutorChecked = formData.isTutor === true;
 
     try {
-      // PASO 1: Buscar si el usuario ya existe en Convex
-
+      // PASO 1: Buscar si el usuario ya existe
       const existingUsers = await searchUserByEmailAsync(email);
 
       if (existingUsers && existingUsers.length > 0) {
-        // FLUJO A: Usuario existe, solo asignar a escuela
+        // FLUJO A: Usuario existe, asignar a esta escuela
         const existingUser = existingUsers[0];
 
-        if (
-          !existingUser?.clerkId ||
-          !existingUser?.name ||
-          !existingUser?.email
-        ) {
-          throw new Error(
-            "Error al obtener datos completos del usuario existente"
+        if (!existingUser?.clerkId || !existingUser?.name || !existingUser?.email) {
+          throw new Error("Error al obtener datos completos del usuario existente");
+        }
+
+        // Buscar si ya tiene relación en esta escuela (con cualquier rol)
+        const userInCurrentSchool = allUsers?.find(
+          (user: UserFromConvex) => user.clerkId === existingUser.clerkId
+        );
+
+        // 📋 Construir array de roles
+        let rolesToAssign = (
+          Array.isArray(formData.role) ? formData.role : [formData.role]
+        ) as Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
+
+        // ✅ Aplicar lógica del checkbox: agregar/quitar "tutor"
+        if (isTutorChecked && !rolesToAssign.includes("tutor")) {
+          rolesToAssign.push("tutor");
+        } else if (!isTutorChecked) {
+          rolesToAssign = rolesToAssign.filter(r => r !== "tutor");
+        }
+
+        if (userInCurrentSchool) {
+          const existingRoles = userInCurrentSchool.schoolRole;
+          console.log(
+            `⚠️ Usuario ya existe en esta escuela. Roles anteriores: ${existingRoles.join(", ")}, Nuevos roles: ${rolesToAssign.join(", ")}`
           );
         }
 
-
+        // Crear o actualizar la relación (createUserSchool maneja ambos casos)
         await createUserSchoolRelation({
           clerkId: existingUser.clerkId,
           schoolId: currentSchool.school._id,
-          role: [
-            selectedRole as
-            | "superadmin"
-            | "admin"
-            | "auditor"
-            | "teacher"
-            | "tutor",
-          ],
+          role: rolesToAssign.length > 0 ? rolesToAssign : ["teacher"],
           status: "active",
-          department: departmentValue as
-            | "secretary"
-            | "direction"
-            | "schoolControl"
-            | "technology"
-            | undefined,
+          department: undefined,
         });
 
+        toast.success("Usuario asignado exitosamente");
         return;
       }
 
-      // FLUJO B: Usuario no existe, crear nuevo en Clerk + asignar
-
+      // FLUJO B: Usuario no existe, crear nuevo
       const password = formData.password as string;
 
-      // Validación: Si no existe el usuario, la contraseña es obligatoria
       if (!password || password.trim() === "") {
         throw new Error(
-          "La contraseña es requerida para crear un usuario nuevo. Si el usuario ya existe en el sistema, se asignará automáticamente."
+          "La contraseña es requerida para crear un usuario nuevo."
         );
       }
 
@@ -430,80 +478,66 @@ export default function PersonalPage() {
         password: password,
         name: formData.name as string,
         lastName: formData.lastName as string,
-        phone: formData.phone as string ,
-        address: formData.address as string ,
+        phone: formData.phone as string,
+        address: formData.address as string,
       };
 
       const result = await userActions.createUser(createData);
 
       if (result.success && result.userId) {
-
         try {
-          // Esperar sincronización del webhook
-          await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 segundos
+          await new Promise((resolve) => setTimeout(resolve, 2000));
 
-          // Asignar rol en la escuela actual
+          // 📋 Construir array de roles
+          let selectedRoles = (
+            Array.isArray(formData.role) ? formData.role : [formData.role]
+          ) as Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
+
+          // ✅ Aplicar lógica del checkbox: agregar/quitar "tutor"
+          if (isTutorChecked && !selectedRoles.includes("tutor")) {
+            selectedRoles.push("tutor");
+          } else if (!isTutorChecked) {
+            selectedRoles = selectedRoles.filter(r => r !== "tutor");
+          }
+
           await createUserSchoolRelation({
             clerkId: result.userId,
             schoolId: currentSchool.school._id,
-            role: [
-              selectedRole as
-              | "superadmin"
-              | "admin"
-              | "auditor"
-              | "teacher"
-              | "tutor",
-            ],
+            role: selectedRoles.length > 0 ? selectedRoles : ["teacher"],
             status: "active",
-            department: departmentValue as
-              | "secretary"
-              | "direction"
-              | "schoolControl"
-              | "technology"
-              | undefined,
+            department: undefined,
           });
 
+          toast.success("Usuario creado exitosamente");
         } catch (error) {
-          console.error("❌ Error al asignar usuario a la escuela:", error);
-          const errorMessage = `Usuario creado pero error al asignar a la escuela: ${error instanceof Error ? error.message : "Error desconocido"}`;
-          throw new Error(errorMessage);
+          console.error("Error al asignar usuario:", error);
+          throw new Error(
+            `Usuario creado pero error al asignar roles: ${error instanceof Error ? error.message : "Error desconocido"}`
+          );
         }
       } else {
-        console.error("❌ Error al crear usuario en Clerk:", result.error);
         throw new Error(result.error || "Error al crear usuario en Clerk");
       }
     } catch (error) {
-      // Si el error menciona que ya está asignado, dar mensaje más amigable
-      if (
-        error instanceof Error &&
-        error.message.includes("ya está asignado")
-      ) {
-        throw new Error(
-          `El usuario ${email} ya tiene un rol asignado en esta escuela`
-        );
-      }
+      console.error("❌ Error en handleCreate:", error);
       throw error;
     }
   };
 
+  // Actualiza handleUpdate para manejar el checkbox de tutor:
+
   const handleUpdate = async (formData: Record<string, unknown>) => {
-
-
-    // Combinar datos del formulario con datos originales para tener clerkId
     const combinedData = { ...data, ...formData };
 
     if (!combinedData.clerkId) {
-      console.error("Clerk ID de usuario no disponible");
       throw new Error("Clerk ID de usuario no disponible");
     }
 
     if (!combinedData.userSchoolId) {
-      console.error("UserSchool ID no disponible");
       throw new Error("UserSchool ID no disponible");
     }
 
     try {
-      // PASO 1: Actualizar información básica del usuario en Clerk
       const userUpdateData = {
         name: combinedData.name as string,
         lastName: combinedData.lastName as string,
@@ -518,64 +552,61 @@ export default function PersonalPage() {
       );
 
       if (!userResult.success) {
-        console.error(
-          "Error al actualizar usuario en Clerk:",
-          userResult.error
-        );
         throw new Error(
-          userResult.error ||
-          "Error al actualizar información básica del usuario"
+          userResult.error || "Error al actualizar información básica del usuario"
         );
       }
 
-      // PASO 2: Actualizar rol y departamento en la relación usuario-escuela
-      const selectedRole = formData.role as string;
-      const selectedDepartment = formData.department as string;
-      const originalRole = data?.role as string; // Rol original antes del cambio
+      const selectedRoleData = formData.role;
+      const selectedDepartment = formData.department as string | undefined;
+      const isTutor = formData.isTutor as boolean || false; // 👈 Obtener valor del checkbox
 
-      // LÓGICA DE DEPARTAMENTO:
-      // - Si el nuevo rol es admin: usar el departamento seleccionado
-      // - Si el nuevo rol NO es admin Y el rol original ERA admin: limpiar departamento (undefined)
-      // - Si el nuevo rol NO es admin Y el rol original NO era admin: mantener como está (undefined)
-      let departmentValue: string | undefined;
+      let finalRoles: Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
 
-      if (selectedRole === "admin") {
-        // Rol admin: usar departamento seleccionado
-        departmentValue =
-          selectedDepartment === "none" ? undefined : selectedDepartment;
-      } else if (originalRole === "admin") {
-        // Cambio DE admin A otro rol: limpiar departamento
-        departmentValue = undefined;
-
+      if (Array.isArray(selectedRoleData)) {
+        finalRoles = selectedRoleData as Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
+      } else if (typeof selectedRoleData === "string") {
+        finalRoles = [selectedRoleData as "superadmin" | "admin" | "auditor" | "teacher" | "tutor"];
       } else {
-        // Cambio entre roles no-admin: mantener undefined
-        departmentValue = undefined;
+        finalRoles = Array.isArray(data?.schoolRole)
+          ? data.schoolRole
+          : [data?.role as "superadmin" | "admin" | "auditor" | "teacher" | "tutor"];
       }
 
+      // Agregar o quitar el rol de tutor según el checkbox
+      if (isTutor && !finalRoles.includes("tutor")) {
+        finalRoles.push("tutor");
+      } else if (!isTutor && finalRoles.includes("tutor")) {
+        finalRoles = finalRoles.filter(r => r !== "tutor");
+      }
 
+      console.log("🔍 Roles finales seleccionados:", finalRoles);
+
+      const hasAdminRole = finalRoles.includes("admin");
+
+      let departmentValue: string | undefined | null;
+      if (hasAdminRole) {
+        if (selectedDepartment === "none" || selectedDepartment === undefined) {
+          departmentValue = null;
+        } else {
+          departmentValue = selectedDepartment;
+        }
+      } else {
+        departmentValue = null;
+      }
 
       await updateUserSchoolRelation({
         id: combinedData.userSchoolId as Id<"userSchool">,
-        role: [
-          selectedRole as
-          | "superadmin"
-          | "admin"
-          | "auditor"
-          | "teacher"
-          | "tutor",
-        ],
-        department:
-          departmentValue === undefined
-            ? null
-            : (departmentValue as
-              | "secretary"
-              | "direction"
-              | "schoolControl"
-              | "technology"),
+        role: finalRoles,
+        department: departmentValue === null
+          ? null
+          : (departmentValue as "secretary" | "direction" | "schoolControl" | "technology"),
         status: (combinedData.status as "active" | "inactive") || "active",
       });
 
-      
+      console.log("✅ Actualización completada exitosamente");
+      toast.success("Usuario actualizado exitosamente");
+
     } catch (error) {
       console.error("❌ Error en handleUpdate:", error);
       throw error;
@@ -625,34 +656,33 @@ export default function PersonalPage() {
     return first + last;
   };
 
-  const getPrimaryRole = (roles: Array<string>) => {
-    // Orden de prioridad para mostrar el rol principal
-    const priority = ["superadmin", "admin", "auditor", "teacher", "tutor"];
-    for (const role of priority) {
-      if (roles.includes(role)) {
-        return role;
-      }
-    }
-    return roles[0];
-  };
+
 
   // Loading y error states
   const isLoading = schoolLoading || allUsers === undefined;
   const isCrudLoading =
     userActions.isCreating || userActions.isUpdating || userActions.isDeleting;
 
+  // Verificar error de permisos o falta de permiso de lectura
+  if ((permissionsError || !canReadUsersPersonal) && !permissionsLoading && !isLoading) {
+    return (
+      <NotAuth
+        pageName="Personal"
+        pageDetails="Administra el personal "
+        icon={Users}
+      />
+    );
+  }
+
   // Estadísticas por rol - Excluir tutores
-  const personalUsers =
-    allUsers?.filter(
-      (user: UserFromConvex) => !user.schoolRole.includes("tutor")
-    ) || [];
+  const personalUsers: UserFromConvex[] = allUsers || [];
 
   const stats = [
     {
       title: "Total Personal",
       value: personalUsers.length.toString(),
       icon: Users,
-      trend: "Excluyendo tutores",
+      trend: "Incluyendo tutores",
     },
     {
       title: "Super-Admins",
@@ -682,6 +712,125 @@ export default function PersonalPage() {
     },
   ];
 
+  const PaginationControls = () => {
+    const startItem = (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, filteredUsers.length);
+
+    return (
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-4 border-t">
+        {/* Info de registros */}
+        <div className="text-sm text-muted-foreground">
+          Mostrando <span className="font-medium">{startItem}</span> a{" "}
+          <span className="font-medium">{endItem}</span> de{" "}
+          <span className="font-medium">{filteredUsers.length}</span> registros
+        </div>
+
+        {/* Controles de paginación */}
+        <div className="flex items-center gap-2">
+          {/* Selector de items por página */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Mostrar:</span>
+            <Select
+              value={itemsPerPage.toString()}
+              onValueChange={(value) => {
+                setItemsPerPage(Number(value));
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-20 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-1">
+            {/* Primera página */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+
+            {/* Página anterior */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+
+            {/* Números de página */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNumber;
+
+                if (totalPages <= 5) {
+                  pageNumber = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNumber = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNumber = totalPages - 4 + i;
+                } else {
+                  pageNumber = currentPage - 2 + i;
+                }
+
+                return (
+                  <Button
+                    key={pageNumber}
+                    variant={currentPage === pageNumber ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(pageNumber)}
+                    className="h-8 w-8 p-0"
+                  >
+                    {pageNumber}
+                  </Button>
+                );
+              })}
+            </div>
+
+            {/* Página siguiente */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+              disabled={currentPage === totalPages}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+
+            {/* Última página */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+
   return (
     <div className="space-y-8 p-6">
       {/* Header */}
@@ -705,15 +854,18 @@ export default function PersonalPage() {
                 </div>
               </div>
             </div>
-            <Button
-              size="lg"
-              className="gap-2"
-              onClick={handleOpenCreate}
-              disabled={isLoading || !currentSchool || isCrudLoading}
-            >
-              <Plus className="w-4 h-4" />
-              Agregar Personal
-            </Button>
+            {canCreateUsersPersonal && (
+              <Button
+                size="lg"
+                className="gap-2"
+                onClick={handleOpenCreate}
+                disabled={isLoading || !currentSchool || isCrudLoading}
+              >
+                <Plus className="w-4 h-4" />
+                Agregar Personal
+              </Button>
+            )}
+
           </div>
         </div>
       </div>
@@ -856,9 +1008,27 @@ export default function PersonalPage() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Lista de Personal</span>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(roleConfig).map(([roleKey, roleInfo]) => (
+                <Badge
+                  key={roleKey}
+                  variant="outline"
+                  className={`${roleInfo.color} text-xs m-x-2 space-x-2`}
+                >
+                  <roleInfo.icon className="h-4 w-4 mr-1" />
+                  {roleInfo.label}
+                </Badge>
+              ))}
+            </div>
             <Badge variant="outline">{filteredUsers.length} usuarios</Badge>
           </CardTitle>
+
+          <CardDescription className="space-x-1">
+
+
+          </CardDescription>
         </CardHeader>
+
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -870,163 +1040,275 @@ export default function PersonalPage() {
           ) : filteredUsers.length === 0 ? (
             <div className="text-center py-12">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">
-                No se encontró personal
-              </h3>
+              <h3 className="text-lg font-medium mb-2">No se encontró personal</h3>
               <p className="text-muted-foreground mb-4">
-                {searchTerm ||
-                  statusFilter !== "all" ||
-                  roleFilter !== "all" ||
-                  departmentFilter !== "all"
+                {searchTerm || statusFilter !== "all" || roleFilter !== "all" || departmentFilter !== "all"
                   ? "Intenta ajustar los filtros para ver más resultados."
                   : "Aún no hay personal registrado en esta escuela."}
               </p>
-              <Button
-                onClick={handleOpenCreate}
-                className="gap-2"
-                disabled={!currentSchool || isCrudLoading}
-              >
+              <Button onClick={handleOpenCreate} className="gap-2" disabled={!currentSchool || isCrudLoading}>
                 <Plus className="h-4 w-4" />
                 Agregar Personal
               </Button>
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[110px] px-4">Usuario</TableHead>
-                    <TableHead className="text-center">Rol Principal</TableHead>
-                    <TableHead className="text-center">Departamento</TableHead>
-                    <TableHead className="text-center">Contacto</TableHead>
-                    <TableHead className="text-center">Estado</TableHead>
-                    <TableHead>Fecha de Ingreso</TableHead>
-                    <TableHead className="text-center">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((user: UserFromConvex) => {
-                    const primaryRole = getPrimaryRole(user.schoolRole);
-                    const roleInfo =
-                      roleConfig[primaryRole as keyof typeof roleConfig];
-                    const departmentInfo = user.department
-                      ? departmentConfig[user.department]
-                      : null;
+            <>
+              {/* Vista de tabla para pantallas medianas y grandes */}
+              <div className="hidden md:block rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[250px]">Usuario</TableHead>
+                      <TableHead className="text-center">Roles</TableHead>
+                      <TableHead className="text-center hidden lg:table-cell">Departamento</TableHead>
+                      <TableHead className="text-center hidden xl:table-cell">Contacto</TableHead>
+                      <TableHead className="text-center">Estado</TableHead>
+                      <TableHead className="text-center hidden lg:table-cell">Fecha de Ingreso</TableHead>
+                      <TableHead className="text-center">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedUsers.map((user: UserFromConvex) => {
+                      const departmentInfo = user.department ? departmentConfig[user.department] : null;
 
-                    return (
-                      <TableRow key={user._id}>
-                        <TableCell >
+                      return (
+                        <TableRow key={user._id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={user.imgUrl} alt={user.name} />
+                                <AvatarFallback className="bg-primary/10">
+                                  {getInitials(user.name, user.lastName)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium">{user.name} {user.lastName}</div>
+                                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                  <Mail className="h-3 w-3" />
+                                  {user.email}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="text-center">
+                            <div className="flex flex-wrap gap-1 justify-center">
+                              {user.schoolRole.map((role) => {
+                                const roleInfo = roleConfig[role as keyof typeof roleConfig];
+                                return (
+                                  <Badge key={role} variant="outline" className={`${roleInfo?.color} text-xs`}>
+                                    <roleInfo.icon className="h-4 w-4" />
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="text-center hidden lg:table-cell">
+                            {departmentInfo ? (
+                              <Badge variant="outline" className={departmentInfo.color}>
+                                {departmentInfo.label}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">No asignado</span>
+                            )}
+                          </TableCell>
+
+                          <TableCell className="text-center hidden xl:table-cell">
+                            <div className="space-y-1">
+                              {user.phone && (
+                                <div className="text-sm flex items-center gap-1 justify-center">
+                                  <Phone className="h-3 w-3 text-muted-foreground" />
+                                  {user.phone}
+                                </div>
+                              )}
+                              {user.address && (
+                                <div className="text-sm text-muted-foreground flex items-center gap-1 justify-center">
+                                  <MapPin className="h-3 w-3" />
+                                  <span className="truncate max-w-[150px]">{user.address}</span>
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="text-center">
+                            <Badge
+                              variant={(user.schoolStatus || "active") === "active" ? "default" : "secondary"}
+                              className={(user.schoolStatus || "active") === "active"
+                                ? "bg-green-600 text-white"
+                                : "bg-gray-600/70 text-white"}
+                            >
+                              {(user.schoolStatus || "active") === "active" ? "Activo" : "Inactivo"}
+                            </Badge>
+                          </TableCell>
+
+                          <TableCell className="text-center hidden lg:table-cell">
+                            <div className="flex items-center gap-1 text-sm justify-center">
+                              <Calendar className="h-3 w-3 text-muted-foreground" />
+                              {formatDate(user.admissionDate || user.createdAt)}
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenView(user)}
+                                className="h-8 w-8 p-0"
+                                disabled={isCrudLoading}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              {canUpdateUsersPersonal && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleOpenEdit(user)}
+                                  className="h-8 w-8 p-0"
+                                  disabled={isCrudLoading}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {canDeleteUsersPersonal && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleOpenDelete(user)}
+                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                  disabled={isCrudLoading}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Vista de tarjetas para pantallas pequeñas */}
+              <div className="md:hidden space-y-4">
+                {paginatedUsers.map((user: UserFromConvex) => {
+                  const departmentInfo = user.department ? departmentConfig[user.department] : null;
+
+                  return (
+                    <Card key={user._id} className="overflow-hidden">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
+                            <Avatar className="h-12 w-12">
                               <AvatarImage src={user.imgUrl} alt={user.name} />
                               <AvatarFallback className="bg-primary/10">
                                 {getInitials(user.name, user.lastName)}
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <div className="font-medium">
-                                {user.name} {user.lastName}
-                              </div>
-                              <div className="text-sm text-muted-foreground flex items-center gap-1">
-                                <Mail className="h-3 w-3" />
-                                {user.email}
-                              </div>
+                              <div className="font-medium">{user.name} {user.lastName}</div>
+                              <div className="text-xs text-muted-foreground">{user.email}</div>
                             </div>
                           </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="outline" className={roleInfo?.color}>
-                            <roleInfo.icon className="h-3 w-3 mr-1" />
-                            {roleInfo?.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {departmentInfo ? (
-                            <Badge
-                              variant="outline"
-                              className={departmentInfo.color}
-                            >
-                              {departmentInfo.label}
-                            </Badge>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">
-                              No asignado
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <div className="space-y-1">
-                            {user.phone && (
-                              <div className="text-sm flex items-center gap-1">
-                                <Phone className="h-3 w-3 text-muted-foreground" />
-                                {user.phone}
-                              </div>
-                            )}
-                            {user.address && (
-                              <div className="text-sm text-muted-foreground flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {user.address}
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
                           <Badge
                             variant={(user.schoolStatus || "active") === "active" ? "default" : "secondary"}
                             className={(user.schoolStatus || "active") === "active"
-                              ? "bg-green-600 text-white flex-shrink-0 ml-2"
-                              : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}
+                              ? "bg-green-600 text-white"
+                              : "bg-gray-600/70 text-white"}
                           >
                             {(user.schoolStatus || "active") === "active" ? "Activo" : "Inactivo"}
                           </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex items-center gap-1 text-sm">
-                            <Calendar className="h-3 w-3 text-muted-foreground" />
-                            {formatDate(user.admissionDate || user.createdAt)}
+                        </div>
+
+                        <div className="space-y-2 mb-3">
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="text-muted-foreground font-medium">Roles:</span>
+                            <div className="flex flex-wrap gap-1">
+                              {user.schoolRole.map((role) => {
+                                const roleInfo = roleConfig[role as keyof typeof roleConfig];
+                                return (
+                                  <Badge key={role} variant="outline" className={`${roleInfo?.color} text-xs`}>
+                                    <roleInfo.icon className="h-3 w-3 mr-1" />
+                                    {roleInfo?.label}
+                                  </Badge>
+                                );
+                              })}
+                            </div>
                           </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-2">
+
+                          {departmentInfo && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-muted-foreground font-medium">Departamento:</span>
+                              <Badge variant="outline" className={departmentInfo.color}>
+                                {departmentInfo.label}
+                              </Badge>
+                            </div>
+                          )}
+
+                          {user.phone && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Phone className="h-3 w-3 text-muted-foreground" />
+                              <span>{user.phone}</span>
+                            </div>
+                          )}
+
+                          {user.address && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <MapPin className="h-3 w-3 text-muted-foreground" />
+                              <span className="truncate">{user.address}</span>
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-2 text-sm">
+                            <Calendar className="h-3 w-3 text-muted-foreground" />
+                            <span>{formatDate(user.admissionDate || user.createdAt)}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2 pt-3 border-t">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenView(user)}
+                            disabled={isCrudLoading}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Ver
+                          </Button>
+                          {canUpdateUsersPersonal && (
                             <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleOpenView(user)}
-                              className="hover:scale-105 transition-transform cursor-pointer"
-                              disabled={isCrudLoading}
-                            >
-                              <Eye className="h-8 w-8 p-0" />
-                            </Button>
-                            <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
                               onClick={() => handleOpenEdit(user)}
-                              className="hover:scale-105 transition-transform cursor-pointer"
                               disabled={isCrudLoading}
                             >
-                              <Pencil className="h-8 w-8 p-0" />
+                              <Pencil className="h-4 w-4 mr-1" />
+                              Editar
                             </Button>
-                            {user.schoolStatus === "active" && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleOpenDelete(user)}
-                                className="text-destructive hover:text-destructive hover:scale-105 transition-transform cursor-pointer"
-                                disabled={isCrudLoading}
-                              >
-                                <Trash2 className="h-8 w-8 p-0" />
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                          )}
+                          {canDeleteUsersPersonal && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenDelete(user)}
+                              className="text-destructive hover:text-destructive"
+                              disabled={isCrudLoading}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </>
           )}
         </CardContent>
+        {filteredUsers.length > 0 && <PaginationControls />}
       </Card>
 
       {/* Dialog CRUD */}
@@ -1128,80 +1410,196 @@ export default function PersonalPage() {
             <FormField
               control={form.control}
               name="role"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Rol *</FormLabel>
-                  <FormControl>
-                    <Select
-                      value={field.value as string}
-                      onValueChange={(value) => {
-                        const previousRole = form.getValues("role");
-                        field.onChange(value);
+              render={({ field }) => {
+                // Obtener roles seleccionados (puede ser string o array)
+                let selectedRoles: string[];
+                if (currentOperation === "view" && data?.schoolRole) {
+                  selectedRoles = Array.isArray(data.schoolRole) ? data.schoolRole : [data.schoolRole];
+                } else if (Array.isArray(field.value)) {
+                  selectedRoles = field.value as string[];
+                } else {
+                  selectedRoles = field.value ? [field.value as string] : [];
+                }
 
-                        // Solo limpiar departamento si cambiamos DE admin A otro rol
-                        if (previousRole === "admin" && value !== "admin") {
-                          form.setValue("department", undefined);
-                        }
-                      }}
-                      disabled={currentOperation === "view"}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar rol" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="superadmin">
-                          Super-Administrador
-                        </SelectItem>
-                        <SelectItem value="admin">Administrador</SelectItem>
-                        <SelectItem value="auditor">Auditor</SelectItem>
-                        <SelectItem value="teacher">Docente</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                const handleAddRole = (roleToAdd: string) => {
+                  if (!selectedRoles.includes(roleToAdd)) {
+                    const newRoles = [...selectedRoles, roleToAdd];
+                    field.onChange(newRoles.length === 1 ? newRoles[0] : newRoles);
+                  }
+                };
 
-            {/* Campo de departamento solo visible para administradores */}
-            {form.watch("role") === "admin" && (
-              <FormField
-                control={form.control}
-                name="department"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Departamento *</FormLabel>
+                const handleRemoveRole = (roleToRemove: string) => {
+                  const newRoles = selectedRoles.filter(r => r !== roleToRemove);
+                  if (newRoles.length === 0) {
+                    field.onChange(undefined);
+                  } else {
+                    field.onChange(newRoles.length === 1 ? newRoles[0] : newRoles);
+                  }
+
+                  // Limpiar departamento si se elimina el rol admin
+                  if (roleToRemove === "admin" && !newRoles.includes("admin")) {
+                    form.setValue("department", undefined);
+                  }
+                };
+
+                const availableRoles = ["superadmin", "admin", "auditor", "teacher"].filter(
+                  role => !selectedRoles.includes(role)
+                );
+
+                return (
+                  <FormItem className="md:col-span-2">
+                    <FormLabel>Roles *</FormLabel>
                     <FormControl>
-                      <Select
-                        value={(field.value as string) || undefined}
-                        onValueChange={(value) =>
-                          field.onChange(value === "none" ? undefined : value)
-                        }
-                        disabled={currentOperation === "view"}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar departamento" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Sin departamento</SelectItem>
-                          <SelectItem value="secretary">Secretaría</SelectItem>
-                          <SelectItem value="direction">Dirección</SelectItem>
-                          <SelectItem value="schoolControl">
-                            Control Escolar
-                          </SelectItem>
-                          <SelectItem value="technology">Tecnología</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="space-y-3">
+                        {/* Roles seleccionados */}
+                        <div className="flex flex-wrap gap-2 min-h-[42px] p-2 border rounded-md bg-background">
+                          {selectedRoles.length === 0 ? (
+                            <span className="text-sm text-muted-foreground">
+                              No hay roles seleccionados
+                            </span>
+                          ) : (
+                            selectedRoles.map((role) => {
+                              const roleInfo = roleConfig[role as keyof typeof roleConfig];
+                              return (
+                                <Badge
+                                  key={role}
+                                  variant="outline"
+                                  className={`${roleInfo?.color} flex items-center gap-1 pr-1`}
+                                >
+                                  <roleInfo.icon className="h-3 w-3" />
+                                  {roleInfo?.label}
+                                  {currentOperation !== "view" && selectedRoles.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveRole(role)}
+                                      className="ml-1 hover:bg-black/10 rounded-full p-0.5"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                </Badge>
+                              );
+                            })
+                          )}
+                        </div>
+
+                        {/* Selector para agregar roles */}
+                        {currentOperation !== "view" && availableRoles.length > 0 && (
+                          <Select
+                            value=""
+                            onValueChange={(value) => {
+                              handleAddRole(value);
+                              // Solo limpiar departamento si después de agregar el rol, ya no tiene admin
+                              const newRoles = selectedRoles.includes(value)
+                                ? selectedRoles
+                                : [...selectedRoles, value];
+                              const stillHasAdmin = newRoles.includes("admin");
+
+                              if (!stillHasAdmin) {
+                                form.setValue("department", undefined);
+                              }
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="+ Agregar rol" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableRoles.map((role) => {
+                                const roleInfo = roleConfig[role as keyof typeof roleConfig];
+                                return (
+                                  <SelectItem key={role} value={role}>
+                                    <div className="flex items-center gap-2">
+                                      <roleInfo.icon className="h-4 w-4" />
+                                      {roleInfo.label}
+                                    </div>
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
                     </FormControl>
                     <FormMessage />
                     <p className="text-xs text-muted-foreground">
-                      Los administradores pueden ser asignados a un departamento
-                      específico
+                      {currentOperation === "view"
+                        ? "Roles asignados al usuario en esta escuela"
+                        : "Puedes asignar múltiples roles. Haz clic en la X para eliminar un rol."}
                     </p>
+                  </FormItem>
+                );
+              }}
+            />
+
+            {(operation === "create" || operation === "edit") && (
+              <FormField
+                control={form.control}
+                name="isTutor"
+                render={({ field }) => (
+                  <FormItem className="md:col-span-2 flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
+                    <FormControl>
+                      <Checkbox
+                        checked={!!field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>¿Es también Tutor?</FormLabel>
+                      <p className="text-sm text-muted-foreground">
+                        Marque esta casilla si el usuario también debe tener
+                        permisos de tutor.
+                      </p>
+                    </div>
                   </FormItem>
                 )}
               />
             )}
+
+            {/* Campo de departamento solo visible si tiene rol de administrador */}
+            {(() => {
+              const currentRole = form.watch("role");
+              const hasAdminRole = Array.isArray(currentRole)
+                ? currentRole.includes("admin")
+                : currentRole === "admin";
+              return hasAdminRole;
+            })() && (
+                <FormField
+                  control={form.control}
+                  name="department"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Departamento *</FormLabel>
+                      <FormControl>
+                        <Select
+                          value={(field.value as string) || undefined}
+                          onValueChange={(value) =>
+                            field.onChange(value === "none" ? undefined : value)
+                          }
+                          disabled={currentOperation === "view"}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar departamento" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Sin departamento</SelectItem>
+                            <SelectItem value="secretary">Secretaría</SelectItem>
+                            <SelectItem value="direction">Dirección</SelectItem>
+                            <SelectItem value="schoolControl">
+                              Control Escolar
+                            </SelectItem>
+                            <SelectItem value="technology">Tecnología</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                      <p className="text-xs text-muted-foreground">
+                        Los administradores pueden ser asignados a un departamento
+                        específico
+                      </p>
+                    </FormItem>
+                  )}
+                />
+              )}
 
             {currentOperation === "create" && (
               <FormField

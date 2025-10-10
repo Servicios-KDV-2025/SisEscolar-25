@@ -37,15 +37,15 @@ interface UserActionsState {
   isCreating: boolean;
   isUpdating: boolean;
   isDeleting: boolean;
-  
+
   // Manejo de errores específicos por operación
   createError: string | null;
   updateError: string | null;
   deleteError: string | null;
-  
+
   // Último resultado de operación
   lastResult: UserActionResponse | null;
-  
+
   // Acciones básicas del estado
   setCreating: (creating: boolean) => void;
   setUpdating: (updating: boolean) => void;
@@ -56,7 +56,7 @@ interface UserActionsState {
   setLastResult: (result: UserActionResponse | null) => void;
   clearErrors: () => void;
   clearLastResult: () => void;
-  
+
   // Reset del store
   reset: () => void;
 }
@@ -75,7 +75,7 @@ const initialState = {
 // Store de Zustand
 export const useUserActionsStore = create<UserActionsState>((set) => ({
   ...initialState,
-  
+
   // Setters básicos
   setCreating: (creating) => set({ isCreating: creating }),
   setUpdating: (updating) => set({ isUpdating: updating }),
@@ -84,17 +84,17 @@ export const useUserActionsStore = create<UserActionsState>((set) => ({
   setUpdateError: (error) => set({ updateError: error }),
   setDeleteError: (error) => set({ deleteError: error }),
   setLastResult: (result) => set({ lastResult: result }),
-  
+
   // Limpiar errores
   clearErrors: () => set({
     createError: null,
     updateError: null,
     deleteError: null,
   }),
-  
+
   // Limpiar último resultado
   clearLastResult: () => set({ lastResult: null }),
-  
+
   // Reset del store
   reset: () => set(initialState),
 }));
@@ -102,21 +102,21 @@ export const useUserActionsStore = create<UserActionsState>((set) => ({
 // Hook que combina Zustand con Convex para operaciones de usuario
 export const useUserActionsWithConvex = () => {
   const store = useUserActionsStore();
-  
+
   // Actions de Convex
   const createUserAction = useAction(api.actions.users.createUser);
   const updateUserAction = useAction(api.actions.users.updateUser);
   const deleteUserAction = useAction(api.actions.users.deleteUser);
-  
+
   // Función para crear usuario
   const createUser = React.useCallback(async (data: CreateUserData): Promise<UserActionResponse> => {
     try {
       store.setCreating(true);
       store.setCreateError(null);
       store.clearLastResult();
-      
+
       const result = await createUserAction(data);
-      
+
       // Asegurar que result tenga el tipo correcto
       const typedResult: UserActionResponse = {
         success: result.success,
@@ -124,14 +124,14 @@ export const useUserActionsWithConvex = () => {
         error: typeof result.error === 'string' ? result.error : undefined,
         userId: result.userId
       };
-      
+
       store.setLastResult(typedResult);
       store.setCreating(false);
-      
+
       if (!typedResult.success && typedResult.error) {
         store.setCreateError(typedResult.error);
       }
-      
+
       return typedResult;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error al crear usuario';
@@ -139,24 +139,24 @@ export const useUserActionsWithConvex = () => {
         success: false,
         error: errorMessage,
       };
-      
+
       store.setCreateError(errorMessage);
       store.setLastResult(errorResult);
       store.setCreating(false);
-      
+
       return errorResult;
     }
   }, [createUserAction, store]);
-  
+
   // Función para actualizar usuario
   const updateUser = React.useCallback(async (userId: string, data: UpdateUserData): Promise<UserActionResponse> => {
     try {
       store.setUpdating(true);
       store.setUpdateError(null);
       store.clearLastResult();
-      
+
       const result = await updateUserAction({ userId, ...data });
-      
+
       // Asegurar que result tenga el tipo correcto
       const typedResult: UserActionResponse = {
         success: result.success,
@@ -164,14 +164,14 @@ export const useUserActionsWithConvex = () => {
         error: typeof result.error === 'string' ? result.error : undefined,
         userId: result.userId
       };
-      
+
       store.setLastResult(typedResult);
       store.setUpdating(false);
-      
+
       if (!typedResult.success && typedResult.error) {
         store.setUpdateError(typedResult.error);
       }
-      
+
       return typedResult;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error al actualizar usuario';
@@ -179,37 +179,37 @@ export const useUserActionsWithConvex = () => {
         success: false,
         error: errorMessage,
       };
-      
+
       store.setUpdateError(errorMessage);
       store.setLastResult(errorResult);
       store.setUpdating(false);
-      
+
       return errorResult;
     }
   }, [updateUserAction, store]);
-  
+
   // Función para eliminar usuario
   const deleteUser = React.useCallback(async (userId: string): Promise<UserActionResponse> => {
     try {
       store.setDeleting(true);
       store.setDeleteError(null);
       store.clearLastResult();
-      
+
       const result = await deleteUserAction({ userId });
-      
+
       // Si no hay resultado (undefined), consideramos que fue exitoso
       const finalResult: UserActionResponse = result || {
         success: true,
         message: "Usuario eliminado exitosamente",
       };
-      
+
       store.setLastResult(finalResult);
       store.setDeleting(false);
-      
+
       if (!finalResult.success && finalResult.error) {
         store.setDeleteError(finalResult.error);
       }
-      
+
       return finalResult;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error al eliminar usuario';
@@ -217,15 +217,15 @@ export const useUserActionsWithConvex = () => {
         success: false,
         error: errorMessage,
       };
-      
+
       store.setDeleteError(errorMessage);
       store.setLastResult(errorResult);
       store.setDeleting(false);
-      
+
       return errorResult;
     }
   }, [deleteUserAction, store]);
-  
+
   return React.useMemo(() => ({
     // Estado del store
     isCreating: store.isCreating,
@@ -235,17 +235,17 @@ export const useUserActionsWithConvex = () => {
     updateError: store.updateError,
     deleteError: store.deleteError,
     lastResult: store.lastResult,
-    
+
     // Acciones
     createUser,
     updateUser,
     deleteUser,
-    
+
     // Utilidades
     clearErrors: store.clearErrors,
     clearLastResult: store.clearLastResult,
     reset: store.reset,
-    
+
     // Estados derivados útiles
     hasAnyError: !!(store.createError || store.updateError || store.deleteError),
     isAnyLoading: store.isCreating || store.isUpdating || store.isDeleting,
