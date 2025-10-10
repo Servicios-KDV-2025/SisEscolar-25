@@ -62,6 +62,12 @@ import {
   CheckCircle,
   GraduationCap,
 } from "@repo/ui/icons";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import {
   tutorSchema,
@@ -143,6 +149,8 @@ export default function TutorPage() {
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Obtener usuarios de la escuela actual (solo tutores)
   const activeUsers = useQuery(
@@ -295,88 +303,100 @@ export default function TutorPage() {
       });
   }, [allUsers, searchTerm, statusFilter]);
 
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredUsers.slice(startIndex, endIndex);
+  }, [filteredUsers, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
+
   // Funciones CRUD
-const handleCreate = async (formData: Record<string, unknown>) => {
-  if (!currentSchool?.school?._id) {
-    console.error("No hay escuela actual disponible");
-    throw new Error("No hay escuela actual disponible");
-  }
+  const handleCreate = async (formData: Record<string, unknown>) => {
+    if (!currentSchool?.school?._id) {
+      console.error("No hay escuela actual disponible");
+      throw new Error("No hay escuela actual disponible");
+    }
 
-  const email = formData.email as string;
+    const email = formData.email as string;
 
-  try {
-    // PASO 1: Buscar si el usuario ya existe en Convex
-    const existingUsers = await searchUserByEmailAsync(email);
+    try {
+      // PASO 1: Buscar si el usuario ya existe en Convex
+      const existingUsers = await searchUserByEmailAsync(email);
 
-    if (existingUsers && existingUsers.length > 0) {
-      // FLUJO A: Usuario existe en la base de datos de usuarios
-      const existingUser = existingUsers[0];
+      if (existingUsers && existingUsers.length > 0) {
+        // FLUJO A: Usuario existe en la base de datos de usuarios
+        const existingUser = existingUsers[0];
 
-      if (
-        !existingUser?.clerkId ||
-        !existingUser?.name ||
-        !existingUser?.email
-      ) {
-        throw new Error(
-          "Error al obtener datos completos del usuario existente"
-        );
-      }
-
-      // Buscar si ya tiene relación en esta escuela (con cualquier rol)
-      const userInCurrentSchool = allUsers?.find(
-        (user: UserFromConvex) => user.clerkId === existingUser.clerkId
-      );
-
-      if (userInCurrentSchool) {
-        // Usuario YA tiene una relación en esta escuela
-        const existingRoles = userInCurrentSchool.schoolRole;
-
-        // Verificar si el rol de tutor ya existe
-        if (existingRoles.includes("tutor")) {
+        if (
+          !existingUser?.clerkId ||
+          !existingUser?.name ||
+          !existingUser?.email
+        ) {
           throw new Error(
-            `El usuario ${email} ya tiene asignado el rol de tutor. No se realizó ningún cambio.`
+            "Error al obtener datos completos del usuario existente"
           );
         }
 
-        // Crear array con los roles combinados (agregando tutor)
-        const newRolesSet = new Set([...existingRoles, "tutor"]);
-        const newRoleArray = Array.from(newRolesSet) as Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
-
-        console.log(
-          `⚠️ Agregando rol de tutor. Roles anteriores: ${existingRoles.join(", ")}. Nuevos roles: ${newRoleArray.join(", ")}`
+        // Buscar si ya tiene relación en esta escuela (con cualquier rol)
+        const userInCurrentSchool = allUsers?.find(
+          (user: UserFromConvex) => user.clerkId === existingUser.clerkId
         );
 
-        // Actualizar la relación existente con el nuevo rol
-        await updateUserSchoolRelation({
-          id: userInCurrentSchool.userSchoolId,
-          role: newRoleArray,
-          department: userInCurrentSchool.department || null,
+        if (userInCurrentSchool) {
+          // Usuario YA tiene una relación en esta escuela
+          const existingRoles = userInCurrentSchool.schoolRole;
+
+          // Verificar si el rol de tutor ya existe
+          if (existingRoles.includes("tutor")) {
+            throw new Error(
+              `El usuario ${email} ya tiene asignado el rol de tutor. No se realizó ningún cambio.`
+            );
+          }
+
+          // Crear array con los roles combinados (agregando tutor)
+          const newRolesSet = new Set([...existingRoles, "tutor"]);
+          const newRoleArray = Array.from(newRolesSet) as Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
+
+          console.log(
+            `⚠️ Agregando rol de tutor. Roles anteriores: ${existingRoles.join(", ")}. Nuevos roles: ${newRoleArray.join(", ")}`
+          );
+
+          // Actualizar la relación existente con el nuevo rol
+          await updateUserSchoolRelation({
+            id: userInCurrentSchool.userSchoolId,
+            role: newRoleArray,
+            department: userInCurrentSchool.department || null,
+            status: "active",
+          });
+
+          return;
+        }
+
+        // Usuario existe pero NO está asignado a esta escuela - CREAR relación
+        await createUserSchoolRelation({
+          clerkId: existingUser.clerkId,
+          schoolId: currentSchool.school._id,
+          role: ["tutor"],
           status: "active",
+          department: undefined,
         });
 
         return;
       }
 
-      // Usuario existe pero NO está asignado a esta escuela - CREAR relación
-      await createUserSchoolRelation({
-        clerkId: existingUser.clerkId,
-        schoolId: currentSchool.school._id,
-        role: ["tutor"],
-        status: "active",
-        department: undefined,
-      });
+      // FLUJO B: Usuario no existe, crear nuevo en Clerk + asignar
+      const password = formData.password as string;
 
-      return;
-    }
-
-    // FLUJO B: Usuario no existe, crear nuevo en Clerk + asignar
-    const password = formData.password as string;
-
-    if (!password || password.trim() === "") {
-      throw new Error(
-        "La contraseña es requerida para crear un usuario nuevo. Si el usuario ya existe en el sistema, se asignará automáticamente."
-      );
-    }
+      if (!password || password.trim() === "") {
+        throw new Error(
+          "La contraseña es requerida para crear un usuario nuevo. Si el usuario ya existe en el sistema, se asignará automáticamente."
+        );
+      }
 
       const createData = {
         email: email,
@@ -387,34 +407,34 @@ const handleCreate = async (formData: Record<string, unknown>) => {
         address: formData.address as string,
       };
 
-    const result = await userActions.createUser(createData);
+      const result = await userActions.createUser(createData);
 
-    if (result.success && result.userId) {
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+      if (result.success && result.userId) {
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
 
-        await createUserSchoolRelation({
-          clerkId: result.userId,
-          schoolId: currentSchool.school._id,
-          role: ["tutor"],
-          status: "active",
-          department: undefined,
-        });
-      } catch (error) {
-        console.error("Error al asignar usuario como tutor:", error);
-        throw new Error(
-          `Usuario creado pero error al asignar como tutor: ${error instanceof Error ? error.message : "Error desconocido"}`
-        );
+          await createUserSchoolRelation({
+            clerkId: result.userId,
+            schoolId: currentSchool.school._id,
+            role: ["tutor"],
+            status: "active",
+            department: undefined,
+          });
+        } catch (error) {
+          console.error("Error al asignar usuario como tutor:", error);
+          throw new Error(
+            `Usuario creado pero error al asignar como tutor: ${error instanceof Error ? error.message : "Error desconocido"}`
+          );
+        }
+      } else {
+        console.error("Error al crear usuario en Clerk:", result.error);
+        throw new Error(result.error || "Error al crear usuario en Clerk");
       }
-    } else {
-      console.error("Error al crear usuario en Clerk:", result.error);
-      throw new Error(result.error || "Error al crear usuario en Clerk");
+    } catch (error) {
+      console.error("❌ Error en handleCreate:", error);
+      throw error;
     }
-  } catch (error) {
-    console.error("❌ Error en handleCreate:", error);
-    throw error;
-  }
-};
+  };
 
   const handleUpdate = async (formData: Record<string, unknown>) => {
     // Combinar datos del formulario con datos originales para tener clerkId
@@ -568,6 +588,124 @@ const handleCreate = async (formData: Record<string, unknown>) => {
       trend: "Incorporaciones",
     },
   ];
+
+  const PaginationControls = () => {
+    const startItem = (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, filteredUsers.length);
+
+    return (
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-4 border-t">
+        {/* Info de registros */}
+        <div className="text-sm text-muted-foreground">
+          Mostrando <span className="font-medium">{startItem}</span> a{" "}
+          <span className="font-medium">{endItem}</span> de{" "}
+          <span className="font-medium">{filteredUsers.length}</span> registros
+        </div>
+
+        {/* Controles de paginación */}
+        <div className="flex items-center gap-2">
+          {/* Selector de items por página */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Mostrar:</span>
+            <Select
+              value={itemsPerPage.toString()}
+              onValueChange={(value) => {
+                setItemsPerPage(Number(value));
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-20 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-1">
+            {/* Primera página */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+
+            {/* Página anterior */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+
+            {/* Números de página */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNumber;
+
+                if (totalPages <= 5) {
+                  pageNumber = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNumber = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNumber = totalPages - 4 + i;
+                } else {
+                  pageNumber = currentPage - 2 + i;
+                }
+
+                return (
+                  <Button
+                    key={pageNumber}
+                    variant={currentPage === pageNumber ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(pageNumber)}
+                    className="h-8 w-8 p-0"
+                  >
+                    {pageNumber}
+                  </Button>
+                );
+              })}
+            </div>
+
+            {/* Página siguiente */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+              disabled={currentPage === totalPages}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+
+            {/* Última página */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-8 p-6">
@@ -757,25 +895,139 @@ const handleCreate = async (formData: Record<string, unknown>) => {
               )}
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[110px] px-4">Tutor</TableHead>
-                    <TableHead className="text-center">Contacto</TableHead>
-                    <TableHead className="text-center">Estado</TableHead>
-                    <TableHead className="text-center">
-                      Fecha de Ingreso
-                    </TableHead>
-                    <TableHead className="text-center">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((user: UserFromConvex) => (
-                    <TableRow key={user._id}>
-                      <TableCell>
+            <>
+              {/* Vista de tabla para pantallas medianas y grandes */}
+              <div className="hidden md:block rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[250px]">Tutor</TableHead>
+                      <TableHead className="text-center hidden lg:table-cell">
+                        Contacto
+                      </TableHead>
+                      <TableHead className="text-center">Estado</TableHead>
+                      <TableHead className="text-center hidden xl:table-cell">
+                        Fecha de Ingreso
+                      </TableHead>
+                      <TableHead className="text-center">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedUsers.map((user: UserFromConvex) => (
+                      <TableRow key={user._id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage
+                                src={user.imgUrl}
+                                alt={user.name}
+                              />
+                              <AvatarFallback className="bg-orange-100 text-orange-700">
+                                {getInitials(user.name, user.lastName)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium">
+                                {user.name} {user.lastName}
+                              </div>
+                              <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                <Mail className="h-3 w-3" />
+                                {user.email}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center hidden lg:table-cell">
+                          <div className="space-y-1">
+                            {user.phone && (
+                              <div className="text-sm flex items-center gap-1 justify-center">
+                                <Phone className="h-3 w-3 text-muted-foreground" />
+                                {user.phone}
+                              </div>
+                            )}
+                            {user.address && (
+                              <div className="text-sm text-muted-foreground flex items-center gap-1 justify-center">
+                                <MapPin className="h-3 w-3" />
+                                <span className="truncate max-w-[150px]">
+                                  {user.address}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant={
+                              (user.schoolStatus || "active") === "active"
+                                ? "default"
+                                : "secondary"
+                            }
+                            className={
+                              (user.schoolStatus || "active") === "active"
+                                ? "bg-green-600 text-white"
+                                : "bg-gray-600/70 text-white"
+                            }
+                          >
+                            {(user.schoolStatus || "active") === "active"
+                              ? "Activo"
+                              : "Inactivo"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center hidden xl:table-cell">
+                          <div className="flex items-center gap-1 text-sm justify-center">
+                            <Calendar className="h-3 w-3 text-muted-foreground" />
+                            {formatDate(user.admissionDate || user.createdAt)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenView(user)}
+                              className="h-8 w-8 p-0"
+                              disabled={isCrudLoading}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            {canUpdateUsersTutores && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenEdit(user)}
+                                className="h-8 w-8 p-0"
+                                disabled={isCrudLoading}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {canDeleteUsersTutores && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenDelete(user)}
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                disabled={isCrudLoading}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Vista de tarjetas para pantallas pequeñas */}
+              <div className="md:hidden space-y-4">
+                {paginatedUsers.map((user: UserFromConvex) => (
+                  <Card key={user._id} className="overflow-hidden">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10">
+                          <Avatar className="h-12 w-12">
                             <AvatarImage src={user.imgUrl} alt={user.name} />
                             <AvatarFallback className="bg-orange-100 text-orange-700">
                               {getInitials(user.name, user.lastName)}
@@ -785,30 +1037,11 @@ const handleCreate = async (formData: Record<string, unknown>) => {
                             <div className="font-medium">
                               {user.name} {user.lastName}
                             </div>
-                            <div className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Mail className="h-3 w-3" />
+                            <div className="text-xs text-muted-foreground">
                               {user.email}
                             </div>
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="space-y-1">
-                          {user.phone && (
-                            <div className="text-sm flex items-center gap-1">
-                              <Phone className="h-3 w-3 text-muted-foreground" />
-                              {user.phone}
-                            </div>
-                          )}
-                          {user.address && (
-                            <div className="text-sm text-muted-foreground flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              {user.address}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
                         <Badge
                           variant={
                             (user.schoolStatus || "active") === "active"
@@ -817,64 +1050,93 @@ const handleCreate = async (formData: Record<string, unknown>) => {
                           }
                           className={
                             (user.schoolStatus || "active") === "active"
-                              ? "bg-green-600 text-white flex-shrink-0 ml-2"
-                              : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"
+                              ? "bg-green-600 text-white"
+                              : "bg-gray-600/70 text-white"
                           }
                         >
                           {(user.schoolStatus || "active") === "active"
                             ? "Activo"
                             : "Inactivo"}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center gap-1 text-sm">
-                          <Calendar className="h-3 w-3 text-muted-foreground" />
-                          {formatDate(user.admissionDate || user.createdAt)}
+                      </div>
+
+                      <div className="space-y-2 mb-3">
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground font-medium">
+                            Rol:
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className="bg-orange-50 text-orange-700 border-orange-200"
+                          >
+                            <GraduationCap className="h-3 w-3 mr-1" />
+                            Tutor
+                          </Badge>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center gap-2">
+
+                        {user.phone && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Phone className="h-3 w-3 text-muted-foreground" />
+                            <span>{user.phone}</span>
+                          </div>
+                        )}
+
+                        {user.address && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <MapPin className="h-3 w-3 text-muted-foreground" />
+                            <span className="truncate">{user.address}</span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-2 text-sm">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          <span>
+                            {formatDate(user.admissionDate || user.createdAt)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 pt-3 border-t">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenView(user)}
+                          disabled={isCrudLoading}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          Ver
+                        </Button>
+                        {canUpdateUsersTutores && (
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
-                            onClick={() => handleOpenView(user)}
-                            className="hover:scale-105 transition-transform cursor-pointer"
+                            onClick={() => handleOpenEdit(user)}
                             disabled={isCrudLoading}
                           >
-                            <Eye className="h-8 w-8 p-0" />
+                            <Pencil className="h-4 w-4 mr-1" />
+                            Editar
                           </Button>
-                          {canUpdateUsersTutores && (
-                            <Button
-                              className="hover:scale-105 transition-transform cursor-pointer h-8 w-8 p-0"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleOpenEdit(user)}
-                              disabled={isCrudLoading}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {canDeleteUsersTutores &&
-                            user.schoolStatus === "active" && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleOpenDelete(user)}
-                                className="text-destructive hover:text-destructive hover:scale-105 transition-transform cursor-pointer"
-                                disabled={isCrudLoading}
-                              >
-                                <Trash2 className="h-8 w-8 p-0" />
-                              </Button>
-                            )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                        )}
+                        {canDeleteUsersTutores && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenDelete(user)}
+                            className="text-destructive hover:text-destructive"
+                            disabled={isCrudLoading}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
+        {filteredUsers.length > 0 && <PaginationControls />}
       </Card>
 
       {/* Dialog CRUD */}
