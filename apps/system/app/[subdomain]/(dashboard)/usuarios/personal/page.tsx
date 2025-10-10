@@ -67,7 +67,13 @@ import {
   Search as SearchIcon,
   X,
 } from "@repo/ui/icons";
-import { FolderClosed } from "lucide-react";
+import {
+  FolderClosed,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import {
   unifiedUserSchema,
@@ -199,6 +205,8 @@ export default function PersonalPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Obtener usuarios de la escuela actual (todos los roles)
   const activeUsers = useQuery(
@@ -378,6 +386,18 @@ export default function PersonalPage() {
       });
   }, [allUsers, searchTerm, statusFilter, roleFilter, departmentFilter]);
 
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredUsers.slice(startIndex, endIndex);
+  }, [filteredUsers, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, roleFilter, departmentFilter]);
+
   // Funciones CRUD
   const handleCreate = async (formData: Record<string, unknown>) => {
     if (!currentSchool?.school?._id) {
@@ -464,12 +484,17 @@ export default function PersonalPage() {
         try {
           await new Promise((resolve) => setTimeout(resolve, 2000));
 
+          // Obtener roles del formulario
+          const selectedRoles = (
+            Array.isArray(formData.role) ? formData.role : [formData.role]
+          ) as Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
+
           await createUserSchoolRelation({
             clerkId: result.userId,
             schoolId: currentSchool.school._id,
-            role: ["tutor"],
+            role: selectedRoles.length > 0 ? selectedRoles : ["teacher"], // Usar roles del form, con 'teacher' como fallback
             status: "active",
-            department: undefined,
+            department: undefined, // El departamento se gestiona en la edición
           });
 
           
@@ -679,7 +704,123 @@ export default function PersonalPage() {
     },
   ];
 
+  const PaginationControls = () => {
+    const startItem = (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, filteredUsers.length);
 
+    return (
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-4 border-t">
+        {/* Info de registros */}
+        <div className="text-sm text-muted-foreground">
+          Mostrando <span className="font-medium">{startItem}</span> a{" "}
+          <span className="font-medium">{endItem}</span> de{" "}
+          <span className="font-medium">{filteredUsers.length}</span> registros
+        </div>
+
+        {/* Controles de paginación */}
+        <div className="flex items-center gap-2">
+          {/* Selector de items por página */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Mostrar:</span>
+            <Select
+              value={itemsPerPage.toString()}
+              onValueChange={(value) => {
+                setItemsPerPage(Number(value));
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-20 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-1">
+            {/* Primera página */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+
+            {/* Página anterior */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+
+            {/* Números de página */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNumber;
+
+                if (totalPages <= 5) {
+                  pageNumber = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNumber = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNumber = totalPages - 4 + i;
+                } else {
+                  pageNumber = currentPage - 2 + i;
+                }
+
+                return (
+                  <Button
+                    key={pageNumber}
+                    variant={currentPage === pageNumber ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(pageNumber)}
+                    className="h-8 w-8 p-0"
+                  >
+                    {pageNumber}
+                  </Button>
+                );
+              })}
+            </div>
+
+            {/* Página siguiente */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+              disabled={currentPage === totalPages}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+
+            {/* Última página */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
 
   return (
@@ -919,7 +1060,7 @@ export default function PersonalPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredUsers.map((user: UserFromConvex) => {
+                    {paginatedUsers.map((user: UserFromConvex) => {
                       const departmentInfo = user.department ? departmentConfig[user.department] : null;
 
                       return (
@@ -1044,7 +1185,7 @@ export default function PersonalPage() {
 
               {/* Vista de tarjetas para pantallas pequeñas */}
               <div className="md:hidden space-y-4">
-                {filteredUsers.map((user: UserFromConvex) => {
+                {paginatedUsers.map((user: UserFromConvex) => {
                   const departmentInfo = user.department ? departmentConfig[user.department] : null;
 
                   return (
@@ -1159,6 +1300,7 @@ export default function PersonalPage() {
             </>
           )}
         </CardContent>
+        {filteredUsers.length > 0 && <PaginationControls />}
       </Card>
 
       {/* Dialog CRUD */}
