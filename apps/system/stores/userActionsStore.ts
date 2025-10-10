@@ -11,6 +11,8 @@ export type CreateUserData = {
   password: string;
   name: string;
   lastName: string;
+  phone: string;
+  address: string;
 };
 
 export type UpdateUserData = {
@@ -18,6 +20,8 @@ export type UpdateUserData = {
   password?: string;
   name?: string;
   lastName?: string;
+  phone?: string;
+  address?: string;
 };
 
 export type UserActionResponse = {
