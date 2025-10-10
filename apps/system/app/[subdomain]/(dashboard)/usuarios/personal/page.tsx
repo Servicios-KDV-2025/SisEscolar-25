@@ -430,6 +430,8 @@ export default function PersonalPage() {
         password: password,
         name: formData.name as string,
         lastName: formData.lastName as string,
+        phone: formData.phone as string ,
+        address: formData.address as string ,
       };
 
       const result = await userActions.createUser(createData);
@@ -506,6 +508,8 @@ export default function PersonalPage() {
         name: combinedData.name as string,
         lastName: combinedData.lastName as string,
         email: combinedData.email as string,
+        phone: combinedData.phone as string,
+        address: combinedData.address as string,
       };
 
       const userResult = await userActions.updateUser(
