@@ -1,5 +1,5 @@
 import React from 'react'
-
+import NextImage from "next/image"; //alias para evitar colisiones
 interface InfoBlockProps {
   title: string;
   subtitle?: string;
@@ -19,7 +19,7 @@ export const InfoBlock: React.FC<InfoBlockProps> = ({
     <div className="flex gap-4 items-start p-4 bg-white rounded-xl shadow-sm">
   
         {iconUrl ? (
-          <img src={iconUrl} alt={title || 'icon'} style={{ width: 28, height: 28 }} />
+          <NextImage src={iconUrl} alt={title || 'icon'} style={{ width: 28, height: 28 }} />
         ) : (
           <div style={{ width: 28, height: 28, background: accentColor, borderRadius: 4 }} />
         )}
