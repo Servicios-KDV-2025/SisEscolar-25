@@ -21,7 +21,15 @@ export const homePageQuery = defineQuery(`
       ...,
       _type == 'priceBlock' =>{
         price->
-      }
+      },
+      _type == 'grid' => {
+        items[]{
+          ...,
+          _type == 'priceItem' => {
+            price->
+          }
+        },
+      },
     },
     title,
   }

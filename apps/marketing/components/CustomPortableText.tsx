@@ -15,6 +15,7 @@ import { Acordeon } from '@/components/blocks/Acordeon'
 import { CarouselAvatar } from '@/components/blocks/CarouuselAvatar'
 import { ContentWithMediaBlock } from '@/components/blocks/ContentWithMedia'
 import { PriceBlockComponent } from '@/components/blocks/PriceBlock'
+import {GridBlock} from '@/components/blocks/GridBlock'
 
 export function CustomPortableText({
   id,
@@ -88,9 +89,7 @@ export function CustomPortableText({
         return <CTASection titulo={titulo} subtitulo={subtitulo} beneficios={beneficios} />
       },
       infoBlock: ({value}) => {
-        const {title, subtitle, description, icon, accentColor} = value || {} 
-        const iconUrl = icon ? urlForImage(icon)?.url() : null;
-        return <InfoBlock title={title} subtitle={subtitle} description={description} iconUrl={iconUrl} accentColor={accentColor} />
+        return <InfoBlock {...value} />
       },
       ImagewithText: ({value}) => { 
         const {Titulo, Descripcion, Imagen, Alineacion} = value || {}
@@ -111,6 +110,9 @@ export function CustomPortableText({
       },
       priceBlock: ({ value }) => {
         return <PriceBlockComponent {...value} />
+      },
+      grid : ({ value }) => {
+        return <GridBlock {...value} />
       },
     },
   }

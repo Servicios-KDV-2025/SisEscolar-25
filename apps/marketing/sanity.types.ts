@@ -13,6 +13,41 @@
  */
 
 // Source: schema.json
+export type Grid = {
+  _type: "grid";
+  items?: Array<{
+    image?: {
+      asset?: {
+        _ref: string;
+        _type: "reference";
+        _weak?: boolean;
+        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+      };
+      media?: unknown;
+      hotspot?: SanityImageHotspot;
+      crop?: SanityImageCrop;
+      _type: "image";
+    };
+    alt?: string;
+    _type: "imageItem";
+    _key: string;
+  } | {
+    title?: string;
+    description?: string;
+    _type: "textItem";
+    _key: string;
+  } | {
+    price?: {
+      _ref: string;
+      _type: "reference";
+      _weak?: boolean;
+      [internalGroqTypeReferenceTo]?: "price";
+    };
+    _type: "priceItem";
+    _key: string;
+  }>;
+};
+
 export type PriceBlock = {
   _type: "priceBlock";
   price?: {
@@ -146,7 +181,6 @@ export type InfoBlock = {
   title?: string;
   subtitle?: string;
   description?: string;
-  accentColor?: string;
 };
 
 export type CtaSection = {
@@ -213,21 +247,6 @@ export type LinkExternal = {
   _type: "linkExternal";
   label?: string;
   url?: string;
-};
-
-export type Price = {
-  _id: string;
-  _type: "price";
-  _createdAt: string;
-  _updatedAt: string;
-  _rev: string;
-  price?: number;
-  title?: string;
-  id_stripe?: string;
-  description?: string;
-  features?: {
-    featureList?: Array<string>;
-  };
 };
 
 export type Project = {
@@ -364,6 +383,8 @@ export type Page = {
   } & ContentWithMedia | {
     _key: string;
   } & PriceBlock | {
+    _key: string;
+  } & Grid | {
     asset?: {
       _ref: string;
       _type: "reference";
@@ -522,6 +543,8 @@ export type Home = {
   } & ContentWithMedia | {
     _key: string;
   } & PriceBlock | {
+    _key: string;
+  } & Grid | {
     asset?: {
       _ref: string;
       _type: "reference";
@@ -543,6 +566,21 @@ export type Home = {
     _key: string;
     [internalGroqTypeReferenceTo]?: "project";
   }>;
+};
+
+export type Price = {
+  _id: string;
+  _type: "price";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  price?: number;
+  title?: string;
+  id_stripe?: string;
+  description?: string;
+  features?: {
+    featureList?: Array<string>;
+  };
 };
 
 export type SanityImagePaletteSwatch = {
@@ -663,11 +701,11 @@ export type SanityAssetSourceData = {
   url?: string;
 };
 
-export type AllSanitySchemaTypes = PriceBlock | ContentWithMedia | CarouselAvatar | Acordeon | Carousel | ImagewithText | InfoBlock | CtaSection | StatsSection | FeatureSection | FeatureItem | HeroSection | LinkExternal | Price | Project | Page | Duration | Settings | Footer | LinkInternal | Nav | Home | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageHotspot | SanityImageCrop | SanityFileAsset | SanityImageAsset | SanityImageMetadata | Geopoint | Slug | SanityAssetSourceData;
+export type AllSanitySchemaTypes = Grid | PriceBlock | ContentWithMedia | CarouselAvatar | Acordeon | Carousel | ImagewithText | InfoBlock | CtaSection | StatsSection | FeatureSection | FeatureItem | HeroSection | LinkExternal | Project | Page | Duration | Settings | Footer | LinkInternal | Nav | Home | Price | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageHotspot | SanityImageCrop | SanityFileAsset | SanityImageAsset | SanityImageMetadata | Geopoint | Slug | SanityAssetSourceData;
 export declare const internalGroqTypeReferenceTo: unique symbol;
 // Source: ./sanity/lib/queries.ts
 // Variable: homePageQuery
-// Query: *[_type == "home"][0]{    _id,    _type,    overview,    showcaseProjects[]{      _key,      ...@->{        _id,        _type,        coverImage,        overview,        "slug": slug.current,        tags,        title,      }    },    body[]{      ...,      _type == 'priceBlock' =>{        price->      }    },    title,  }
+// Query: *[_type == "home"][0]{    _id,    _type,    overview,    showcaseProjects[]{      _key,      ...@->{        _id,        _type,        coverImage,        overview,        "slug": slug.current,        tags,        title,      }    },    body[]{      ...,      _type == 'priceBlock' =>{        price->      },      _type == 'grid' => {        items[]{          ...,          _type == 'priceItem' => {            price->          }        },      },    },    title,  }
 export type HomePageQueryResult = {
   _id: string;
   _type: "home";
@@ -843,6 +881,48 @@ export type HomePageQueryResult = {
     } & FeatureItem>;
   } | {
     _key: string;
+    _type: "grid";
+    items: Array<{
+      image?: {
+        asset?: {
+          _ref: string;
+          _type: "reference";
+          _weak?: boolean;
+          [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+        };
+        media?: unknown;
+        hotspot?: SanityImageHotspot;
+        crop?: SanityImageCrop;
+        _type: "image";
+      };
+      alt?: string;
+      _type: "imageItem";
+      _key: string;
+    } | {
+      price: {
+        _id: string;
+        _type: "price";
+        _createdAt: string;
+        _updatedAt: string;
+        _rev: string;
+        price?: number;
+        title?: string;
+        id_stripe?: string;
+        description?: string;
+        features?: {
+          featureList?: Array<string>;
+        };
+      } | null;
+      _type: "priceItem";
+      _key: string;
+    } | {
+      title?: string;
+      description?: string;
+      _type: "textItem";
+      _key: string;
+    }> | null;
+  } | {
+    _key: string;
     _type: "heroSection";
     titulo?: Array<{
       children?: Array<{
@@ -912,7 +992,6 @@ export type HomePageQueryResult = {
     title?: string;
     subtitle?: string;
     description?: string;
-    accentColor?: string;
   } | {
     _key: string;
     _type: "priceBlock";
@@ -1069,6 +1148,40 @@ export type PagesBySlugQueryResult = {
     } & FeatureItem>;
   } | {
     _key: string;
+    _type: "grid";
+    items?: Array<{
+      image?: {
+        asset?: {
+          _ref: string;
+          _type: "reference";
+          _weak?: boolean;
+          [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+        };
+        media?: unknown;
+        hotspot?: SanityImageHotspot;
+        crop?: SanityImageCrop;
+        _type: "image";
+      };
+      alt?: string;
+      _type: "imageItem";
+      _key: string;
+    } | {
+      price?: {
+        _ref: string;
+        _type: "reference";
+        _weak?: boolean;
+        [internalGroqTypeReferenceTo]?: "price";
+      };
+      _type: "priceItem";
+      _key: string;
+    } | {
+      title?: string;
+      description?: string;
+      _type: "textItem";
+      _key: string;
+    }>;
+  } | {
+    _key: string;
     _type: "heroSection";
     titulo?: Array<{
       children?: Array<{
@@ -1138,7 +1251,6 @@ export type PagesBySlugQueryResult = {
     title?: string;
     subtitle?: string;
     description?: string;
-    accentColor?: string;
   } | {
     _key: string;
     _type: "priceBlock";
@@ -1339,7 +1451,7 @@ export type SlugsByTypeQueryResult = Array<{
 import "@sanity/client";
 declare module "@sanity/client" {
   interface SanityQueries {
-    "\n  *[_type == \"home\"][0]{\n    _id,\n    _type,\n    overview,\n    showcaseProjects[]{\n      _key,\n      ...@->{\n        _id,\n        _type,\n        coverImage,\n        overview,\n        \"slug\": slug.current,\n        tags,\n        title,\n      }\n    },\n    body[]{\n      ...,\n      _type == 'priceBlock' =>{\n        price->\n      }\n    },\n    title,\n  }\n": HomePageQueryResult;
+    "\n  *[_type == \"home\"][0]{\n    _id,\n    _type,\n    overview,\n    showcaseProjects[]{\n      _key,\n      ...@->{\n        _id,\n        _type,\n        coverImage,\n        overview,\n        \"slug\": slug.current,\n        tags,\n        title,\n      }\n    },\n    body[]{\n      ...,\n      _type == 'priceBlock' =>{\n        price->\n      },\n      _type == 'grid' => {\n        items[]{\n          ...,\n          _type == 'priceItem' => {\n            price->\n          }\n        },\n      },\n    },\n    title,\n  }\n": HomePageQueryResult;
     "\n  *[_type == \"page\" && slug.current == $slug][0] {\n    _id,\n    _type,\n    body,\n    overview,\n    title,\n    \"slug\": slug.current,\n    body[]{\n      ...,\n      _type == 'priceBlock' =>{\n        price->\n      }\n    },\n  }\n": PagesBySlugQueryResult;
     "\n  *[_type == \"project\" && slug.current == $slug][0] {\n    _id,\n    _type,\n    client,\n    coverImage,\n    description,\n    duration,\n    overview,\n    site,\n    \"slug\": slug.current,\n    tags,\n    title,\n  }\n": ProjectBySlugQueryResult;
     "\n  *[_type == \"settings\"][0]{\n    _id,\n    _type,\n    footer,\n    menuItems[]{\n      _key,\n      ...@->{\n        _type,\n        \"slug\": slug.current,\n        title\n      }\n    },\n    ogImage,\n    nav{\n      menus[]{\n        ...,\n        \"slug\": link.reference -> slug.current,\n        \"type_reference\" : link.reference-> _type,\n        submenus[]{\n          ...,\n          \"slug\": link.reference -> slug.current,\n          \"type_reference\" : link.reference-> _type,\n        }\n      }\n    },\n    footer{\n      ...,\n      columns[]{\n        ...,\n        links[]{\n          ...,\n          \"url\" : select(\n          _type == 'linkExternal' =>url,\n          _type == 'linkInternal' =>reference->slug.current\n          ),\n          _type == 'linkInternal' => {\n            \"type_reference\": reference->_type\n          }\n        }\n      }\n    },\n  }\n": SettingsQueryResult;

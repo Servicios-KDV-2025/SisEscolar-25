@@ -75,8 +75,7 @@ export default defineConfig({
       carouselavatar,
       contentwithmedia,
       priceblock,
-      gridType,
-      gridItemType
+      gridType
     ],
   },
   plugins: [
