@@ -34,8 +34,6 @@ import contentwithmedia from './sanity/schemas/objects/modules/contentwithmedia'
 import price from './sanity/schemas/documents/price'
 import priceblock from './sanity/schemas/objects/modules/priceblock'
 import { gridType } from './sanity/schemas/objects/modules/gridType'
-import { gridItemType } from './sanity/schemas/objects/modules/gridItemType'
-
 
 const title =
   process.env.NEXT_PUBLIC_SANITY_PROJECT_TITLE || 'Next.js Personal Website with Sanity.io'
