@@ -21,8 +21,8 @@ export const InfoBlock: React.FC<InfoBlockProps> = ({
   <NextImage
     src={iconUrl}
     alt={title || 'icon'}
-    width={28}
-    height={28}
+    width={50}
+    height={50}
     style={{ objectFit: 'contain' }}
   />
 ) : (
