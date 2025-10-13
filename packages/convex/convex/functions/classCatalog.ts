@@ -225,7 +225,7 @@ export const getClassCatalog = query({
 // Update
 export const updateClassCatalog = mutation({
   args: {
-    _id: v.id("classCatalog"),
+    classCatalogId: v.id("classCatalog"),
     schoolId: v.id("school"),
     schoolCycleId: v.id("schoolCycle"),
     subjectId: v.id("subject"),
@@ -241,12 +241,12 @@ export const updateClassCatalog = mutation({
     updatedAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const catalog = await ctx.db.get(args._id);
+    const catalog = await ctx.db.get(args.classCatalogId);
 
     if (!catalog || catalog.schoolId !== args.schoolId) return null;
 
-    const { _id, ...data } = args;
-    await ctx.db.patch(_id, data);
+    const { classCatalogId, ...data } = args;
+    await ctx.db.patch(classCatalogId, data);
   }
 });
 

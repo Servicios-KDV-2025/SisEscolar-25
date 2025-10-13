@@ -17,6 +17,7 @@ interface FormularioCatalogoDeClasesProps {
     schoolCycles: SchoolCycleType[] | undefined;
     classrooms?: ClassroomType[] | undefined;
     teachers: TeacherType[] | undefined;
+     activeSchoolCycleId?: string; 
 }
 
 export function ClassCatalogForm({
@@ -27,11 +28,19 @@ export function ClassCatalogForm({
     schoolCycles,
     classrooms,
     teachers,
+    activeSchoolCycleId,
 }: FormularioCatalogoDeClasesProps) {
     const [isNombreModificadoManualmente, setIsNombreModificadoManualmente] = useState(false);
 
     const subjectId = useWatch({ control: form.control, name: "subjectId" });
     const groupId = useWatch({ control: form.control, name: "groupId" });
+
+    useEffect(() => {
+        // Se ejecuta solo al crear y si el campo aún no tiene un valor.
+        if (operation === 'create' && activeSchoolCycleId && !form.getValues("schoolCycleId")) {
+            form.setValue("schoolCycleId", activeSchoolCycleId, { shouldValidate: true });
+        }
+    }, [operation, activeSchoolCycleId, form]);
 
     useEffect(() => {
         if (operation === 'view') return;
@@ -49,12 +58,12 @@ export function ClassCatalogForm({
             <FormField
                 control={form.control}
                 name="schoolCycleId"
-                render={({ field }) => (
+                render={({ field }) => ( 
                     <FormItem>
                         <FormLabel>Ciclo Escolar</FormLabel>
                         <Select
                             onValueChange={field.onChange}
-                            value={field.value as string}
+                            value={field.value ?? ""}
                             disabled={operation === "view"}
                         >
                             <FormControl>
@@ -64,7 +73,7 @@ export function ClassCatalogForm({
                             </FormControl>
                             <SelectContent>
                                 {schoolCycles?.map((c) => (
-                                    <SelectItem key={c._id} value={c._id}>
+                                    <SelectItem disabled={true} key={c._id} value={c._id}>
                                         {c.name}
                                     </SelectItem>
                                 ))}

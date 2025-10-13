@@ -70,6 +70,7 @@ import {
   GraduationCap,
   Users,
   Filter,
+  Pencil,
 } from "lucide-react";
 import {
   CrudDialog,
@@ -103,6 +104,7 @@ interface StepOneProps {
   classrooms?: ClassroomType[] | undefined;
   teachers: TeacherType[] | undefined;
   closeDialog: () => void;
+   activeSchoolCycleId?: string; 
 }
 interface StepTwoProps {
   form: FullClassForm;
@@ -123,6 +125,7 @@ function StepOneContent({
   classrooms,
   teachers,
   closeDialog,
+  activeSchoolCycleId,
 }: StepOneProps) {
   const handleNext = async () => {
     const isValid = await form.trigger([
@@ -148,6 +151,7 @@ function StepOneContent({
         schoolCycles={schoolCycles}
         classrooms={classrooms}
         teachers={teachers}
+        activeSchoolCycleId={activeSchoolCycleId}
       />
       <div className="flex justify-end gap-2 pt-4">
         <Button type="button" variant="ghost" onClick={closeDialog}>
@@ -248,15 +252,51 @@ export default function HorariosPorClasePage() {
   const { currentSchool, isLoading: schoolLoading } = useCurrentSchool(
     currentUser?._id
   );
-
   const [formStep, setFormStep] = useState(1);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-
+  const [isEditingClassDetails, setIsEditingClassDetails] = useState(false);
   const { filter, searchTerm, setFilter, setSearchTerm, setClasses } =
     useClassScheduleStore();
 
   const { subjects } = useSubject(currentSchool?.school._id);
   const { groups } = useGroup(currentSchool?.school._id);
+
+  const crudDialog = useCrudDialog(EditClassFormSchema, {
+    classCatalogId: "",
+    selectedScheduleIds: [],
+    status: "active",
+  });
+
+  const createForm: FullClassForm = useForm<z.infer<typeof FullClassSchema>>({
+    resolver: zodResolver(FullClassSchema),
+    defaultValues: {
+      name: "",
+      status: "active",
+      selectedScheduleIds: [],
+      schoolCycleId: "",
+      subjectId: "",
+      classroomId: "",
+      teacherId: "",
+      groupId: "",
+    },
+  });
+
+  const editClassForm: FullClassForm = useForm<z.infer<typeof FullClassSchema>>(
+    {
+      resolver: zodResolver(FullClassSchema),
+      // La clave para solucionar el error de TypeScript fue agregar este bloque:
+      defaultValues: {
+        name: "",
+        status: "active",
+        selectedScheduleIds: [],
+        schoolCycleId: "",
+        subjectId: "",
+        classroomId: "",
+        teacherId: "",
+        groupId: "",
+      },
+    }
+  );
 
   const {
     getStudentFilters,
@@ -346,17 +386,34 @@ export default function HorariosPorClasePage() {
     classesRaw === undefined;
 
   // Store management
-  const classItems = classesRaw as ClassItem[] | undefined;
-  const filteredClasses = useFilteredClasses(classItems);
+  const filteredClasses = useFilteredClasses(
+    classesRaw as ClassItem[] | undefined
+  );
 
   useEffect(() => {
-    if (classItems) {
-      const filtered = classItems.filter(
+    if (classesRaw) {
+      const filtered = classesRaw.filter(
         (c): c is NonNullable<typeof c> => c !== null
       );
-      setClasses(filtered);
+      setClasses(filtered as ClassItem[]);
     }
-  }, [classItems, setClasses]);
+  }, [classesRaw, setClasses]);
+  useEffect(() => {
+    const itemToEdit = crudDialog.data as ClassItem | null;
+
+    // Solo rellenamos el formulario cuando abrimos el diálogo para editar
+    if (crudDialog.operation === "edit" && itemToEdit) {
+      editClassForm.reset({
+        name: itemToEdit.name,
+        status: itemToEdit.status,
+        schoolCycleId: itemToEdit.schoolCycleId as string,
+        subjectId: itemToEdit.subject?._id ?? "",
+        classroomId: itemToEdit.classroom?._id ?? "",
+        teacherId: itemToEdit.teacher?._id ?? "",
+        groupId: itemToEdit.group?._id ?? "",
+      });
+    }
+  }, [crudDialog.data, crudDialog.operation, editClassForm]);
 
   // Mutations and Actions
   const createClassWithSchedule = useAction(
@@ -365,33 +422,15 @@ export default function HorariosPorClasePage() {
   const updateClassAndSchedules = useMutation(
     api.functions.classSchedule.updateClassAndSchedules
   );
+  const updateClassCatalog = useMutation(
+    api.functions.classCatalog.updateClassCatalog
+  );
   const deleteClassAndSchedulesAction = useAction(
     api.actions.actionsclassSchedule.deleteClassAndSchedules
   );
   const validateConflictsMutation = useMutation(
     api.functions.classSchedule.validateScheduleConflicts
   );
-
-  // Forms and Dialogs
-  const crudDialog = useCrudDialog(EditClassFormSchema, {
-    classCatalogId: "",
-    selectedScheduleIds: [],
-    status: "active",
-  });
-
-  const createForm = useForm<z.infer<typeof FullClassSchema>>({
-    resolver: zodResolver(FullClassSchema),
-    defaultValues: {
-      name: "",
-      status: "active",
-      selectedScheduleIds: [],
-      schoolCycleId: "",
-      subjectId: "",
-      classroomId: "",
-      teacherId: "",
-      groupId: "",
-    },
-  });
 
   const watchedTeacherId = createForm.watch("teacherId");
   const watchedClassroomId = createForm.watch("classroomId");
@@ -495,7 +534,6 @@ export default function HorariosPorClasePage() {
             originalClass.classCatalogId as Id<"classCatalog">,
         });
         if (validation.hasConflicts) {
-          // Formateamos el mensaje de error para el toast
           const conflictMessages = validation.conflicts
             .map((c: { message: string }) => c.message)
             .join(", ");
@@ -503,8 +541,6 @@ export default function HorariosPorClasePage() {
           toast.error("Conflictos de Horario Detectados", {
             description: conflictMessages,
           });
-
-          // Detenemos la ejecución para que no intente guardar
           return;
         }
       }
@@ -517,6 +553,7 @@ export default function HorariosPorClasePage() {
       });
 
       toast.success("Asignación actualizada exitosamente");
+      crudDialog.close();
     } catch (error) {
       console.error("Error al editar horario:", error);
       const errorMessage =
@@ -526,6 +563,36 @@ export default function HorariosPorClasePage() {
       toast.error(errorMessage);
       throw error;
     }
+  };
+
+  const handleUpdateClassDetails = async (
+    data: z.infer<typeof FullClassSchema>
+  ) => {
+    const originalClass = crudDialog.data as ClassItem | null;
+    if (!originalClass || !currentSchool) return;
+
+    await toast.promise(
+      updateClassCatalog({
+        classCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
+        schoolId: currentSchool.school._id as Id<"school">,
+        schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
+        subjectId: data.subjectId as Id<"subject">,
+        classroomId: data.classroomId as Id<"classroom">,
+        teacherId: data.teacherId as Id<"user">,
+        groupId: data.groupId as Id<"group">,
+        name: data.name,
+        status: data.status,
+        updatedAt: Date.now(),
+      }),
+      {
+        loading: "Actualizando la información de la clase...",
+        success: () => {
+          setIsEditingClassDetails(false);
+          return "Clase actualizada exitosamente.";
+        },
+        error: "No se pudo actualizar la clase.",
+      }
+    );
   };
 
   const handleDelete = async (id: string) => {
@@ -548,14 +615,14 @@ export default function HorariosPorClasePage() {
   const stats = [
     {
       title: "Total de clases",
-      value: classItems?.length.toString() || "0",
+      value: (classesRaw?.length ?? 0).toString(),
       icon: ClockPlus,
       trend: "Clases registradas en total",
     },
     {
       title: "Clases activas",
       value: (
-        classItems?.filter((c) => c?.status === "active") ?? []
+        classesRaw?.filter((c) => c?.status === "active") ?? []
       ).length.toString(),
       icon: Book,
       trend: "Clases actualmente activas",
@@ -563,7 +630,7 @@ export default function HorariosPorClasePage() {
     {
       title: "Clases inactivas",
       value: (
-        classItems?.filter((c) => c?.status === "inactive") ?? []
+        classesRaw?.filter((c) => c?.status === "inactive") ?? []
       ).length.toString(),
       icon: ClockPlus,
       trend: "Clases actualmente inactivas",
@@ -601,7 +668,11 @@ export default function HorariosPorClasePage() {
               className="gap-2"
               onClick={() => {
                 setFormStep(1);
-                createForm.reset();
+                
+                createForm.reset({
+                  status: "active",
+                  schoolCycleId: activeCycle?._id || "",
+                });
                 setIsCreateDialogOpen(true);
               }}
             >
@@ -876,11 +947,14 @@ export default function HorariosPorClasePage() {
 
       {/* Dialogo para Editar/Ver/Eliminar */}
       <CrudDialog
+        key={(crudDialog.data as ClassItem)?._id || "crud-dialog-new"}
         operation={crudDialog.operation}
         title={
-          crudDialog.operation === "edit"
-            ? "Editar Asignación de Horario"
-            : "Ver Asignación de Horario"
+          isEditingClassDetails
+            ? "Editar Clase"
+            : crudDialog.operation === "edit"
+              ? "Editar Asignación de Horario"
+              : "Ver Asignación de Horario"
         }
         schema={EditClassFormSchema}
         defaultValues={
@@ -896,282 +970,361 @@ export default function HorariosPorClasePage() {
         }
         data={crudDialog.data}
         isOpen={crudDialog.isOpen}
-        onOpenChange={crudDialog.close}
-        onSubmit={handleEdit}
-        onDelete={handleDelete}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setIsEditingClassDetails(false);
+          }
+          crudDialog.close();
+        }}
+        onSubmit={(data) => {
+          if (isEditingClassDetails) {
+            // Si estamos editando detalles, ignoramos los 'data' del diálogo
+            // y ejecutamos el envío del formulario correcto: editClassForm.
+            return editClassForm.handleSubmit(handleUpdateClassDetails)();
+          } else {
+            // Si no, usamos los 'data' que nos da el diálogo para editar horarios.
+            return handleEdit(data);
+          }
+        }}
+        // ✅ El texto del botón también es dinámico
         submitButtonText={
-          crudDialog.operation === "edit" ? "Guardar Cambios" : undefined
+          crudDialog.operation === "view"
+            ? undefined
+            : isEditingClassDetails
+              ? "Actualizar Clase"
+              : "Guardar Cambios"
         }
+        onDelete={handleDelete}
       >
         {(form, operation) => (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="classCatalogId"
-                render={() => (
-                  <FormItem>
-                    <FormLabel>Clase</FormLabel>
-                    <div className="flex h-10 w-full items-center justify-between rounded-md  px-3 py-2 text-sm  ring-offset-background">
-                      {(crudDialog.data as ClassItem)?.name || "Cargando..."}
-                    </div>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Estado</FormLabel>
-                    <FormControl>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value as "active" | "inactive"}
-                        disabled={operation === "view"}
-                      >
+          <div>
+            {isEditingClassDetails ? (
+              <>
+                <ClassCatalogForm
+                  form={editClassForm}
+                  operation="edit"
+                  subjects={subjects}
+                  groups={groups}
+                  schoolCycles={schoolCycles}
+                  classrooms={classrooms}
+                  teachers={teachersData}
+                  activeSchoolCycleId={activeCycle?._id} 
+                />
+
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsEditingClassDetails(false)}
+                  >
+                    Volver a Horarios
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="classCatalogId"
+                    render={() => (
+                      <FormItem>
+                        <FormLabel>Clase</FormLabel>
+                        <div className="flex h-10 w-full items-center justify-between rounded-md  px-3 py-2 text-sm  ring-offset-background">
+                          {(crudDialog.data as ClassItem)?.name ||
+                            "Cargando..."}
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Estado</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un estado" />
-                          </SelectTrigger>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value as "active" | "inactive"}
+                            disabled={operation === "view"}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecciona un estado" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="active">Activo</SelectItem>
+                              <SelectItem value="inactive">Inactivo</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="active">Activo</SelectItem>
-                          <SelectItem value="inactive">Inactivo</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-            {(form.watch("classCatalogId") as string) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">
-                    Información de la Clase
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {
-                    (() => {
-                      const selectedClassCatalog = classCatalogs?.find(
-                        (cc) => cc._id === form.watch("classCatalogId")
-                      );
+                {(form.watch("classCatalogId") as string) && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2 justify-between">
+                        <div>Información de la Clase</div>
+                        {operation === "edit" && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setIsEditingClassDetails(true)}
+                            className="h-8 w-8"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {
+                        (() => {
+                          const selectedClassCatalog = classCatalogs?.find(
+                            (cc) => cc._id === form.watch("classCatalogId")
+                          );
 
-                      if (!selectedClassCatalog) return null;
+                          if (!selectedClassCatalog) return null;
 
-                      return (
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <span className="text-sm font-medium text-muted-foreground">
-                              Materia:
-                            </span>
-                            <p className="text-sm">
-                              {selectedClassCatalog.subject?.name || "N/A"}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-muted-foreground">
-                              Aula:
-                            </span>
-                            <p className="text-sm">
-                              {selectedClassCatalog.classroom?.name || "N/A"}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-muted-foreground">
-                              Profesor:
-                            </span>
-                            <p className="text-sm">
-                              {selectedClassCatalog.teacher?.name || "N/A"}{" "}
-                              {selectedClassCatalog.teacher?.lastName || ""}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-muted-foreground">
-                              Grupo:
-                            </span>
-                            <p className="text-sm">
-                              {selectedClassCatalog.group?.name || "N/A"}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })() as React.ReactNode
-                  }
-                </CardContent>
-              </Card>
-            )}
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium">
-                  {operation === "view"
-                    ? "Horarios Asignados"
-                    : "Horarios Disponibles"}
-                </h3>
-                {operation !== "view" && (
-                  <span className="text-sm text-muted-foreground">
-                    {Array.isArray(form.watch("selectedScheduleIds"))
-                      ? (form.watch("selectedScheduleIds") as string[]).length
-                      : 0}{" "}
-                    seleccionados
-                  </span>
-                )}
-              </div>
-              {operation === "view" ? (
-                <div className="space-y-2">
-                  {(() => {
-                    const selectedSchedules =
-                      schedules?.filter((schedule) =>
-                        (
-                          form.watch("selectedScheduleIds") as string[]
-                        )?.includes(schedule._id)
-                      ) || [];
-                    const schedulesByDay = selectedSchedules.reduce(
-                      (acc, schedule) => {
-                        const day = schedule.day;
-                        if (!acc[day]) {
-                          acc[day] = [];
-                        }
-                        acc[day].push(schedule);
-                        return acc;
-                      },
-                      {} as Record<string, Schedule[]>
-                    );
-                    const sortedDays = [
-                      "lun.",
-                      "mar.",
-                      "mié.",
-                      "jue.",
-                      "vie.",
-                    ].filter((day) => schedulesByDay[day]);
-                    if (sortedDays.length === 0) {
-                      return (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p>No hay horarios asignados</p>
-                        </div>
-                      );
-                    }
-                    return (
-                      <Accordion type="multiple" className="w-full">
-                        {sortedDays.map((day) => (
-                          <AccordionItem key={day} value={day}>
-                            <AccordionTrigger className="hover:no-underline">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">
-                                  {getDayName(day)}
+                          return (
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <span className="text-sm font-medium text-muted-foreground">
+                                  Materia:
                                 </span>
-                                <Badge variant="secondary" className="text-xs">
-                                  {schedulesByDay[day]?.length || 0} horario
-                                  {(schedulesByDay[day]?.length || 0) !== 1
-                                    ? "s"
-                                    : ""}
-                                </Badge>
+                                <p className="text-sm">
+                                  {selectedClassCatalog.subject?.name || "N/A"}
+                                </p>
                               </div>
-                            </AccordionTrigger>
-                            <AccordionContent>
-                              <div className="space-y-2 pt-2">
-                                {schedulesByDay[day]?.map((schedule) => (
-                                  <div
-                                    key={schedule._id}
-                                    className="flex items-center justify-between p-3 bg-muted/50 rounded-md"
+                              <div>
+                                <span className="text-sm font-medium text-muted-foreground">
+                                  Aula:
+                                </span>
+                                <p className="text-sm">
+                                  {selectedClassCatalog.classroom?.name ||
+                                    "N/A"}
+                                </p>
+                              </div>
+                              <div>
+                                <span className="text-sm font-medium text-muted-foreground">
+                                  Profesor:
+                                </span>
+                                <p className="text-sm">
+                                  {selectedClassCatalog.teacher?.name || "N/A"}{" "}
+                                  {selectedClassCatalog.teacher?.lastName || ""}
+                                </p>
+                              </div>
+                              <div>
+                                <span className="text-sm font-medium text-muted-foreground">
+                                  Grupo:
+                                </span>
+                                <p className="text-sm">
+                                  {selectedClassCatalog.group?.grade || ""}{" "}
+                                  {selectedClassCatalog.group?.name || "N/A"}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })() as React.ReactNode
+                      }
+                    </CardContent>
+                  </Card>
+                )}
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium">
+                      {operation === "view"
+                        ? "Horarios Asignados"
+                        : "Horarios Disponibles"}
+                    </h3>
+                    {operation !== "view" && (
+                      <span className="text-sm text-muted-foreground">
+                        {Array.isArray(form.watch("selectedScheduleIds"))
+                          ? (form.watch("selectedScheduleIds") as string[])
+                              .length
+                          : 0}{" "}
+                        seleccionados
+                      </span>
+                    )}
+                  </div>
+                  {operation === "view" ? (
+                    <div className="space-y-2">
+                      {(() => {
+                        const selectedSchedules =
+                          schedules?.filter((schedule) =>
+                            (
+                              form.watch("selectedScheduleIds") as string[]
+                            )?.includes(schedule._id)
+                          ) || [];
+                        if (selectedSchedules.length === 0) {
+                          return (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                              <p>No hay horarios asignados</p>
+                            </div>
+                          );
+                        }
+
+                        const schedulesByDay = selectedSchedules.reduce(
+                          (acc, schedule) => {
+                            const day = schedule.day;
+                            if (!acc[day]) {
+                              acc[day] = [];
+                            }
+                            acc[day].push(schedule);
+                            return acc;
+                          },
+                          {} as Record<string, Schedule[]>
+                        );
+                        const sortedDays = [
+                          "lun.",
+                          "mar.",
+                          "mié.",
+                          "jue.",
+                          "vie.",
+                        ].filter((day) => schedulesByDay[day]);
+                        if (sortedDays.length === 0) {
+                          return (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                              <p>No hay horarios asignados</p>
+                            </div>
+                          );
+                        }
+                        return (
+                          <Accordion
+                            type="multiple"
+                            className="w-full"
+                            defaultValue={sortedDays}
+                          >
+                            {sortedDays.map((day) => (
+                              <AccordionItem key={day} value={day}>
+                                <AccordionTrigger className="hover:no-underline">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">
+                                      {getDayName(day)}
+                                    </span>
+                                    <Badge
+                                      variant="secondary"
+                                      className="text-xs"
+                                    >
+                                      {schedulesByDay[day]?.length} horario
+                                      {schedulesByDay[day]?.length !== 1
+                                        ? "s"
+                                        : ""}
+                                    </Badge>
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                  <div className="space-y-2 pt-2">
+                                    {schedulesByDay[day]?.map((schedule) => (
+                                      <div
+                                        key={schedule._id}
+                                        className="flex items-center justify-between p-3 bg-muted/50 rounded-md"
+                                      >
+                                        <div className="flex items-center gap-3">
+                                          <Clock className="h-4 w-4 text-muted-foreground" />
+                                          <span className="font-medium">
+                                            {formatTime(schedule.startTime)} -{" "}
+                                            {formatTime(schedule.endTime)}
+                                          </span>
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">
+                                          {schedule.name}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            ))}
+                          </Accordion>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    <FormField
+                      control={form.control}
+                      name="selectedScheduleIds"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Seleccionar Horarios</FormLabel>
+                          <FormControl>
+                            <div className="grid gap-2 max-h-60 overflow-y-auto border rounded-md p-4">
+                              {schedules?.map((schedule: Schedule) => (
+                                <div
+                                  key={schedule._id}
+                                  className="flex items-center space-x-2"
+                                >
+                                  <Checkbox
+                                    id={`edit-${schedule._id}`}
+                                    checked={
+                                      Array.isArray(field.value)
+                                        ? (field.value as string[]).includes(
+                                            schedule._id
+                                          )
+                                        : false
+                                    }
+                                    onCheckedChange={(checked) => {
+                                      const currentIds = Array.isArray(
+                                        field.value
+                                      )
+                                        ? (field.value as string[])
+                                        : [];
+                                      if (checked) {
+                                        field.onChange([
+                                          ...currentIds,
+                                          schedule._id,
+                                        ]);
+                                      } else {
+                                        field.onChange(
+                                          currentIds.filter(
+                                            (id: string) => id !== schedule._id
+                                          )
+                                        );
+                                      }
+                                    }}
+                                    disabled={
+                                      operation !== "create" &&
+                                      operation !== "edit"
+                                    }
+                                  />
+                                  <label
+                                    htmlFor={`edit-${schedule._id}`}
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1 cursor-pointer"
                                   >
-                                    <div className="flex items-center gap-3">
-                                      <Clock className="h-4 w-4 text-muted-foreground" />
+                                    <div className="flex items-center justify-between">
                                       <span className="font-medium">
+                                        {getDayName(schedule.day)}
+                                      </span>
+                                      <span className="text-muted-foreground">
                                         {formatTime(schedule.startTime)} -{" "}
                                         {formatTime(schedule.endTime)}
                                       </span>
                                     </div>
-                                    <div className="text-sm text-muted-foreground">
+                                    <div className="text-xs text-muted-foreground">
                                       {schedule.name}
                                     </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </AccordionContent>
-                          </AccordionItem>
-                        ))}
-                      </Accordion>
-                    );
-                  })()}
-                </div>
-              ) : (
-                <FormField
-                  control={form.control}
-                  name="selectedScheduleIds"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Seleccionar Horarios</FormLabel>
-                      <FormControl>
-                        <div className="grid gap-2 max-h-60 overflow-y-auto border rounded-md p-4">
-                          {schedules?.map((schedule: Schedule) => (
-                            <div
-                              key={schedule._id}
-                              className="flex items-center space-x-2"
-                            >
-                              <Checkbox
-                                id={`edit-${schedule._id}`}
-                                checked={
-                                  Array.isArray(field.value)
-                                    ? (field.value as string[]).includes(
-                                        schedule._id
-                                      )
-                                    : false
-                                }
-                                onCheckedChange={(checked) => {
-                                  const currentIds = Array.isArray(field.value)
-                                    ? (field.value as string[])
-                                    : [];
-                                  if (checked) {
-                                    field.onChange([
-                                      ...currentIds,
-                                      schedule._id,
-                                    ]);
-                                  } else {
-                                    field.onChange(
-                                      currentIds.filter(
-                                        (id: string) => id !== schedule._id
-                                      )
-                                    );
-                                  }
-                                }}
-                                disabled={
-                                  operation !== "create" && operation !== "edit"
-                                }
-                              />
-                              <label
-                                htmlFor={`edit-${schedule._id}`}
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1 cursor-pointer"
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span className="font-medium">
-                                    {getDayName(schedule.day)}
-                                  </span>
-                                  <span className="text-muted-foreground">
-                                    {formatTime(schedule.startTime)} -{" "}
-                                    {formatTime(schedule.endTime)}
-                                  </span>
+                                  </label>
                                 </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {schedule.name}
-                                </div>
-                              </label>
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
-                />
-              )}
-            </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </CrudDialog>
@@ -1208,6 +1361,7 @@ export default function HorariosPorClasePage() {
                   classrooms={classrooms}
                   schoolCycles={schoolCycles}
                   closeDialog={() => setIsCreateDialogOpen(false)}
+                  activeSchoolCycleId={activeCycle?._id} 
                 />
               )}
               {formStep === 2 && (
