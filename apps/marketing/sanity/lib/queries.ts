@@ -17,7 +17,20 @@ export const homePageQuery = defineQuery(`
         title,
       }
     },
-    body,
+    body[]{
+      ...,
+      _type == 'priceBlock' =>{
+        price->
+      },
+      _type == 'grid' => {
+        items[]{
+          ...,
+          _type == 'priceItem' => {
+            price->
+          }
+        },
+      },
+    },
     title,
   }
 `)
@@ -30,6 +43,12 @@ export const pagesBySlugQuery = defineQuery(`
     overview,
     title,
     "slug": slug.current,
+    body[]{
+      ...,
+      _type == 'priceBlock' =>{
+        price->
+      }
+    },
   }
 `)
 

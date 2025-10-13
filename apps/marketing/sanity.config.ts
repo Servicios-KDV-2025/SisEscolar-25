@@ -28,7 +28,12 @@ import ctaSection from '@/sanity/schemas/objects/modules/ctaSection'
 import infoBlock from '@/sanity/schemas/objects/modules/infoBlock'
 import ImagewithText from '@/sanity/schemas/objects/modules/ImagewithText'
 import carousel from '@/sanity/schemas/objects/modules/carousel'
-
+import acordeon from './sanity/schemas/objects/modules/acordeon'
+import carouselavatar from './sanity/schemas/objects/modules/carouselavatar'
+import contentwithmedia from './sanity/schemas/objects/modules/contentwithmedia'
+import price from './sanity/schemas/documents/price'
+import priceblock from './sanity/schemas/objects/modules/priceblock'
+import { gridType } from './sanity/schemas/objects/modules/gridType'
 
 const title =
   process.env.NEXT_PUBLIC_SANITY_PROJECT_TITLE || 'Next.js Personal Website with Sanity.io'
@@ -48,6 +53,7 @@ export default defineConfig({
       duration,
       page,
       project,
+      price,
       //Global
       nav,
       footer,
@@ -62,7 +68,12 @@ export default defineConfig({
       ctaSection, 
       infoBlock,
       ImagewithText,
-      carousel
+      carousel,
+      acordeon,
+      carouselavatar,
+      contentwithmedia,
+      priceblock,
+      gridType
     ],
   },
   plugins: [

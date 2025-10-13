@@ -1,47 +1,52 @@
-// ImagewithText.jsx
 import React from "react";
+import NextImage from "next/image"; // alias para evitar colisiones
 import { urlForImage } from "@/sanity/lib/utils";
 
-// interface ImagenSanity {
-//   _type: 'image',
-//   asset: {
-//     _ref: string
-//   },
-//   alt?: string;
-// }
+interface ImagenSanity {
+  _type?: string;
+  asset?: { _ref?: string };
+  alt?: string;
+}
 
 interface ImagewithTextProps {
   Titulo?: string;
   Descripcion?: string;
-  'Imagen'?: { asset?: any };
+  Imagen?: ImagenSanity | null;
   Alineacion?: "izquierda" | "derecha";
 }
 
-export const ImagewithText = ({
+export const ImagewithText: React.FC<ImagewithTextProps> = ({
   Titulo,
   Descripcion,
   Imagen,
   Alineacion = "izquierda",
-}: ImagewithTextProps) => {
+}) => {
+  // Resuelve la url (puede ser null)
+  const resolvedUrl = Imagen ? (urlForImage(Imagen as any)?.url() ?? null) : null;
+  const altText = Titulo ?? "Imagen";
 
-  // Genera la URL de la imagen usando la función urlFor
-  const resolvedUrl = Imagen ? urlForImage(Imagen)?.url() : null;
-  const altText =  Titulo || "Imagen";
+  const isRight = Alineacion === "derecha";
 
   return (
     <div
-      className={`flex flex-col md:flex-row ${
-        Alineacion === "derecha" ? "md:flex-row-reverse" : ""
-      } items-center my-8`}
+      className={`w-full max-w-[1200px] mx-auto flex flex-col md:flex-row ${
+        isRight ? "md:flex-row-reverse" : ""
+      } items-center gap-6 md:gap-12`}
     >
-      <div className="md:w-1/2 p-4">
+      <div className="w-full md:w-1/2 flex justify-center">
         {resolvedUrl ? (
-          <img
-            src={resolvedUrl}
-            alt={altText}
-            className="w-full h-auto rounded-lg shadow-lg"
-            loading="lazy"
-          />
+          // Usamos NextImage con width/height (más simple y evita problemas con SVGs)
+          <div className="relative w-full max-w-[600px] h-[360px]">
+            <NextImage
+              src={resolvedUrl}
+              alt={altText}
+          
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="rounded-xl object-cover"
+              priority={false}
+            />
+          </div>
         ) : (
           <div className="w-full h-48 rounded-lg bg-gray-100 flex items-center justify-center text-sm text-gray-400">
             Sin imagen
@@ -49,9 +54,9 @@ export const ImagewithText = ({
         )}
       </div>
 
-      <div className="md:w-1/2 p-4">
-        {Titulo && <h2 className="text-2xl font-bold mb-4">{Titulo}</h2>}
-        {Descripcion && <p className="text-gray-700">{Descripcion}</p>}
+      <div className="w-full md:w-1/2 px-2">
+        {Titulo && <h2 className="text-2xl font-semibold mb-3">{Titulo}</h2>}
+        {Descripcion && <p className="text-gray-700 leading-relaxed">{Descripcion}</p>}
       </div>
     </div>
   );
