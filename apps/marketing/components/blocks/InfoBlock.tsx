@@ -17,13 +17,24 @@ export const InfoBlock: React.FC<InfoBlockProps> = ({
 }) => {
   return (
     <div className="flex gap-4 items-start p-4 bg-white rounded-xl shadow-sm">
-  
-        {iconUrl ? (
-          <NextImage src={iconUrl} alt={title || 'icon'} style={{ width: 28, height: 28 }} />
-        ) : (
-          <div style={{ width: 28, height: 28, background: accentColor, borderRadius: 4 }} />
-        )}
-      
+  {iconUrl ? (
+  <NextImage
+    src={iconUrl}
+    alt={title || 'icon'}
+    width={28}
+    height={28}
+    style={{ objectFit: 'contain' }}
+  />
+) : (
+  <div
+    style={{
+      width: 28,
+      height: 28,
+      background: accentColor,
+      borderRadius: 4,
+    }}
+  />
+)}
       <div className="flex-1">
         <h3 className="text-lg font-semibold" style={{ color: accentColor }}>{title}</h3>
         {subtitle && <div className="text-sm text-gray-600 mt-1">{subtitle}</div>}

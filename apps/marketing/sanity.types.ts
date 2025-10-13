@@ -67,7 +67,6 @@ export type InfoBlock = {
   title?: string;
   subtitle?: string;
   description?: string;
-  accentColor?: string;
 };
 
 export type CtaSection = {

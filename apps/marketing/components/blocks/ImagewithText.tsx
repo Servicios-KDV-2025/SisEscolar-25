@@ -1,52 +1,69 @@
 import React from "react";
-import NextImage from "next/image"; // alias para evitar colisiones
 import { urlForImage } from "@/sanity/lib/utils";
 
-interface ImagenSanity {
+type ImgAsset = {
+  _ref?: string;
   _type?: string;
-  asset?: { _ref?: string };
+};
+
+type ImagenSanity = {
+  _type?: "image" | string;
+  asset?: ImgAsset;
   alt?: string;
-}
+};
+
+type Alignment = "izquierda" | "derecha" | "left" | "right";
 
 interface ImagewithTextProps {
   Titulo?: string;
   Descripcion?: string;
   Imagen?: ImagenSanity | null;
-  Alineacion?: "izquierda" | "derecha";
+  title?: string;
+  description?: string;
+  image?: ImagenSanity | null;
+  Alineacion?: Alignment;
+  alignment?: Alignment;
 }
 
-export const ImagewithText: React.FC<ImagewithTextProps> = ({
-  Titulo,
-  Descripcion,
-  Imagen,
-  Alineacion = "izquierda",
-}) => {
-  // Resuelve la url (puede ser null)
-  const resolvedUrl = Imagen ? (urlForImage(Imagen as any)?.url() ?? null) : null;
-  const altText = Titulo ?? "Imagen";
+export const ImagewithText: React.FC<ImagewithTextProps> = (props) => {
+  const title = props.title ?? props.Titulo;
+  const description = props.description ?? props.Descripcion;
+  const image = props.image ?? props.Imagen;
+  const alignment = props.alignment ?? props.Alineacion ?? "izquierda";
 
-  const isRight = Alineacion === "derecha";
+  const normalizedAlignment: "left" | "right" =
+    alignment === "derecha" || alignment === "right" ? "right" : "left";
+
+  let resolvedUrl: string | null = null;
+  try {
+    const builder = image ? urlForImage(image as any) : null;
+    if (builder && typeof builder.url === "function") {
+      resolvedUrl = builder.url();
+    } else if (typeof builder === "string") {
+      resolvedUrl = builder;
+    }
+  } catch {
+    resolvedUrl = null;
+  }
+
+  const altText = image?.alt ?? title ?? "Imagen";
 
   return (
     <div
       className={`w-full max-w-[1200px] mx-auto flex flex-col md:flex-row ${
-        isRight ? "md:flex-row-reverse" : ""
+        normalizedAlignment === "right" ? "md:flex-row-reverse" : ""
       } items-center gap-6 md:gap-12`}
     >
+      {/* Imagen */}
       <div className="w-full md:w-1/2 flex justify-center">
         {resolvedUrl ? (
-          // Usamos NextImage con width/height (más simple y evita problemas con SVGs)
-          <div className="relative w-full max-w-[600px] h-[360px]">
-            <NextImage
-              src={resolvedUrl}
-              alt={altText}
-          
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
-              className="rounded-xl object-cover"
-              priority={false}
-            />
-          </div>
+          <img
+            src={resolvedUrl}
+            alt={altText}
+            className="w-full h-auto max-h-[450px] object-cover rounded-xl shadow-md"
+            loading="lazy"
+            draggable={false}
+          />
         ) : (
           <div className="w-full h-48 rounded-lg bg-gray-100 flex items-center justify-center text-sm text-gray-400">
             Sin imagen
@@ -54,9 +71,10 @@ export const ImagewithText: React.FC<ImagewithTextProps> = ({
         )}
       </div>
 
-      <div className="w-full md:w-1/2 px-2">
-        {Titulo && <h2 className="text-2xl font-semibold mb-3">{Titulo}</h2>}
-        {Descripcion && <p className="text-gray-700 leading-relaxed">{Descripcion}</p>}
+      {/* Texto */}
+      <div className="w-full md:w-1/2 text-center md:text-left px-2">
+        {title && <h2 className="text-2xl font-semibold mb-3">{title}</h2>}
+        {description && <p className="text-gray-700 leading-relaxed">{description}</p>}
       </div>
     </div>
   );
