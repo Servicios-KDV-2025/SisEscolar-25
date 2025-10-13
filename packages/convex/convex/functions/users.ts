@@ -28,8 +28,8 @@ export const upsertFromClerk = internalMutation({
       name: data.first_name ?? '',
       lastName: data.last_name ?? '',
       email: email,
-      phone: phone,
-      address: '', // Clerk no proporciona dirección por defecto
+      phone: data.public_metadata.numero as string ,
+      address: data.public_metadata.direccion as string, // Clerk no proporciona dirección por defecto
       birthDate: Date.now(), // Clerk no proporciona fecha de nacimiento por defecto
       admissionDate: Date.now(), // Campo específico de tu aplicación
       imgUrl: data.image_url ?? '',
