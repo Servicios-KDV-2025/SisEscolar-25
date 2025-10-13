@@ -1,6 +1,6 @@
 import React from "react";
 import { urlForImage } from "@/sanity/lib/utils";
-
+import NextImage from "next/image"; //alias para evitar colisiones
 type ImgAsset = {
   _ref?: string;
   _type?: string;
@@ -57,9 +57,11 @@ export const ImagewithText: React.FC<ImagewithTextProps> = (props) => {
       {/* Imagen */}
       <div className="w-full md:w-1/2 flex justify-center">
         {resolvedUrl ? (
-          <img
+          <NextImage
             src={resolvedUrl}
             alt={altText}
+            width={200}
+            height={200}
             className="w-full h-auto max-h-[450px] object-cover rounded-xl shadow-md"
             loading="lazy"
             draggable={false}
