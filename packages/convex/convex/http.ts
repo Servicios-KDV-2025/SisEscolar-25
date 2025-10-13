@@ -267,5 +267,76 @@ async function handleSubscriptionUpdated(ctx: any, subscription: Stripe.Subscrip
   });
 }
 
+// Webhook para Stripe Connect payments
+http.route({
+  path: "/stripe-connect-webhook",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const sig = request.headers.get("stripe-signature");
+      if (!sig) {
+        return new Response("Falta la firma de Stripe", { status: 400 });
+      }
 
+      const body = await request.text();
+      const webhookSecret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET?.trim();
+      if (!webhookSecret) {
+        throw new Error("STRIPE_CONNECT_WEBHOOK_SECRET no está configurado");
+      }
+
+      const event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecret);
+
+      switch (event.type) {
+        case "payment_intent.succeeded":
+          await handlePaymentIntentSucceeded(ctx, event.data.object);
+          break;
+        case "payment_intent.payment_failed":
+          await handlePaymentIntentFailed(ctx, event.data.object);
+          break;
+        case "account.updated":
+          await handleAccountUpdated(ctx, event.data.object);
+          break;
+        default:
+          console.log(`⚠️ Evento no manejado: ${event.type}`);
+      }
+
+      return new Response(JSON.stringify({ received: true }), { status: 200 });
+    } catch (error: any) {
+      console.error("❌ Error procesando webhook:", error);
+      return new Response("Internal server error", { status: 500 });
+    }
+  }),
+});
+
+async function handlePaymentIntentSucceeded(ctx: ActionCtx, paymentIntent: Stripe.PaymentIntent) {
+  console.log("✅ payment_intent.succeeded:", paymentIntent.id);
+
+  const metadata = paymentIntent.metadata;
+  if (!metadata.billingId || !metadata.studentId || !metadata.tutorId) {
+    console.error("❌ Metadata incompleta en Payment Intent");
+    return;
+  }
+
+  // Confirmar el pago en la base de datos
+  await ctx.runMutation(internal.functions.stripePayments.confirmPayment, {
+    paymentIntentId: paymentIntent.id,
+    billingId: metadata.billingId as Id<"billing">,
+    studentId: metadata.studentId as Id<"student">,
+    amount: paymentIntent.amount / 100, // Convertir de centavos a pesos
+    createdBy: metadata.tutorId as Id<"user">,
+    stripeChargeId: paymentIntent.latest_charge as string,
+  });
+
+  console.log("✅ Pago confirmado en base de datos");
+}
+
+async function handlePaymentIntentFailed(ctx: ActionCtx, paymentIntent: Stripe.PaymentIntent) {
+  console.log("❌ payment_intent.failed:", paymentIntent.id);
+  // Aquí puedes agregar lógica para notificar al usuario sobre el fallo
+}
+
+async function handleAccountUpdated(ctx: ActionCtx, account: Stripe.Account) {
+  console.log("✅ account.updated:", account.id);
+  // Puedes actualizar el estado de la cuenta en tu base de datos si lo necesitas
+}
 export default http;
