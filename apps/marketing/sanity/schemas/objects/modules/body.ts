@@ -54,9 +54,29 @@ export default defineField({
             name: 'ImagewithText',
             type: 'ImagewithText',
         }),
-         defineArrayMember({
+        defineArrayMember({
           name: 'carousel',
           type: 'carousel',
+        }),
+        defineArrayMember({
+          name: 'acordeon',
+          type: 'acordeon',
+        }),
+        defineArrayMember({
+          name: 'carouselAvatar',
+          type: 'carouselAvatar',
+        }),
+        defineArrayMember({
+          name: 'contentWithMedia',
+          type: 'contentWithMedia',
+        }),
+        defineArrayMember({
+          name: 'priceBlock',
+          type: 'priceBlock',
+        }),
+        defineArrayMember({
+          name: 'grid',
+          type: 'grid',
         }),
         defineField({
             type: 'image',

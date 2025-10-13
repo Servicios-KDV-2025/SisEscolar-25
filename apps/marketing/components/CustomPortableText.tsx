@@ -11,6 +11,10 @@ import { InfoBlock } from '@/components/blocks/InfoBlock'
 import { urlForImage } from '@/sanity/lib/utils'
 import ImagewithText from '@/components/blocks/ImagewithText'
 import { CarouselBlock } from '@/components/blocks/CarouselBlock'
+import { Acordeon } from '@/components/blocks/Acordeon'
+import { CarouselAvatar } from '@/components/blocks/CarouuselAvatar'
+import { ContentWithMediaBlock } from '@/components/blocks/ContentWithMedia'
+import { PriceBlockComponent } from '@/components/blocks/PriceBlock'
 
 export function CustomPortableText({
   id,
@@ -95,6 +99,18 @@ export function CustomPortableText({
       carousel: ({ value }) => {
         const { title, images } = value || {};
       return <CarouselBlock title={title} images={images} />;
+      },
+      acordeon: ({ value }) => { 
+        return <Acordeon {...value} />
+      },
+      carouselAvatar: ({ value }) => {
+        return <CarouselAvatar {...value} />
+      },
+      contentWithMedia: ({ value }) => {
+        return <ContentWithMediaBlock {...value} />
+      },
+      priceBlock: ({ value }) => {
+        return <PriceBlockComponent {...value} />
       },
     },
   }

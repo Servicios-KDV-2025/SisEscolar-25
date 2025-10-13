@@ -13,6 +13,85 @@
  */
 
 // Source: schema.json
+export type PriceBlock = {
+  _type: "priceBlock";
+  price?: {
+    _ref: string;
+    _type: "reference";
+    _weak?: boolean;
+    [internalGroqTypeReferenceTo]?: "price";
+  };
+};
+
+export type ContentWithMedia = {
+  _type: "contentWithMedia";
+  body?: Array<{
+    children?: Array<{
+      marks?: Array<string>;
+      text?: string;
+      _type: "span";
+      _key: string;
+    }>;
+    style?: "normal" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "blockquote";
+    listItem?: "bullet" | "number";
+    markDefs?: Array<{
+      href?: string;
+      _type: "link";
+      _key: string;
+    }>;
+    level?: number;
+    _type: "block";
+    _key: string;
+  }>;
+  image?: {
+    asset?: {
+      _ref: string;
+      _type: "reference";
+      _weak?: boolean;
+      [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+    };
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+  textPosition?: "Left" | "Right";
+};
+
+export type CarouselAvatar = {
+  _type: "carouselAvatar";
+  titulo?: string;
+  empleados?: Array<{
+    imagen?: {
+      asset?: {
+        _ref: string;
+        _type: "reference";
+        _weak?: boolean;
+        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+      };
+      media?: unknown;
+      hotspot?: SanityImageHotspot;
+      crop?: SanityImageCrop;
+      _type: "image";
+    };
+    puesto?: string;
+    descripcion?: string;
+    _type: "empleado";
+    _key: string;
+  }>;
+};
+
+export type Acordeon = {
+  _type: "acordeon";
+  titulo?: string;
+  items?: Array<{
+    titulo?: string;
+    contenido?: string;
+    _type: "acordeonItem";
+    _key: string;
+  }>;
+};
+
 export type Carousel = {
   _type: "carousel";
   title?: string;
@@ -134,6 +213,21 @@ export type LinkExternal = {
   _type: "linkExternal";
   label?: string;
   url?: string;
+};
+
+export type Price = {
+  _id: string;
+  _type: "price";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  price?: number;
+  title?: string;
+  id_stripe?: string;
+  description?: string;
+  features?: {
+    featureList?: Array<string>;
+  };
 };
 
 export type Project = {
@@ -262,6 +356,14 @@ export type Page = {
   } & ImagewithText | {
     _key: string;
   } & Carousel | {
+    _key: string;
+  } & Acordeon | {
+    _key: string;
+  } & CarouselAvatar | {
+    _key: string;
+  } & ContentWithMedia | {
+    _key: string;
+  } & PriceBlock | {
     asset?: {
       _ref: string;
       _type: "reference";
@@ -412,6 +514,14 @@ export type Home = {
   } & ImagewithText | {
     _key: string;
   } & Carousel | {
+    _key: string;
+  } & Acordeon | {
+    _key: string;
+  } & CarouselAvatar | {
+    _key: string;
+  } & ContentWithMedia | {
+    _key: string;
+  } & PriceBlock | {
     asset?: {
       _ref: string;
       _type: "reference";
@@ -553,11 +663,11 @@ export type SanityAssetSourceData = {
   url?: string;
 };
 
-export type AllSanitySchemaTypes = Carousel | ImagewithText | InfoBlock | CtaSection | StatsSection | FeatureSection | FeatureItem | HeroSection | LinkExternal | Project | Page | Duration | Settings | Footer | LinkInternal | Nav | Home | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageHotspot | SanityImageCrop | SanityFileAsset | SanityImageAsset | SanityImageMetadata | Geopoint | Slug | SanityAssetSourceData;
+export type AllSanitySchemaTypes = PriceBlock | ContentWithMedia | CarouselAvatar | Acordeon | Carousel | ImagewithText | InfoBlock | CtaSection | StatsSection | FeatureSection | FeatureItem | HeroSection | LinkExternal | Price | Project | Page | Duration | Settings | Footer | LinkInternal | Nav | Home | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageHotspot | SanityImageCrop | SanityFileAsset | SanityImageAsset | SanityImageMetadata | Geopoint | Slug | SanityAssetSourceData;
 export declare const internalGroqTypeReferenceTo: unique symbol;
 // Source: ./sanity/lib/queries.ts
 // Variable: homePageQuery
-// Query: *[_type == "home"][0]{    _id,    _type,    overview,    showcaseProjects[]{      _key,      ...@->{        _id,        _type,        coverImage,        overview,        "slug": slug.current,        tags,        title,      }    },    body,    title,  }
+// Query: *[_type == "home"][0]{    _id,    _type,    overview,    showcaseProjects[]{      _key,      ...@->{        _id,        _type,        coverImage,        overview,        "slug": slug.current,        tags,        title,      }    },    body[]{      ...,      _type == 'priceBlock' =>{        price->      }    },    title,  }
 export type HomePageQueryResult = {
   _id: string;
   _type: "home";
@@ -615,19 +725,15 @@ export type HomePageQueryResult = {
   }> | null;
   body: Array<{
     _key: string;
-  } & Carousel | {
-    _key: string;
-  } & CtaSection | {
-    _key: string;
-  } & FeatureSection | {
-    _key: string;
-  } & HeroSection | {
-    _key: string;
-  } & ImagewithText | {
-    _key: string;
-  } & InfoBlock | {
-    _key: string;
-  } & StatsSection | {
+    _type: "acordeon";
+    titulo?: string;
+    items?: Array<{
+      titulo?: string;
+      contenido?: string;
+      _type: "acordeonItem";
+      _key: string;
+    }>;
+  } | {
     children?: Array<{
       marks?: Array<string>;
       text?: string;
@@ -645,6 +751,118 @@ export type HomePageQueryResult = {
     _type: "block";
     _key: string;
   } | {
+    _key: string;
+    _type: "carousel";
+    title?: string;
+    images?: Array<{
+      asset?: {
+        _ref: string;
+        _type: "reference";
+        _weak?: boolean;
+        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+      };
+      media?: unknown;
+      hotspot?: SanityImageHotspot;
+      crop?: SanityImageCrop;
+      _type: "image";
+      _key: string;
+    }>;
+  } | {
+    _key: string;
+    _type: "carouselAvatar";
+    titulo?: string;
+    empleados?: Array<{
+      imagen?: {
+        asset?: {
+          _ref: string;
+          _type: "reference";
+          _weak?: boolean;
+          [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+        };
+        media?: unknown;
+        hotspot?: SanityImageHotspot;
+        crop?: SanityImageCrop;
+        _type: "image";
+      };
+      puesto?: string;
+      descripcion?: string;
+      _type: "empleado";
+      _key: string;
+    }>;
+  } | {
+    _key: string;
+    _type: "contentWithMedia";
+    body?: Array<{
+      children?: Array<{
+        marks?: Array<string>;
+        text?: string;
+        _type: "span";
+        _key: string;
+      }>;
+      style?: "blockquote" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "normal";
+      listItem?: "bullet" | "number";
+      markDefs?: Array<{
+        href?: string;
+        _type: "link";
+        _key: string;
+      }>;
+      level?: number;
+      _type: "block";
+      _key: string;
+    }>;
+    image?: {
+      asset?: {
+        _ref: string;
+        _type: "reference";
+        _weak?: boolean;
+        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+      };
+      media?: unknown;
+      hotspot?: SanityImageHotspot;
+      crop?: SanityImageCrop;
+      _type: "image";
+    };
+    textPosition?: "Left" | "Right";
+  } | {
+    _key: string;
+    _type: "ctaSection";
+    titulo?: string;
+    subtitulo?: string;
+    beneficios?: Array<{
+      beneficio?: string;
+      _type: "benefitItem";
+      _key: string;
+    }>;
+  } | {
+    _key: string;
+    _type: "featureSection";
+    title?: string;
+    subtitle?: string;
+    features?: Array<{
+      _key: string;
+    } & FeatureItem>;
+  } | {
+    _key: string;
+    _type: "heroSection";
+    titulo?: Array<{
+      children?: Array<{
+        marks?: Array<string>;
+        text?: string;
+        _type: "span";
+        _key: string;
+      }>;
+      style?: "blockquote" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "normal";
+      listItem?: "bullet" | "number";
+      markDefs?: Array<{
+        href?: string;
+        _type: "link";
+        _key: string;
+      }>;
+      level?: number;
+      _type: "block";
+      _key: string;
+    }>;
+  } | {
     asset?: {
       _ref: string;
       _type: "reference";
@@ -658,29 +876,90 @@ export type HomePageQueryResult = {
     alt?: string;
     _type: "image";
     _key: string;
+  } | {
+    _key: string;
+    _type: "ImagewithText";
+    Titulo?: string;
+    Descripcion?: string;
+    Imagen?: {
+      asset?: {
+        _ref: string;
+        _type: "reference";
+        _weak?: boolean;
+        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+      };
+      media?: unknown;
+      hotspot?: SanityImageHotspot;
+      crop?: SanityImageCrop;
+      _type: "image";
+    };
+    Alineacion?: "left" | "right";
+  } | {
+    _key: string;
+    _type: "infoBlock";
+    icon?: {
+      asset?: {
+        _ref: string;
+        _type: "reference";
+        _weak?: boolean;
+        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+      };
+      media?: unknown;
+      hotspot?: SanityImageHotspot;
+      crop?: SanityImageCrop;
+      _type: "image";
+    };
+    title?: string;
+    subtitle?: string;
+    description?: string;
+    accentColor?: string;
+  } | {
+    _key: string;
+    _type: "priceBlock";
+    price: {
+      _id: string;
+      _type: "price";
+      _createdAt: string;
+      _updatedAt: string;
+      _rev: string;
+      price?: number;
+      title?: string;
+      id_stripe?: string;
+      description?: string;
+      features?: {
+        featureList?: Array<string>;
+      };
+    } | null;
+  } | {
+    _key: string;
+    _type: "statsSection";
+    title?: string;
+    subtitle?: string;
+    stats?: Array<{
+      number?: string;
+      label?: string;
+      _type: "statItem";
+      _key: string;
+    }>;
   }> | null;
   title: string | null;
 } | null;
 // Variable: pagesBySlugQuery
-// Query: *[_type == "page" && slug.current == $slug][0] {    _id,    _type,    body,    overview,    title,    "slug": slug.current,  }
+// Query: *[_type == "page" && slug.current == $slug][0] {    _id,    _type,    body,    overview,    title,    "slug": slug.current,    body[]{      ...,      _type == 'priceBlock' =>{        price->      }    },  }
 export type PagesBySlugQueryResult = {
   _id: string;
   _type: "page";
   body: Array<{
     _key: string;
-  } & Carousel | {
-    _key: string;
-  } & CtaSection | {
-    _key: string;
-  } & FeatureSection | {
-    _key: string;
-  } & HeroSection | {
-    _key: string;
-  } & ImagewithText | {
-    _key: string;
-  } & InfoBlock | {
-    _key: string;
-  } & StatsSection | {
+    _type: "acordeon";
+    titulo?: string;
+    items?: Array<{
+      titulo?: string;
+      contenido?: string;
+      _type: "acordeonItem";
+      _key: string;
+    }>;
+  } | {
     children?: Array<{
       marks?: Array<string>;
       text?: string;
@@ -698,6 +977,118 @@ export type PagesBySlugQueryResult = {
     _type: "block";
     _key: string;
   } | {
+    _key: string;
+    _type: "carousel";
+    title?: string;
+    images?: Array<{
+      asset?: {
+        _ref: string;
+        _type: "reference";
+        _weak?: boolean;
+        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+      };
+      media?: unknown;
+      hotspot?: SanityImageHotspot;
+      crop?: SanityImageCrop;
+      _type: "image";
+      _key: string;
+    }>;
+  } | {
+    _key: string;
+    _type: "carouselAvatar";
+    titulo?: string;
+    empleados?: Array<{
+      imagen?: {
+        asset?: {
+          _ref: string;
+          _type: "reference";
+          _weak?: boolean;
+          [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+        };
+        media?: unknown;
+        hotspot?: SanityImageHotspot;
+        crop?: SanityImageCrop;
+        _type: "image";
+      };
+      puesto?: string;
+      descripcion?: string;
+      _type: "empleado";
+      _key: string;
+    }>;
+  } | {
+    _key: string;
+    _type: "contentWithMedia";
+    body?: Array<{
+      children?: Array<{
+        marks?: Array<string>;
+        text?: string;
+        _type: "span";
+        _key: string;
+      }>;
+      style?: "blockquote" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "normal";
+      listItem?: "bullet" | "number";
+      markDefs?: Array<{
+        href?: string;
+        _type: "link";
+        _key: string;
+      }>;
+      level?: number;
+      _type: "block";
+      _key: string;
+    }>;
+    image?: {
+      asset?: {
+        _ref: string;
+        _type: "reference";
+        _weak?: boolean;
+        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+      };
+      media?: unknown;
+      hotspot?: SanityImageHotspot;
+      crop?: SanityImageCrop;
+      _type: "image";
+    };
+    textPosition?: "Left" | "Right";
+  } | {
+    _key: string;
+    _type: "ctaSection";
+    titulo?: string;
+    subtitulo?: string;
+    beneficios?: Array<{
+      beneficio?: string;
+      _type: "benefitItem";
+      _key: string;
+    }>;
+  } | {
+    _key: string;
+    _type: "featureSection";
+    title?: string;
+    subtitle?: string;
+    features?: Array<{
+      _key: string;
+    } & FeatureItem>;
+  } | {
+    _key: string;
+    _type: "heroSection";
+    titulo?: Array<{
+      children?: Array<{
+        marks?: Array<string>;
+        text?: string;
+        _type: "span";
+        _key: string;
+      }>;
+      style?: "blockquote" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "normal";
+      listItem?: "bullet" | "number";
+      markDefs?: Array<{
+        href?: string;
+        _type: "link";
+        _key: string;
+      }>;
+      level?: number;
+      _type: "block";
+      _key: string;
+    }>;
+  } | {
     asset?: {
       _ref: string;
       _type: "reference";
@@ -711,6 +1102,71 @@ export type PagesBySlugQueryResult = {
     alt?: string;
     _type: "image";
     _key: string;
+  } | {
+    _key: string;
+    _type: "ImagewithText";
+    Titulo?: string;
+    Descripcion?: string;
+    Imagen?: {
+      asset?: {
+        _ref: string;
+        _type: "reference";
+        _weak?: boolean;
+        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+      };
+      media?: unknown;
+      hotspot?: SanityImageHotspot;
+      crop?: SanityImageCrop;
+      _type: "image";
+    };
+    Alineacion?: "left" | "right";
+  } | {
+    _key: string;
+    _type: "infoBlock";
+    icon?: {
+      asset?: {
+        _ref: string;
+        _type: "reference";
+        _weak?: boolean;
+        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+      };
+      media?: unknown;
+      hotspot?: SanityImageHotspot;
+      crop?: SanityImageCrop;
+      _type: "image";
+    };
+    title?: string;
+    subtitle?: string;
+    description?: string;
+    accentColor?: string;
+  } | {
+    _key: string;
+    _type: "priceBlock";
+    price: {
+      _id: string;
+      _type: "price";
+      _createdAt: string;
+      _updatedAt: string;
+      _rev: string;
+      price?: number;
+      title?: string;
+      id_stripe?: string;
+      description?: string;
+      features?: {
+        featureList?: Array<string>;
+      };
+    } | null;
+  } | {
+    _key: string;
+    _type: "statsSection";
+    title?: string;
+    subtitle?: string;
+    stats?: Array<{
+      number?: string;
+      label?: string;
+      _type: "statItem";
+      _key: string;
+    }>;
   }> | null;
   overview: Array<{
     children?: Array<{
@@ -883,8 +1339,8 @@ export type SlugsByTypeQueryResult = Array<{
 import "@sanity/client";
 declare module "@sanity/client" {
   interface SanityQueries {
-    "\n  *[_type == \"home\"][0]{\n    _id,\n    _type,\n    overview,\n    showcaseProjects[]{\n      _key,\n      ...@->{\n        _id,\n        _type,\n        coverImage,\n        overview,\n        \"slug\": slug.current,\n        tags,\n        title,\n      }\n    },\n    body,\n    title,\n  }\n": HomePageQueryResult;
-    "\n  *[_type == \"page\" && slug.current == $slug][0] {\n    _id,\n    _type,\n    body,\n    overview,\n    title,\n    \"slug\": slug.current,\n  }\n": PagesBySlugQueryResult;
+    "\n  *[_type == \"home\"][0]{\n    _id,\n    _type,\n    overview,\n    showcaseProjects[]{\n      _key,\n      ...@->{\n        _id,\n        _type,\n        coverImage,\n        overview,\n        \"slug\": slug.current,\n        tags,\n        title,\n      }\n    },\n    body[]{\n      ...,\n      _type == 'priceBlock' =>{\n        price->\n      }\n    },\n    title,\n  }\n": HomePageQueryResult;
+    "\n  *[_type == \"page\" && slug.current == $slug][0] {\n    _id,\n    _type,\n    body,\n    overview,\n    title,\n    \"slug\": slug.current,\n    body[]{\n      ...,\n      _type == 'priceBlock' =>{\n        price->\n      }\n    },\n  }\n": PagesBySlugQueryResult;
     "\n  *[_type == \"project\" && slug.current == $slug][0] {\n    _id,\n    _type,\n    client,\n    coverImage,\n    description,\n    duration,\n    overview,\n    site,\n    \"slug\": slug.current,\n    tags,\n    title,\n  }\n": ProjectBySlugQueryResult;
     "\n  *[_type == \"settings\"][0]{\n    _id,\n    _type,\n    footer,\n    menuItems[]{\n      _key,\n      ...@->{\n        _type,\n        \"slug\": slug.current,\n        title\n      }\n    },\n    ogImage,\n    nav{\n      menus[]{\n        ...,\n        \"slug\": link.reference -> slug.current,\n        \"type_reference\" : link.reference-> _type,\n        submenus[]{\n          ...,\n          \"slug\": link.reference -> slug.current,\n          \"type_reference\" : link.reference-> _type,\n        }\n      }\n    },\n    footer{\n      ...,\n      columns[]{\n        ...,\n        links[]{\n          ...,\n          \"url\" : select(\n          _type == 'linkExternal' =>url,\n          _type == 'linkInternal' =>reference->slug.current\n          ),\n          _type == 'linkInternal' => {\n            \"type_reference\": reference->_type\n          }\n        }\n      }\n    },\n  }\n": SettingsQueryResult;
     "\n  *[_type == $type && defined(slug.current)]{\"slug\": slug.current}\n": SlugsByTypeQueryResult;

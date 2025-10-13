@@ -24,6 +24,16 @@ export interface BeneficioItem {
   beneficio: string
 }
 
+export interface AcordeonItem { 
+  titulo?: string;
+  contenido?: string;
+}
+
+export interface Empleados{
+  imagen?: { asset?: any };
+  puesto?: string;
+  descripcion?: string;
+}
 
 export interface ShowcaseProject {
   _id: string
