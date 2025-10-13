@@ -1,3 +1,4 @@
+import { LinkInternal } from '@/sanity.types'
 import type {PortableTextBlock} from 'next-sanity'
 import type {Image} from 'sanity'
 
@@ -13,6 +14,17 @@ export interface MilestoneItem {
   title?: string
 }
 
+export interface StatsItems {
+  number: string
+  label: string
+}
+
+export interface BeneficioItem {
+  _key: string
+  beneficio: string
+}
+
+
 export interface ShowcaseProject {
   _id: string
   _type: string
@@ -21,4 +33,13 @@ export interface ShowcaseProject {
   slug?: string
   tags?: string[]
   title?: string
+}
+
+
+export interface SubMenuItem{
+  _key: string;
+  type_reference: "home" | "page" | null;
+  title?: string | undefined;
+  slug: string | null;
+  link?: LinkInternal | undefined;
 }
