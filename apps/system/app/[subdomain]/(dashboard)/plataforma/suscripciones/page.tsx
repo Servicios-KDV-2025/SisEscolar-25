@@ -22,6 +22,8 @@ import { useQuery } from "convex/react";
 import { useUserWithConvex } from "stores/userStore";
 import { useCurrentSchool } from "stores/userSchoolsStore";
 import { useUser } from "@clerk/nextjs";
+import { usePermissions } from "../../../../../hooks/usePermissions";
+import NotAuth from "../../../../../components/NotAuth";
 
 // Tipos para las monedas y tasas de cambio
 type Currency = "USD" | "MXN" | "EUR"
@@ -325,9 +327,18 @@ export default function SubscriptionsManagement() {
   const { currentUser } = useUserWithConvex(
     clerkUser?.id
   );
+  // Obtener escuela actual por subdominio
+  const { currentSchool, isLoading: schoolLoading } = useCurrentSchool(
+    currentUser?._id
+  );
+
+  // Obtener permisos del usuario
   const {
-    currentSchool,
-  } = useCurrentSchool(currentUser?._id);
+    canReadSuscripciones,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+  } = usePermissions(currentSchool?.school?._id);
+
 
   const SubscriptionsData = useQuery(
     api.functions.schoolSubscriptions.getAllSubscriptions,
@@ -439,6 +450,22 @@ export default function SubscriptionsManagement() {
     setIsDialogOpen(true)
     console.log(Date.now() - 86400000 * 2)
   }
+
+  // Loading y error states
+  const isLoading = schoolLoading;
+
+
+  // Verificar error de permisos o falta de permiso de lectura
+  if ((permissionsError || !canReadSuscripciones) && !permissionsLoading && !isLoading) {
+    return (
+      <NotAuth
+        pageName="Suscripciones"
+        pageDetails="Administra las suscripciones"
+        icon={Users}
+      />
+    );
+  }
+
 
   return (
     <div className="space-y-8 p-6">
