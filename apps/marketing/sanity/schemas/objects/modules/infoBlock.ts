@@ -32,17 +32,7 @@ export default defineType({
       type: 'text',
       rows: 3,
     },
-    {
-      name: 'accentColor', 
-      title: 'Color de acento (hex)',
-      type: 'string',
-      description: 'Ej: #000000ff — opcional, usado para fondo del ícono',
-      validation: (Rule) =>
-        Rule.regex(/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/, {
-          name: 'hex',
-          invert: false,
-        }).warning('Debe ser un color hex válido, p.e. #000000ff'),
-    }
+  
   ],
   preview: {
     select: {
