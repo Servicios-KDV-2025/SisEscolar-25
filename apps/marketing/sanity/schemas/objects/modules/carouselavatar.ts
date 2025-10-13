@@ -47,7 +47,7 @@ export default defineType({
               subtitle: 'descripcion',
               media: 'imagen',
               },
-              prepare: ({ title, subtitle, media }) => ({
+              prepare: ({ title, subtitle }) => ({
                   title,
                   subtitle,
               }),

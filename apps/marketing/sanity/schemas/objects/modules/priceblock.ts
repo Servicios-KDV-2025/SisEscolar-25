@@ -16,7 +16,7 @@ export default defineType({
             title: 'price.name',
             subtitle: 'price.price',
         },
-        prepare(value, viewOptions) {
+        prepare(value) {
             return {
                 title: value.title || 'Bloque de Precios',
                 subtitle: value.subtitle ? `Precio: $${value.subtitle}` : 'Sin precio asignado',

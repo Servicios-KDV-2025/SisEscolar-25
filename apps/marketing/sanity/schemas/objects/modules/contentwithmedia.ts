@@ -1,4 +1,4 @@
-import {defineArrayMember, defineField, defineType} from 'sanity'
+import { defineField, defineType} from 'sanity'
 
 export default defineType({
   name: 'contentWithMedia',
@@ -10,7 +10,7 @@ export default defineType({
       media: 'image',
     },
     prepare(selection) {
-      const {title, media} = selection
+      const { media} = selection
       return {
         title: 'Contenido con media',
         media,

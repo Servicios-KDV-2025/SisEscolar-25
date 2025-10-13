@@ -1,4 +1,4 @@
-import {defineArrayMember, defineField} from 'sanity'
+import { defineField} from 'sanity'
 
 
 export const gridItemType = defineField({
@@ -28,7 +28,7 @@ export const gridItemType = defineField({
       image: 'image',
       title: 'title',
     },
-    prepare({body, image, title}) {
+    prepare({ image, title }) {
       return {
         media: image,
         title,
