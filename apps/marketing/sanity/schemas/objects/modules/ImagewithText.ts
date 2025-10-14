@@ -9,23 +9,25 @@ export default defineType({
             name:'Titulo',
             title: 'Título',
             type: 'string',
-            validation: (Rule) => Rule.required(),
+            validation: (Rule) => Rule.required().warning('Es recomendable agregar un título.'),
         },{
         name:'Descripcion',
         title: 'Descripción',
-        type: 'text',
-        validation: (Rule) => Rule.required(),
+        type: 'text',   
+      //of: [{type: 'block'}],
+        validation: (Rule) => Rule.required().warning('Es recomendable agregar una descripción.'),
         },
         {
         name:'Imagen',
         title: 'Imagen ilustrativa',
         type: 'image',
         options: { hotspot: true },
-        validation: (Rule) => Rule.required(),
+        validation: (Rule) => Rule.required().warning('Es recomendable agregar mas de dos imagenes.'),
         },{
             name:'Alineacion',
             title: 'Alineación de imagen',
             type: 'string',
+            initialValue: 'left',
             options: {
                 list: [
                     { title: 'Izquierda', value: 'left' },
@@ -34,7 +36,7 @@ export default defineType({
                 ],
                 layout: 'radio',
             },
-            initialValue: 'left',
+            
         },
     ],
     preview: {  

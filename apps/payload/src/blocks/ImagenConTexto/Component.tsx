@@ -22,7 +22,7 @@ export const ImagenConTextoComponent: React.FC<ImagenConTextoBlock> = ({
         style={{
           display: 'flex',
           flexDirection,
-          alignItems: 'center',
+          alignItems: 'flex-start',
           gap: '1.5rem',
           flexWrap: 'wrap',
         }}
@@ -33,7 +33,7 @@ export const ImagenConTextoComponent: React.FC<ImagenConTextoBlock> = ({
             alt=""
             style={{
               width: `${anchoImagen}%`,
-              maxWidth: '300px',
+              maxWidth: '600px',
               borderRadius: '6px',
               flexShrink: 0,
             }}
@@ -42,10 +42,11 @@ export const ImagenConTextoComponent: React.FC<ImagenConTextoBlock> = ({
         <div
           style={{
             flex: 1,
-            minWidth: '200px',
+            minWidth: '300px',
             lineHeight: '1.6',
             fontSize: '1rem',
             wordBreak: 'break-word',
+            textAlign: 'justify',  
           }}
         >
           {/* Renderiza el richText con formato */}
