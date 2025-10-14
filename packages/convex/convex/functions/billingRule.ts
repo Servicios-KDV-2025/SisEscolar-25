@@ -1,9 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 
-/**
- * Queries
- */
 export const getAllBillingRulesBySchool = query({
     args: {
         schoolId: v.id('school')
@@ -29,17 +26,13 @@ export const getBillingRuleByIdAndSchool = query({
     handler: async (ctx, args) => {
         const billingRule = await ctx.db.get(args._id);
         const school = await ctx.db.get(args.schoolId);
-        // Verify that the billingRule exists and belongs to the correct school
         if (!billingRule || !school) {
-            throw new Error("La regla de facturación no se encuentra o no pertenece a esta escuela.");
+            throw new Error("La política no se encuentra o no pertenece a esta escuela.");
         }
         return billingRule;
     }
 });
 
-/**
- * *Mutations
- */
 export const createBillingRuleWithSchoolId = mutation({
     args: {
         schoolId: v.id("school"),
@@ -70,7 +63,7 @@ export const createBillingRuleWithSchoolId = mutation({
         const existSchool = await ctx.db.get(args.schoolId);
         if (!existSchool) {
             throw new Error(
-                "No se pudo crear la regla de facturación."
+                "No se pudo crear la política."
             );
         }
 
@@ -83,7 +76,20 @@ export const createBillingRuleWithSchoolId = mutation({
             .first();
 
         if (existingBillingRule) {
-            throw new Error("Ya existe una regla de facturación con el mismo nombre en esta escuela");
+            throw new Error("Ya existe una política con el mismo nombre en esta escuela");
+        }
+
+        switch (args.type) {
+            case 'late_fee':
+            case 'early_discount':
+                args.cutoffAfterDays = undefined;
+                break;
+            case 'cutoff':
+                args.lateFeeType = undefined;
+                args.lateFeeValue = undefined;
+                args.startDay = undefined;
+                args.endDay = undefined;
+                break;
         }
 
         const now = Date.now();
@@ -124,11 +130,23 @@ export const updateBillingRuleWithSchoolId = mutation({
     },
     handler: async (ctx, args) => {
         const { _id, schoolId, ...data } = args;
+        switch (data.type) {
+            case 'late_fee':
+            case 'early_discount':
+                data.cutoffAfterDays = undefined;
+                break;
+            case 'cutoff':
+                data.lateFeeType = undefined;
+                data.lateFeeValue = undefined;
+                data.startDay = undefined;
+                data.endDay = undefined;
+                break;
+        }
 
         const existBillingRule = await ctx.db.get(_id);
         if (!existBillingRule || existBillingRule.schoolId !== schoolId) {
             throw new Error(
-                "Cannot update: BillingRule not found or does not belong to the specified school."
+                "BillingRule no se encuentra o no pertenece a la escuela especificada."
             );
         }
 
@@ -148,13 +166,13 @@ export const deleteBillingRuleWithSchoolId = mutation({
         const existBillingRule = await ctx.db.get(_id);
         if (!existBillingRule || existBillingRule.schoolId !== schoolId) {
             throw new Error(
-                "Cannot delete: BillingRule not found or does not belong to the specified school."
+                "BillingRule no se encuentra o no pertenece a la escuela especificada."
             );
         }
         await ctx.db.delete(args._id);
         return {
             deleted: true,
-            message: 'BillingRule deleted successfully'
+            message: 'BillingRule borrado correctamente'
         };
     },
 });
