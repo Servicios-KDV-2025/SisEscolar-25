@@ -9,7 +9,6 @@ interface PricesProps {
   onSelect: (idStripe: string) => void
 }
 
-// Server Component (async) que obtiene datos y delega a un subcomponente client si hace falta interactividad adicional
 export const Prices = ({ onSelect }: PricesProps) => {
   const [prices, setPrices] = useState<PricesQueryResult>([])
   const [loading, setLoading] = useState(true)

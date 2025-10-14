@@ -8,13 +8,6 @@ import SchoolForm from './School/SchoolForm'
 import { Button } from '../ui/button'
 import { Prices } from './Price/Prices'
 
-// import { SignUp } from './Auth/SignUp'
-// import { SignIn } from './Auth/SignIn'
-// import { Prices } from './Prices/Prices'
-// // usa el componente genérico (no el de blocks)
-// import PayNowButton from '@/components/PayNowButton'
-// import SchoolForm from './School/SchoolForm'
-
 export const { Stepper: StepperUi, useStepper } = defineStepper(
   { id: 'step-1', title: 'Paso 1', description: 'Iniciar sesión para continuar', icon: <User /> },
   { id: 'step-2', title: 'Paso 2', description: 'Ingresar datos de la escuela', icon: <School /> },
