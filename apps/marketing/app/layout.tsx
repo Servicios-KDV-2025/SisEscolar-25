@@ -1,3 +1,4 @@
+import { ClerkProvider } from '@clerk/nextjs'
 import './globals.css'
 import {IBM_Plex_Mono, Inter, PT_Serif} from 'next/font/google'
 
@@ -21,8 +22,10 @@ const mono = IBM_Plex_Mono({
 
 export default async function RootLayout({children}: {children: React.ReactNode}) {
   return (
-    <html lang="en" className={`${mono.variable} ${sans.variable} ${serif.variable}`}>
-      <body>{children}</body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" className={`${mono.variable} ${sans.variable} ${serif.variable}`}>
+        <body>{children}</body>
+      </html>
+    </ClerkProvider>
   )
 }
