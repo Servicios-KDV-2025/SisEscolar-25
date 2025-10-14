@@ -7,38 +7,46 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Price } from '@/payload-types'
 import { Check, School } from 'lucide-react'
 
-interface PricePros extends Price {
+// Tipo desacoplado de Payload y Sanity (shape mínimo que necesita este componente)
+export interface UIPrice {
+  idStripe: string
+  title: string
+  amount: number
+  description?: string
+  features: { label: string }[]
+}
+
+interface PriceProps extends UIPrice {
   onSelect: (idStripe: string) => void
 }
 
-export const PriceComponent: React.FC<PricePros> = (props) => {
-  const { precio, titulo, IdStripe, descripcion, funciones, onSelect } = props
+export const PriceComponent: React.FC<PriceProps> = (props) => {
+  const { amount, title, idStripe, description, features, onSelect } = props
 
   return (
     <Card className="h-full px-8">
       <CardHeader className="text-center space-y-4">
-        <div className="mx-auto rounded-full mb-4 p-3 rounded-full w-fit">
+  <div className="mx-auto rounded-full mb-4 p-3 w-fit">
           <School className="w-6 h-6" />
         </div>
-        <CardTitle className="text-2xl">{titulo}</CardTitle>
-        {precio && <p className="text-lg font-semibold">$ {precio}</p>}
-        <CardDescription className="text-base">{descripcion}</CardDescription>
+        <CardTitle className="text-2xl">{title}</CardTitle>
+        {amount != null && <p className="text-lg font-semibold">$ {amount}</p>}
+        <CardDescription className="text-base">{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        {funciones?.map((funcion, index) => {
+        {features?.map((f, index) => {
           return (
             <div key={index} className="flex items-center gap-3 pb-2">
               <Check className="w-4 h-4 text-green-500 flex-shrink-0 " />
-              <span className="text-sm">{funcion.funcion}</span>
+              <span className="text-sm">{f.label}</span>
             </div>
           )
         })}
       </CardContent>
       <CardFooter>
-        <Button className="w-full" variant="outline" onClick={() => onSelect(IdStripe)}>
+        <Button className="w-full" variant="outline" onClick={() => onSelect(idStripe)}>
           Elegir
         </Button>
       </CardFooter>
