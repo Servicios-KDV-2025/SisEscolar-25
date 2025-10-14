@@ -62,6 +62,12 @@ import {
   CheckCircle,
   GraduationCap,
 } from "@repo/ui/icons";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import {
   tutorSchema,
@@ -71,6 +77,8 @@ import {
 import { useUserWithConvex } from "../../../../../stores/userStore";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { useUserActionsWithConvex } from "../../../../../stores/userActionsStore";
+import { usePermissions } from "../../../../../hooks/usePermissions";
+import NotAuth from "../../../../../components/NotAuth";
 
 // Tipo para los usuarios que vienen de Convex
 type UserFromConvex = {
@@ -128,9 +136,21 @@ export default function TutorPage() {
     currentUser?._id
   );
 
+  // Obtener permisos del usuario
+  const {
+    canCreateUsersTutores,
+    canReadUsersTutores,
+    canUpdateUsersTutores,
+    canDeleteUsersTutores,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+  } = usePermissions(currentSchool?.school?._id);
+
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Obtener usuarios de la escuela actual (solo tutores)
   const activeUsers = useQuery(
@@ -156,8 +176,6 @@ export default function TutorPage() {
   );
 
   const allUsers = activeUsers?.concat(inactiveUsers || []);
-
-  // const allUsers = activeUsers?.concat(inactiveUsers || []);
 
   // User Actions Store para CRUD operations
   const userActions = useUserActionsWithConvex();
@@ -236,11 +254,10 @@ export default function TutorPage() {
     userActions.clearLastResult();
 
     // Preparar datos para edición incluyendo userSchoolId
-    // Mapear schoolStatus a status para que el formulario muestre el estado correcto
     const editData = {
       ...user,
       userSchoolId: user.userSchoolId,
-      status: user.schoolStatus, // Usar schoolStatus en lugar del status general
+      status: user.schoolStatus,
     };
 
     openEdit(editData);
@@ -251,11 +268,10 @@ export default function TutorPage() {
     userActions.clearLastResult();
 
     // Preparar datos para vista incluyendo userSchoolId
-    // Mapear schoolStatus a status para que el formulario muestre el estado correcto
     const viewData = {
       ...user,
       userSchoolId: user.userSchoolId,
-      status: user.schoolStatus, // Usar schoolStatus en lugar del status general
+      status: user.schoolStatus,
     };
 
     openView(viewData);
@@ -272,7 +288,7 @@ export default function TutorPage() {
     if (!allUsers) return [];
 
     return allUsers
-      .filter((user: UserFromConvex) => user.schoolRole.includes("tutor")) // Solo tutores
+      .filter((user: UserFromConvex) => user.schoolRole.includes("tutor"))
       .filter((user: UserFromConvex) => {
         const searchMatch =
           user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -287,9 +303,20 @@ export default function TutorPage() {
       });
   }, [allUsers, searchTerm, statusFilter]);
 
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredUsers.slice(startIndex, endIndex);
+  }, [filteredUsers, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
+
   // Funciones CRUD
   const handleCreate = async (formData: Record<string, unknown>) => {
-
     if (!currentSchool?.school?._id) {
       console.error("No hay escuela actual disponible");
       throw new Error("No hay escuela actual disponible");
@@ -299,11 +326,10 @@ export default function TutorPage() {
 
     try {
       // PASO 1: Buscar si el usuario ya existe en Convex
-
       const existingUsers = await searchUserByEmailAsync(email);
 
       if (existingUsers && existingUsers.length > 0) {
-        // FLUJO A: Usuario existe, solo asignar a escuela
+        // FLUJO A: Usuario existe en la base de datos de usuarios
         const existingUser = existingUsers[0];
 
         if (
@@ -316,23 +342,56 @@ export default function TutorPage() {
           );
         }
 
+        // Buscar si ya tiene relación en esta escuela (con cualquier rol)
+        const userInCurrentSchool = allUsers?.find(
+          (user: UserFromConvex) => user.clerkId === existingUser.clerkId
+        );
 
+        if (userInCurrentSchool) {
+          // Usuario YA tiene una relación en esta escuela
+          const existingRoles = userInCurrentSchool.schoolRole;
+
+          // Verificar si el rol de tutor ya existe
+          if (existingRoles.includes("tutor")) {
+            throw new Error(
+              `El usuario ${email} ya tiene asignado el rol de tutor. No se realizó ningún cambio.`
+            );
+          }
+
+          // Crear array con los roles combinados (agregando tutor)
+          const newRolesSet = new Set([...existingRoles, "tutor"]);
+          const newRoleArray = Array.from(newRolesSet) as Array<"superadmin" | "admin" | "auditor" | "teacher" | "tutor">;
+
+          console.log(
+            `⚠️ Agregando rol de tutor. Roles anteriores: ${existingRoles.join(", ")}. Nuevos roles: ${newRoleArray.join(", ")}`
+          );
+
+          // Actualizar la relación existente con el nuevo rol
+          await updateUserSchoolRelation({
+            id: userInCurrentSchool.userSchoolId,
+            role: newRoleArray,
+            department: userInCurrentSchool.department || null,
+            status: "active",
+          });
+
+          return;
+        }
+
+        // Usuario existe pero NO está asignado a esta escuela - CREAR relación
         await createUserSchoolRelation({
           clerkId: existingUser.clerkId,
           schoolId: currentSchool.school._id,
-          role: ["tutor"], // Solo rol de tutor
+          role: ["tutor"],
           status: "active",
-          department: undefined, // Los tutores no tienen departamento
+          department: undefined,
         });
 
         return;
       }
 
       // FLUJO B: Usuario no existe, crear nuevo en Clerk + asignar
-
       const password = formData.password as string;
 
-      // Validación: Si no existe el usuario, la contraseña es obligatoria
       if (!password || password.trim() === "") {
         throw new Error(
           "La contraseña es requerida para crear un usuario nuevo. Si el usuario ya existe en el sistema, se asignará automáticamente."
@@ -344,44 +403,35 @@ export default function TutorPage() {
         password: password,
         name: formData.name as string,
         lastName: formData.lastName as string,
+        phone: formData.phone as string,
+        address: formData.address as string,
       };
 
       const result = await userActions.createUser(createData);
 
       if (result.success && result.userId) {
-
         try {
-          // Esperar sincronización del webhook
-          await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 segundos
+          await new Promise((resolve) => setTimeout(resolve, 2000));
 
-          // Asignar rol de tutor en la escuela actual
           await createUserSchoolRelation({
             clerkId: result.userId,
             schoolId: currentSchool.school._id,
-            role: ["tutor"], // Solo rol de tutor
+            role: ["tutor"],
             status: "active",
-            department: undefined, // Los tutores no tienen departamento
+            department: undefined,
           });
-
         } catch (error) {
-          console.error("❌ Error al asignar usuario como tutor:", error);
-          const errorMessage = `Usuario creado pero error al asignar como tutor: ${error instanceof Error ? error.message : "Error desconocido"}`;
-          throw new Error(errorMessage);
+          console.error("Error al asignar usuario como tutor:", error);
+          throw new Error(
+            `Usuario creado pero error al asignar como tutor: ${error instanceof Error ? error.message : "Error desconocido"}`
+          );
         }
       } else {
-        console.error("❌ Error al crear usuario en Clerk:", result.error);
+        console.error("Error al crear usuario en Clerk:", result.error);
         throw new Error(result.error || "Error al crear usuario en Clerk");
       }
     } catch (error) {
-      // Si el error menciona que ya está asignado, dar mensaje más amigable
-      if (
-        error instanceof Error &&
-        error.message.includes("ya está asignado")
-      ) {
-        throw new Error(
-          `El usuario ${email} ya tiene un rol asignado en esta escuela`
-        );
-      }
+      console.error("❌ Error en handleCreate:", error);
       throw error;
     }
   };
@@ -389,6 +439,9 @@ export default function TutorPage() {
   const handleUpdate = async (formData: Record<string, unknown>) => {
     // Combinar datos del formulario con datos originales para tener clerkId
     const combinedData = { ...data, ...formData };
+
+    // Asumir que 'data' es del tipo UserFromConvex, que tiene schoolRole
+    const originalRoles = (data as UserFromConvex)?.schoolRole;
 
     if (!combinedData.clerkId) {
       console.error("Clerk ID de usuario no disponible");
@@ -398,6 +451,12 @@ export default function TutorPage() {
     if (!combinedData.userSchoolId) {
       console.error("UserSchool ID no disponible");
       throw new Error("UserSchool ID no disponible");
+    }
+
+    // Asegurarse de tener los roles originales
+    if (!originalRoles) {
+      console.error("Roles de usuario no disponibles para actualizar");
+      throw new Error("Roles de usuario no disponibles para actualizar");
     }
 
     try {
@@ -424,17 +483,15 @@ export default function TutorPage() {
         );
       }
 
-      // PASO 2: Actualizar estado en la relación usuario-escuela (mantener rol de tutor)
-
+      // PASO 2: Actualizar estado en la relación usuario-escuela (MANTENER TODOS LOS ROLES)
       await updateUserSchoolRelation({
         id: combinedData.userSchoolId as Id<"userSchool">,
-        role: ["tutor"], // Mantener siempre rol de tutor
-        department: null, // Los tutores no tienen departamento
+        role: originalRoles,
+        department: null,
         status: (combinedData.status as "active" | "inactive") || "active",
       });
-
     } catch (error) {
-      console.error("❌ Error en handleUpdate:", error);
+      console.error("Error en handleUpdate:", error);
       throw error;
     }
   };
@@ -449,13 +506,12 @@ export default function TutorPage() {
     }
 
     try {
-      // Realizar soft delete: cambiar status a 'inactive' en lugar de eliminar completamente
+      // Realizar soft delete: cambiar status a 'inactive'
       await deactivateUserInSchool({
         userSchoolId: targetData.userSchoolId as Id<"userSchool">,
       });
-
     } catch (error) {
-      console.error("❌ Error al desactivar tutor:", error);
+      console.error("Error al desactivar tutor:", error);
       throw new Error(
         `Error al desactivar tutor: ${error instanceof Error ? error.message : "Error desconocido"}`
       );
@@ -472,6 +528,7 @@ export default function TutorPage() {
     });
   };
 
+
   const getInitials = (name: string, lastName?: string) => {
     const first = name.charAt(0).toUpperCase();
     const last = lastName ? lastName.charAt(0).toUpperCase() : "";
@@ -479,9 +536,20 @@ export default function TutorPage() {
   };
 
   // Loading y error states
-  const isLoading = schoolLoading || allUsers === undefined;
+  const isLoading = schoolLoading || permissionsLoading || allUsers === undefined;
   const isCrudLoading =
     userActions.isCreating || userActions.isUpdating || userActions.isDeleting;
+
+  // Verificar error de permisos o falta de permiso de lectura
+  if ((permissionsError || !canReadUsersTutores) && !permissionsLoading && !isLoading) {
+    return (
+      <NotAuth
+        pageName="Tutores"
+        pageDetails="Administra los tutores que tienen acceso a información de alumnos"
+        icon={GraduationCap}
+      />
+    );
+  }
 
   // Estadísticas para tutores
   const stats = [
@@ -521,6 +589,124 @@ export default function TutorPage() {
     },
   ];
 
+  const PaginationControls = () => {
+    const startItem = (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, filteredUsers.length);
+
+    return (
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-4 border-t">
+        {/* Info de registros */}
+        <div className="text-sm text-muted-foreground">
+          Mostrando <span className="font-medium">{startItem}</span> a{" "}
+          <span className="font-medium">{endItem}</span> de{" "}
+          <span className="font-medium">{filteredUsers.length}</span> registros
+        </div>
+
+        {/* Controles de paginación */}
+        <div className="flex items-center gap-2">
+          {/* Selector de items por página */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Mostrar:</span>
+            <Select
+              value={itemsPerPage.toString()}
+              onValueChange={(value) => {
+                setItemsPerPage(Number(value));
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-20 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-1">
+            {/* Primera página */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+
+            {/* Página anterior */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+
+            {/* Números de página */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNumber;
+
+                if (totalPages <= 5) {
+                  pageNumber = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNumber = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNumber = totalPages - 4 + i;
+                } else {
+                  pageNumber = currentPage - 2 + i;
+                }
+
+                return (
+                  <Button
+                    key={pageNumber}
+                    variant={currentPage === pageNumber ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(pageNumber)}
+                    className="h-8 w-8 p-0"
+                  >
+                    {pageNumber}
+                  </Button>
+                );
+              })}
+            </div>
+
+            {/* Página siguiente */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+              disabled={currentPage === totalPages}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+
+            {/* Última página */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-8 p-6">
       {/* Header */}
@@ -544,15 +730,17 @@ export default function TutorPage() {
                 </div>
               </div>
             </div>
-            <Button
-              size="lg"
-              className="gap-2 bg-orange-600 hover:bg-orange-700"
-              onClick={handleOpenCreate}
-              disabled={isLoading || !currentSchool || isCrudLoading}
-            >
-              <Plus className="w-4 h-4" />
-              Agregar Tutor
-            </Button>
+            {canCreateUsersTutores && (
+              <Button
+                size="lg"
+                className="gap-2 bg-orange-600 hover:bg-orange-700"
+                onClick={handleOpenCreate}
+                disabled={isLoading || !currentSchool || isCrudLoading}
+              >
+                <Plus className="w-4 h-4" />
+                Agregar Tutor
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -695,33 +883,151 @@ export default function TutorPage() {
                   ? "Intenta ajustar los filtros para ver más resultados."
                   : "Aún no hay tutores registrados en esta escuela."}
               </p>
-              <Button
-                onClick={handleOpenCreate}
-                className="gap-2 bg-orange-600 hover:bg-orange-700"
-                disabled={!currentSchool || isCrudLoading}
-              >
-                <Plus className="h-4 w-4" />
-                Agregar Tutor
-              </Button>
+              {canCreateUsersTutores && (
+                <Button
+                  onClick={handleOpenCreate}
+                  className="gap-2 bg-orange-600 hover:bg-orange-700"
+                  disabled={!currentSchool || isCrudLoading}
+                >
+                  <Plus className="h-4 w-4" />
+                  Agregar Tutor
+                </Button>
+              )}
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[110px] px-4">Tutor</TableHead>
-                    <TableHead className="text-center">Contacto</TableHead>
-                    <TableHead className="text-center">Estado</TableHead>
-                    <TableHead className="text-center">Fecha de Ingreso</TableHead>
-                    <TableHead className="text-center">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((user: UserFromConvex) => (
-                    <TableRow key={user._id}>
-                      <TableCell >
+            <>
+              {/* Vista de tabla para pantallas medianas y grandes */}
+              <div className="hidden md:block rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[250px]">Tutor</TableHead>
+                      <TableHead className="text-center hidden lg:table-cell">
+                        Contacto
+                      </TableHead>
+                      <TableHead className="text-center">Estado</TableHead>
+                      <TableHead className="text-center hidden xl:table-cell">
+                        Fecha de Ingreso
+                      </TableHead>
+                      <TableHead className="text-center">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedUsers.map((user: UserFromConvex) => (
+                      <TableRow key={user._id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage
+                                src={user.imgUrl}
+                                alt={user.name}
+                              />
+                              <AvatarFallback className="bg-orange-100 text-orange-700">
+                                {getInitials(user.name, user.lastName)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium">
+                                {user.name} {user.lastName}
+                              </div>
+                              <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                <Mail className="h-3 w-3" />
+                                {user.email}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center hidden lg:table-cell">
+                          <div className="space-y-1">
+                            {user.phone && (
+                              <div className="text-sm flex items-center gap-1 justify-center">
+                                <Phone className="h-3 w-3 text-muted-foreground" />
+                                {user.phone}
+                              </div>
+                            )}
+                            {user.address && (
+                              <div className="text-sm text-muted-foreground flex items-center gap-1 justify-center">
+                                <MapPin className="h-3 w-3" />
+                                <span className="truncate max-w-[150px]">
+                                  {user.address}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant={
+                              (user.schoolStatus || "active") === "active"
+                                ? "default"
+                                : "secondary"
+                            }
+                            className={
+                              (user.schoolStatus || "active") === "active"
+                                ? "bg-green-600 text-white"
+                                : "bg-gray-600/70 text-white"
+                            }
+                          >
+                            {(user.schoolStatus || "active") === "active"
+                              ? "Activo"
+                              : "Inactivo"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center hidden xl:table-cell">
+                          <div className="flex items-center gap-1 text-sm justify-center">
+                            <Calendar className="h-3 w-3 text-muted-foreground" />
+                            {formatDate(user.admissionDate || user.createdAt)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenView(user)}
+                              className="h-8 w-8 p-0"
+                              disabled={isCrudLoading}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            {canUpdateUsersTutores && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenEdit(user)}
+                                className="h-8 w-8 p-0"
+                                disabled={isCrudLoading}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {canDeleteUsersTutores && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenDelete(user)}
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                disabled={isCrudLoading}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Vista de tarjetas para pantallas pequeñas */}
+              <div className="md:hidden space-y-4">
+                {paginatedUsers.map((user: UserFromConvex) => (
+                  <Card key={user._id} className="overflow-hidden">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10">
+                          <Avatar className="h-12 w-12">
                             <AvatarImage src={user.imgUrl} alt={user.name} />
                             <AvatarFallback className="bg-orange-100 text-orange-700">
                               {getInitials(user.name, user.lastName)}
@@ -731,86 +1037,106 @@ export default function TutorPage() {
                             <div className="font-medium">
                               {user.name} {user.lastName}
                             </div>
-                            <div className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Mail className="h-3 w-3" />
+                            <div className="text-xs text-muted-foreground">
                               {user.email}
                             </div>
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="space-y-1">
-                          {user.phone && (
-                            <div className="text-sm flex items-center gap-1">
-                              <Phone className="h-3 w-3 text-muted-foreground" />
-                              {user.phone}
-                            </div>
-                          )}
-                          {user.address && (
-                            <div className="text-sm text-muted-foreground flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              {user.address}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
                         <Badge
-                          variant={(user.schoolStatus || "active") === "active" ? "default" : "secondary"}
-                          className={(user.schoolStatus || "active") === "active"
-                            ? "bg-green-600 text-white flex-shrink-0 ml-2"
-                            : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}
+                          variant={
+                            (user.schoolStatus || "active") === "active"
+                              ? "default"
+                              : "secondary"
+                          }
+                          className={
+                            (user.schoolStatus || "active") === "active"
+                              ? "bg-green-600 text-white"
+                              : "bg-gray-600/70 text-white"
+                          }
                         >
-                          {(user.schoolStatus || "active") === "active" ? "Activo" : "Inactivo"}
+                          {(user.schoolStatus || "active") === "active"
+                            ? "Activo"
+                            : "Inactivo"}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center gap-1 text-sm">
-                          <Calendar className="h-3 w-3 text-muted-foreground" />
-                          {formatDate(user.admissionDate || user.createdAt)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenView(user)}
-                            className="hover:scale-105 transition-transform cursor-pointer"
-                            disabled={isCrudLoading}
+                      </div>
+
+                      <div className="space-y-2 mb-3">
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground font-medium">
+                            Rol:
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className="bg-orange-50 text-orange-700 border-orange-200"
                           >
-                            <Eye className="h-8 w-8 p-0" />
-                          </Button>
+                            <GraduationCap className="h-3 w-3 mr-1" />
+                            Tutor
+                          </Badge>
+                        </div>
+
+                        {user.phone && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Phone className="h-3 w-3 text-muted-foreground" />
+                            <span>{user.phone}</span>
+                          </div>
+                        )}
+
+                        {user.address && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <MapPin className="h-3 w-3 text-muted-foreground" />
+                            <span className="truncate">{user.address}</span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-2 text-sm">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          <span>
+                            {formatDate(user.admissionDate || user.createdAt)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 pt-3 border-t">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenView(user)}
+                          disabled={isCrudLoading}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          Ver
+                        </Button>
+                        {canUpdateUsersTutores && (
                           <Button
-                            className= "hover:scale-105 transition-transform cursor-pointer h-8 w-8 p-0"
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={() => handleOpenEdit(user)}
-                            
                             disabled={isCrudLoading}
                           >
-                            <Pencil className="h-4 w-4"/>
+                            <Pencil className="h-4 w-4 mr-1" />
+                            Editar
                           </Button>
-                          {user.schoolStatus === "active" && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleOpenDelete(user)}
-                              className="text-destructive hover:text-destructive hover:scale-105 transition-transform cursor-pointer"
-                              disabled={isCrudLoading}
-                            >
-                              <Trash2 className="h-8 w-8 p-0" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                        )}
+                        {canDeleteUsersTutores && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenDelete(user)}
+                            className="text-destructive hover:text-destructive"
+                            disabled={isCrudLoading}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
+        {filteredUsers.length > 0 && <PaginationControls />}
       </Card>
 
       {/* Dialog CRUD */}
@@ -898,7 +1224,10 @@ export default function TutorPage() {
                       value={(field.value as string) || ""}
                       type="email"
                       placeholder="email@escuela.edu.mx"
-                      disabled={currentOperation === "view" || currentOperation === "edit"}
+                      disabled={
+                        currentOperation === "view" ||
+                        currentOperation === "edit"
+                      }
                     />
                   </FormControl>
                   <FormMessage />

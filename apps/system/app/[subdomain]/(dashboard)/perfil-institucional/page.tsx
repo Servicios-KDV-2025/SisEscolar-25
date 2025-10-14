@@ -26,6 +26,7 @@ import {
   SchoolValidationSchema,
 } from "schema/perfilIns";
 import { useUserWithConvex } from "stores/userStore";
+import { usePermissions } from "hooks/usePermissions";
 
 export default function ConfiguracionPage() {
   const [isEditing, setIsEditing] = useState(false);
@@ -38,6 +39,11 @@ export default function ConfiguracionPage() {
     currentUser?._id as Id<"user">
   );
   const updateSchool = useMutation(api.functions.schools.updateSchoolDetails);
+
+  const { 
+    canUpdatePerfilInstitucional, 
+    isLoading: permissionsLoading 
+  } = usePermissions(currentSchool?.school._id);
 
   const {
     register,
@@ -82,16 +88,19 @@ export default function ConfiguracionPage() {
     setIsEditing(false);
   };
 
-  if (isLoading) {
+
+  if (isLoading || permissionsLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
+  
   if (error) {
     return <div>Error al cargar los datos: {error}</div>;
   }
+  
   if (!currentSchool) {
     return <div>No se encontró la escuela o no tienes acceso.</div>;
   }
@@ -142,13 +151,16 @@ export default function ConfiguracionPage() {
                   </Button>
                 </>
               ) : (
-                <Button
-                  size="lg"
-                  className="gap-2"
-                  onClick={() => setIsEditing(true)}
-                >
-                  <Edit className="w-4 h-4" /> Editar Información
-                </Button>
+                // Solo mostrar botón de editar si tiene permisos de actualización
+                canUpdatePerfilInstitucional && (
+                  <Button
+                    size="lg"
+                    className="gap-2"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    <Edit className="w-4 h-4" /> Editar Información
+                  </Button>
+                )
               )}
             </div>
           </div>
@@ -172,7 +184,7 @@ export default function ConfiguracionPage() {
                 />
               ) : (
                 <div className="relative aspect-square max-w-[220px] rounded-2xl shadow-lg overflow-hidden flex items-center justify-center">
-                <School className="h-20 w-20 " />
+                  <School className="h-20 w-20" />
                 </div>
               )}
             </div>
@@ -254,6 +266,7 @@ export default function ConfiguracionPage() {
   );
 }
 
+// El componente FormField permanece igual
 function FormField({
   label,
   name,
