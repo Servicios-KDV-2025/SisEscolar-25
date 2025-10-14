@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { X, CheckCircle2, Users, Calendar, DollarSign, FileText, TrendingUp, AlertCircle, Info } from 'lucide-react';
+import { CheckCircle2, Users, Calendar, DollarSign, FileText, TrendingUp, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@repo/ui/components/shadcn/dialog';
 import { Badge } from '@repo/ui/components/shadcn/badge';
 import { Button } from '@repo/ui/components/shadcn/button';

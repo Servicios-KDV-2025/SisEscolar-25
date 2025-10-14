@@ -4,7 +4,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/shadcn/popover";
 import { Check, ChevronsUpDown, X } from "@repo/ui/icons";
 import { cn } from "lib/utils";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface GenericMultiSelectProps<T> {
   items: T[];
@@ -33,41 +33,43 @@ export function GenericMultiSelect<T>({
 }: GenericMultiSelectProps<T>) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-
-  console.log("Items: ", items);
-  console.log("Value: ", value)
+  const validKeys = useMemo(() => items.map(item => getKey(item)), [items, getKey]);
 
   useEffect(() => {
-    const validKeys = items.map(item => getKey(item));
     const invalidSelections = value.filter(v => !validKeys.includes(v));
 
     if (invalidSelections.length > 0) {
       const validSelections = value.filter(v => validKeys.includes(v));
       onChange(validSelections);
     }
-  }, [items, value, onChange, getKey]);
+  }, [items, value, validKeys, onChange]);
 
-  const toggleItem = (id: string) => {
+  const toggleItem = useCallback((id: string) => {
     const newValue = value.includes(id)
       ? value.filter(v => v !== id)
       : [...value, id];
     onChange(newValue);
-  };
+  }, [value, onChange]);
 
-  const removeItem = (id: string) => {
+  const removeItem = useCallback((id: string) => {
     onChange(value.filter(v => v !== id));
-  };
+  }, [value, onChange]);
 
-  const selectedItems = items.filter(item => value.includes(getKey(item)));
+  const selectedItems = useMemo(
+    () => items.filter(item => value.includes(getKey(item))),
+    [items, value, getKey]
+  );
 
-  const filteredItems = searchable
-    ? items.filter(item => {
-      const searchText = getSearchText 
-          ? getSearchText(item)
-          : String(getLabel(item));
-        return searchText.toLowerCase().includes(searchTerm.toLowerCase());
-    })
-    : items;
+  const filteredItems = useMemo(() => {
+    if (!searchable) return items;
+
+    return items.filter(item => {
+      const searchText = getSearchText
+        ? getSearchText(item)
+        : String(getLabel(item));
+      return searchText.toLowerCase().includes(searchTerm.toLowerCase());
+    });
+  }, [searchable, items, searchTerm, getSearchText, getLabel]);
 
   return (
     <div className="space-y-2">
@@ -88,7 +90,7 @@ export function GenericMultiSelect<T>({
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-full p-0" align="start">
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
           <Command shouldFilter={false}>
             {searchable && (
               <CommandInput

@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select";
@@ -8,6 +7,7 @@ import { SchoolCycleType } from '@/types/temporalSchema';
 import { Student } from "@/types/student";
 import { GenericMultiSelect } from "./GenericMultiSelect";
 import { PAYMENT_TYPES, RECURRENCE_TYPES, SCOPE_TYPES, STATUS_TYPES } from "lib/billing/constants";
+import { BillingRule } from "@/types/billingRule";
 
 interface BillingConfigProps {
     form: UseFormReturn<Record<string, unknown>>;
@@ -15,6 +15,7 @@ interface BillingConfigProps {
     groups: Group[] | undefined;
     schoolCycles: SchoolCycleType[] | undefined;
     students: Student[] | undefined;
+    billingRules: BillingRule[] | undefined;
 }
 
 export function BillingConfigForm({
@@ -22,32 +23,16 @@ export function BillingConfigForm({
     operation,
     groups,
     schoolCycles,
-    students
+    students,
+    billingRules
 }: BillingConfigProps) {
     const currentScope = form.watch("scope");
-    useEffect(() => {
-        
-
-        switch (currentScope) {
-            case 'all_students':
-                form.setValue('targetGrade', []);
-                form.setValue('targetGroup', []);
-                form.setValue('targetStudent', []);
-                break;
-            case 'specific_grades':
-                form.setValue('targetGroup', []);
-                form.setValue('targetStudent', []);
-                break;
-            case 'specific_groups':
-                form.setValue('targetGrade', []);
-                form.setValue('targetStudent', []);
-                break;
-            case 'specific_students':
-                form.setValue('targetGrade', []);
-                form.setValue('targetGroup', []);
-                break;
-        }
-    }, [currentScope, form]);
+    const uniqueGrades = [...new Set(groups?.map(g => g.grade) ?? [])].map(grade => ({ grade }));
+    const formattedStudents = (students ?? []).map(s => ({
+        _id: s._id,
+        firstName: s.name ?? "",
+        lastName: s.lastName ?? "",
+    }));
 
     return (
         <div className="space-y-4">
@@ -109,7 +94,6 @@ export function BillingConfigForm({
                         </FormItem>
                     )}
                 />
-
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -159,6 +143,7 @@ export function BillingConfigForm({
                                         type="number"
                                         placeholder="0.00"
                                         min="0"
+                                        step="0.1"
                                         value={inputValue}
                                         onChange={(e) => {
                                             const value = e.target.value
@@ -286,32 +271,30 @@ export function BillingConfigForm({
                 />
             </div>
 
-            <div className="pb-4">
-                {form.watch("scope") === "specific_grades" ? (
+            <div className="space-y-4 pb-4">
+                {currentScope === "specific_grades" && (
                     <FormField
                         control={form.control}
                         name="targetGrade"
-                        render={({ field }) => {
-                            const grupos = [...new Set(groups?.map(g => g.grade) ?? [])].map(grade => ({ grade }));
-                            return (
-                                <FormItem>
-                                    <FormLabel>Grados (Selecciona uno o varios)</FormLabel>
-                                    <GenericMultiSelect
-                                        items={grupos ?? []}
-                                        value={field.value as string[] ?? []}
-                                        onChange={field.onChange}
-                                        getKey={(g) => g.grade}
-                                        getLabel={(g) => g.grade}
-                                        placeholder="Selecciona grados..."
-                                        emptyMessage="No se encontraron grados"
-                                        disabled={operation === "view"}
-                                    />
-                                    <FormMessage />
-                                </FormItem>
-                            )
-                        }}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Grados (Selecciona uno o varios)</FormLabel>
+                                <GenericMultiSelect
+                                    items={uniqueGrades}
+                                    value={(field.value as string[]) ?? []}
+                                    onChange={field.onChange}
+                                    getKey={(g) => g.grade}
+                                    getLabel={(g) => g.grade}
+                                    placeholder="Selecciona grados..."
+                                    emptyMessage="No se encontraron grados"
+                                    disabled={operation === "view"}
+                                />
+                                <FormMessage />
+                            </FormItem>
+                        )}
                     />
-                ) : form.watch("scope") === "specific_students" ? (
+                )}
+                {currentScope === "specific_students" && (
                     <FormField
                         control={form.control}
                         name="targetStudent"
@@ -319,12 +302,8 @@ export function BillingConfigForm({
                             <FormItem>
                                 <FormLabel>Estudiantes (Busca y selecciona)</FormLabel>
                                 <GenericMultiSelect
-                                    items={(students ?? []).map(s => ({
-                                        _id: s._id,
-                                        firstName: s.name ?? "",
-                                        lastName: s.lastName ?? "",
-                                    }))}
-                                    value={field.value as string[] ?? []}
+                                    items={formattedStudents}
+                                    value={(field.value as string[]) ?? []}
                                     onChange={field.onChange}
                                     getKey={(s) => s._id}
                                     getLabel={(s) => (
@@ -344,7 +323,8 @@ export function BillingConfigForm({
                             </FormItem>
                         )}
                     />
-                ) : form.watch("scope") === "specific_groups" && (
+                )}
+                {currentScope === "specific_groups" && (
                     <FormField
                         control={form.control}
                         name="targetGroup"
@@ -353,10 +333,10 @@ export function BillingConfigForm({
                                 <FormLabel>Grupos (Selecciona uno o varios)</FormLabel>
                                 <GenericMultiSelect
                                     items={groups ?? []}
-                                    value={field.value as string[] ?? []}
+                                    value={(field.value as string[]) ?? []}
                                     onChange={field.onChange}
                                     getKey={(g) => g._id}
-                                    getLabel={(g) => g.grade + " " + g.name}
+                                    getLabel={(g) => `${g.grade} ${g.name}`}
                                     placeholder="Selecciona grupos..."
                                     emptyMessage="No se encontraron grupos"
                                     disabled={operation === "view"}
@@ -364,10 +344,42 @@ export function BillingConfigForm({
                                 <FormMessage />
                             </FormItem>
                         )}
-                    />)}
+                    />
+                )}
+                <FormField
+                    control={form.control}
+                    name="ruleIds"
+                    render={({ field }) => (
+                        <FormItem className="w-full">
+                            <FormLabel>Reglas de Negocio</FormLabel>
+                            <GenericMultiSelect
+                                items={billingRules ?? []}
+                                value={(field.value as string[]) ?? []}
+                                onChange={field.onChange}
+                                getKey={(rule) => rule._id}
+                                getLabel={(rule) => (
+                                    <div className="flex flex-col overflow-hidden">
+                                        <span className="font-medium truncate">{rule.name}</span>
+                                        {rule.description && (
+                                            <span className="text-sm text-muted-foreground truncate">
+                                                {rule.description.length > 75
+                                                    ? rule.description.substring(0, 75) + "..."
+                                                    : rule.description}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+                                getSearchText={(rule) => `${rule.name} ${rule.description || ''}`}
+                                placeholder="Selecciona reglas de negocio..."
+                                emptyMessage="No se encontraron reglas de negocio"
+                                disabled={operation === "view"}
+                                searchable
+                            />
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
             </div>
-
-
-
-        </div>);
+        </div>
+    );
 }

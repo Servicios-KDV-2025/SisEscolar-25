@@ -1,47 +1,22 @@
+import { BillingRule } from "@/types/billingRule"
 import { api } from "@repo/convex/convex/_generated/api"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
 import { Badge } from "@repo/ui/components/shadcn/badge"
 import { Button } from "@repo/ui/components/shadcn/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
-import { DollarSign, Edit, Eye, Settings, Trash2, User } from "@repo/ui/icons"
+import { Calendar, Clock2, DollarSign, Edit, Eye, Scale, Settings, SquareScissors, Trash2, User, UsersRound } from "@repo/ui/icons"
 import { useQuery } from "convex/react"
-
-interface BillingRule extends Record<string, unknown> {
-    _id: string
-    _creationTime: number,
-    schoolId: string
-    name: string
-    description?: string
-    type: "late_fee" | "early_discount" | "cutoff"
-    scope: "estandar" | "becarios" | "all_students"
-    status: "active" | "inactive"
-    lateFeeType?: "percentage" | "fixed"
-    lateFeeValue?: number
-    startDay?: number
-    endDay?: number
-    maxUses?: number
-    usedCount?: number
-    cutoffAfterDays?: number
-    createdBy: string
-    updatedBy: string
-    createdAt: number
-    updatedAt?: number
-}
 
 interface BillingRuleCardProps {
     billingRule: BillingRule;
     openEdit: (itemData: BillingRule) => void;
     openView: (itemData: BillingRule) => void;
     openDelete: (itemData: BillingRule) => void;
-    canUpdateBillingRule: boolean;
-    canDeleteBillingRule: boolean;
-
     isUpdatingBillingRule: boolean;
     isDeletingBillingRule: boolean;
 }
 
-export function BillingRuleCard({ billingRule, openEdit, openView, openDelete, isUpdatingBillingRule, isDeletingBillingRule, canUpdateBillingRule,
-    canDeleteBillingRule, }: BillingRuleCardProps) {
+export function BillingRuleCard({ billingRule, openEdit, openView, openDelete, isUpdatingBillingRule, isDeletingBillingRule }: BillingRuleCardProps) {
     const formatDate = (timestamp: number) => {
         return new Date(timestamp).toLocaleDateString("es-ES", {
             year: "numeric",
@@ -78,22 +53,43 @@ export function BillingRuleCard({ billingRule, openEdit, openView, openDelete, i
     return (
         <Card className="w-full hover:shadow-lg transition-shadow duration-200 flex flex-col h-full">
             <CardHeader>
-                <CardTitle className="text-lg font-semibold leading-tight line-clamp-2 break-words flex justify-between">
+                <CardTitle className="text-lg font-semibold leading-tight line-clamp-2 break-words flex flex-row justify-between">
                     <span>{billingRule.name}</span>
-                    <Badge
-                        variant={billingRule.status === "active" ? "default" : "secondary"}
-                        className={billingRule.status === "active" ? "bg-green-600 text-white flex-shrink-0 ml-2" : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}
-                    >
-                        {billingRule.status === "active" ? 'Activo' : 'Inactivo'}
-                    </Badge>
+                    <div>
+                        <Badge
+                            variant={billingRule.status === "active" ? "default" : "secondary"}
+                            className={billingRule.status === "active" ? "bg-green-600 text-white flex-shrink-0 ml-2" : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}
+                        >
+                            {billingRule.status === "active" ? 'Activo' : 'Inactivo'}
+                        </Badge>
+                    </div>
+
                 </CardTitle>
             </CardHeader>
 
             <CardContent className="space-y-4 flex-1">
                 {billingRule.description && (
                     <div className="flex items-start gap-2">
-                        <Settings className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-                        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 break-words">{billingRule.description}</p>
+                        <Scale className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                        <p className="text-sm text-muted-foreground leading-relaxed break-words">
+                            <span className="inline">
+                                {billingRule.description.length > 75
+                                    ? billingRule.description.substring(0, 75) + "..."
+                                    : billingRule.description}
+                            </span>
+
+                            {billingRule.description.length > 75 && (
+                                <Badge
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        openView(billingRule)
+                                    }}
+                                    className="ml-1 flex-shrink-0 bg-transparent text-black cursor-pointer hover:bg-black hover:text-white"
+                                >
+                                    más
+                                </Badge>
+                            )}
+                        </p>
                     </div>
                 )}
 
@@ -105,7 +101,7 @@ export function BillingRuleCard({ billingRule, openEdit, openView, openDelete, i
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <Settings className="h-4 w-4 text-muted-foreground" />
+                    <UsersRound className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">
                         Alcance: {getScopeLabel(billingRule.scope)}
                     </span>
@@ -122,7 +118,7 @@ export function BillingRuleCard({ billingRule, openEdit, openView, openDelete, i
 
                 {(billingRule.startDay !== undefined && billingRule.endDay !== undefined) && (
                     <div className="flex items-center gap-2">
-                        <Settings className="h-4 w-4 text-muted-foreground" />
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm font-medium">
                             Días: {billingRule.startDay} - {billingRule.endDay}
                         </span>
@@ -131,7 +127,7 @@ export function BillingRuleCard({ billingRule, openEdit, openView, openDelete, i
 
                 {billingRule.cutoffAfterDays && (
                     <div className="flex items-center gap-2">
-                        <Settings className="h-4 w-4 text-muted-foreground" />
+                        <SquareScissors className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm font-medium">
                             Corte después de {billingRule.cutoffAfterDays} días
                         </span>
@@ -139,13 +135,13 @@ export function BillingRuleCard({ billingRule, openEdit, openView, openDelete, i
                 )}
 
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Settings className="h-3 w-3" />
+                    <Clock2 className="h-3 w-3" />
                     <span>Creado {formatDate(billingRule._creationTime)}</span>
                 </div>
 
                 {billingRule.updatedAt && (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Settings className="h-3 w-3" />
+                        <Clock2 className="h-3 w-3" />
                         <span>Actualizado {formatDate(billingRule.updatedAt)}</span>
                     </div>
                 )}
@@ -170,7 +166,7 @@ export function BillingRuleCard({ billingRule, openEdit, openView, openDelete, i
                 >
                     <Eye className="h-4 w-4" />
                 </Button>
-                {canUpdateBillingRule && (<Button
+                <Button
                     variant="ghost"
                     size="sm"
                     onClick={(e) => {
@@ -181,8 +177,8 @@ export function BillingRuleCard({ billingRule, openEdit, openView, openDelete, i
                     className="hover:scale-105 transition-transform cursor-pointer"
                 >
                     <Edit className="h-4 w-4" />
-                </Button>)}
-                {canDeleteBillingRule && (<Button
+                </Button>
+                <Button
                     variant="ghost"
                     size="sm"
                     onClick={(e) => {
@@ -193,7 +189,7 @@ export function BillingRuleCard({ billingRule, openEdit, openView, openDelete, i
                     className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive bg-white"
                 >
                     <Trash2 className="h-4 w-4" />
-                </Button>)}
+                </Button>
             </CardFooter>
         </Card>
     )

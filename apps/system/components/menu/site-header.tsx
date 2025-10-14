@@ -96,7 +96,7 @@ export function SiteHeader() {
     'tutores': 'Tutores',
     'personal': 'Personal',
     'pagos': 'Pagos',
-    'reglas-de-negocio': 'Reglas de negocio',
+    'politicas-de-cobros': 'Políticas de Cobros',
     'suscripciones': 'Suscripciones',
 
     'aulas': 'Aulas',

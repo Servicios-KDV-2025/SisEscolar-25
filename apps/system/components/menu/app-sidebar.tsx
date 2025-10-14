@@ -76,8 +76,8 @@ const defaultNavData = {
           url: `/pagos`,
         },
         {
-          title: "Reglas de Negocio",
-          url: `/pagos/reglas-de-negocio`,
+          title: "Políticas de Cobros",
+          url: `/pagos/politicas-de-cobros`,
         },
       ],
     },

@@ -5,30 +5,8 @@ import { useQuery, useMutation } from "convex/react";
 import { useCallback, useEffect } from "react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
+import { BillingRule } from "@/types/billingRule";
 
-export type BillingRule = {
-    _id: Id<"billingRule">;
-    _creationTime: number;
-    schoolId: Id<"school">;
-    name: string;
-    description?: string;
-    type: "late_fee" | "early_discount" | "cutoff";
-    scope: "estandar" | "becarios" | "all_students";
-    status: 'active' | 'inactive';
-    lateFeeType?: "percentage" | "fixed";
-    lateFeeValue?: number;
-    startDay?: number;
-    endDay?: number;
-    maxUses?: number;
-    usedCount?: number;
-    cutoffAfterDays?: number;
-    createdBy: Id<"user">;
-    updatedBy: Id<"user">;
-    createdAt: number;
-    updatedAt?: number;
-};
-
-// Tipo para crear regla de facturación (sin _id y con campos opcionales)
 export type CreateBillingRuleData = {
     schoolId: Id<"school">;
     name: string;
@@ -47,7 +25,6 @@ export type CreateBillingRuleData = {
     updatedBy: Id<"user">;
 };
 
-// Tipo para actualizar regla de facturación (todos los campos opcionales excepto _id)
 export type UpdateBillingRuleData = {
     _id: Id<"billingRule">;
     schoolId: Id<"school">;
@@ -67,7 +44,6 @@ export type UpdateBillingRuleData = {
     updatedAt?: number;
 };
 
-// Store de Regla de Facturación con CRUD completo
 export type BillingRuleStore = {
     billingRules: BillingRule[];
     selectedBillingRule: BillingRule | null;
@@ -150,21 +126,19 @@ export const useBillingRule = (schoolId?: string) => {
         clearErrors,
     } = useBillingRuleStore();
 
-    // Query para obtener las reglas de facturación de la escuela
     const billingRulesQuery = useQuery(
         api.functions.billingRule.getAllBillingRulesBySchool,
         schoolId ? { schoolId: schoolId as Id<"school"> } : "skip"
     );
 
-    // Mutations
     const createBillingRuleMutation = useMutation(api.functions.billingRule.createBillingRuleWithSchoolId);
     const updateBillingRuleMutation = useMutation(api.functions.billingRule.updateBillingRuleWithSchoolId);
     const deleteBillingRuleMutation = useMutation(api.functions.billingRule.deleteBillingRuleWithSchoolId);
 
-    // CREATE
     const createBillingRule = useCallback(async (data: CreateBillingRuleData) => {
         setCreating(true);
         setCreateError(null);
+
         try {
             await createBillingRuleMutation({
                 ...data,
@@ -185,6 +159,19 @@ export const useBillingRule = (schoolId?: string) => {
         setUpdating(true);
         setUpdateError(null);
         try {
+            switch (data.type) {
+                case 'late_fee':
+                case 'early_discount':
+                    data.cutoffAfterDays = undefined;
+                    break;
+                case 'cutoff':
+                    data.lateFeeType = undefined;
+                    data.lateFeeValue = undefined;
+                    data.startDay = undefined;
+                    data.endDay = undefined;
+                    break;
+            }
+
             await updateBillingRuleMutation({
                 _id: data._id as Id<"billingRule">,
                 schoolId: data.schoolId as Id<"school">,

@@ -1,27 +1,29 @@
 "use client"
-import { useState, useEffect, useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@repo/ui/components/shadcn/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table"
 import { Filter, DollarSign, Plus, Settings, CheckCircle, XCircle, Search } from "lucide-react"
-import { Badge } from "@repo/ui/components/shadcn/badge"
+import { useState } from "react"
 import { Input } from "@repo/ui/components/shadcn/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select"
 import { Button } from "@repo/ui/components/shadcn/button"
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog"
-import { useMutation, useQuery } from "convex/react"
+import { useQuery } from "convex/react"
 import { api } from "@repo/convex/convex/_generated/api"
 import { toast } from "sonner"
 import { useUser } from "@clerk/nextjs"
 import { useUserWithConvex } from "stores/userStore"
 import { useCurrentSchool } from "stores/userSchoolsStore"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
-import { Eye, Pencil, School, Trash2 } from "@repo/ui/icons"
-import { BillingConfigDto, billingConfigSchema } from "schema/billingConfigSchema"
-import { PAYMENT_TYPES, RECURRENCE_TYPES, SCOPE_TYPES, STATUS_TYPES } from "lib/billing/constants"
+import { BanknoteArrowUp, School } from "@repo/ui/icons"
+import { BillingConfigDto, billingConfigSchema } from "@/types/form/billingConfigSchema"
+import { PAYMENT_TYPES, SCOPE_TYPES, STATUS_TYPES } from "lib/billing/constants"
 import { BillingConfigForm } from "./BillingConfigForm"
+import { BillingConfigCard } from "./BillingConfigCard"
 import { useGroup } from "stores/groupStore"
+import { useBillingConfig } from "stores/billingConfigStore"
 import { PaymentResultModal } from "./BillingResultsDialog"
 import { ResultData } from "@/types/billingConfig"
+import { Badge } from "@repo/ui/components/shadcn/badge"
 
 export default function BillingConfig() {
   const { user: clerkUser } = useUser()
@@ -40,20 +42,28 @@ export default function BillingConfig() {
     currentSchool ? { schoolId: currentSchool.school._id as Id<'school'> } : 'skip'
   )
 
-  const billingConfigs = useQuery(
-    api.functions.billingConfig.getBillingsConfigs,
+  const {
+    billingConfigs,
+    isCreating: isCreatingBillingConfig,
+    isUpdating: isUpdatingBillingConfig,
+    isDeleting: isDeletingBillingConfig,
+    createBillingConfig,
+    updateBillingConfig,
+    deleteBillingConfig,
+  } = useBillingConfig(currentSchool?.school._id)
+
+  const billingRules = useQuery(
+    api.functions.billingRule.getAllBillingRulesBySchool,
     currentSchool ? { schoolId: currentSchool.school._id as Id<'school'> } : 'skip'
   )
-
-  const createConfig = useMutation(api.functions.billingConfig.createBillingConfig)
-  const updateConfig = useMutation(api.functions.billingConfig.updateBillingConfig)
-  const deleteConfig = useMutation(api.functions.billingConfig.deleteBillingConfig)
 
   const [searchTerm, setSearchTerm] = useState("")
   const [typeFilter, setTypeFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [schoolCycleFilter, setSchoolCycleFilter] = useState<string>("all")
   const [scopeFilter, setScopeFilter] = useState<string>("all")
+
+  const isLoading = schoolLoading || !billingConfigs
 
   const {
     isOpen,
@@ -70,6 +80,7 @@ export default function BillingConfig() {
     recurrence_type: "mensual",
     type: "colegiatura",
     amount: 0,
+    ruleIds: [],
     status: "required",
     startDate: "",
     endDate: "",
@@ -138,7 +149,7 @@ export default function BillingConfig() {
 
     try {
       if (operation === "create") {
-        const result = await createConfig({
+        const result = await createBillingConfig({
           schoolId: currentSchool?.school._id as Id<'school'>,
           schoolCycleId: validatedValues.schoolCycleId as Id<"schoolCycle">,
           scope: validatedValues.scope,
@@ -148,12 +159,14 @@ export default function BillingConfig() {
           recurrence_type: validatedValues.recurrence_type,
           type: validatedValues.type,
           amount: validatedValues.amount,
+          ruleIds: validatedValues.ruleIds as Id<"billingRule">[],
           startDate: new Date(validatedValues.startDate).getTime(),
           endDate: new Date(validatedValues.endDate).getTime(),
           status: validatedValues.status,
           createdBy: currentUser?._id as Id<'user'>,
+          updatedBy: currentUser?._id as Id<'user'>,
         })
-        if (result && typeof result === "object" && "createdPayments" in result) {
+        if (result !== undefined && result !== null && typeof result === "object" && "createdPayments" in result) {
           setResultData(result as ResultData);
         } else {
           setResultData(null);
@@ -161,8 +174,8 @@ export default function BillingConfig() {
         setShowResultModal(true);
         toast.success("Configuración creada exitosamente")
       } else if (operation === "edit") {
-        await updateConfig({
-          id: validatedValues._id as Id<'billingConfig'>,
+        await updateBillingConfig({
+          _id: validatedValues._id as Id<'billingConfig'>,
           schoolId: currentSchool?.school._id as Id<'school'>,
           schoolCycleId: validatedValues.schoolCycleId as Id<"schoolCycle"> | undefined,
           scope: validatedValues.scope,
@@ -172,9 +185,11 @@ export default function BillingConfig() {
           recurrence_type: validatedValues.recurrence_type,
           type: validatedValues.type,
           amount: validatedValues.amount,
+          ruleIds: validatedValues.ruleIds as Id<"billingRule">[],
           startDate: new Date(validatedValues.startDate).getTime(),
           endDate: new Date(validatedValues.endDate).getTime(),
           status: validatedValues.status,
+          updatedBy: currentUser?._id as Id<"user">
         })
         toast.success("Configuración actualizada exitosamente")
       }
@@ -187,48 +202,13 @@ export default function BillingConfig() {
 
   const handleDelete = async (id: string) => {
     try {
-      await deleteConfig({
-        id: id as Id<'billingConfig'>,
-        schoolId: currentSchool?.school?._id as Id<"school">
-      })
+      await deleteBillingConfig(id)
       toast.success("Configuración inactiva")
       close()
     } catch (err) {
       console.error(err)
       toast.error("Error al eliminar la configuración")
     }
-  }
-
-  const getSchoolCycleName = (cycleId: Id<"schoolCycle">) => {
-    return schoolCycles?.find(c => c._id === cycleId)?.name ?? "N/A"
-  }
-
-  const getScopeDisplay = (config: NonNullable<typeof billingConfigs>[number]) => {
-    if (config.scope === "all_students") return "Todos"
-    if (config.scope === "specific_groups") {
-      return `${config.targetGroup?.length ?? 0} grupo(s)`
-    }
-    if (config.scope === "specific_grades") {
-      return `${config.targetGrade?.length ?? 0} grado(s)`
-    }
-    if (config.scope === "specific_students") {
-      return `${config.targetStudent?.length ?? 0} estudiante(s)`
-    }
-    return "N/A"
-  }
-
-  const getStatusBadge = (status: keyof typeof STATUS_TYPES) => {
-    const variants = {
-      required: "default",
-      optional: "secondary",
-      inactive: "destructive"
-    } as const
-
-    return (
-      <Badge variant={variants[status]}>
-        {STATUS_TYPES[status]}
-      </Badge>
-    )
   }
 
   if (schoolLoading) {
@@ -352,97 +332,63 @@ export default function BillingConfig() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between flex-col gap-3 sm:flex-row">
-            <CardTitle>Configuraciones de Cobros</CardTitle>
-            <Button onClick={openCreate}>
+            <CardTitle>Lista de Configuraciones de Cobros</CardTitle>
+            <Button onClick={openCreate}
+              className="w-full mt-1 sm:w-auto sm:mt-0">
               <Plus className="h-4 w-4 mr-2" />
               Agregar Configuración
             </Button>
           </div>
-          <CardDescription>
-            {filteredConfigs.length} configuración(es) encontrada(s)
-          </CardDescription>
+
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Ciclo Escolar</TableHead>
-                  <TableHead>Alcance</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Recurrencia</TableHead>
-                  <TableHead className="text-right">Monto</TableHead>
-                  <TableHead>Inicio</TableHead>
-                  <TableHead>Fin</TableHead>
-                  <TableHead className="text-center">Estado</TableHead>
-                  <TableHead className="text-center">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredConfigs.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                      No se encontraron configuraciones
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredConfigs.map((config) => (
-                    <TableRow key={config._id}>
-                      <TableCell className="font-medium">
-                        {getSchoolCycleName(config.schoolCycleId)}
-                      </TableCell>
-                      <TableCell>{getScopeDisplay(config)}</TableCell>
-                      <TableCell>{PAYMENT_TYPES[config.type]}</TableCell>
-                      <TableCell>{RECURRENCE_TYPES[config.recurrence_type]}</TableCell>
-                      <TableCell className="text-right font-mono">
-                        ${config.amount.toLocaleString('es-MX')}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(config.startDate).toLocaleDateString('es-MX')}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(config.endDate).toLocaleDateString('es-MX')}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {getStatusBadge(config.status)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1 justify-center">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openView(config)}
-                            className="hover:scale-105 transition-transform cursor-pointer"
-                            title="Ver detalles"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEdit(config)}
-                            className="hover:scale-105 transition-transform cursor-pointer"
-                            title="Editar"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openDelete(config)}
-                            className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive"
-                            title="Desactivar"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <CardDescription className="flex justify-start mb-3 mr-3">
+            <Badge variant="outline">
+              {filteredConfigs.length} registro{filteredConfigs.length > 1 ? "s" : ""}
+            </Badge>
+          </CardDescription>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">
+                  Cargando configuraciones...
+                </p>
+              </div>
+            </div>
+          ) : filteredConfigs.length === 0 ? (
+            <div className="text-center py-12">
+              <BanknoteArrowUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">
+                No se encontraron configuraciones
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                Intenta ajustar los filtros o no hay configuraciones registradas.
+              </p>
+              <Button onClick={openCreate}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nueva Configuración
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-9">
+              {filteredConfigs.map((config) => (
+                <BillingConfigCard
+                  key={config._id}
+                  billingConfig={config}
+                  openEdit={openEdit}
+                  openView={openView}
+                  openDelete={openDelete}
+                  isUpdatingBillingConfig={isCreatingBillingConfig || isUpdatingBillingConfig}
+                  isDeletingBillingConfig={isDeletingBillingConfig}
+                  canUpdateBillingConfig={true}
+                  canDeleteBillingConfig={true}
+                  schoolCycles={schoolCycles}
+                  billingRules={billingRules}
+                />
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -462,6 +408,7 @@ export default function BillingConfig() {
           recurrence_type: "mensual",
           type: "colegiatura",
           amount: 0,
+          ruleIds: [],
           status: "required",
           startDate: "",
           endDate: "",
@@ -494,6 +441,7 @@ export default function BillingConfig() {
             groups={groups || []}
             schoolCycles={schoolCycles || []}
             students={students || []}
+            billingRules={billingRules || []}
           />
 
         )}
