@@ -10,7 +10,6 @@ import { Button } from "@repo/ui/components/shadcn/button";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Label } from "@repo/ui/components/shadcn/label";
 import { Textarea } from "@repo/ui/components/shadcn/textarea";
-import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Edit, GraduationCap, Loader2, Save, School, X } from "@repo/ui/icons";
 import { useUser } from "@clerk/nextjs";
@@ -179,11 +178,10 @@ export default function ConfiguracionPage() {
             <Label>Logo Institucional</Label>
             <div className="relative aspect-square max-w-[220px] rounded-2xl shadow-lg overflow-hidden">
               {imgUrlValue != " " && imgUrlValue ? (
-                <Image
+                <img
                   src={imgUrlValue!}
                   alt="Logo de la escuela"
-                  fill
-                  className="object-cover"
+                  className="w-full h-full object-cover"
                 />
               ) : (
                 <div className="relative aspect-square max-w-[220px] rounded-2xl shadow-lg overflow-hidden flex items-center justify-center">
@@ -269,7 +267,6 @@ export default function ConfiguracionPage() {
   );
 }
 
-// El componente FormField permanece igual
 function FormField({
   label,
   name,

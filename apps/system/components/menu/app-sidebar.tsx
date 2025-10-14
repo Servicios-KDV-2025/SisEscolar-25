@@ -197,7 +197,7 @@ export function AppSidebar({  school, ...props }: AppSidebarProps) {
               <Link href="/inicio">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg overflow-hidden">
                   {schoolData.logo && !imageError ? (
-                    <Image
+                    <img
                       src={schoolData.logo}
                       alt={schoolData.name}
                       width={32} // tailwind size-8 = 2rem = 32px
