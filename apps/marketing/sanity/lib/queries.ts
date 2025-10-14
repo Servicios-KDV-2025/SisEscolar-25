@@ -116,3 +116,15 @@ export const settingsQuery = defineQuery(`
 export const slugsByTypeQuery = defineQuery(`
   *[_type == $type && defined(slug.current)]{"slug": slug.current}
 `)
+
+export const pricesQuery = defineQuery(
+  `*[_type == "price"]{
+    _id,
+    price,
+    title,
+    id_stripe,
+    features{
+      ...,
+      
+    }
+  }`)
