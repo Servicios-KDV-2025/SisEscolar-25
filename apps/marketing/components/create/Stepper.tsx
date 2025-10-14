@@ -1,9 +1,12 @@
 'use client'
 import React, { Fragment, useState } from 'react'
-import { School, User, CopySlash } from 'lucide-react'
+import { School, User, CopySlash, Loader2 } from 'lucide-react'
 import { useAuth } from '@clerk/nextjs'
 import { defineStepper } from '../ui/stepper'
 import { Auth } from './Auth/Auth'
+import SchoolForm from './School/SchoolForm'
+import { Button } from '../ui/button'
+import { Prices } from './Price/Prices'
 
 // import { SignUp } from './Auth/SignUp'
 // import { SignIn } from './Auth/SignIn'
@@ -31,34 +34,34 @@ export const Stepper: React.FC = () => {
 }
 
 const StepperContent = () => {
-  const { isSignedIn, isLoaded } = useAuth()
+  const { isSignedIn, isLoaded, signOut } = useAuth()
   const [ready, setReady] = useState(false)
-  //const [isSelect, setSelected] = useState<string>('')
-  //const [schooldId, setSchoolId] = useState<string>('')
-  //const [isLoading] = useState(false)
+  const [isSelect, setSelected] = useState<string>('')
+  const [_, setSchoolId] = useState<string>('')
+  const [isLoading, setIsLoading] = useState(false)
   //const { signOut } = useClerk()
   const methods = useStepper()
   React.useEffect(() => {
     if (isLoaded) {
       if (isSignedIn && methods.current.id === 'step-1') {
-        methods.goTo('step-2')
-      }  
+        methods.goTo('step-3')
+      }
       setReady(true)
     }
   }, [isSignedIn, isLoaded, methods])
+  
 
   if (!ready) return null
 
-  // const onFihishStepSchool = (idSchool: string) => {
-  // // alert(idSchool)
-  //   setSchoolId(idSchool)
-  //   methods.next()
-  // }
+  const onFihishStepSchool = (idSchool: string) => {
+    setSchoolId(idSchool)
+    methods.next()
+  }
 
-  // const onSelectPrice = (idStripe: string) => {
-  //   setSelected(idStripe)
-  //   methods.next()
-  // }
+  const onSelectPrice = (idStripe: string) => {
+    setSelected(idStripe)
+    methods.next()
+  }
 
   return (
           <Fragment>
@@ -74,33 +77,31 @@ const StepperContent = () => {
             {methods.switch({
               'step-1': () => <Auth />,
               'step-2': () => (
-                // <div>
-                //   <SchoolForm onNext={onFihishStepSchool} />
-                //   {isSignedIn && (
-                //     <Button
-                //       className="w-full"
-                //       disabled={isLoading}
-                //       onClick={() => {
-                //         setIsLoading(true)
-                //         signOut({ redirectUrl: '#' })
-                //         methods.goTo('step-1')
-                //       }}
-                //     >
-                //       {isLoading ? (
-                //         <>
-                //           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                //           Cerrando Sesion.
-                //         </>
-                //       ) : (
-                //         'Cerrar Sesion'
-                //       )}
-                //     </Button>
-                //   )}
-                // </div>
-                <Content/>
+                <div>
+                  <SchoolForm onNext={onFihishStepSchool} />
+                  {isSignedIn && (
+                    <Button
+                      className="w-full"
+                      disabled={isLoading}
+                      onClick={() => {
+                        setIsLoading(true)
+                        signOut({ redirectUrl: '#' })
+                        methods.goTo('step-1')
+                      }}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Cerrando Sesion.
+                        </>
+                      ) : (
+                        'Cerrar Sesion'
+                      )}
+                    </Button>
+                  )}
+                </div>
               ),
-              // 'step-3': () => <Prices onSelect={onSelectPrice} />,
-              'step-3': () => <Content />,
+              'step-3': () => <Prices onSelect={onSelectPrice} />,
               'step-4': () => <Content />,
             })}
           </Fragment>
