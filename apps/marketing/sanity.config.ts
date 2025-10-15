@@ -28,6 +28,7 @@ import ctaSection from '@/sanity/schemas/objects/modules/ctaSection'
 import infoBlock from '@/sanity/schemas/objects/modules/infoBlock'
 import ImagewithText from '@/sanity/schemas/objects/modules/ImagewithText'
 import carousel from '@/sanity/schemas/objects/modules/carousel'
+import paymentStatus from '@/sanity/schemas/objects/modules/Payment'
 
 
 const title =
@@ -60,6 +61,7 @@ export default defineConfig({
       featuresection,
       statsection,
       ctaSection, 
+      paymentStatus,
       infoBlock,
       ImagewithText,
       carousel

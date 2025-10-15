@@ -58,6 +58,11 @@ export default defineField({
           name: 'carousel',
           type: 'carousel',
         }),
+        defineArrayMember({
+            name: 'paymentStatus',
+            type: 'paymentStatus',
+        })
+        ,
         defineField({
             type: 'image',
             icon: ImageIcon,
