@@ -205,6 +205,7 @@ export const studentSchema = z.object({
   schoolId: z.string(),
   groupId: z.string(),
   tutorId: z.string(),
+  schoolCycleId: z.string(),
   enrollment: z.string(),
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
   lastName: z.string().optional(),

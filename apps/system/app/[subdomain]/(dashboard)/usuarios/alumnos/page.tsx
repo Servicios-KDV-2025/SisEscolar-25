@@ -41,6 +41,7 @@ interface Tutor {
   email: string;
 }
 
+
 export default function AlumnosPage() {
   // Hooks de autenticación y contexto
   const { user: clerkUser, isLoaded } = useUser();
@@ -69,6 +70,7 @@ export default function AlumnosPage() {
   const [tutorPopoverOpen, setTutorPopoverOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [cyclePopoverOpen, setCyclePopoverOpen] = useState(false);
 
   // Hook del student store con filtros por rol
   const {
@@ -105,6 +107,18 @@ export default function AlumnosPage() {
     } : 'skip'
   );
 
+  // Obtener ciclos escolares de la escuela actual
+  const schoolCycles = useQuery(
+    api.functions.schoolCycles.ObtenerCiclosEscolares,
+    currentSchool?.school._id ? { escuelaID: currentSchool.school._id as Id<"school"> } : 'skip'
+  );
+
+  // Hook para obtener la siguiente matrícula disponible
+  const nextEnrollment = useQuery(
+    api.functions.student.generateNextEnrollment,
+    currentSchool?.school._id ? { schoolId: currentSchool.school._id as Id<"school"> } : 'skip'
+  );
+
   // Estado combinado de loading
   const isLoading = !isLoaded || userLoading || schoolLoading || studentsLoading || permissionsLoading;
 
@@ -116,14 +130,15 @@ export default function AlumnosPage() {
     schoolId: currentSchool?.school._id || "",
     groupId: "", // Dejar vacío para forzar selección
     tutorId: "", // Dejar vacío para forzar selección
-    enrollment: "",
+    schoolCycleId: "", // Dejar vacío para forzar selección
+    enrollment: nextEnrollment || "", // Usar la matrícula generada automáticamente
     name: "",
     lastName: "",
     status: "active" as const,
     admissionDate: Date.now(),
     birthDate: undefined,
     imgUrl: "",
-  }), [currentSchool?.school._id]);
+  }), [currentSchool?.school._id, nextEnrollment]);
 
   const paginatedStudents = useMemo(() => {
     const dataToUse = filteredStudents.length > 0 ? filteredStudents : students;
@@ -150,14 +165,13 @@ export default function AlumnosPage() {
 
   // Aplicar filtros cuando cambien
   useEffect(() => {
-    if (students.length > 0) {
-      filterStudents({
-        schoolId: currentSchool?.school._id as Id<"school">,
-        groupId: groupFilter !== "all" ? groupFilter as Id<"group"> : undefined,
-        status: statusFilter !== "all" ? statusFilter as "active" | "inactive" : undefined,
-        searchTerm: searchTerm || undefined,
-      });
-    }
+    // Siempre aplicar filtros, incluso si no hay estudiantes
+    filterStudents({
+      schoolId: currentSchool?.school._id as Id<"school">,
+      groupId: groupFilter !== "all" ? groupFilter as Id<"group"> : undefined,
+      status: statusFilter !== "all" ? statusFilter as "active" | "inactive" : undefined,
+      searchTerm: searchTerm || undefined,
+    });
   }, [searchTerm, statusFilter, groupFilter, students, filterStudents, currentSchool]);
 
   // Resetear página cuando cambien los filtros
@@ -185,6 +199,7 @@ export default function AlumnosPage() {
       schoolId: currentSchool.school._id as Id<"school">,
       groupId: formData.groupId as Id<"group">,
       tutorId: formData.tutorId as Id<"user">,
+      schoolCycleId: formData.schoolCycleId as Id<"schoolCycle">,
       enrollment: formData.enrollment as string,
       name: formData.name as string,
       lastName: formData.lastName as string || undefined,
@@ -217,6 +232,7 @@ export default function AlumnosPage() {
       enrollment: formData.enrollment as string,
       groupId: formData.groupId as Id<"group">,
       tutorId: formData.tutorId as Id<"user">,
+      schoolCycleId: formData.schoolCycleId as Id<"schoolCycle">,
       birthDate: formData.birthDate as number || undefined,
       admissionDate: formData.admissionDate as number || undefined,
       imgUrl: formData.imgUrl as string || undefined,
@@ -274,6 +290,12 @@ export default function AlumnosPage() {
     if (!tutors) return "Cargando...";
     const tutor = tutors.find((t: Tutor) => t._id === tutorId);
     return tutor ? `${tutor.name} ${tutor.lastName || ''}`.trim() : "No asignado";
+  };
+  const getSchoolCycleInfo = (schoolCycleId?: string) => {
+    if (!schoolCycleId) return "No asignado";
+    if (!schoolCycles) return "Cargando...";
+    const schoolCycle = schoolCycles.find((s) => s._id === schoolCycleId);
+    return schoolCycle ? `${schoolCycle.name}` : "No asignado";
   };
 
   const calculateAge = (birthDate?: number) => {
@@ -712,6 +734,7 @@ export default function AlumnosPage() {
                       <TableHead className="w-[250px]">Estudiante</TableHead>
                       <TableHead className="text-center">Matrícula</TableHead>
                       <TableHead className="text-center">Grupo</TableHead>
+                      <TableHead className="text-center">Ciclo Escolar</TableHead>
                       <TableHead className="text-center hidden lg:table-cell">Tutor</TableHead>
                       <TableHead className="text-center">Estado</TableHead>
                       <TableHead className="text-center hidden xl:table-cell">Fecha de Ingreso</TableHead>
@@ -757,7 +780,11 @@ export default function AlumnosPage() {
                             {getTutorInfo(student.tutorId)}
                           </div>
                         </TableCell>
-
+<                       TableCell className="text-center">
+                          <Badge variant="secondary">
+                            {getSchoolCycleInfo(student.schoolCycleId)}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-center">
                           <Badge
                             variant={student.status === "active" ? "default" : "secondary"}
@@ -776,8 +803,8 @@ export default function AlumnosPage() {
                           </div>
                         </TableCell>
 
-                        <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-1">
+                        <TableCell className="flex justify-center text-center">
+                          <div className="flex items-center justify-center gap-2">
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1016,96 +1043,177 @@ export default function AlumnosPage() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="enrollment"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Matrícula *</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          value={field.value as string || ""}
-                          placeholder="2024-001"
-                          disabled={currentOperation === "view"}
-                          onChange={(e) => {
-                            field.onChange(e);
-                            // Limpiar error cuando el usuario empiece a escribir
-                            if (studentsError) {
-                              clearError();
-                            }
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <FormField
+                control={form.control}
+                name="enrollment"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Matrícula *</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        value={field.value as string || ""}
+                        placeholder="Se genera automáticamente"
+                        disabled={currentOperation === "view" || currentOperation === "create"}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          // Limpiar error cuando el usuario empiece a escribir
+                          if (studentsError) {
+                            clearError();
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                    {currentOperation === "create" && (
+                      <p className="text-xs text-muted-foreground">
+                        La matrícula se genera automáticamente con el formato: AÑO + número consecutivo
+                      </p>
+                    )}
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Estado</FormLabel>
-                      <FormControl>
-                        <Select
-                          value={field.value as string}
-                          onValueChange={field.onChange}
-                          disabled={currentOperation === "view"}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccionar estado" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="active">Activo</SelectItem>
-                            <SelectItem value="inactive">Inactivo</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Estado</FormLabel>
+                    <FormControl>
+                      <Select
+                        value={field.value as string}
+                        onValueChange={field.onChange}
+                        disabled={currentOperation === "view"}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar estado" />
+                        </SelectTrigger>
+                        <SelectContent>  
+                          <SelectItem value="active">Activo</SelectItem>
+                          <SelectItem value="inactive">Inactivo</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="groupId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Grupo *</FormLabel>
-                      <FormControl>
-                        <Select
-                          value={field.value as string}
-                          onValueChange={field.onChange}
-                          disabled={currentOperation === "view"}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccionar grupo" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {groups && groups.length > 0 ? (
-                              groups.map((group: Group) => (
-                                <SelectItem key={group._id} value={group._id}>
-                                  {group.grade} - {group.name}
-                                </SelectItem>
-                              ))
-                            ) : groups === undefined ? (
-                              <SelectItem value="loading" disabled>
-                                Cargando grupos...
+              <FormField
+                control={form.control}
+                name="groupId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Grupo *</FormLabel>
+                    <FormControl>
+                      <Select
+                        value={field.value as string}
+                        onValueChange={field.onChange}
+                        disabled={currentOperation === "view"}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar grupo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {groups && groups.length > 0 ? (
+                            groups.map((group: Group) => (
+                              <SelectItem key={group._id} value={group._id}>
+                                {group.grade} - {group.name}
                               </SelectItem>
-                            ) : (
-                              <SelectItem value="no-groups" disabled>
-                                No hay grupos disponibles
-                              </SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
+                            ))
+                          ) : groups === undefined ? (
+                            <SelectItem value="loading" disabled>
+                              Cargando grupos...
+                            </SelectItem>
+                          ) : (
+                            <SelectItem value="no-groups" disabled>
+                              No hay grupos disponibles
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="schoolCycleId"
+                render={({ field }) => {
+                  const selectedCycle = schoolCycles?.find((cycle) => cycle._id === field.value);
+
+                  return (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Ciclo Escolar *</FormLabel>
+                      <Popover open={cyclePopoverOpen} onOpenChange={setCyclePopoverOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={`w-full justify-between ${!field.value && "text-muted-foreground"}`}
+                              disabled={currentOperation === "view"}
+                            >
+                              {selectedCycle
+                                ? selectedCycle.name
+                                : "Seleccionar ciclo escolar"
+                              }
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Buscar ciclo escolar..." />
+                            <CommandEmpty>No se encontró ningún ciclo escolar.</CommandEmpty>
+                            <CommandList>
+                              <CommandGroup>
+                                {schoolCycles && schoolCycles.length > 0 ? (
+                                  schoolCycles.map((cycle) => (
+                                    <CommandItem
+                                      key={cycle._id}
+                                      value={cycle.name}
+                                      onSelect={() => {
+                                        field.onChange(cycle._id);
+                                        setCyclePopoverOpen(false);
+                                      }}
+                                    >
+                                      <Check
+                                        className={`mr-2 h-4 w-4 ${
+                                          field.value === cycle._id ? "opacity-100" : "opacity-0"
+                                        }`}
+                                      />
+                                      <div className="flex flex-col">
+                                        <span className="font-medium">{cycle.name}</span>
+                                        <span className="text-xs text-muted-foreground">
+                                          {new Date(cycle.startDate).toLocaleDateString()} - {new Date(cycle.endDate).toLocaleDateString()}
+                                        </span>
+                                      </div>
+                                    </CommandItem>
+                                  ))
+                                ) : schoolCycles === undefined ? (
+                                  <CommandItem disabled>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Cargando ciclos escolares...
+                                  </CommandItem>
+                                ) : (
+                                  <CommandItem disabled>
+                                    No hay ciclos escolares disponibles
+                                  </CommandItem>
+                                )}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
+                  );
+                }}
+              />
 
                 <FormField
                   control={form.control}
