@@ -16,6 +16,7 @@ import {
   TriangleAlert,
   AlertCircle,
   Loader2,
+  Building2,
 } from "lucide-react"
 import { Badge } from "@repo/ui/components/shadcn/badge"
 import { Input } from "@repo/ui/components/shadcn/input"
@@ -40,6 +41,8 @@ import { useUserWithConvex } from "../../../../stores/userStore"
 import { useCurrentSchool } from "../../../../stores/userSchoolsStore"
 import { Label } from "@repo/ui/components/shadcn/label"
 import { RadioGroup, RadioGroupItem } from "@repo/ui/components/shadcn/radio-group"
+import { StripeCheckoutButton } from "../../../../components/stripe/StripeCheckoutButton"
+import { SPEIPaymentForm } from "../../../../components/stripe/SPEIPaymentForm"
 
 
 interface Estudiante {
@@ -115,6 +118,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "bank_transfer" | "card" | "other">("cash")
   const [paymentAmount, setPaymentAmount] = useState<string>("")
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
+  const [paymentMethodType, setPaymentMethodType] = useState<"manual" | "stripe" | "spei">("manual")
 
   // Hooks para obtener datos del usuario y escuela
   const { user: clerkUser } = useUser()
@@ -167,6 +171,27 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
       setGroupFilter(null)
     }
   }, [gradeFilter])
+
+  // Manejar el retorno de Stripe Checkout
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const paymentStatus = urlParams.get('payment')
+    
+    if (paymentStatus === 'success') {
+      toast.success("¡Pago procesado exitosamente!", {
+        description: "El pago con tarjeta ha sido confirmado por Stripe.",
+        duration: 5000,
+      })
+      // Limpiar el parámetro de la URL
+      window.history.replaceState({}, '', window.location.pathname)
+    } else if (paymentStatus === 'cancelled') {
+      toast.info("Pago cancelado", {
+        description: "El pago fue cancelado. Puedes intentarlo nuevamente cuando gustes.",
+      })
+      // Limpiar el parámetro de la URL
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
 
   // Transformar datos de Convex para que coincidan con la interfaz
   const estudiantes: Estudiante[] = (paymentsData?.students || []).map(student => ({
@@ -1089,7 +1114,12 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
               Procesar Pago
             </DialogTitle>
             <DialogDescription>
-              Completa la información del pago a procesar
+              {paymentMethodType === "manual" 
+                ? "Completa la información del pago a procesar"
+                : paymentMethodType === "stripe"
+                  ? "Procesa el pago con tarjeta de crédito o débito"
+                  : "Genera los datos para realizar la transferencia bancaria"
+              }
             </DialogDescription>
           </DialogHeader>
 
@@ -1122,92 +1152,251 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
               </CardContent>
             </Card>
 
-            {/* Método de Pago */}
+            {/* Selección de tipo de pago */}
             <div className="space-y-3">
               <Label className="text-base font-semibold">Método de Pago</Label>
-              <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as "cash" | "bank_transfer" | "card" | "other")}>
+              <RadioGroup value={paymentMethodType} onValueChange={(value) => setPaymentMethodType(value as "manual" | "stripe" | "spei")}>
                 <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
-                  <RadioGroupItem value="cash" id="cash" />
-                  <Label htmlFor="cash" className="flex items-center gap-2 cursor-pointer flex-1">
+                  <RadioGroupItem value="manual" id="manual" />
+                  <Label htmlFor="manual" className="flex items-center gap-2 cursor-pointer flex-1">
                     <Banknote className="h-4 w-4" />
-                    Efectivo
+                    <div>
+                      <p className="font-medium">Registro Manual</p>
+                      <p className="text-xs text-muted-foreground">Efectivo u otro método - Procesamiento inmediato</p>
+                    </div>
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
-                  <RadioGroupItem value="bank_transfer" id="bank_transfer" />
-                  <Label htmlFor="bank_transfer" className="flex items-center gap-2 cursor-pointer flex-1">
+                  <RadioGroupItem value="stripe" id="stripe" />
+                  <Label htmlFor="stripe" className="flex items-center gap-2 cursor-pointer flex-1">
                     <CreditCard className="h-4 w-4" />
-                    Transferencia Bancaria
+                    <div>
+                      <p className="font-medium">Pago con Tarjeta (Stripe)</p>
+                      <p className="text-xs text-muted-foreground">Tarjeta de crédito o débito - Procesamiento inmediato</p>
+                    </div>
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
-                  <RadioGroupItem value="card" id="card" />
-                  <Label htmlFor="card" className="flex items-center gap-2 cursor-pointer flex-1">
-                    <CreditCard className="h-4 w-4" />
-                    Tarjeta
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
-                  <RadioGroupItem value="other" id="other" />
-                  <Label htmlFor="other" className="flex items-center gap-2 cursor-pointer flex-1">
-                    <DollarSign className="h-4 w-4" />
-                    Otro
+                  <RadioGroupItem value="spei" id="spei" />
+                  <Label htmlFor="spei" className="flex items-center gap-2 cursor-pointer flex-1">
+                    <Building2 className="h-4 w-4" />
+                    <div>
+                      <p className="font-medium">Transferencia Bancaria (SPEI)</p>
+                      <p className="text-xs text-muted-foreground">Genera datos para transferencia - Confirmación en 1-2 días</p>
+                    </div>
                   </Label>
                 </div>
               </RadioGroup>
             </div>
 
-            {/* Monto a Pagar */}
-            <div className="space-y-3">
-              <Label htmlFor="paymentAmount" className="text-base font-semibold">
-                Monto a Pagar
-              </Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
-                <Input
-                  id="paymentAmount"
-                  type="number"
-                  placeholder="0.00"
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
-                  className="pl-8 text-lg"
-                  min="0"
-                  step="0.01"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Puedes pagar el monto completo o realizar un abono parcial
-              </p>
-            </div>
-          </div>
+            {/* Contenido condicional basado en el tipo de pago */}
+            {paymentMethodType === "stripe" ? (
+              // Formulario de Stripe para tarjetas
+              <>
+                {(() => {
+                  const selectedPaymentsData = getSelectedPaymentsData()
+                  const firstPayment = selectedPaymentsData[0]
+                  
+                  if (selectedPaymentsData.length === 1 && firstPayment && currentSchool?.school._id && currentUser?._id) {
+                    return (
+                      <StripeCheckoutButton
+                        billingId={firstPayment.id as Id<"billing">}
+                        amount={firstPayment.amount}
+                        schoolId={currentSchool.school._id}
+                        studentId={firstPayment.studentId as Id<"student">}
+                        tutorId={currentUser._id}
+                        studentName={firstPayment.studentName}
+                        paymentType={firstPayment.paymentType}
+                        onCancel={closePaymentFormModal}
+                      />
+                    )
+                  }
+                  
+                  if (selectedPaymentsData.length > 1) {
+                    return (
+                      <div className="p-4 border rounded-lg bg-yellow-50 border-yellow-200">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-yellow-900">
+                              Pagos múltiples con tarjeta
+                            </p>
+                            <p className="text-xs text-yellow-700 mt-1">
+                              Por el momento, solo puedes procesar un pago a la vez con tarjeta. 
+                              Por favor, selecciona un solo cobro o usa el registro manual para múltiples pagos.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }
+                  
+                  return (
+                    <div className="p-4 border rounded-lg bg-red-50 border-red-200">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-red-900">
+                            Error de configuración
+                          </p>
+                          <p className="text-xs text-red-700 mt-1">
+                            No se pudo cargar la información necesaria. Por favor, recarga la página e intenta nuevamente.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
+              </>
+            ) : paymentMethodType === "spei" ? (
+              // Formulario de SPEI (transferencia bancaria)
+              <>
+                {(() => {
+                  const selectedPaymentsData = getSelectedPaymentsData()
+                  const firstPayment = selectedPaymentsData[0]
+                  
+                  if (selectedPaymentsData.length === 1 && firstPayment && currentSchool?.school._id && currentUser?._id) {
+                    // Obtener información del estudiante y tutor
+                    const estudiante = filteredEstudiantesByCycle.find((e) => e.id === firstPayment.studentId)
+                    
+                    // Usar el email del usuario actual (quien está haciendo el pago) o un email genérico
+                    const customerEmail = clerkUser?.primaryEmailAddress?.emailAddress || `tutor-${firstPayment.studentId}@school.com`
+                    const customerName = estudiante?.padre || firstPayment.studentName
+                    
+                    return (
+                      <SPEIPaymentForm
+                        billingId={firstPayment.id as Id<"billing">}
+                        amount={firstPayment.amount}
+                        schoolId={currentSchool.school._id}
+                        studentId={firstPayment.studentId as Id<"student">}
+                        tutorId={currentUser._id}
+                        studentName={firstPayment.studentName}
+                        paymentType={firstPayment.paymentType}
+                        customerEmail={customerEmail}
+                        customerName={customerName}
+                        onSuccess={() => {
+                          closePaymentFormModal()
+                          closePaymentModal()
+                        }}
+                        onCancel={closePaymentFormModal}
+                      />
+                    )
+                  }
+                  
+                  if (selectedPaymentsData.length > 1) {
+                    return (
+                      <div className="p-4 border rounded-lg bg-yellow-50 border-yellow-200">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-yellow-900">
+                              Pagos múltiples con SPEI
+                            </p>
+                            <p className="text-xs text-yellow-700 mt-1">
+                              Por el momento, solo puedes procesar un pago a la vez con SPEI. 
+                              Por favor, selecciona un solo cobro o usa el registro manual para múltiples pagos.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }
+                  
+                  return (
+                    <div className="p-4 border rounded-lg bg-red-50 border-red-200">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-red-900">
+                            Error de configuración
+                          </p>
+                          <p className="text-xs text-red-700 mt-1">
+                            No se pudo cargar la información necesaria. Por favor, recarga la página e intenta nuevamente.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
+              </>
+            ) : (
+              // Formulario manual (el original)
+              <>
+                {/* Método de Pago */}
+                <div className="space-y-3">
+                  <Label className="text-base font-semibold">Tipo de Pago</Label>
+                  <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as "cash" | "bank_transfer" | "card" | "other")}>
+                    <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
+                      <RadioGroupItem value="cash" id="cash" />
+                      <Label htmlFor="cash" className="flex items-center gap-2 cursor-pointer flex-1">
+                        <Banknote className="h-4 w-4" />
+                        Efectivo
+                      </Label>
+                    </div>        
 
-          <DialogFooter className="gap-2 flex-col sm:flex-row pt-4">
-            <Button 
-              variant="outline" 
-              onClick={closePaymentFormModal} 
-              disabled={isProcessingPayment}
-              className="w-full sm:w-auto order-2 sm:order-1"
-            >
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleConfirmPayment} 
-              disabled={isProcessingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0}
-              className="w-full sm:w-auto order-1 sm:order-2"
-            >
-              {isProcessingPayment ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Procesando...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Confirmar Pago
-                </>
-              )}
-            </Button>
-          </DialogFooter>
+                    <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
+                      <RadioGroupItem value="other" id="other" />
+                      <Label htmlFor="other" className="flex items-center gap-2 cursor-pointer flex-1">
+                        <DollarSign className="h-4 w-4" />
+                        Otro método
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                {/* Monto a Pagar */}
+                <div className="space-y-3">
+                  <Label htmlFor="paymentAmount" className="text-base font-semibold">
+                    Monto a Pagar
+                  </Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+                    <Input
+                      id="paymentAmount"
+                      type="number"
+                      placeholder="0.00"
+                      value={paymentAmount}
+                      onChange={(e) => setPaymentAmount(e.target.value)}
+                      className="pl-8 text-lg"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Puedes pagar el monto completo o realizar un abono parcial
+                  </p>
+                </div>
+
+                <DialogFooter className="gap-2 flex-col sm:flex-row pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={closePaymentFormModal} 
+                    disabled={isProcessingPayment}
+                    className="w-full sm:w-auto order-2 sm:order-1"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={handleConfirmPayment} 
+                    disabled={isProcessingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0}
+                    className="w-full sm:w-auto order-1 sm:order-2"
+                  >
+                    {isProcessingPayment ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Procesando...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Confirmar Pago
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

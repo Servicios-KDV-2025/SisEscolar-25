@@ -5,7 +5,8 @@ import Stripe from "stripe";
 import { internal } from "../_generated/api";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-07-30.basil",
+  // apiVersion: "2025-07-30.basil",
+  apiVersion: "2025-09-30.clover",
 });
 
 // Crear una cuenta conectada para una escuela
@@ -25,7 +26,7 @@ export const createConnectedAccount = action({
 
     // Crear la cuenta conectada en Stripe
     const account = await stripe.accounts.create({
-      type: "standard",
+      type: "express",
       country: "MX",
       email: args.email,
       capabilities: {
@@ -35,9 +36,7 @@ export const createConnectedAccount = action({
         transfers: {
           requested: true,
         },
-        oxxo_payments: {
-          requested: true,
-        },
+        
       },
       business_profile: {
         name: school.name,
