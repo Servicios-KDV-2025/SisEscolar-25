@@ -113,6 +113,10 @@ export function CustomPortableText({
       grid : ({ value }) => {
         return <GridBlock {...value} />
       },
+       paymentStatus: ({ value }) => {
+        const { status } = value || {};
+        return <div>Payment Status: {status}</div>;
+      }
     },
   }
 
