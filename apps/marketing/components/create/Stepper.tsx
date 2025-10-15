@@ -36,8 +36,8 @@ export const Stepper: React.FC = () => {
 const StepperContent = () => {
   const { isSignedIn, isLoaded, signOut } = useAuth()
   const [ready, setReady] = useState(false)
-  const [isSelect, setSelected] = useState<string>('')
-  const [schooldId, setSchoolId] = useState<string>('')
+  const [, setSelected] = useState<string>('')
+  const [, setSchoolId] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
  
   //const { signOut } = useClerk()

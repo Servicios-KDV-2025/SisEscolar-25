@@ -22,7 +22,7 @@ export const Prices = ({ onSelect }: PricesProps) => {
         setLoading(true)
         const data = await clientBrowser.fetch(pricesQuery)
         if (!cancelled) setPrices((data as PricesQueryResult) ?? [])
-      } catch (e) {
+      } catch {
         if (!cancelled) setError('No se pudieron cargar los planes')
       } finally {
         if (!cancelled) setLoading(false)
