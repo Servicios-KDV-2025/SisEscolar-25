@@ -181,7 +181,6 @@ export type InfoBlock = {
   title?: string;
   subtitle?: string;
   description?: string;
-<<<<<<< HEAD
 };
 
 export type PaymentStatus = {
@@ -205,8 +204,6 @@ export type PaymentStatus = {
     label?: string;
     url?: string;
   };
-=======
->>>>>>> 386d07c84f741a171fca3bbcd0be383ccc9cc288
 };
 
 export type CtaSection = {
@@ -273,6 +270,21 @@ export type LinkExternal = {
   _type: "linkExternal";
   label?: string;
   url?: string;
+};
+
+export type Price = {
+  _id: string;
+  _type: "price";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  price?: number;
+  title?: string;
+  id_stripe?: string;
+  description?: string;
+  features?: {
+    featureList?: Array<string>;
+  };
 };
 
 export type Project = {
@@ -402,19 +414,7 @@ export type Page = {
     _key: string;
   } & Carousel | {
     _key: string;
-<<<<<<< HEAD
   } & PaymentStatus | {
-=======
-  } & Acordeon | {
-    _key: string;
-  } & CarouselAvatar | {
-    _key: string;
-  } & ContentWithMedia | {
-    _key: string;
-  } & PriceBlock | {
-    _key: string;
-  } & Grid | {
->>>>>>> 386d07c84f741a171fca3bbcd0be383ccc9cc288
     asset?: {
       _ref: string;
       _type: "reference";
@@ -566,19 +566,7 @@ export type Home = {
     _key: string;
   } & Carousel | {
     _key: string;
-<<<<<<< HEAD
   } & PaymentStatus | {
-=======
-  } & Acordeon | {
-    _key: string;
-  } & CarouselAvatar | {
-    _key: string;
-  } & ContentWithMedia | {
-    _key: string;
-  } & PriceBlock | {
-    _key: string;
-  } & Grid | {
->>>>>>> 386d07c84f741a171fca3bbcd0be383ccc9cc288
     asset?: {
       _ref: string;
       _type: "reference";
@@ -600,21 +588,6 @@ export type Home = {
     _key: string;
     [internalGroqTypeReferenceTo]?: "project";
   }>;
-};
-
-export type Price = {
-  _id: string;
-  _type: "price";
-  _createdAt: string;
-  _updatedAt: string;
-  _rev: string;
-  price?: number;
-  title?: string;
-  id_stripe?: string;
-  description?: string;
-  features?: {
-    featureList?: Array<string>;
-  };
 };
 
 export type SanityImagePaletteSwatch = {
@@ -735,11 +708,7 @@ export type SanityAssetSourceData = {
   url?: string;
 };
 
-<<<<<<< HEAD
-export type AllSanitySchemaTypes = Carousel | ImagewithText | InfoBlock | PaymentStatus | CtaSection | StatsSection | FeatureSection | FeatureItem | HeroSection | LinkExternal | Project | Page | Duration | Settings | Footer | LinkInternal | Nav | Home | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageHotspot | SanityImageCrop | SanityFileAsset | SanityImageAsset | SanityImageMetadata | Geopoint | Slug | SanityAssetSourceData;
-=======
-export type AllSanitySchemaTypes = Grid | PriceBlock | ContentWithMedia | CarouselAvatar | Acordeon | Carousel | ImagewithText | InfoBlock | CtaSection | StatsSection | FeatureSection | FeatureItem | HeroSection | LinkExternal | Project | Page | Duration | Settings | Footer | LinkInternal | Nav | Home | Price | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageHotspot | SanityImageCrop | SanityFileAsset | SanityImageAsset | SanityImageMetadata | Geopoint | Slug | SanityAssetSourceData;
->>>>>>> 386d07c84f741a171fca3bbcd0be383ccc9cc288
+export type AllSanitySchemaTypes = Grid | PriceBlock | ContentWithMedia | CarouselAvatar | Acordeon | Carousel | ImagewithText | InfoBlock | PaymentStatus | CtaSection | StatsSection | FeatureSection | FeatureItem | HeroSection | LinkExternal | Price | Project | Page | Duration | Settings | Footer | LinkInternal | Nav | Home | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageHotspot | SanityImageCrop | SanityFileAsset | SanityImageAsset | SanityImageMetadata | Geopoint | Slug | SanityAssetSourceData;
 export declare const internalGroqTypeReferenceTo: unique symbol;
 // Source: ./sanity/lib/queries.ts
 // Variable: homePageQuery
@@ -800,34 +769,6 @@ export type HomePageQueryResult = {
     title: string | null;
   }> | null;
   body: Array<{
-    _key: string;
-<<<<<<< HEAD
-  } & Carousel | {
-    _key: string;
-  } & CtaSection | {
-    _key: string;
-  } & FeatureSection | {
-    _key: string;
-  } & HeroSection | {
-    _key: string;
-  } & ImagewithText | {
-    _key: string;
-  } & InfoBlock | {
-    _key: string;
-  } & PaymentStatus | {
-    _key: string;
-  } & StatsSection | {
-=======
-    _type: "acordeon";
-    titulo?: string;
-    items?: Array<{
-      titulo?: string;
-      contenido?: string;
-      _type: "acordeonItem";
-      _key: string;
-    }>;
-  } | {
->>>>>>> 386d07c84f741a171fca3bbcd0be383ccc9cc288
     children?: Array<{
       marks?: Array<string>;
       text?: string;
@@ -863,62 +804,6 @@ export type HomePageQueryResult = {
     }>;
   } | {
     _key: string;
-    _type: "carouselAvatar";
-    titulo?: string;
-    empleados?: Array<{
-      imagen?: {
-        asset?: {
-          _ref: string;
-          _type: "reference";
-          _weak?: boolean;
-          [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
-        };
-        media?: unknown;
-        hotspot?: SanityImageHotspot;
-        crop?: SanityImageCrop;
-        _type: "image";
-      };
-      puesto?: string;
-      descripcion?: string;
-      _type: "empleado";
-      _key: string;
-    }>;
-  } | {
-    _key: string;
-    _type: "contentWithMedia";
-    body?: Array<{
-      children?: Array<{
-        marks?: Array<string>;
-        text?: string;
-        _type: "span";
-        _key: string;
-      }>;
-      style?: "blockquote" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "normal";
-      listItem?: "bullet" | "number";
-      markDefs?: Array<{
-        href?: string;
-        _type: "link";
-        _key: string;
-      }>;
-      level?: number;
-      _type: "block";
-      _key: string;
-    }>;
-    image?: {
-      asset?: {
-        _ref: string;
-        _type: "reference";
-        _weak?: boolean;
-        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
-      };
-      media?: unknown;
-      hotspot?: SanityImageHotspot;
-      crop?: SanityImageCrop;
-      _type: "image";
-    };
-    textPosition?: "Left" | "Right";
-  } | {
-    _key: string;
     _type: "ctaSection";
     titulo?: string;
     subtitulo?: string;
@@ -935,48 +820,6 @@ export type HomePageQueryResult = {
     features?: Array<{
       _key: string;
     } & FeatureItem>;
-  } | {
-    _key: string;
-    _type: "grid";
-    items: Array<{
-      image?: {
-        asset?: {
-          _ref: string;
-          _type: "reference";
-          _weak?: boolean;
-          [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
-        };
-        media?: unknown;
-        hotspot?: SanityImageHotspot;
-        crop?: SanityImageCrop;
-        _type: "image";
-      };
-      alt?: string;
-      _type: "imageItem";
-      _key: string;
-    } | {
-      price: {
-        _id: string;
-        _type: "price";
-        _createdAt: string;
-        _updatedAt: string;
-        _rev: string;
-        price?: number;
-        title?: string;
-        id_stripe?: string;
-        description?: string;
-        features?: {
-          featureList?: Array<string>;
-        };
-      } | null;
-      _type: "priceItem";
-      _key: string;
-    } | {
-      title?: string;
-      description?: string;
-      _type: "textItem";
-      _key: string;
-    }> | null;
   } | {
     _key: string;
     _type: "heroSection";
@@ -1050,21 +893,26 @@ export type HomePageQueryResult = {
     description?: string;
   } | {
     _key: string;
-    _type: "priceBlock";
-    price: {
-      _id: string;
-      _type: "price";
-      _createdAt: string;
-      _updatedAt: string;
-      _rev: string;
-      price?: number;
-      title?: string;
-      id_stripe?: string;
-      description?: string;
-      features?: {
-        featureList?: Array<string>;
+    _type: "paymentStatus";
+    status?: "cancelled" | "success";
+    title?: string;
+    message?: string;
+    image?: {
+      asset?: {
+        _ref: string;
+        _type: "reference";
+        _weak?: boolean;
+        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
       };
-    } | null;
+      media?: unknown;
+      hotspot?: SanityImageHotspot;
+      crop?: SanityImageCrop;
+      _type: "image";
+    };
+    button?: {
+      label?: string;
+      url?: string;
+    };
   } | {
     _key: string;
     _type: "statsSection";
@@ -1085,34 +933,6 @@ export type PagesBySlugQueryResult = {
   _id: string;
   _type: "page";
   body: Array<{
-    _key: string;
-<<<<<<< HEAD
-  } & Carousel | {
-    _key: string;
-  } & CtaSection | {
-    _key: string;
-  } & FeatureSection | {
-    _key: string;
-  } & HeroSection | {
-    _key: string;
-  } & ImagewithText | {
-    _key: string;
-  } & InfoBlock | {
-    _key: string;
-  } & PaymentStatus | {
-    _key: string;
-  } & StatsSection | {
-=======
-    _type: "acordeon";
-    titulo?: string;
-    items?: Array<{
-      titulo?: string;
-      contenido?: string;
-      _type: "acordeonItem";
-      _key: string;
-    }>;
-  } | {
->>>>>>> 386d07c84f741a171fca3bbcd0be383ccc9cc288
     children?: Array<{
       marks?: Array<string>;
       text?: string;
@@ -1148,62 +968,6 @@ export type PagesBySlugQueryResult = {
     }>;
   } | {
     _key: string;
-    _type: "carouselAvatar";
-    titulo?: string;
-    empleados?: Array<{
-      imagen?: {
-        asset?: {
-          _ref: string;
-          _type: "reference";
-          _weak?: boolean;
-          [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
-        };
-        media?: unknown;
-        hotspot?: SanityImageHotspot;
-        crop?: SanityImageCrop;
-        _type: "image";
-      };
-      puesto?: string;
-      descripcion?: string;
-      _type: "empleado";
-      _key: string;
-    }>;
-  } | {
-    _key: string;
-    _type: "contentWithMedia";
-    body?: Array<{
-      children?: Array<{
-        marks?: Array<string>;
-        text?: string;
-        _type: "span";
-        _key: string;
-      }>;
-      style?: "blockquote" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "normal";
-      listItem?: "bullet" | "number";
-      markDefs?: Array<{
-        href?: string;
-        _type: "link";
-        _key: string;
-      }>;
-      level?: number;
-      _type: "block";
-      _key: string;
-    }>;
-    image?: {
-      asset?: {
-        _ref: string;
-        _type: "reference";
-        _weak?: boolean;
-        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
-      };
-      media?: unknown;
-      hotspot?: SanityImageHotspot;
-      crop?: SanityImageCrop;
-      _type: "image";
-    };
-    textPosition?: "Left" | "Right";
-  } | {
-    _key: string;
     _type: "ctaSection";
     titulo?: string;
     subtitulo?: string;
@@ -1220,40 +984,6 @@ export type PagesBySlugQueryResult = {
     features?: Array<{
       _key: string;
     } & FeatureItem>;
-  } | {
-    _key: string;
-    _type: "grid";
-    items?: Array<{
-      image?: {
-        asset?: {
-          _ref: string;
-          _type: "reference";
-          _weak?: boolean;
-          [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
-        };
-        media?: unknown;
-        hotspot?: SanityImageHotspot;
-        crop?: SanityImageCrop;
-        _type: "image";
-      };
-      alt?: string;
-      _type: "imageItem";
-      _key: string;
-    } | {
-      price?: {
-        _ref: string;
-        _type: "reference";
-        _weak?: boolean;
-        [internalGroqTypeReferenceTo]?: "price";
-      };
-      _type: "priceItem";
-      _key: string;
-    } | {
-      title?: string;
-      description?: string;
-      _type: "textItem";
-      _key: string;
-    }>;
   } | {
     _key: string;
     _type: "heroSection";
@@ -1327,21 +1057,26 @@ export type PagesBySlugQueryResult = {
     description?: string;
   } | {
     _key: string;
-    _type: "priceBlock";
-    price: {
-      _id: string;
-      _type: "price";
-      _createdAt: string;
-      _updatedAt: string;
-      _rev: string;
-      price?: number;
-      title?: string;
-      id_stripe?: string;
-      description?: string;
-      features?: {
-        featureList?: Array<string>;
+    _type: "paymentStatus";
+    status?: "cancelled" | "success";
+    title?: string;
+    message?: string;
+    image?: {
+      asset?: {
+        _ref: string;
+        _type: "reference";
+        _weak?: boolean;
+        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
       };
-    } | null;
+      media?: unknown;
+      hotspot?: SanityImageHotspot;
+      crop?: SanityImageCrop;
+      _type: "image";
+    };
+    button?: {
+      label?: string;
+      url?: string;
+    };
   } | {
     _key: string;
     _type: "statsSection";

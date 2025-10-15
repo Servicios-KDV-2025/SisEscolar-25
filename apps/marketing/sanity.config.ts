@@ -28,18 +28,13 @@ import ctaSection from '@/sanity/schemas/objects/modules/ctaSection'
 import infoBlock from '@/sanity/schemas/objects/modules/infoBlock'
 import ImagewithText from '@/sanity/schemas/objects/modules/ImagewithText'
 import carousel from '@/sanity/schemas/objects/modules/carousel'
-<<<<<<< HEAD
-import paymentStatus from '@/sanity/schemas/objects/modules/Payment'
-
-=======
 import acordeon from './sanity/schemas/objects/modules/acordeon'
 import carouselavatar from './sanity/schemas/objects/modules/carouselavatar'
 import contentwithmedia from './sanity/schemas/objects/modules/contentwithmedia'
 import price from './sanity/schemas/documents/price'
 import priceblock from './sanity/schemas/objects/modules/priceblock'
 import { gridType } from './sanity/schemas/objects/modules/gridType'
->>>>>>> 386d07c84f741a171fca3bbcd0be383ccc9cc288
-
+import paymentStatus from '@/sanity/schemas/objects/modules/Payment'
 const title =
   process.env.NEXT_PUBLIC_SANITY_PROJECT_TITLE || 'Next.js Personal Website with Sanity.io'
 
