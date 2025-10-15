@@ -27,6 +27,31 @@ export const usePermissions = (schoolId?: string) => {
     { action: "read", resource: "users" },
     { action: "update", resource: "users" },
     { action: "delete", resource: "users" },
+
+    // Perfil Institucional
+    { action: "read", resource: "perfil_institucional" },
+    { action: "update", resource: "perfil_institucional" },
+
+    // paginia de inicio
+    { action: "read", resource: "inicio_info" },
+
+    //pagina de tutores
+    { action: "create", resource: "users_tutores" },
+    { action: "read", resource: "users_tutores" },
+    { action: "update", resource: "users_tutores" },
+    { action: "delete", resource: "users_tutores" },
+
+    // pagina de personal
+    { action: "create", resource: "users_personal" },
+    { action: "read", resource: "users_personal" },
+    { action: "update", resource: "users_personal" },
+    { action: "delete", resource: "users_personal" },
+
+    // pagina de alumnos
+    { action: "create", resource: "users_alumnos" },
+    { action: "read", resource: "users_alumnos" },
+    { action: "update", resource: "users_alumnos" },
+    { action: "delete", resource: "users_alumnos" },
     //Aulas
     { action: "create", resource: "classroom" },
     { action: "read", resource: "classroom" },
@@ -62,6 +87,13 @@ export const usePermissions = (schoolId?: string) => {
     { action: "read", resource: "term" },
     { action: "update", resource: "term" },
     { action: "delete", resource: "term" },
+
+    //suscripciones
+    { action: "create", resource: "suscripciones" },
+    { action: "read", resource: "suscripciones" },
+    { action: "update", resource: "suscripciones" },
+    { action: "delete", resource: "suscripciones" },
+    
 
     //Class Catalog
     { action: "create", resource: "classCatalog" },
@@ -105,6 +137,31 @@ export const usePermissions = (schoolId?: string) => {
       "update:users": true,
       "delete:users": true,
 
+      //permisos perfil institucional
+      "read:perfil_institucional": true,
+      "update:perfil_institucional": true,
+
+      // permisos pagina de inicio
+      "read:inicio_info": true,
+
+      // permisos pagina de tutores
+      "create:users_tutores": true,
+      "read:users_tutores": true,
+      "update:users_tutores": true,
+      "delete:users_tutores": true,
+
+      // permisos pagina de alumnos
+      "create:users_alumnos": true,
+      "read:users_alumnos": true,
+      "update:users_alumnos": true,
+      "delete:users_alumnos": true,
+
+      //  pagina de personal
+      "create:users_personal": true,
+      "read:users_personal": true,
+      "update:users_personal": true,
+      "delete:users_personal": true,
+
       //Aulas
       "create:classroom": true,
       "read:classroom": true,
@@ -140,6 +197,11 @@ export const usePermissions = (schoolId?: string) => {
       "read:term": true,
       "update:term": true,
       "delete:term": true,
+      //suscripciones
+      "create:suscripciones": true,
+      "read:suscripciones": true,
+      "update:suscripciones": true,
+      "delete:suscripciones": true,
 
       //Class Catalog
       "create:classCatalog": true,
@@ -178,6 +240,31 @@ export const usePermissions = (schoolId?: string) => {
       "read:users": true,
       "update:users": true,
       "delete:users": true,
+
+      //permisos perfil institucional
+      "read:perfil_institucional": true,
+      "update:perfil_institucional": true,
+
+      // permisos pagina de inicio
+      "read:inicio_info": true,
+
+      // permisos pagina de tutores
+      "create:users_tutores": true,
+      "read:users_tutores": true,
+      "update:users_tutores": true,
+      "delete:users_tutores": true,
+
+      // permisos pagina de alumnos
+      "create:users_alumnos": true,
+      "read:users_alumnos": true,
+      "update:users_alumnos": true,
+      "delete:users_alumnos": true,
+
+      //  pagina de personal
+      "create:users_personal": true,
+      "read:users_personal": true,
+      "update:users_personal": true,
+      "delete:users_personal": false,
       //Aulas
       "create:classroom": true,
       "read:classroom": true,
@@ -213,6 +300,11 @@ export const usePermissions = (schoolId?: string) => {
       "read:term": true,
       "update:term": true,
       "delete:term": true,
+      //suscripciones
+      "create:suscripciones": false,
+      "read:suscripciones": false,
+      "update:suscripciones": false,
+      "delete:suscripciones": false,
 
       //Class Catalog
       "create:classCatalog": true,
@@ -251,6 +343,31 @@ export const usePermissions = (schoolId?: string) => {
       "read:users": true,
       "update:users": false,
       "delete:users": false,
+
+      //permisos perfil institucional
+      "read:perfil_institucional": true,
+      "update:perfil_institucional": false,
+
+      // permisos pagina de inicio
+      "read:inicio_info": true,
+
+      // permisos pagina de tutores
+      "create:users_tutores": false,
+      "read:users_tutores": true,
+      "update:users_tutores": false,
+      "delete:users_tutores": false,
+
+      // permisos pagina de alumnos
+      "create:users_alumnos": false,
+      "read:users_alumnos": true,
+      "update:users_alumnos": false,
+      "delete:users_alumnos": false,
+
+      //  pagina de personal
+      "create:users_personal": false,
+      "read:users_personal": true,
+      "update:users_personal": false,
+      "delete:users_personal": false,
       //Aulas
       "create:classroom": false,
       "read:classroom": true,
@@ -286,6 +403,12 @@ export const usePermissions = (schoolId?: string) => {
       "read:term": true,
       "update:term": false,
       "delete:term": false,
+//suscripciones
+      "create:suscripciones": false,
+      "read:suscripciones": false,
+      "update:suscripciones": false,
+      "delete:suscripciones": false,
+      
 
       //Class Catalog
       "create:classCatalog": false,
@@ -321,9 +444,34 @@ export const usePermissions = (schoolId?: string) => {
     teacher: {
       // Profesor similar al tutor pero con menos permisos
       "create:users": false,
-      "read:users": true, // Solo usuarios de sus materias
+      "read:users": false, // Solo usuarios de sus materias
       "update:users": false,
       "delete:users": false,
+
+      //permisos perfil institucional
+      "read:perfil_institucional": true,
+      "update:perfil_institucional": false,
+
+      // permisos pagina de inicio
+      "read:inicio_info": false,
+
+      // permisos pagina de tutores
+      "create:users_tutores": false,
+      "read:users_tutores": false,
+      "update:users_tutores": false,
+      "delete:users_tutores": false,
+
+      // permisos pagina de alumnos
+      "create:users_alumnos": false,
+      "read:users_alumnos": false,
+      "update:users_alumnos": false,
+      "delete:users_alumnos": false,
+
+      //  pagina de personal
+      "create:users_personal": false,
+      "read:users_personal": false,
+      "update:users_personal": false,
+      "delete:users_personal": false,
       //Aulas
       "create:classroom": false,
       "read:classroom": false,
@@ -359,6 +507,11 @@ export const usePermissions = (schoolId?: string) => {
       "read:term": true,
       "update:term": false,
       "delete:term": false,
+      //suscripciones
+      "create:suscripciones": false,
+      "read:suscripciones": false,
+      "update:suscripciones": false,
+      "delete:suscripciones": false,
 
       //Students Classes
       "create:studentsClasses": false,
@@ -392,6 +545,31 @@ export const usePermissions = (schoolId?: string) => {
       "read:users": true, // Solo podra ver a sus hijos
       "update:users": false,
       "delete:users": false,
+
+      //permisos perfil institucional
+      "read:perfil_institucional": true,
+      "update:perfil_institucional": false,
+
+      // permisos pagina de inicio
+      "read:inicio_info": false,
+
+      // permisos pagina de tutores
+      "create:users_tutores": false,
+      "read:users_tutores": false,
+      "update:users_tutores": false,
+      "delete:users_tutores": false,
+
+      // permisos pagina de alumnos
+      "create:users_alumnos": false,
+      "read:users_alumnos": false,
+      "update:users_alumnos": false,
+      "delete:users_alumnos": false,
+
+      //  pagina de personal
+      "create:users_personal": false,
+      "read:users_personal": false,
+      "update:users_personal": false,
+      "delete:users_personal": false,
       //Aulas
       "create:classroom": false,
       "read:classroom": false,
@@ -427,6 +605,11 @@ export const usePermissions = (schoolId?: string) => {
       "read:term": false,
       "update:term": false,
       "delete:term": false,
+      //suscripciones
+      "create:suscripciones": false,
+      "read:suscripciones": false,
+      "update:suscripciones": false,
+      "delete:suscripciones": false,
 
       //Students Classes
       "create:studentsClasses": false,
@@ -651,6 +834,11 @@ export const usePermissions = (schoolId?: string) => {
     canReadTerm: permissions["read:term"] || false,
     canUpdateTerm: permissions["update:term"] || false,
     canDeleteTerm: permissions["delete:term"] || false,
+    //suscripciones
+    canCreateSuscripciones: permissions["create:suscripciones"] || false,
+    canReadSuscripciones: permissions["read:suscripciones"] || false,
+    canUpdateSuscripciones: permissions["update:suscripciones"] || false,
+    canDeleteSuscripciones: permissions["delete:suscripciones"] || false,
 
     /** Class Catalog */
     canCreateClassCatalog: permissions["create:classCatalog"] || false,
@@ -690,7 +878,32 @@ export const usePermissions = (schoolId?: string) => {
     isTeacher: hasRole("teacher"),
     isTutor: hasRole("tutor"),
 
+    // Permisos perfil institucional
+    canReadPerfilInstitucional: permissions["read:perfil_institucional"] || false,
+    canUpdatePerfilInstitucional: permissions["update:perfil_institucional"] || false,
+
+    // Permisos pagina de inicio
+    canReadInicioInfo: permissions["read:inicio_info"] || false,
+
+    // Permisos pagina de tutores
+    canCreateUsersTutores: permissions["create:users_tutores"] || false,
+    canReadUsersTutores: permissions["read:users_tutores"] || false,
+    canUpdateUsersTutores: permissions["update:users_tutores"] || false,
+    canDeleteUsersTutores: permissions["delete:users_tutores"] || false,
+
+    // Permisos pagina de alumnos
+    canCreateUsersAlumnos: permissions["create:users_alumnos"] || false,
+    canReadUsersAlumnos: permissions["read:users_alumnos"] || false,
+    canUpdateUsersAlumnos: permissions["update:users_alumnos"] || false,
+    canDeleteUsersAlumnos: permissions["delete:users_alumnos"] || false,
+
+    // Permisos pagina de personal
+    canCreateUsersPersonal: permissions["create:users_personal"] || false,
+    canReadUsersPersonal: permissions["read:users_personal"] || false,
+    canUpdateUsersPersonal: permissions["update:users_personal"] || false,
+    canDeleteUsersPersonal: permissions["delete:users_personal"] || false,
+
     // Filtros para estudiantes
     getStudentFilters,
   };
-};
+}

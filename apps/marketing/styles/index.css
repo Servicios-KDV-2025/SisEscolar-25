@@ -16,3 +16,31 @@ ul {
 ol {
   list-style-type: disc;
 }
+
+/*  DISEÑO PARA QUE LA ALINEACION DE LA IMAGEN SE DETECTE*/
+.image-with-text {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* imagen a la izquierda (por defecto) */
+.image-with-text.img-left {
+  flex-direction: row;
+}
+
+/* imagen a la derecha */
+.image-with-text.img-right {
+  flex-direction: row-reverse;
+}
+
+.image-with-text .image-wrap img {
+  width: 220px; 
+  height: auto;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.image-with-text .content {
+  max-width: 60ch;
+}

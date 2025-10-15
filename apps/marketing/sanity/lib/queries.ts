@@ -17,6 +17,20 @@ export const homePageQuery = defineQuery(`
         title,
       }
     },
+    body[]{
+      ...,
+      _type == 'priceBlock' =>{
+        price->
+      },
+      _type == 'grid' => {
+        items[]{
+          ...,
+          _type == 'priceItem' => {
+            price->
+          }
+        },
+      },
+    },
     title,
   }
 `)
@@ -29,6 +43,12 @@ export const pagesBySlugQuery = defineQuery(`
     overview,
     title,
     "slug": slug.current,
+    body[]{
+      ...,
+      _type == 'priceBlock' =>{
+        price->
+      }
+    },
   }
 `)
 
@@ -62,9 +82,49 @@ export const settingsQuery = defineQuery(`
       }
     },
     ogImage,
+    nav{
+      menus[]{
+        ...,
+        "slug": link.reference -> slug.current,
+        "type_reference" : link.reference-> _type,
+        submenus[]{
+          ...,
+          "slug": link.reference -> slug.current,
+          "type_reference" : link.reference-> _type,
+        }
+      }
+    },
+    footer{
+      ...,
+      columns[]{
+        ...,
+        links[]{
+          ...,
+          "url" : select(
+          _type == 'linkExternal' =>url,
+          _type == 'linkInternal' =>reference->slug.current
+          ),
+          _type == 'linkInternal' => {
+            "type_reference": reference->_type
+          }
+        }
+      }
+    },
   }
 `)
 
 export const slugsByTypeQuery = defineQuery(`
   *[_type == $type && defined(slug.current)]{"slug": slug.current}
 `)
+
+export const pricesQuery = defineQuery(
+  `*[_type == "price"]{
+    _id,
+    price,
+    title,
+    id_stripe,
+    features{
+      ...,
+      
+    }
+  }`)

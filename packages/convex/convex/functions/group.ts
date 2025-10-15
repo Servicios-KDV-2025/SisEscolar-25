@@ -1,5 +1,5 @@
 import { mutation, query } from "../_generated/server";
-import { v } from "convex/values";
+import { convexToJson, v } from "convex/values";
 
 export const createGroup = mutation({
   args: {
@@ -112,5 +112,22 @@ export const deleteGroup = mutation({
       throw new Error("Acceso denegado o grupo no encontrado");
     }
     await ctx.db.delete(args._id);
+  },
+});
+
+
+
+export const getUniqueGrades = query({
+  args:{schoolId: v.id("school")},
+  handler : async(ctx,args) =>{
+    const grooups = await ctx.db
+    .query("group")
+    .withIndex("by_school", q => q.eq("schoolId", args.schoolId))
+    .filter(q => q.eq(q.field("status"), "active"))
+    .collect();
+
+     const uniqueGrades = [...new Set(grooups.map(group => group.grade))]
+
+     return uniqueGrades;
   },
 });

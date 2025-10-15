@@ -16,6 +16,9 @@ import type {
 import type * as actions_users from "../actions/users.js";
 import type * as functions_assignment from "../functions/assignment.js";
 import type * as functions_attendance from "../functions/attendance.js";
+import type * as functions_billing from "../functions/billing.js";
+import type * as functions_billingConfig from "../functions/billingConfig.js";
+import type * as functions_billingRule from "../functions/billingRule.js";
 import type * as functions_calendar from "../functions/calendar.js";
 import type * as functions_classCatalog from "../functions/classCatalog.js";
 import type * as functions_classSchedule from "../functions/classSchedule.js";
@@ -24,6 +27,7 @@ import type * as functions_eventType from "../functions/eventType.js";
 import type * as functions_gradeRubrics from "../functions/gradeRubrics.js";
 import type * as functions_grades from "../functions/grades.js";
 import type * as functions_group from "../functions/group.js";
+import type * as functions_payments from "../functions/payments.js";
 import type * as functions_schedule from "../functions/schedule.js";
 import type * as functions_schoolCycles from "../functions/schoolCycles.js";
 import type * as functions_schoolSubscriptions from "../functions/schoolSubscriptions.js";
@@ -50,6 +54,9 @@ declare const fullApi: ApiFromModules<{
   "actions/users": typeof actions_users;
   "functions/assignment": typeof functions_assignment;
   "functions/attendance": typeof functions_attendance;
+  "functions/billing": typeof functions_billing;
+  "functions/billingConfig": typeof functions_billingConfig;
+  "functions/billingRule": typeof functions_billingRule;
   "functions/calendar": typeof functions_calendar;
   "functions/classCatalog": typeof functions_classCatalog;
   "functions/classSchedule": typeof functions_classSchedule;
@@ -58,6 +65,7 @@ declare const fullApi: ApiFromModules<{
   "functions/gradeRubrics": typeof functions_gradeRubrics;
   "functions/grades": typeof functions_grades;
   "functions/group": typeof functions_group;
+  "functions/payments": typeof functions_payments;
   "functions/schedule": typeof functions_schedule;
   "functions/schoolCycles": typeof functions_schoolCycles;
   "functions/schoolSubscriptions": typeof functions_schoolSubscriptions;
