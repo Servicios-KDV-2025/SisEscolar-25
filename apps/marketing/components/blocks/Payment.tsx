@@ -274,12 +274,12 @@ const imageAlt = image?.alt || title || "Imagen";
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               {button?.url && (
-                <a
+                <link
                   href={button.url}
                   className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105"
                 >
                   {button.label ?? "Volver"}
-                </a>
+                </link>
               )}
 
               <button
@@ -308,19 +308,19 @@ const imageAlt = image?.alt || title || "Imagen";
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <a
+                <link
                   href="/contact"
                   className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105"
                 >
                   Contactar Soporte
-                </a>
+                </link>
 
-                <a
+                <link
                   href="/"
                   className="inline-flex items-center px-8 py-4 bg-gray-600 hover:bg-gray-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105"
                 >
                   Volver al Inicio
-                </a>
+                </link>
               </div>
             </div>
           </div>
