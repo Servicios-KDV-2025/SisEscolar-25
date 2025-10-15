@@ -19,6 +19,7 @@ import { api } from "@repo/convex/convex/_generated/api";
 import { toast } from "sonner";
 import { useForm, UseFormRegister, FieldError } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import Image from "next/image";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import {
   schoolValidationSchema,
@@ -178,10 +179,12 @@ export default function ConfiguracionPage() {
             <Label>Logo Institucional</Label>
             <div className="relative aspect-square max-w-[220px] rounded-2xl shadow-lg overflow-hidden">
               {imgUrlValue != " " && imgUrlValue ? (
-                <img
+                <Image
                   src={imgUrlValue!}
                   alt="Logo de la escuela"
                   className="w-full h-full object-cover"
+                  fill
+                  unoptimized={true}
                 />
               ) : (
                 <div className="relative aspect-square max-w-[220px] rounded-2xl shadow-lg overflow-hidden flex items-center justify-center">

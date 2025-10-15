@@ -197,10 +197,12 @@ export default function EscuelaHome() {
           {/* Imagen de fondo */}
           <div className="absolute inset-0">
             {schoolData.imgUrl && schoolData.imgUrl !== "/avatars/default-school.jpg" ? (
-              <img
+              <Image
                 src={schoolData.imgUrl}
                 alt={schoolData.name}
+                fill
                 className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                unoptimized={true}
               />
 
             ) : (
@@ -211,7 +213,7 @@ export default function EscuelaHome() {
           </div>
 
           {/* Overlay difuminado en la parte inferior */}
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent backdrop-blur-sm p-6">
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent backdrop-blur-sm p-6">
             {/* Nombre y estado */}
             <div className="mb-3 flex items-start justify-between gap-3">
               <h1 className="text-balance text-2xl font-bold text-white leading-tight">
@@ -269,6 +271,7 @@ export default function EscuelaHome() {
                       alt="Logo de la escuela"
                       fill
                       className="object-cover"
+                      unoptimized={true}
                     />
                   </div>
                 ) : (
