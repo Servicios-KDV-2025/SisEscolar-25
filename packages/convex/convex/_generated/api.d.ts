@@ -17,6 +17,8 @@ import type * as actions_users from "../actions/users.js";
 import type * as functions_assignment from "../functions/assignment.js";
 import type * as functions_attendance from "../functions/attendance.js";
 import type * as functions_billing from "../functions/billing.js";
+import type * as functions_billingConfig from "../functions/billingConfig.js";
+import type * as functions_billingRule from "../functions/billingRule.js";
 import type * as functions_calendar from "../functions/calendar.js";
 import type * as functions_classCatalog from "../functions/classCatalog.js";
 import type * as functions_classSchedule from "../functions/classSchedule.js";
@@ -55,6 +57,8 @@ declare const fullApi: ApiFromModules<{
   "functions/assignment": typeof functions_assignment;
   "functions/attendance": typeof functions_attendance;
   "functions/billing": typeof functions_billing;
+  "functions/billingConfig": typeof functions_billingConfig;
+  "functions/billingRule": typeof functions_billingRule;
   "functions/calendar": typeof functions_calendar;
   "functions/classCatalog": typeof functions_classCatalog;
   "functions/classSchedule": typeof functions_classSchedule;

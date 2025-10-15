@@ -12,12 +12,12 @@ import { api } from "@repo/convex/convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
 import { useUserWithConvex } from "../../../../stores/userStore";
 import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
-import PaymentConfig from "./payment-config";
 import Pagos from "./pagos";
 import PaymentHistoryComponent from "./payment-history";
 import StripeConfigPage from "./escuela";
 import { Button } from "@repo/ui/components/shadcn/button";
 import Link from "next/link";
+import BillingConfig from "components/billings/BillingConfig"
 
 export default function Colegiaturas() {
   const [selectedSchoolCycle, setSelectedSchoolCycle] = useState<string>("");
@@ -175,10 +175,7 @@ export default function Colegiaturas() {
         </TabsList>
 
         <TabsContent value="configuracion" className="mt-4 md:mt-6">
-          <PaymentConfig
-            selectedSchoolCycle={selectedSchoolCycle}
-            setSelectedSchoolCycle={setSelectedSchoolCycle}
-          />
+          <BillingConfig/>
         </TabsContent>
 
         <TabsContent value="pagos" className="mt-4 md:mt-6">

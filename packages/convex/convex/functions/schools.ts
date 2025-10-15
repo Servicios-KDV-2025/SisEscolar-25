@@ -638,7 +638,7 @@ export const createUserSchool = mutation({
       throw new Error('Usuario no encontrado. Debe crear el usuario primero.');
     }
 
-    // Verificar que el usuario no esté ya asignado a esta escuela
+    // Verificar si el usuario ya está asignado a esta escuela
     const existingUserSchool = await ctx.db
       .query('userSchool')
       .filter((q) =>
@@ -650,10 +650,26 @@ export const createUserSchool = mutation({
       .first();
 
     if (existingUserSchool) {
-      throw new Error('El usuario ya está asignado a esta escuela');
+      // Usuario ya tiene una relación con esta escuela
+      // Combinar roles existentes con los nuevos (sin duplicados)
+      const existingRoles = existingUserSchool.role;
+      const combinedRolesSet = new Set([...existingRoles, ...args.role]);
+      const combinedRoles = Array.from(combinedRolesSet);
+
+      // Actualizar la relación existente
+      await ctx.db.patch(existingUserSchool._id, {
+        role: combinedRoles as Array<
+          'superadmin' | 'admin' | 'auditor' | 'teacher' | 'tutor'
+        >,
+        status: args.status, // Actualizar status (puede reactivar si estaba inactivo)
+        department: args.department, // Actualizar departamento si aplica
+        updatedAt: currentTime,
+      });
+
+      return existingUserSchool._id;
     }
 
-    // Crear la relación usuario-escuela
+    // Si no existe la relación, crear una nueva
     const userSchoolId = await ctx.db.insert('userSchool', {
       userId: user._id,
       schoolId: args.schoolId,

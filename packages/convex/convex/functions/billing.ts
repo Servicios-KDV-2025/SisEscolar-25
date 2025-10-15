@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "../_generated/server";
+import { internalMutation, mutation, query } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
 
 
@@ -30,26 +30,26 @@ const shouldStudentHavePayment = async (ctx: any, student: any, billingConfig: a
   switch (billingConfig.scope) {
     case "all_students":
       return true;
-    
+
     case "specific_groups":
       return billingConfig.targetGroup && billingConfig.targetGroup.includes(student.groupId);
-    
+
     case "specific_grades":
       if (!billingConfig.targetGrade) return false;
       // Obtener el grupo del estudiante para verificar el grado
       const group = await ctx.db.get(student.groupId);
       return group && billingConfig.targetGrade.includes(group.grade);
-    
+
     case "specific_students":
       return billingConfig.targetStudent && billingConfig.targetStudent.includes(student._id);
-    
+
     default:
       return false;
   }
 };
 
 // Generar pagos para una configuración específica
-export const generatePaymentsForConfig = mutation({
+export const generatePaymentsForConfig = internalMutation({
   args: {
     billingConfigId: v.id("billingConfig"),
   },
@@ -96,7 +96,6 @@ export const generatePaymentsForConfig = mutation({
           .filter((q) => q.eq(q.field("schoolCycleId"), billingConfig.schoolCycleId))
           .collect();
       });
-      
       const studentsArrays = await Promise.all(studentsPromises);
       students = studentsArrays.flat();
     } else if (billingConfig.scope === "specific_grades" && billingConfig.targetGrade) {
@@ -124,16 +123,14 @@ export const generatePaymentsForConfig = mutation({
       const studentsPromises = billingConfig.targetStudent.map(async (studentId) => {
         return await ctx.db.get(studentId);
       });
-      
       const studentsArray = await Promise.all(studentsPromises);
-      students = studentsArray.filter(student => 
-        student && 
+      students = studentsArray.filter(student =>
+        student &&
         student.schoolId === billingConfig.schoolId &&
         student.schoolCycleId === billingConfig.schoolCycleId &&
         student.status === "active"
       );
     }
-
     const now = Date.now();
     const createdPayments: any[] = [];
 
@@ -142,7 +139,7 @@ export const generatePaymentsForConfig = mutation({
       // Verificar si ya existe un pago para este estudiante y configuración
       const existingPayment = await ctx.db
         .query("billing")
-        .withIndex("by_student_and_config", (q) => 
+        .withIndex("by_student_and_config", (q) =>
           q.eq("studentId", student._id).eq("billingConfigId", args.billingConfigId)
         )
         .first();
@@ -168,6 +165,8 @@ export const generatePaymentsForConfig = mutation({
       }
     }
 
+    const schoolCycle = await ctx.db.get(billingConfig.schoolCycleId as Id<"schoolCycle">)
+
     return {
       message: `Se generaron ${createdPayments.length} pagos`,
       paymentConfig: {
@@ -177,6 +176,8 @@ export const generatePaymentsForConfig = mutation({
         scope: billingConfig.scope,
         status: billingConfig.status,
         amount: billingConfig.amount,
+        ciclo: schoolCycle?.name,
+        cicloStatus: schoolCycle?.status
       },
       createdPayments,
     };
@@ -225,12 +226,12 @@ export const generatePaymentsForActiveStudents = mutation({
     for (const student of activeStudents) {
       // Verificar si el estudiante debe tener este pago
       const shouldHavePayment = await shouldStudentHavePayment(ctx, student, billingConfig);
-      
+
       if (shouldHavePayment) {
         // Verificar si ya existe un pago para este estudiante y configuración
         const existingPayment = await ctx.db
           .query("billing")
-          .withIndex("by_student_and_config", (q) => 
+          .withIndex("by_student_and_config", (q) =>
             q.eq("studentId", student._id).eq("billingConfigId", args.billingConfigId)
           )
           .first();
@@ -341,7 +342,7 @@ export const updatePaymentStatus = mutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
-    
+
     return await ctx.db.patch(args.paymentId, {
       status: args.status,
       paidAt: args.paidAt || (args.status === "Pago cumplido" ? now : undefined),
@@ -430,7 +431,7 @@ export const getPaymentsPageData = query({
         .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
         .filter((q) => q.eq(q.field("status"), "active"))
         .first();
-      
+
       if (!activeCycle) {
         return { students: [], schoolCycle: null };
       }
@@ -456,10 +457,10 @@ export const getPaymentsPageData = query({
       students.map(async (student) => {
         // Obtener el grupo del estudiante
         const group = await ctx.db.get(student.groupId);
-        
+
         // Obtener el tutor del estudiante
         const tutor = await ctx.db.get(student.tutorId);
-        
+
         // Obtener todos los pagos del estudiante
         const payments = await ctx.db
           .query("billing")
@@ -480,19 +481,19 @@ export const getPaymentsPageData = query({
         // Calcular días de retraso para cada pago
         const now = Date.now();
         const paymentsWithLateDays = paymentsWithConfig.map(payment => {
-     
+
           let dueDate: number;
-          
+
           if (payment.config?.endDate && payment.config.endDate > 0) {
-            dueDate = payment.config.endDate ;
+            dueDate = payment.config.endDate;
           } else if (payment.config?.startDate && payment.config.startDate > 0) {
             // Si no hay endDate válida, usar startDate + 30 días
-            dueDate = (payment.config.startDate ) + (30 * 24 * 60 * 60 * 1000);
+            dueDate = (payment.config.startDate) + (30 * 24 * 60 * 60 * 1000);
           } else {
             // Si no hay fechas válidas en la configuración, usar createdAt del pago + 30 días
             dueDate = payment.createdAt + (30 * 24 * 60 * 60 * 1000);
           }
-          
+
           const daysLate = Math.max(0, Math.floor((now - dueDate) / (1000 * 60 * 60 * 24)));
           return {
             ...payment,
@@ -504,7 +505,7 @@ export const getPaymentsPageData = query({
         // Determinar el estado general del estudiante
         let studentStatus: "al-dia" | "retrasado" | "moroso" = "al-dia";
         const unpaidPayments = paymentsWithLateDays.filter(p => p.status !== "Pago cumplido");
-        
+
         if (unpaidPayments.length > 0) {
           const maxDaysLate = Math.max(...unpaidPayments.map(p => p.daysLate));
           if (maxDaysLate > 30) {
@@ -535,8 +536,8 @@ export const getPaymentsPageData = query({
           diasRetraso: Math.max(...paymentsWithLateDays.map(p => p.daysLate), 0),
           estado: studentStatus,
           schoolCycleId: student.schoolCycleId,
-          tipo: (paymentsWithLateDays.length > 0 && paymentsWithLateDays[0] 
-            ? paymentsWithLateDays[0].config?.type || "Colegiatura" 
+          tipo: (paymentsWithLateDays.length > 0 && paymentsWithLateDays[0]
+            ? paymentsWithLateDays[0].config?.type || "Colegiatura"
             : "Colegiatura") as "Inscripciones" | "Colegiatura",
           credit: student.credit || 0,
           pagos: paymentsWithLateDays.map(payment => {

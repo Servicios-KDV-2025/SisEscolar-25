@@ -12,7 +12,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/shadcn/
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@repo/ui/components/shadcn/form";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
-// import { Skeleton } from "@repo/ui/components/shadcn/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/shadcn/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@repo/ui/components/shadcn/command";
 import {
@@ -23,6 +22,7 @@ import { useStudentsWithPermissions, type CreateStudentData, type UpdateStudentD
 import { useUserWithConvex } from "../../../../../stores/userStore";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { usePermissions } from "../../../../../hooks/usePermissions";
+import NotAuth from "../../../../../components/NotAuth";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
@@ -51,14 +51,16 @@ export default function AlumnosPage() {
   // Hook de permisos
   const {
     getStudentFilters,
-    canCreateUsers,
-    canUpdateUsers,
-    canDeleteUsers,
+    canCreateUsersAlumnos,
+    canReadUsersAlumnos,
+    canUpdateUsersAlumnos,
+    canDeleteUsersAlumnos,
     isSuperAdmin,
     isAdmin,
     isTeacher,
     isTutor,
-    isLoading: permissionsLoading
+    isLoading: permissionsLoading,
+    error: permissionsError,
   } = usePermissions(currentSchool?.school._id);
 
   // Estados locales para filtros
@@ -117,6 +119,9 @@ export default function AlumnosPage() {
 
   // Estado combinado de loading
   const isLoading = !isLoaded || userLoading || schoolLoading || studentsLoading || permissionsLoading;
+
+  // Flag para mostrar pantalla de no autorización
+  const showNotAuth = (permissionsError || !canReadUsersAlumnos) && !permissionsLoading && !isLoading;
 
   // Default values para el formulario
   const defaultValues = useMemo(() => ({
@@ -384,155 +389,163 @@ export default function AlumnosPage() {
   //   );
   // }
 
-  return (
-    <div className="space-y-8 p-6">
 
-      {/* Mostrar alerta cuando no hay datos necesarios para crear estudiantes */}
-      {canCreateUsers && (!groups?.length || !tutors?.length) && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {!groups?.length && !tutors?.length
-              ? "No se pueden crear estudiantes porque no hay grupos ni tutores disponibles. Debes crear grupos y asignar tutores primero."
-              : !groups?.length
-                ? "No se pueden crear estudiantes porque no hay grupos disponibles. Debes crear grupos primero."
-                : "No se pueden crear estudiantes porque no hay tutores disponibles. Debes asignar tutores a esta escuela primero."
-            }
-          </AlertDescription>
-        </Alert>
-      )}
 
-      {/* Información de permisos */}
-      {(isTutor || isTeacher) && !isSuperAdmin && !isAdmin && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {isTutor && "Como tutor, solo puedes ver los estudiantes que tienes asignados."}
-            {isTeacher && "Como maestro, solo puedes ver los estudiantes de las materias que impartes."}
-          </AlertDescription>
-        </Alert>
-      )}
+  return showNotAuth ? (
+    <NotAuth
+      pageName="Alumnos"
+      pageDetails="Gestión de estudiantes del sistema escolar"
+      icon={GraduationCap}
+    />
+  ) : (
+   <div className="space-y-8 p-6">
 
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-background border">
-        <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
-        <div className="relative p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-indigo-500/10 rounded-xl">
-                  <GraduationCap className="h-8 w-8 text-indigo-600" />
-                </div>
-                <div>
-                  <h1 className="text-4xl font-bold tracking-tight">Alumnos</h1>
-                  <p className="text-lg text-muted-foreground">
-                    Gestión de estudiantes del sistema escolar
-                  </p>
+        {/* Mostrar alerta cuando no hay datos necesarios para crear estudiantes */}
+        {canCreateUsersAlumnos && (!groups?.length || !tutors?.length) && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {!groups?.length && !tutors?.length
+                ? "No se pueden crear estudiantes porque no hay grupos ni tutores disponibles. Debes crear grupos y asignar tutores primero."
+                : !groups?.length
+                  ? "No se pueden crear estudiantes porque no hay grupos disponibles. Debes crear grupos primero."
+                  : "No se pueden crear estudiantes porque no hay tutores disponibles. Debes asignar tutores a esta escuela primero."
+              }
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Información de permisos */}
+        {(isTutor || isTeacher) && !isSuperAdmin && !isAdmin && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {isTutor && "Como tutor, solo puedes ver los estudiantes que tienes asignados."}
+              {isTeacher && "Como maestro, solo puedes ver los estudiantes de las materias que impartes."}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Header */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-background border">
+          <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
+          <div className="relative p-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-indigo-500/10 rounded-xl">
+                    <GraduationCap className="h-8 w-8 text-indigo-600" />
+                  </div>
+                  <div>
+                    <h1 className="text-4xl font-bold tracking-tight">Alumnos</h1>
+                    <p className="text-lg text-muted-foreground">
+                      Gestión de estudiantes del sistema escolar
+                    </p>
+                  </div>
                 </div>
               </div>
+              {canCreateUsersAlumnos && (
+                <Button
+                  size="lg"
+                  className="gap-2 bg-blue-600 hover:bg-blue-700"
+                  onClick={openCreate}
+                  disabled={isCreating || !currentSchool || !groups?.length || !tutors?.length}
+                  title={
+                    !groups?.length ? "No hay grupos disponibles" :
+                      !tutors?.length ? "No hay tutores disponibles" :
+                        !currentSchool ? "No hay escuela seleccionada" : ""
+                  }
+                >
+                  {isCreating ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4" />
+                  )}
+                  {isCreating ? "Creando..." : "Agregar Alumno"}
+                </Button>
+              )}
             </div>
-            {canCreateUsers && (
-              <Button
-                size="lg"
-                className="gap-2 bg-blue-600 hover:bg-blue-700"
-                onClick={openCreate}
-                disabled={isCreating || !currentSchool || !groups?.length || !tutors?.length}
-                title={
-                  !groups?.length ? "No hay grupos disponibles" :
-                    !tutors?.length ? "No hay tutores disponibles" :
-                      !currentSchool ? "No hay escuela seleccionada" : ""
-                }
-              >
-                {isCreating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Plus className="w-4 h-4" />
-                )}
-                {isCreating ? "Creando..." : "Agregar Alumno"}
-              </Button>
-            )}
           </div>
         </div>
-      </div>
 
-      {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {stats.map((stat, index) => (
-          <Card key={index} className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </CardTitle>
-              <div className="p-2 bg-indigo-500/10 rounded-lg group-hover:bg-indigo-500/20 transition-colors">
-                <stat.icon className="h-4 w-4 text-indigo-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="text-3xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">{stat.trend}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+        {/* Estadísticas */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {stats.map((stat, index) => (
+            <Card key={index} className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {stat.title}
+                </CardTitle>
+                <div className="p-2 bg-indigo-500/10 rounded-lg group-hover:bg-indigo-500/20 transition-colors">
+                  <stat.icon className="h-4 w-4 text-indigo-600" />
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="text-3xl font-bold">{stat.value}</div>
+                <p className="text-xs text-muted-foreground">{stat.trend}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
-      {/* Filtros y búsqueda */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Filter className="h-5 w-5" />
-                Filtros y Búsqueda
-              </CardTitle>
-              <CardDescription>
-                Encuentra alumnos por nombre, matrícula, estado o grupo
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nombre, apellido o matrícula..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+        {/* Filtros y búsqueda */}
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Filter className="h-5 w-5" />
+                  Filtros y Búsqueda
+                </CardTitle>
+                <CardDescription>
+                  Encuentra alumnos por nombre, matrícula, estado o grupo
+                </CardDescription>
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los estados</SelectItem>
-                <SelectItem value="active">Activos</SelectItem>
-                <SelectItem value="inactive">Inactivos</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={groupFilter} onValueChange={setGroupFilter}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Grupo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los grupos</SelectItem>
-                {groups?.map((group: Group) => (
-                  <SelectItem key={group._id} value={group._id}>
-                    {group.grade} - {group.name}
-                  </SelectItem>
-                )) || (
-                    <SelectItem value="loading" disabled>
-                      Cargando grupos...
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nombre, apellido o matrícula..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los estados</SelectItem>
+                  <SelectItem value="active">Activos</SelectItem>
+                  <SelectItem value="inactive">Inactivos</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={groupFilter} onValueChange={setGroupFilter}>
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Grupo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los grupos</SelectItem>
+                  {groups?.map((group: Group) => (
+                    <SelectItem key={group._id} value={group._id}>
+                      {group.grade} - {group.name}
                     </SelectItem>
-                  )}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+                  )) || (
+                      <SelectItem value="loading" disabled>
+                        Cargando grupos...
+                      </SelectItem>
+                    )}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
 
       {/* Tabla de Alumnos */}
       <Card>
@@ -556,7 +569,7 @@ export default function AlumnosPage() {
                 <p className="text-muted-foreground mb-4">
                   Intenta ajustar los filtros o agregar un nuevo alumno.
                 </p>
-                {canCreateUsers && (
+                {canCreateUsersAlumnos && (
                   <Button
                     onClick={openCreate}
                     className="gap-2 bg-blue-600 hover:bg-blue-700"
@@ -652,7 +665,7 @@ export default function AlumnosPage() {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {canUpdateUsers && (
+                          {canUpdateUsersAlumnos && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -667,7 +680,7 @@ export default function AlumnosPage() {
                               )}
                             </Button>
                           )}
-                          {canDeleteUsers && (
+                          {canDeleteUsersAlumnos && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -693,103 +706,103 @@ export default function AlumnosPage() {
         </CardContent>
       </Card>
 
-      {/* Dialog CRUD */}
-      <CrudDialog
-        operation={operation}
-        title={
-          operation === "create"
-            ? "Agregar Alumno"
-            : operation === "edit"
-              ? "Editar Alumno"
-              : operation === "view"
-                ? "Ver Alumno"
-                : "Eliminar Alumno"
-        }
-        description={
-          operation === "create"
-            ? "Completa la información para agregar un nuevo alumno"
-            : operation === "edit"
-              ? "Modifica la información del alumno"
-              : operation === "view"
-                ? "Información detallada del alumno"
-                : undefined
-        }
-        schema={studentSchema}
-        defaultValues={defaultValues}
-        data={data}
-        isOpen={isOpen}
-        onOpenChange={close}
-        onSubmit={operation === "create" ? handleCreate : handleUpdate}
-        onDelete={handleDelete}
-        deleteConfirmationTitle="¿Eliminar alumno?"
-        deleteConfirmationDescription="Esta acción eliminará permanentemente al alumno del sistema. Esta acción no se puede deshacer."
-        onError={() => {
-          // Evitar que el CrudDialog muestre su propio toast de error
-          // ya que nosotros mostramos el error específico dentro del dialog
-        }}
-      >
-        {(form, currentOperation) => (
-          <div className="space-y-4">
-            {/* Mostrar error del store dentro del formulario */}
-            {studentsError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  {studentsError}
-                </AlertDescription>
-              </Alert>
-            )}
+        {/* Dialog CRUD */}
+        <CrudDialog
+          operation={operation}
+          title={
+            operation === "create"
+              ? "Agregar Alumno"
+              : operation === "edit"
+                ? "Editar Alumno"
+                : operation === "view"
+                  ? "Ver Alumno"
+                  : "Eliminar Alumno"
+          }
+          description={
+            operation === "create"
+              ? "Completa la información para agregar un nuevo alumno"
+              : operation === "edit"
+                ? "Modifica la información del alumno"
+                : operation === "view"
+                  ? "Información detallada del alumno"
+                  : undefined
+          }
+          schema={studentSchema}
+          defaultValues={defaultValues}
+          data={data}
+          isOpen={isOpen}
+          onOpenChange={close}
+          onSubmit={operation === "create" ? handleCreate : handleUpdate}
+          onDelete={handleDelete}
+          deleteConfirmationTitle="¿Eliminar alumno?"
+          deleteConfirmationDescription="Esta acción eliminará permanentemente al alumno del sistema. Esta acción no se puede deshacer."
+          onError={() => {
+            // Evitar que el CrudDialog muestre su propio toast de error
+            // ya que nosotros mostramos el error específico dentro del dialog
+          }}
+        >
+          {(form, currentOperation) => (
+            <div className="space-y-4">
+              {/* Mostrar error del store dentro del formulario */}
+              {studentsError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    {studentsError}
+                  </AlertDescription>
+                </Alert>
+              )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Campo oculto para schoolId */}
-              <FormField
-                control={form.control}
-                name="schoolId"
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="hidden"
-                    value={currentSchool?.school._id || ""}
-                  />
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nombre *</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        value={field.value as string || ""}
-                        placeholder="Nombre del alumno"
-                        disabled={currentOperation === "view"}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Campo oculto para schoolId */}
+                <FormField
+                  control={form.control}
+                  name="schoolId"
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="hidden"
+                      value={currentSchool?.school._id || ""}
+                    />
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nombre *</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          value={field.value as string || ""}
+                          placeholder="Nombre del alumno"
+                          disabled={currentOperation === "view"}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Apellidos</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        value={field.value as string || ""}
-                        placeholder="Apellidos"
-                        disabled={currentOperation === "view"}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Apellidos</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          value={field.value as string || ""}
+                          placeholder="Apellidos"
+                          disabled={currentOperation === "view"}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
               <FormField
                 control={form.control}
@@ -963,116 +976,118 @@ export default function AlumnosPage() {
                 }}
               />
 
-              <FormField
-                control={form.control}
-                name="tutorId"
-                render={({ field }) => {
-                  const selectedTutor = tutors?.find((tutor: Tutor) => tutor._id === field.value);
+                <FormField
+                  control={form.control}
+                  name="tutorId"
+                  render={({ field }) => {
+                    const selectedTutor = tutors?.find((tutor: Tutor) => tutor._id === field.value);
 
-                  return (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Tutor *</FormLabel>
-                      <Popover open={tutorPopoverOpen} onOpenChange={setTutorPopoverOpen}>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className={`w-full justify-between ${!field.value && "text-muted-foreground"}`}
-                              disabled={currentOperation === "view"}
-                            >
-                              {selectedTutor
-                                ? `${selectedTutor.name} ${selectedTutor.lastName || ''}`
-                                : "Seleccionar tutor"
-                              }
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[400px] p-0">
-                          <Command>
-                            <CommandInput placeholder="Buscar tutor..." className="h-9" />
-                            <CommandList>
-                              <CommandEmpty>
-                                {tutors && tutors.length === 0
-                                  ? "No hay tutores disponibles en esta escuela."
-                                  : "No se encontró ningún tutor."
+                    return (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Tutor *</FormLabel>
+                        <Popover open={tutorPopoverOpen} onOpenChange={setTutorPopoverOpen}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className={`w-full justify-between ${!field.value && "text-muted-foreground"}`}
+                                disabled={currentOperation === "view"}
+                              >
+                                {selectedTutor
+                                  ? `${selectedTutor.name} ${selectedTutor.lastName || ''}`
+                                  : "Seleccionar tutor"
                                 }
-                              </CommandEmpty>
-                              <CommandGroup>
-                                {tutors && tutors.length > 0 ? (
-                                  tutors.map((tutor: Tutor) => (
-                                    <CommandItem
-                                      value={`${tutor.name} ${tutor.lastName || ''}`}
-                                      key={tutor._id}
-                                      onSelect={() => {
-                                        field.onChange(tutor._id);
-                                        setTutorPopoverOpen(false);
-                                      }}
-                                    >
-                                      <div className="flex flex-col">
-                                        <span className="font-medium">
-                                          {tutor.name} {tutor.lastName || ''}
-                                        </span>
-                                        <span className="text-sm text-muted-foreground">
-                                          {tutor.email}
-                                        </span>
-                                      </div>
-                                      <Check
-                                        className={`ml-auto h-4 w-4 ${tutor._id === field.value
-                                          ? "opacity-100"
-                                          : "opacity-0"
-                                          }`}
-                                      />
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[400px] p-0">
+                            <Command>
+                              <CommandInput placeholder="Buscar tutor..." className="h-9" />
+                              <CommandList>
+                                <CommandEmpty>
+                                  {tutors && tutors.length === 0
+                                    ? "No hay tutores disponibles en esta escuela."
+                                    : "No se encontró ningún tutor."
+                                  }
+                                </CommandEmpty>
+                                <CommandGroup>
+                                  {tutors && tutors.length > 0 ? (
+                                    tutors.map((tutor: Tutor) => (
+                                      <CommandItem
+                                        value={`${tutor.name} ${tutor.lastName || ''}`}
+                                        key={tutor._id}
+                                        onSelect={() => {
+                                          field.onChange(tutor._id);
+                                          setTutorPopoverOpen(false);
+                                        }}
+                                      >
+                                        <div className="flex flex-col">
+                                          <span className="font-medium">
+                                            {tutor.name} {tutor.lastName || ''}
+                                          </span>
+                                          <span className="text-sm text-muted-foreground">
+                                            {tutor.email}
+                                          </span>
+                                        </div>
+                                        <Check
+                                          className={`ml-auto h-4 w-4 ${tutor._id === field.value
+                                            ? "opacity-100"
+                                            : "opacity-0"
+                                            }`}
+                                        />
+                                      </CommandItem>
+                                    ))
+                                  ) : tutors === undefined ? (
+                                    <CommandItem disabled>
+                                      Cargando tutores...
                                     </CommandItem>
-                                  ))
-                                ) : tutors === undefined ? (
-                                  <CommandItem disabled>
-                                    Cargando tutores...
-                                  </CommandItem>
-                                ) : (
-                                  <CommandItem disabled>
-                                    No hay tutores disponibles
-                                  </CommandItem>
-                                )}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
+                                  ) : (
+                                    <CommandItem disabled>
+                                      No hay tutores disponibles
+                                    </CommandItem>
+                                  )}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
 
-              {currentOperation === "view" && data && (
-                <div className="md:col-span-2 space-y-4 pt-4 border-t">
-                  <h3 className="font-medium text-sm text-muted-foreground">Información adicional</h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">ID de Estudiante:</span>
-                      <p className="font-mono">{data._id as string}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Fecha de Creación:</span>
-                      <p>{formatDate(data.createdAt as number)}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Última Actualización:</span>
-                      <p>{formatDate(data.updatedAt as number)}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">ID de Escuela:</span>
-                      <p className="font-mono">{data.schoolId as string}</p>
+                {currentOperation === "view" && data && (
+                  <div className="md:col-span-2 space-y-4 pt-4 border-t">
+                    <h3 className="font-medium text-sm text-muted-foreground">Información adicional</h3>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">ID de Estudiante:</span>
+                        <p className="font-mono">{data._id as string}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Fecha de Creación:</span>
+                        <p>{formatDate(data.createdAt as number)}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Última Actualización:</span>
+                        <p>{formatDate(data.updatedAt as number)}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">ID de Escuela:</span>
+                        <p className="font-mono">{data.schoolId as string}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        )}
-      </CrudDialog>
-    </div>
+          )}
+        </CrudDialog>
+      </div>
+
+
   );
 }

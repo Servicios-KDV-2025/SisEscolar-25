@@ -19,13 +19,6 @@
     "module": "ESNext",
     "isolatedModules": true,
     "noEmit": true,
-
-    /* Turborepo */
-    "composite": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/convex/*": ["./convex/*"]
-    },
   },
   "include": ["."],
   "exclude": ["./convex/_generated"]
