@@ -135,6 +135,26 @@ export default function HorariosPorClasePage() {
     status: "active",
   });
 
+  const assignedScheduleIds = useMemo(() => {
+    if (!classes) return new Set();
+    const allIds = classes.flatMap(c => c?.selectedScheduleIds || []);
+    return new Set(allIds);
+  }, [classes]);
+
+  const availableSchedules = useMemo(() => {
+    if (!schedules) return [];
+  
+    const schedulesForCurrentItem = new Set(
+      crudDialog.operation === 'edit' && crudDialog.data
+        ? (crudDialog.data as ClassItem).selectedScheduleIds
+        : []
+    );
+  
+    return schedules.filter(schedule => {
+      return !assignedScheduleIds.has(schedule._id) || schedulesForCurrentItem.has(schedule._id);
+    });
+  }, [schedules, assignedScheduleIds, crudDialog.operation, crudDialog.data]);
+
   useEffect(() => {
     if (classes) {
       const filteredClasses = classes.filter((c): c is NonNullable<typeof c> => c !== null) as unknown as ClassItem[];
@@ -837,16 +857,20 @@ export default function HorariosPorClasePage() {
                       <FormLabel>Seleccionar Horarios</FormLabel>
                       <FormControl>
                         <div className="grid gap-2 max-h-60 overflow-y-auto border rounded-md p-4">
-                          {schedules?.map((schedule: Schedule) => (
+                          {availableSchedules?.map((schedule: Schedule) => (
+
                             <div key={schedule._id} className="flex items-center space-x-2">
                               <Checkbox
                                 id={schedule._id}
+                                // Esto comprueba si está seleccionado en el campo del formulario
                                 checked={Array.isArray(field.value) ? (field.value as string[]).includes(schedule._id) : false}
                                 onCheckedChange={(checked) => {
                                   const currentIds = Array.isArray(field.value) ? (field.value as string[]) : [];
                                   if (checked) {
+                                    // Añade el ID
                                     field.onChange([...currentIds, schedule._id]);
                                   } else {
+                                    // Elimina el ID (permite deseleccionar en modo 'edit')
                                     field.onChange(currentIds.filter((id: string) => id !== schedule._id));
                                   }
                                 }}
