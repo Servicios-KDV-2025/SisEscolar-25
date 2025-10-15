@@ -54,7 +54,7 @@ export default defineField({
             name: 'ImagewithText',
             type: 'ImagewithText',
         }),
-         defineArrayMember({
+        defineArrayMember({
           name: 'carousel',
           type: 'carousel',
         }),
