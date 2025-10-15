@@ -1,12 +1,12 @@
 'use client'
 import React, { Fragment, useState } from 'react'
 import { School, User, CopySlash, Loader2 } from 'lucide-react'
-import { School, User, CopySlash, Loader2 } from 'lucide-react'
 import { useAuth } from '@clerk/nextjs'
 import { defineStepper } from '../ui/stepper'
 import { Auth } from './Auth/Auth'
 import SchoolForm from './School/SchoolForm'
 import { Button } from '../ui/button'
+import { Prices } from './Price/Prices'
 
 // import { SignUp } from './Auth/SignUp'
 // import { SignIn } from './Auth/SignIn'
@@ -34,7 +34,6 @@ export const Stepper: React.FC = () => {
 }
 
 const StepperContent = () => {
-  const { isSignedIn, isLoaded, signOut } = useAuth()
   const { isSignedIn, isLoaded, signOut } = useAuth()
   const [ready, setReady] = useState(false)
   const [isSelect, setSelected] = useState<string>('')
@@ -65,10 +64,7 @@ const StepperContent = () => {
     setSelected(idStripe)
     methods.next()
   }
-  const onSelectPrice = (idStripe: string) => {
-    setSelected(idStripe)
-    methods.next()
-  }
+
 
   return (
           <Fragment>
