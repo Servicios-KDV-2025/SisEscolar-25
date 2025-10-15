@@ -1,6 +1,7 @@
 'use client'
 import React, { Fragment, useState } from 'react'
 import { School, User, CopySlash, Loader2 } from 'lucide-react'
+import { School, User, CopySlash, Loader2 } from 'lucide-react'
 import { useAuth } from '@clerk/nextjs'
 import { defineStepper } from '../ui/stepper'
 import { Auth } from './Auth/Auth'
@@ -34,6 +35,7 @@ export const Stepper: React.FC = () => {
 
 const StepperContent = () => {
   const { isSignedIn, isLoaded, signOut } = useAuth()
+  const { isSignedIn, isLoaded, signOut } = useAuth()
   const [ready, setReady] = useState(false)
   const [isSelect, setSelected] = useState<string>('')
   const [schooldId, setSchoolId] = useState<string>('')
@@ -44,11 +46,12 @@ const StepperContent = () => {
   React.useEffect(() => {
     if (isLoaded) {
       if (isSignedIn && methods.current.id === 'step-1') {
-        methods.goTo('step-2')
-      }  
+        methods.goTo('step-3')
+      }
       setReady(true)
     }
   }, [isSignedIn, isLoaded, methods])
+  
 
   if (!ready) return null
 
@@ -58,6 +61,10 @@ const StepperContent = () => {
     methods.next()
   }
 
+  const onSelectPrice = (idStripe: string) => {
+    setSelected(idStripe)
+    methods.next()
+  }
   const onSelectPrice = (idStripe: string) => {
     setSelected(idStripe)
     methods.next()
@@ -102,8 +109,7 @@ const StepperContent = () => {
                 </div>
              
               ),
-              // 'step-3': () => <Prices onSelect={onSelectPrice} />,
-              'step-3': () => <Content />,
+              'step-3': () => <Prices onSelect={onSelectPrice} />,
               'step-4': () => <Content />,
             })}
           </Fragment>

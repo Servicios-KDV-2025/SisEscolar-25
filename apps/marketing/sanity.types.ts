@@ -1446,6 +1446,17 @@ export type SettingsQueryResult = {
 export type SlugsByTypeQueryResult = Array<{
   slug: string | null;
 }>;
+// Variable: pricesQuery
+// Query: *[_type == "price"]{    _id,    price,    title,    id_stripe,    features{      ...,          }  }
+export type PricesQueryResult = Array<{
+  _id: string;
+  price: number | null;
+  title: string | null;
+  id_stripe: string | null;
+  features: {
+    featureList?: Array<string>;
+  } | null;
+}>;
 
 // Query TypeMap
 import "@sanity/client";
@@ -1456,5 +1467,6 @@ declare module "@sanity/client" {
     "\n  *[_type == \"project\" && slug.current == $slug][0] {\n    _id,\n    _type,\n    client,\n    coverImage,\n    description,\n    duration,\n    overview,\n    site,\n    \"slug\": slug.current,\n    tags,\n    title,\n  }\n": ProjectBySlugQueryResult;
     "\n  *[_type == \"settings\"][0]{\n    _id,\n    _type,\n    footer,\n    menuItems[]{\n      _key,\n      ...@->{\n        _type,\n        \"slug\": slug.current,\n        title\n      }\n    },\n    ogImage,\n    nav{\n      menus[]{\n        ...,\n        \"slug\": link.reference -> slug.current,\n        \"type_reference\" : link.reference-> _type,\n        submenus[]{\n          ...,\n          \"slug\": link.reference -> slug.current,\n          \"type_reference\" : link.reference-> _type,\n        }\n      }\n    },\n    footer{\n      ...,\n      columns[]{\n        ...,\n        links[]{\n          ...,\n          \"url\" : select(\n          _type == 'linkExternal' =>url,\n          _type == 'linkInternal' =>reference->slug.current\n          ),\n          _type == 'linkInternal' => {\n            \"type_reference\": reference->_type\n          }\n        }\n      }\n    },\n  }\n": SettingsQueryResult;
     "\n  *[_type == $type && defined(slug.current)]{\"slug\": slug.current}\n": SlugsByTypeQueryResult;
+    "*[_type == \"price\"]{\n    _id,\n    price,\n    title,\n    id_stripe,\n    features{\n      ...,\n      \n    }\n  }": PricesQueryResult;
   }
 }
