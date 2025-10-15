@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import NextImage from "next/image";
 import { urlForImage } from "@/sanity/lib/utils"; 
-
+import Link from "next/link";
 type SanityImage = {
   _type?: "image";
   asset?: {
@@ -308,19 +308,19 @@ const imageAlt = image?.alt || title || "Imagen";
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <link
+                <Link
                   href="/contact"
                   className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105"
                 >
                   Contactar Soporte
-                </link>
+                </Link>
 
-                <link
+                <Link
                   href="/"
                   className="inline-flex items-center px-8 py-4 bg-gray-600 hover:bg-gray-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105"
                 >
                   Volver al Inicio
-                </link>
+                </Link>
               </div>
             </div>
           </div>
