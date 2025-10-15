@@ -19,7 +19,6 @@ export const InfoBlock: React.FC<InfoBlockProps> = ({
   icon,
 }) => {
   const imageUrl = icon && urlForImage(icon)?.fit('crop').url();
-  const imageUrl = icon && urlForImage(icon)?.fit('crop').url();
   return (
     <div className="flex gap-4 items-start p-4 bg-white rounded-xl shadow-sm">
  
