@@ -45,7 +45,7 @@ export const PaymentStatusBlock: React.FC<Props> = ({
   showPaymentInfo = true,
 }) => {
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo | null>(null);
-  const [currentDate] = useState(new Date());
+  //const [currentDate] = useState(new Date());
 
   // Ocultar el header en las páginas de estado de pago
   //useHideHeader(true);
