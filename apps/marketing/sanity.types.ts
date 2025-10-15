@@ -69,6 +69,29 @@ export type InfoBlock = {
   description?: string;
 };
 
+export type PaymentStatus = {
+  _type: "paymentStatus";
+  status?: "success" | "cancelled";
+  title?: string;
+  message?: string;
+  image?: {
+    asset?: {
+      _ref: string;
+      _type: "reference";
+      _weak?: boolean;
+      [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+    };
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+  button?: {
+    label?: string;
+    url?: string;
+  };
+};
+
 export type CtaSection = {
   _type: "ctaSection";
   titulo?: string;
@@ -261,6 +284,8 @@ export type Page = {
   } & ImagewithText | {
     _key: string;
   } & Carousel | {
+    _key: string;
+  } & PaymentStatus | {
     asset?: {
       _ref: string;
       _type: "reference";
@@ -411,6 +436,8 @@ export type Home = {
   } & ImagewithText | {
     _key: string;
   } & Carousel | {
+    _key: string;
+  } & PaymentStatus | {
     asset?: {
       _ref: string;
       _type: "reference";
@@ -552,7 +579,7 @@ export type SanityAssetSourceData = {
   url?: string;
 };
 
-export type AllSanitySchemaTypes = Carousel | ImagewithText | InfoBlock | CtaSection | StatsSection | FeatureSection | FeatureItem | HeroSection | LinkExternal | Project | Page | Duration | Settings | Footer | LinkInternal | Nav | Home | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageHotspot | SanityImageCrop | SanityFileAsset | SanityImageAsset | SanityImageMetadata | Geopoint | Slug | SanityAssetSourceData;
+export type AllSanitySchemaTypes = Carousel | ImagewithText | InfoBlock | PaymentStatus | CtaSection | StatsSection | FeatureSection | FeatureItem | HeroSection | LinkExternal | Project | Page | Duration | Settings | Footer | LinkInternal | Nav | Home | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageHotspot | SanityImageCrop | SanityFileAsset | SanityImageAsset | SanityImageMetadata | Geopoint | Slug | SanityAssetSourceData;
 export declare const internalGroqTypeReferenceTo: unique symbol;
 // Source: ./sanity/lib/queries.ts
 // Variable: homePageQuery
@@ -626,6 +653,8 @@ export type HomePageQueryResult = {
     _key: string;
   } & InfoBlock | {
     _key: string;
+  } & PaymentStatus | {
+    _key: string;
   } & StatsSection | {
     children?: Array<{
       marks?: Array<string>;
@@ -678,6 +707,8 @@ export type PagesBySlugQueryResult = {
   } & ImagewithText | {
     _key: string;
   } & InfoBlock | {
+    _key: string;
+  } & PaymentStatus | {
     _key: string;
   } & StatsSection | {
     children?: Array<{

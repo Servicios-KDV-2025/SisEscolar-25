@@ -96,6 +96,10 @@ export function CustomPortableText({
         const { title, images } = value || {};
       return <CarouselBlock title={title} images={images} />;
       },
+      paymentStatus: ({ value }) => {
+        const { status } = value || {};
+        return <div>Payment Status: {status}</div>;
+      }
     },
   }
 

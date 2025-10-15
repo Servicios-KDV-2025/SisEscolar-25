@@ -1,9 +1,8 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import NextImage from "next/image";
-import { urlForImage } from "@/sanity/lib/utils"; // adapta la ruta a tu util
+import { urlForImage } from "@/sanity/lib/utils"; 
 
-// --- Tipos compatibles con Sanity ---
 type SanityImage = {
   _type?: "image";
   asset?: {
@@ -60,8 +59,6 @@ export const PaymentStatusBlock: React.FC<Props> = ({
     const sessionId = params.get("sessionId");
 
     if (!sessionId) return;
-
-    // mejor manejo de promesas y logging
     fetch("/api/payment-session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
