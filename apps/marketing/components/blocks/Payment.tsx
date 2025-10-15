@@ -80,7 +80,7 @@ export const PaymentStatusBlock: React.FC<Props> = ({
   const isSuccess = status === "success";
 
   const handleInvoiceRequest = () => {
-    // implementar según backend / business logic
+    
     alert("Solicitud de factura enviada. Te contactaremos pronto.");
   };
       // Generar URL de imagen si viene desde Sanity (usa tu helper urlForImage)

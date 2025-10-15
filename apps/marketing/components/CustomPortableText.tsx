@@ -15,7 +15,7 @@ import { CarouselAvatar } from '@/components/blocks/CarouuselAvatar'
 import { ContentWithMediaBlock } from '@/components/blocks/ContentWithMedia'
 import { PriceBlockComponent } from '@/components/blocks/PriceBlock'
 import {GridBlock} from '@/components/blocks/GridBlock'
-
+import {PaymentStatusBlock} from '@/components/blocks/Payment'
 export function CustomPortableText({
   id,
   type,
@@ -114,8 +114,7 @@ export function CustomPortableText({
         return <GridBlock {...value} />
       },
        paymentStatus: ({ value }) => {
-        const { status } = value || {};
-        return <div>Payment Status: {status}</div>;
+        return <PaymentStatusBlock {...value} />
       }
     },
   }
