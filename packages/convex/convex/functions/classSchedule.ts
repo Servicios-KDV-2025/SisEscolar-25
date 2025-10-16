@@ -1,6 +1,5 @@
-import { mutation, query } from "../_generated/server";
+import { mutation, query, internalQuery, internalMutation } from "../_generated/server";
 import { v } from "convex/values";
-import { api } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
 
 // Obtener todas las relaciones classSchedule con información completa
@@ -743,5 +742,25 @@ export const getClassScheduleWithRoleFilter = query({
     );
 
     return classesWithSchedules.filter(Boolean);
+  },
+});
+
+export const getSchedulesByClassCatalog = internalQuery({
+  args: { classCatalogId: v.id("classCatalog") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("classSchedule")
+      .withIndex("by_class_catalog", (q) =>
+        q.eq("classCatalogId", args.classCatalogId)
+      )
+      .collect();
+  },
+});
+
+// Mutación interna para borrar un horario específico por su ID
+export const deleteScheduleById = internalMutation({
+  args: { scheduleId: v.id("classSchedule") },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.scheduleId);
   },
 });

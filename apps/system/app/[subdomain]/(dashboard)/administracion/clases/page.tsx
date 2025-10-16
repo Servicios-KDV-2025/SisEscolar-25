@@ -24,6 +24,13 @@ import { Input } from '@repo/ui/components/shadcn/input';
 import { Badge } from '@repo/ui/components/shadcn/badge';
 import { usePermissions } from 'hooks/usePermissions';
 import NotAuth from 'components/NotAuth';
+import { z } from 'zod';
+
+import { UseFormReturn } from 'react-hook-form';
+
+
+type ClassCatalogFormData = z.infer<typeof classCatalogSchema>;
+
 
 export default function ClassCatalogPage() {
     // Get current user from Clerk
@@ -447,138 +454,134 @@ export default function ClassCatalogPage() {
                             </CardContent>
                         </Card>
 
-                        {/* Tabla de Personal */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center justify-between">
-                                    <span>Lista de Clases</span>
-                                    <Badge variant="outline">{filteredClasses.length} clases</Badge>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {isLoading ? (
-                                    <div className="flex items-center justify-center py-12">
-                                        <div className="text-center">
-                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                                            <p className="text-muted-foreground">Cargando clases...</p>
-                                        </div>
-                                    </div>
-                                ) : filteredClasses.length === 0 ? (
-                                    <div className="text-center py-12">
-                                        <ClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                                        <h3 className="text-lg font-medium mb-2">
-                                            No se encontraron clases
-                                        </h3>
-                                        <p className="text-muted-foreground mb-4">
-                                            Intenta ajustar los filtros o no hay clases registradas.
-                                        </p>
-                                        <Button
-                                            size="lg"
-                                            className="gap-2"
-                                            onClick={openCreate}
-                                            disabled={isCreatingClassCat}
-                                        >
-                                            <Plus className="h-4 w-4" />
-                                            Nueva Clase
-                                        </Button>
-                                    </div>
-                                ) : (
-                                    <div className="rounded-md border">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead className="w-[120px]">Nombre</TableHead>
-                                                    <TableHead>Ciclo Escolar</TableHead>
-                                                    <TableHead>Materia</TableHead>
-                                                    <TableHead>Salón</TableHead>
-                                                    <TableHead>Maestro</TableHead>
-                                                    <TableHead>Grupo</TableHead>
-                                                    <TableHead>Activo</TableHead>
-                                                    <TableHead>Creado Por</TableHead>
-                                                    <TableHead className="text-right">Acciones</TableHead>
+            {/* Tabla de Personal */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                        <span>Lista de Clases</span>
+                        <Badge variant="outline">{filteredClasses.length} clases</Badge>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {isLoading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <div className="text-center">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                                <p className="text-muted-foreground">Cargando clases...</p>
+                            </div>
+                        </div>
+                    ) : filteredClasses.length === 0 ? (
+                        <div className="text-center py-12">
+                            <ClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                            <h3 className="text-lg font-medium mb-2">
+                                No se encontraron clases
+                            </h3>
+                            <p className="text-muted-foreground mb-4">
+                                Intenta ajustar los filtros o no hay clases registradas.
+                            </p>
+                            <Button
+                                size="lg"
+                                className="gap-2"
+                                onClick={openCreate}
+                                disabled={isCreatingClassCat}
+                            >
+                                <Plus className="h-4 w-4" />
+                                Nueva Clase
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="rounded-md border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-[120px]">Nombre</TableHead>
+                                        <TableHead>Ciclo Escolar</TableHead>
+                                        <TableHead>Materia</TableHead>
+                                        <TableHead>Salón</TableHead>
+                                        <TableHead>Maestro</TableHead>
+                                        <TableHead>Grupo</TableHead>
+                                        <TableHead>Activo</TableHead>
+                                        <TableHead>Creado Por</TableHead>
+                                        <TableHead className="text-right">Acciones</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredClasses?.length === 0
+                                        ? (
+                                            <TableRow>
+                                                <TableCell colSpan={9} className="text-center text-muted-foreground p-3">
+                                                    No hay salones registrados para esta escuela.
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                        : (
+                                            filteredClasses?.map(classCat => (
+                                                <TableRow key={classCat._id}>
+                                                    <TableCell className="font-medium">{classCat.name}</TableCell>
+                                                    <TableCell>{classCat.schoolCycle?.name}</TableCell>
+                                                    <TableCell>{classCat.subject?.name}</TableCell>
+                                                    <TableCell>{classCat.classroom?.name}</TableCell>
+                                                    <TableCell>{classCat.teacher?.name} {classCat.teacher?.lastName}</TableCell>
+                                                    <TableCell>{classCat.group?.grade} {classCat.group?.name}</TableCell>
+                                                    <TableCell>
+                                                        <Badge
+                                                            variant={classCat.status === "active" ? "default" : "secondary"}
+                                                            className={classCat.status === "active" ? "bg-green-600 text-white flex-shrink-0 ml-2" : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}
+                                                        >
+                                                            {classCat.status === 'active' ? 'Activa' : 'Inactiva'}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>{classCat.createData?.name} {classCat.createData?.lastName}</TableCell>
+                                                    <TableCell className="flex justify-end gap-2">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                openView(classCat);
+                                                            }}
+                                                            className="hover:scale-105 transition-transform cursor-pointer"
+                                                            disabled={isUpdatingClassCat || isDeletingClassCat}
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                openEdit(classCat);
+                                                            }}
+                                                            className="hover:scale-105 transition-transform cursor-pointer"
+                                                            disabled={isUpdatingClassCat || isDeletingClassCat}
+                                                        >
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                openDelete(classCat)
+                                                            }}
+                                                            className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive"
+                                                            disabled={isUpdatingClassCat || isDeletingClassCat}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </TableCell>
                                                 </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {filteredClasses?.length === 0
-                                                    ? (
-                                                        <TableRow>
-                                                            <TableCell colSpan={9} className="text-center text-muted-foreground p-3">
-                                                                No hay salones registrados para esta escuela.
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    )
-                                                    : (
-                                                        filteredClasses?.map(classCat => (
-                                                            <TableRow key={classCat._id}>
-                                                                <TableCell className="font-medium">{classCat.name}</TableCell>
-                                                                <TableCell>{classCat.schoolCycle?.name}</TableCell>
-                                                                <TableCell>{classCat.subject?.name}</TableCell>
-                                                                <TableCell>{classCat.classroom?.name}</TableCell>
-                                                                <TableCell>{classCat.teacher?.name} {classCat.teacher?.lastName}</TableCell>
-                                                                <TableCell>{classCat.group?.grade} {classCat.group?.name}</TableCell>
-                                                                <TableCell>
-                                                                    <Badge
-                                                                        variant={classCat.status === "active" ? "default" : "secondary"}
-                                                                        className={classCat.status === "active" ? "bg-green-600 text-white flex-shrink-0 ml-2" : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}
-                                                                    >
-                                                                        {classCat.status === 'active' ? 'Activa' : 'Inactiva'}
-                                                                    </Badge>
-                                                                </TableCell>
-                                                                <TableCell>{classCat.createData?.name} {classCat.createData?.lastName}</TableCell>
-                                                                <TableCell className="flex justify-end gap-2">
-                                                                    {canReadClassCatalog && (
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation()
-                                                                                openView(classCat);
-                                                                            }}
-                                                                            className="hover:scale-105 transition-transform cursor-pointer"
-                                                                            disabled={isUpdatingClassCat || isDeletingClassCat}
-                                                                        >
-                                                                            <Eye className="h-4 w-4" />
-                                                                        </Button>
-                                                                    )}
-                                                                    {canUpdateClassCatalog && (
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation()
-                                                                                openEdit(classCat);
-                                                                            }}
-                                                                            className="hover:scale-105 transition-transform cursor-pointer"
-                                                                            disabled={isUpdatingClassCat || isDeletingClassCat}
-                                                                        >
-                                                                            <Pencil className="h-4 w-4" />
-                                                                        </Button>
-                                                                    )}
-                                                                    {canDeleteClassCatalog && (
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation()
-                                                                                openDelete(classCat)
-                                                                            }}
-                                                                            className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive"
-                                                                            disabled={isUpdatingClassCat || isDeletingClassCat}
-                                                                        >
-                                                                            <Trash2 className="h-4 w-4" />
-                                                                        </Button>
-                                                                    )}
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ))
-                                                    )
-                                                }
-                                            </TableBody>
-                                        </Table>
-                                    </div >
-                                )}
-                            </CardContent>
-                        </Card>
+                                            ))
+                                        )
+                                    }
+                                </TableBody>
+                            </Table>
+                        </div >
+                    )}
+                </CardContent>
+            </Card>
+
+
 
                         {/* CrudDialog */}
                         <CrudDialog
@@ -613,7 +616,7 @@ export default function ClassCatalogPage() {
                         >
                             {(form, operation) => (
                                 <ClassCatalogForm
-                                    form={form}
+                                     form={form as unknown as UseFormReturn<ClassCatalogFormData>}
                                     operation={operation}
                                     subjects={subjects}
                                     groups={groups || []}
