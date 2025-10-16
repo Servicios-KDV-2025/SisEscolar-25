@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useHideHeader } from "@/hooks/useHideHeader";
-
+ 
 type Props = {
   status: "success" | "cancelled";
   title: string;
@@ -10,14 +10,16 @@ type Props = {
   button?: { label: string; url: string };
   showPaymentInfo?: boolean;
 };
-
+ 
 export interface PaymentInfo {
-  email: string | null;
-  amount: number | null;
-  currency: string | null;
-  subscriptionId: string | null;
+  email?: string
+  amount?: number
+  currency?: string
+  subscriptionId?: string
+  subscription_current_period_start?: number
+  subscription_current_period_end?: number
 }
-
+ 
 export const PaymentStatusBlock: React.FC<Props> = ({
   status,
   title,
@@ -28,16 +30,15 @@ export const PaymentStatusBlock: React.FC<Props> = ({
 }) => {
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo | null>(null);
   const [currentDate] = useState(new Date());
-
+ 
   // Ocultar el header en las páginas de estado de pago
   useHideHeader(true);
-
+ 
   useEffect(() => {
     if (status === "success") {
       const params = new URLSearchParams(window.location.search);
       const sessionId = params.get("sessionId");
-      console.log(sessionId)
-
+ 
       if (sessionId) {
         fetch('/api/payment-session', {
           method: 'POST',
@@ -51,32 +52,19 @@ export const PaymentStatusBlock: React.FC<Props> = ({
       }
     }
   }, [status, showPaymentInfo]);
-
+ 
   const isSuccess = status === "success";
-
-  // Calcular fechas para la cuenta
-  const activationDate = new Date(currentDate);
-  const expirationDate = new Date(currentDate);
-  expirationDate.setFullYear(expirationDate.getFullYear() + 1);
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
+ 
   const handleInvoiceRequest = () => {
     // Aquí puedes implementar la lógica para solicitar factura
     alert('Solicitud de factura enviada. Te contactaremos pronto.');
   };
-
+ 
   return (
     <section
       className={`relative overflow-hidden min-h-screen px-6 py-16 ${
-        isSuccess 
-          ? "bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50" 
+        isSuccess
+          ? "bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50"
           : "bg-gradient-to-br from-rose-50 via-pink-50 to-red-50"
       }`}
     >
@@ -86,7 +74,7 @@ export const PaymentStatusBlock: React.FC<Props> = ({
       }`} style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23currentColor' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
       }}></div>
-
+ 
       <div className="relative z-10 max-w-6xl mx-auto">
         {/* Header Section */}
         <div className="text-center mb-12">
@@ -94,8 +82,8 @@ export const PaymentStatusBlock: React.FC<Props> = ({
           {image?.url && (
             <div className="mb-8">
               <div className={`inline-flex items-center justify-center w-28 h-28 rounded-full ${
-                isSuccess 
-                  ? "bg-emerald-100 shadow-2xl shadow-emerald-200/50" 
+                isSuccess
+                  ? "bg-emerald-100 shadow-2xl shadow-emerald-200/50"
                   : "bg-rose-100 shadow-2xl shadow-rose-200/50"
               } mb-6 transform hover:scale-110 transition-transform duration-300`}>
                 <img
@@ -106,12 +94,12 @@ export const PaymentStatusBlock: React.FC<Props> = ({
               </div>
             </div>
           )}
-
+ 
           {/* Success/Error icon fallback */}
           {!image?.url && (
             <div className={`inline-flex items-center justify-center w-28 h-28 rounded-full ${
-              isSuccess 
-                ? "bg-emerald-100 shadow-2xl shadow-emerald-200/50" 
+              isSuccess
+                ? "bg-emerald-100 shadow-2xl shadow-emerald-200/50"
                 : "bg-rose-100 shadow-2xl shadow-rose-200/50"
             } mb-6 transform hover:scale-110 transition-transform duration-300`}>
               <div className={`text-5xl ${
@@ -121,14 +109,14 @@ export const PaymentStatusBlock: React.FC<Props> = ({
               </div>
             </div>
           )}
-
+ 
           {/* Title */}
           <h1 className={`text-5xl md:text-6xl font-bold mb-6 ${
             isSuccess ? "text-emerald-800" : "text-rose-800"
           }`}>
             {title}
           </h1>
-
+ 
           {/* Message */}
           <p className={`text-xl md:text-2xl max-w-3xl mx-auto mb-8 ${
             isSuccess ? "text-emerald-700" : "text-rose-700"
@@ -136,7 +124,7 @@ export const PaymentStatusBlock: React.FC<Props> = ({
             {message}
           </p>
         </div>
-
+ 
         {/* Success Content */}
         {isSuccess && paymentInfo && (
           <div className="grid md:grid-cols-2 gap-8 mb-12">
@@ -144,26 +132,26 @@ export const PaymentStatusBlock: React.FC<Props> = ({
             <div className="bg-white/90 backdrop-blur-sm border border-white/30 shadow-2xl rounded-3xl p-8">
               <div className="flex items-center mb-6">
                 <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mr-4">
-                  <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-10 h-10 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                   </svg>
                 </div>
                 <h3 className="text-2xl font-bold text-gray-800">Detalles del Pago</h3>
               </div>
-              
+             
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-3 border-b border-gray-100">
                   <span className="text-gray-600 font-medium">Email:</span>
                   <span className="text-gray-800 font-semibold">{paymentInfo.email}</span>
                 </div>
-                
+               
                 <div className="flex justify-between items-center py-3 border-b border-gray-100">
                   <span className="text-gray-600 font-medium">Monto:</span>
                   <span className="text-2xl font-bold text-emerald-600">
                     {((paymentInfo.amount ?? 0) / 100).toFixed(2)} {paymentInfo.currency?.toUpperCase()}
                   </span>
                 </div>
-                
+               
                 <div className="flex justify-between items-center py-3">
                   <span className="text-gray-600 font-medium">ID Suscripción:</span>
                   <span className="text-gray-800 font-mono text-sm bg-gray-50 px-3 py-2 rounded-lg">
@@ -172,7 +160,7 @@ export const PaymentStatusBlock: React.FC<Props> = ({
                 </div>
               </div>
             </div>
-
+ 
             {/* Account Details Card */}
             <div className="bg-white/90 backdrop-blur-sm border border-white/30 shadow-2xl rounded-3xl p-8">
               <div className="flex items-center mb-6">
@@ -183,18 +171,26 @@ export const PaymentStatusBlock: React.FC<Props> = ({
                 </div>
                 <h3 className="text-2xl font-bold text-gray-800">Información de la Cuenta</h3>
               </div>
-              
+             
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-3 border-b border-gray-100">
                   <span className="text-gray-600 font-medium">Fecha de Activación:</span>
-                  <span className="text-gray-800 font-semibold">{formatDate(activationDate)}</span>
+                  <span className="text-gray-800 font-semibold">${paymentInfo.subscription_current_period_start ? new
+            Date(paymentInfo.subscription_current_period_start * 1000).toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'long', day: 'numeric'
+            }) : 'N/A'}</span>
                 </div>
-                
+               
                 <div className="flex justify-between items-center py-3 border-b border-gray-100">
                   <span className="text-gray-600 font-medium">Fecha de Expiración:</span>
-                  <span className="text-gray-800 font-semibold">{formatDate(expirationDate)}</span>
+                  <span className="text-gray-800 font-semibold">${paymentInfo.subscription_current_period_end ? new
+            Date(paymentInfo.subscription_current_period_end * 1000).toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'long', day: 'numeric'
+            }) : 'N/A'}</span>
                 </div>
-                
+               
                 <div className="flex justify-between items-center py-3">
                   <span className="text-gray-600 font-medium">Estado:</span>
                   <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -205,12 +201,12 @@ export const PaymentStatusBlock: React.FC<Props> = ({
             </div>
           </div>
         )}
-
+ 
         {/* Success Actions */}
         {isSuccess && (
           <div className="bg-white/90 backdrop-blur-sm border border-white/30 shadow-2xl rounded-3xl p-8 mb-12">
             <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">Próximos Pasos</h3>
-            
+           
             <div className="grid md:grid-cols-2 gap-6 mb-8">
               <div className="text-center p-6 bg-emerald-50 rounded-2xl">
                 <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -221,7 +217,7 @@ export const PaymentStatusBlock: React.FC<Props> = ({
                 <h4 className="text-lg font-semibold text-gray-800 mb-2">Correo de Confirmación</h4>
                 <p className="text-gray-600">Hemos enviado un correo de confirmación a tu email con todos los detalles de tu compra.</p>
               </div>
-              
+             
               <div className="text-center p-6 bg-blue-50 rounded-2xl">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -232,7 +228,7 @@ export const PaymentStatusBlock: React.FC<Props> = ({
                 <p className="text-gray-600">Tu cuenta ya está activa. Accede a la plataforma escolar con tus credenciales.</p>
               </div>
             </div>
-
+ 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               {button?.url && (
                 <a
@@ -245,7 +241,7 @@ export const PaymentStatusBlock: React.FC<Props> = ({
                   {button.label}
                 </a>
               )}
-              
+             
               <button
                 onClick={handleInvoiceRequest}
                 className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105"
@@ -258,7 +254,7 @@ export const PaymentStatusBlock: React.FC<Props> = ({
             </div>
           </div>
         )}
-
+ 
         {/* Cancelled Payment Content */}
         {!isSuccess && (
           <div className="bg-white/90 backdrop-blur-sm border border-white/30 shadow-2xl rounded-3xl p-8 mb-12">
@@ -268,13 +264,13 @@ export const PaymentStatusBlock: React.FC<Props> = ({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
-              
+             
               <h3 className="text-2xl font-bold text-gray-800 mb-4">¿Necesitas ayuda?</h3>
               <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-                Si tienes alguna pregunta sobre el proceso de pago o necesitas asistencia, 
+                Si tienes alguna pregunta sobre el proceso de pago o necesitas asistencia,
                 nuestro equipo de soporte está aquí para ayudarte.
               </p>
-              
+             
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <a
                   href="/contact"
@@ -285,7 +281,7 @@ export const PaymentStatusBlock: React.FC<Props> = ({
                   </svg>
                   Contactar Soporte
                 </a>
-                
+               
                 <a
                   href="/"
                   className="inline-flex items-center px-8 py-4 bg-gray-600 hover:bg-gray-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105"
@@ -299,7 +295,7 @@ export const PaymentStatusBlock: React.FC<Props> = ({
             </div>
           </div>
         )}
-
+ 
         {/* Footer */}
         <div className="text-center">
           <p className="text-gray-500 text-sm">

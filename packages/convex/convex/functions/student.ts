@@ -2,6 +2,46 @@
 import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 
+// Función para generar la siguiente matrícula disponible
+export const generateNextEnrollment = query({
+  args: {
+    schoolId: v.id("school"),
+  },
+  handler: async (ctx, args) => {
+    const currentYear = new Date().getFullYear();
+    const yearSuffix = currentYear.toString().slice(-2); // Obtener los últimos 2 dígitos del año
+    
+    // Obtener todas las matrículas de la escuela que empiecen con el año actual
+    const students = await ctx.db
+      .query("student")
+      .withIndex("by_schoolId", (q) => q.eq("schoolId", args.schoolId))
+      .collect();
+
+    // Filtrar matrículas que empiecen con el año actual
+    const currentYearEnrollments = students
+      .filter(student => student.enrollment.startsWith(yearSuffix))
+      .map(student => student.enrollment)
+      .sort();
+
+    // Encontrar el siguiente número consecutivo
+    let nextNumber = 1;
+    for (const enrollment of currentYearEnrollments) {
+      // Extraer el número de la matrícula (después de los 2 dígitos del año)
+      const enrollmentNumber = parseInt(enrollment.slice(2));
+      if (enrollmentNumber === nextNumber) {
+        nextNumber++;
+      } else {
+        break;
+      }
+    }
+
+    // Formatear el número con ceros a la izquierda (8 dígitos)
+    const formattedNumber = nextNumber.toString().padStart(8, '0');
+    
+    return `${yearSuffix}${formattedNumber}`;
+  },
+});
+
 // CREATE
 export const createStudent = mutation({
   args: {
@@ -9,6 +49,7 @@ export const createStudent = mutation({
     groupId: v.id("group"),
     tutorId: v.id("user"),
     enrollment: v.string(),
+    schoolCycleId: v.id("schoolCycle"),
     name: v.string(),
     lastName: v.optional(v.string()),
     birthDate: v.optional(v.number()),
@@ -33,12 +74,92 @@ export const createStudent = mutation({
 
     // Insertar el nuevo estudiante con datos de auditoría
     const now = Date.now();
-    return await ctx.db.insert("student", {
+    const studentId = await ctx.db.insert("student", {
       ...args,
-      status: args.status || "active", // Usar el status proporcionado o default "active"
+      status: args.status || "active",
       createdAt: now,
       updatedAt: now,
     });
+
+    // Generar pagos automáticamente si tiene schoolCycleId
+    let paymentsCreated = [];
+    if (args.schoolCycleId) {
+      try {
+        // Obtener todas las configuraciones de pago activas para su escuela y ciclo
+        const paymentConfigs = await ctx.db
+          .query("billingConfig")
+          .withIndex("by_schoolCycle", (q) => q.eq("schoolCycleId", args.schoolCycleId))
+          .filter((q) => q.eq(q.field("schoolId"), args.schoolId))
+          .filter((q) => q.neq(q.field("status"), "inactive")) // Solo configuraciones que no esten inactivas
+          .collect();
+
+        let totalDebt = 0;
+
+        // Crear pagos para cada configuración que aplique al estudiante
+        for (const config of paymentConfigs) {
+          let shouldCreatePayment = false;
+
+          // Verificar si la configuración aplica a este estudiante
+          if (config.scope === "all_students") {
+            shouldCreatePayment = true;
+          } else if (config.scope === "specific_groups" && config.targetGroup) {
+            shouldCreatePayment = config.targetGroup.includes(args.groupId);
+          } else if (config.scope === "specific_grades" && config.targetGrade) {
+            // Obtener el grupo para verificar el grado
+            const group = await ctx.db.get(args.groupId);
+            shouldCreatePayment = !!(group && config.targetGrade.includes(group.grade));
+          } else if (config.scope === "specific_students" && config.targetStudent) {
+            // Para estudiantes específicos, necesitaríamos el ID del estudiante pero pues no existe asi que pues nomas no lo ponemos jajajja
+            shouldCreatePayment = false;
+          }
+
+          if (shouldCreatePayment) {
+            // Verificar si ya existe un pago para este estudiante y configuración
+            const existingPayment = await ctx.db
+              .query("billing")
+              .withIndex("by_student_and_config", (q) => 
+                q.eq("studentId", studentId).eq("billingConfigId", config._id)
+              )
+              .first();
+
+            if (!existingPayment) {
+              const paymentId = await ctx.db.insert("billing", {
+                studentId: studentId,
+                billingConfigId: config._id,
+                status: "Pago pendiente",
+                amount: config.amount,
+                createdAt: now,
+                updatedAt: now,
+              });
+
+
+              paymentsCreated.push({
+                paymentId,
+                configName: `${config.type} - ${config.recurrence_type}`,
+                amount: config.amount,
+                status: config.status,
+              });
+            }
+          }
+        }
+
+        
+      } catch (error) {
+        console.error("Error creando pagos para el estudiante:", error);
+      }
+    }
+
+    return {
+      studentId,
+      student: {
+        id: studentId,
+        name: `${args.name} ${args.lastName || ""}`,
+        enrollment: args.enrollment,
+        schoolCycleId: args.schoolCycleId,
+      },
+      paymentsCreated: paymentsCreated.length,
+      payments: paymentsCreated,
+    };
   },
 });
 
@@ -114,6 +235,7 @@ export const updateStudent = mutation({
       admissionDate: v.optional(v.number()),
       imgUrl: v.optional(v.string()),
       status: v.optional(v.union(v.literal("active"), v.literal("inactive"))),
+      schoolCycleId: v.optional(v.id("schoolCycle")),
     }),
   },
   handler: async (ctx, args) => {

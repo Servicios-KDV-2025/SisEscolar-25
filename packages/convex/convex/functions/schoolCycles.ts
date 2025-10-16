@@ -177,3 +177,21 @@ export const ObtenerCicloActivo = query({
       .first();
   },
 });
+
+export const getAllSchoolCycles = query({
+  args: { schoolId: v.id("school") },
+  handler: async (ctx, args) => {
+    const cycles = await ctx.db
+      .query("schoolCycle")
+      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+      .collect();
+
+    return cycles.map(cycle => ({
+      id: cycle._id,
+      name: cycle.name,
+      startDate: new Date(cycle.startDate).toISOString().split('T')[0],
+      endDate: new Date(cycle.endDate).toISOString().split('T')[0],
+      isActive: cycle.status === "active",
+    }));
+  },
+});
