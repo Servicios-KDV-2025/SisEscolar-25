@@ -231,7 +231,7 @@ export const PaymentStatusBlock: React.FC<Props> = ({
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-3 border-b border-gray-100">
                   <span className="text-gray-600 font-medium">
-                    Fecha de Activación:
+                    Fecha de Activación: 
                   </span>
                   <span className="text-gray-800 font-semibold">
                     {paymentInfo.subscription_current_period_start
