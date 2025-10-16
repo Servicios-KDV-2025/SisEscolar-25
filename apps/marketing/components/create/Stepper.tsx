@@ -61,6 +61,7 @@ const StepperContent = () => {
   }
 
   const onSelectPrice = (idStripe: string) => {
+    alert(idStripe)
     setSelected(idStripe)
     methods.next()
   }
@@ -118,21 +119,23 @@ interface ContentProps {
  }
  //  const { user, isLoaded } = useUser() // respaldo solo para DEV
 
-  const Content: React.FC<ContentProps> = (props) => {
-  const { user, isLoaded } = useUser() // respaldo solo para DEV
+ const Content: React.FC<ContentProps> = (props) => {
+  const { user, isLoaded } = useUser();
 
-  if (!isLoaded) return null
+  if (!isLoaded || !user) return null;
 
   return (
-    <StepperUi.Panel className="h-[200px] rounded-2xl border border-gray-200 bg-white text-gray-800 p-8 shadow-lg flex flex-col justify-between">
-      {/* Mensaje */}
-      <p className="text-lg sm:text-xl font-medium mb-6 leading-relaxed">
+    <StepperUi.Panel className="...">
+      <p className="...">
         ¡Casi estás por terminar! Da clic en{' '}
         <span className="font-semibold text-red-500">“Pagar ahora”</span> para ir a Stripe.
       </p>
 
-      {/* Botón */}
-      <PayNowButton priceId={props.priceId} schoolId={props.schoolId} userId={user?.id!} />
+      <PayNowButton
+        priceId={props.priceId}
+        schoolId={props.schoolId}
+        userId={user.id}
+      />
     </StepperUi.Panel>
-  )
-}
+  );
+};
