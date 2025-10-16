@@ -17,6 +17,7 @@ import {
   AlertCircle,
   Loader2,
   Building2,
+  Store,
 } from "lucide-react"
 import { Badge } from "@repo/ui/components/shadcn/badge"
 import { Input } from "@repo/ui/components/shadcn/input"
@@ -43,6 +44,7 @@ import { Label } from "@repo/ui/components/shadcn/label"
 import { RadioGroup, RadioGroupItem } from "@repo/ui/components/shadcn/radio-group"
 import { StripeCheckoutButton } from "../../../../components/stripe/StripeCheckoutButton"
 import { SPEIPaymentForm } from "../../../../components/stripe/SPEIPaymentForm"
+import { OXXOPaymentForm } from "../../../../components/stripe/OXXOPaymentForm"
 
 
 interface Estudiante {
@@ -118,7 +120,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "bank_transfer" | "card" | "other">("cash")
   const [paymentAmount, setPaymentAmount] = useState<string>("")
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
-  const [paymentMethodType, setPaymentMethodType] = useState<"manual" | "stripe" | "spei">("manual")
+  const [paymentMethodType, setPaymentMethodType] = useState<"manual" | "stripe" | "spei" | "oxxo">("manual")
 
   // Hooks para obtener datos del usuario y escuela
   const { user: clerkUser } = useUser()
@@ -1118,7 +1120,9 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
                 ? "Completa la información del pago a procesar"
                 : paymentMethodType === "stripe"
                   ? "Procesa el pago con tarjeta de crédito o débito"
-                  : "Genera los datos para realizar la transferencia bancaria"
+                  : paymentMethodType === "spei"
+                    ? "Genera los datos para realizar la transferencia bancaria"
+                    : "Genera tu ficha para pagar en cualquier tienda OXXO"
               }
             </DialogDescription>
           </DialogHeader>
@@ -1155,14 +1159,24 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
             {/* Selección de tipo de pago */}
             <div className="space-y-3">
               <Label className="text-base font-semibold">Método de Pago</Label>
-              <RadioGroup value={paymentMethodType} onValueChange={(value) => setPaymentMethodType(value as "manual" | "stripe" | "spei")}>
+              <RadioGroup value={paymentMethodType} onValueChange={(value) => setPaymentMethodType(value as "manual" | "stripe" | "spei" | "oxxo")}>
                 <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
                   <RadioGroupItem value="manual" id="manual" />
                   <Label htmlFor="manual" className="flex items-center gap-2 cursor-pointer flex-1">
                     <Banknote className="h-4 w-4" />
                     <div>
                       <p className="font-medium">Registro Manual</p>
-                      <p className="text-xs text-muted-foreground">Efectivo u otro método - Procesamiento inmediato</p>
+                      <p className="text-xs text-muted-foreground">Efectivo u otro método - Confirmacion en minutos</p>
+                    </div>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
+                  <RadioGroupItem value="oxxo" id="oxxo" />
+                  <Label htmlFor="oxxo" className="flex items-center gap-2 cursor-pointer flex-1">
+                    <Store className="h-4 w-4" />
+                    <div>
+                      <p className="font-medium">Pago en OXXO</p>
+                      <p className="text-xs text-muted-foreground">Paga en OXXO - Confirmacion en minutos</p>
                     </div>
                   </Label>
                 </div>
@@ -1319,7 +1333,79 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
                   )
                 })()}
               </>
-            ) : (
+            ) : paymentMethodType === "oxxo" ? (
+              // Formulario de OXXO
+              <>
+                {(() => {
+                  const selectedPaymentsData = getSelectedPaymentsData()
+                  const firstPayment = selectedPaymentsData[0]
+                  
+                  if (selectedPaymentsData.length === 1 && firstPayment && currentSchool?.school._id && currentUser?._id) {
+                    // Obtener información del estudiante y tutor
+                    const estudiante = filteredEstudiantesByCycle.find((e) => e.id === firstPayment.studentId)
+                    
+                    // Usar el email del usuario actual (quien está haciendo el pago) o un email genérico
+                    const customerEmail = clerkUser?.primaryEmailAddress?.emailAddress || `tutor-${firstPayment.studentId}@school.com`
+                    const customerName = estudiante?.padre || firstPayment.studentName
+                    
+                    return (
+                      <OXXOPaymentForm
+                        billingId={firstPayment.id as Id<"billing">}
+                        amount={firstPayment.amount}
+                        schoolId={currentSchool.school._id}
+                        studentId={firstPayment.studentId as Id<"student">}
+                        tutorId={currentUser._id}
+                        studentName={firstPayment.studentName}
+                        paymentType={firstPayment.paymentType}
+                        customerEmail={customerEmail}
+                        customerName={customerName}
+                        onSuccess={() => {
+                          closePaymentFormModal()
+                          closePaymentModal()
+                        }}
+                        onCancel={closePaymentFormModal}
+                      />
+                    )
+                  }
+                  
+                  if (selectedPaymentsData.length > 1) {
+                    return (
+                      <div className="p-4 border rounded-lg bg-yellow-50 border-yellow-200">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-yellow-900">
+                              Pagos múltiples con OXXO
+                            </p>
+                            <p className="text-xs text-yellow-700 mt-1">
+                              Por el momento, solo puedes procesar un pago a la vez con OXXO. 
+                              Por favor, selecciona un solo cobro o usa el registro manual para múltiples pagos.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }
+                  
+                  return (
+                    <div className="p-4 border rounded-lg bg-red-50 border-red-200">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-red-900">
+                            Error de configuración
+                          </p>
+                          <p className="text-xs text-red-700 mt-1">
+                            No se pudo cargar la información necesaria. Por favor, recarga la página e intenta nuevamente.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
+              </>
+            ) :
+            (
               // Formulario manual (el original)
               <>
                 {/* Método de Pago */}
@@ -1333,7 +1419,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
                         Efectivo
                       </Label>
                     </div>        
-
+                  
                     <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
                       <RadioGroupItem value="other" id="other" />
                       <Label htmlFor="other" className="flex items-center gap-2 cursor-pointer flex-1">

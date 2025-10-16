@@ -389,6 +389,7 @@ async function handlePaymentIntentSucceeded(ctx: ActionCtx, paymentIntent: Strip
   console.log("💵 Currency:", paymentIntent.currency);
   console.log("💳 Latest charge:", paymentIntent.latest_charge);
   console.log("🎯 Status:", paymentIntent.status);
+  console.log("💳 Payment method types:", paymentIntent.payment_method_types);
 
   const metadata = paymentIntent.metadata;
   
@@ -403,11 +404,26 @@ async function handlePaymentIntentSucceeded(ctx: ActionCtx, paymentIntent: Strip
     throw new Error(`Metadata incompleta en Payment Intent: billingId=${metadata?.billingId}, studentId=${metadata?.studentId}, tutorId=${metadata?.tutorId}`);
   }
 
+  // Detectar el método de pago real
+  let paymentMethod: "cash" | "bank_transfer" | "card" | "other" = "other";
+  
+  if (paymentIntent.payment_method_types.includes("oxxo")) {
+    paymentMethod = "cash"; // OXXO es pago en efectivo
+    console.log("💵 Método detectado: OXXO (cash)");
+  } else if (paymentIntent.payment_method_types.includes("customer_balance")) {
+    paymentMethod = "bank_transfer"; // SPEI/transferencia bancaria
+    console.log("🏦 Método detectado: SPEI (bank_transfer)");
+  } else if (paymentIntent.payment_method_types.includes("card")) {
+    paymentMethod = "card"; // Tarjeta
+    console.log("💳 Método detectado: Tarjeta (card)");
+  }
+
   console.log("💾 Intentando confirmar pago en la base de datos...");
   console.log("   billingId:", metadata.billingId);
   console.log("   studentId:", metadata.studentId);
   console.log("   tutorId:", metadata.tutorId);
   console.log("   amount:", paymentIntent.amount / 100);
+  console.log("   method:", paymentMethod);
 
   // Confirmar el pago en la base de datos
   await ctx.runMutation(internal.functions.stripePayments.confirmPayment, {
@@ -417,6 +433,7 @@ async function handlePaymentIntentSucceeded(ctx: ActionCtx, paymentIntent: Strip
     amount: paymentIntent.amount / 100, // Convertir de centavos a pesos
     createdBy: metadata.tutorId as Id<"user">,
     stripeChargeId: paymentIntent.latest_charge as string,
+    paymentMethod: paymentMethod,
   });
 
   console.log("✅ Pago confirmado en base de datos desde Payment Intent");

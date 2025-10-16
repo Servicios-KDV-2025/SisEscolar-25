@@ -36,6 +36,9 @@ export const createConnectedAccount = action({
         transfers: {
           requested: true,
         },
+        oxxo_payments: {
+          requested: true,
+        },
         
       },
       business_profile: {

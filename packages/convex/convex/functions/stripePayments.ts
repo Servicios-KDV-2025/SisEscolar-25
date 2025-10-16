@@ -134,6 +134,7 @@ export const confirmPayment = internalMutation({
     createdBy: v.id("user"),
     stripeChargeId: v.optional(v.string()),
     stripeTransferId: v.optional(v.string()),
+    paymentMethod: v.optional(v.union(v.literal("cash"), v.literal("bank_transfer"), v.literal("card"), v.literal("other"))),
   },
   handler: async (ctx, args) => {
     console.log("💾 confirmPayment - Iniciando...");
@@ -142,6 +143,7 @@ export const confirmPayment = internalMutation({
     console.log("   studentId:", args.studentId);
     console.log("   amount:", args.amount);
     console.log("   createdBy:", args.createdBy);
+    console.log("   paymentMethod:", args.paymentMethod || "card (default)");
 
     const now = Date.now();
 
@@ -197,7 +199,7 @@ export const confirmPayment = internalMutation({
     const paymentId = await ctx.db.insert("payments", {
       billingId: args.billingId,
       studentId: args.studentId,
-      method: "card", // Pago con tarjeta vía Stripe
+      method: args.paymentMethod || "card", // Usar el método detectado o default a card
       amount: args.amount,
       createdBy: args.createdBy,
       stripePaymentIntentId: args.paymentIntentId,
@@ -400,6 +402,87 @@ export const createPaymentIntentWithSPEI = action({
       customerId: customer.id,
       status: confirmedPaymentIntent.status,
       transferInstructions: confirmedPaymentIntent.next_action?.display_bank_transfer_instructions || null,
+    };
+  }
+});
+
+export const createPaymentIntentWithOXXO = action({
+  args: {
+    billingId: v.id("billing"),
+    amount: v.number(),
+    schoolId: v.id("school"),
+    studentId: v.id("student"),
+    tutorId: v.id("user"),
+    description: v.optional(v.string()),
+    customerEmail: v.string(),
+    customerName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const school = await ctx.runQuery(internal.functions.stripeConnect.getSchoolForConnect, {
+      schoolId: args.schoolId,
+    });
+
+    if (!school.stripeAccountId) {
+      throw new Error("La escuela no tiene una cuenta de Stripe configurada");
+    }
+
+    if (!school.stripeOnboardingComplete) {
+      throw new Error("La escuela debe completar la configuración de Stripe");
+    }
+
+    // Crear o recuperar un Customer en Stripe
+    const customer = await stripe.customers.create({
+      email: args.customerEmail,
+      name: args.customerName,
+      metadata: {
+        studentId: args.studentId,
+        tutorId: args.tutorId,
+        schoolId: args.schoolId,
+      },
+    });
+
+    // Crear Payment Intent con OXXO
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(args.amount * 100), // Convertir a centavos
+      currency: "mxn",
+      customer: customer.id,
+      description: args.description || `Pago por OXXO`,
+      payment_method_types: ["oxxo"],
+      transfer_data: {
+        destination: school.stripeAccountId,
+      },
+      metadata: {
+        billingId: args.billingId,
+        studentId: args.studentId,
+        tutorId: args.tutorId,
+        schoolId: args.schoolId,
+        customerEmail: args.customerEmail,
+        customerName: args.customerName,
+      },
+    });
+
+    // Confirmar el Payment Intent para generar el número OXXO
+    const confirmedPaymentIntent = await stripe.paymentIntents.confirm(paymentIntent.id, {
+      payment_method_data: {
+        type: "oxxo",
+        billing_details: {
+          name: args.customerName,
+          email: args.customerEmail,
+        },
+      },
+    });
+
+    // Extraer los detalles de OXXO
+    const oxxoDetails = confirmedPaymentIntent.next_action?.oxxo_display_details;
+
+    return {
+      clientSecret: confirmedPaymentIntent.client_secret,
+      paymentIntentId: confirmedPaymentIntent.id,
+      customerId: customer.id,
+      status: confirmedPaymentIntent.status,
+      oxxoNumber: oxxoDetails?.number,
+      expiresAt: oxxoDetails?.expires_after,
+      hostedVoucherUrl: oxxoDetails?.hosted_voucher_url,
     };
   }
 });

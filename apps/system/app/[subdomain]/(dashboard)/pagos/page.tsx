@@ -99,16 +99,7 @@ export default function Colegiaturas() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Button
-                // className="transition-all duration-1900 ease-in-out hover:scale-105 cursor-pointer "
-                // variant="outline"
-                // onClick={handleToggleStripeConfig}
-                // style={{
-                //   width: showStripeConfig ? "auto" : "auto",
-                //   minWidth: showStripeConfig ? "150px" : "300px",
-
-                // }}
-                // size="lg"
+              <Button       
                 onClick={handleToggleStripeConfig}
                 className={`transition-all duration-700 ease-in-out hover:scale-105 cursor-pointer ${
                   showStripeConfig ? "w-[160px]" : "w-[320px]"
