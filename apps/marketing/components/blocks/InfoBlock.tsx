@@ -1,6 +1,6 @@
-import React from 'react'
-import NextImage from "next/image"; //alias para evitar colisiones
+import React from 'react'//alias para evitar colisiones
 import { urlForImage } from '@/sanity/lib/utils';
+import Image from 'next/image';
 
 
 interface InfoBlockProps {
@@ -18,12 +18,12 @@ export const InfoBlock: React.FC<InfoBlockProps> = ({
   icon, 
   accentColor, 
 }) => {
-  const imageUrl = icon && urlForImage(icon.asset)?.fit('crop').url();
+  const imageUrl = icon && urlForImage(icon)?.fit('crop').url();
   return (
     <div className="flex gap-4 items-start p-4 bg-white rounded-xl shadow-sm">
   
         {imageUrl ? (
-          <NextImage src={imageUrl} alt={title || 'icon'} style={{ width: 28, height: 28 }} />
+          <Image src={imageUrl} alt={title || 'icon'} width={50} height={50}  />
         ) : (
           <div style={{ width: 28, height: 28, background: accentColor, borderRadius: 4 }} />
         )}
