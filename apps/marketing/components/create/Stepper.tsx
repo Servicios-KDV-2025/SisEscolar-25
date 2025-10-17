@@ -124,7 +124,7 @@ interface ContentProps {
   const { user, isLoaded } = useUser();
 
   if (!isLoaded || !user) return null;
-
+ 
   return (
     <StepperUi.Panel className="...">
       <p className="...">
