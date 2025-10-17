@@ -604,38 +604,38 @@ export default function RubricDashboard() {
                         <TableCell>
                           {canCreateRubricPermission &&
                             <div className="flex items-center gap-2">
-                            <Switch
-                              checked={rubric.status}
-                              onCheckedChange={() =>
-                                handleToggleStatus(rubric._id, rubric.status)
-                              }
-                              disabled={
-                                (!rubric.status &&
-                                  !canActivateRubric(rubric._id)) ||
-                                (rubric as RubricWithDetails)
-                                  .schoolCycleStatus !== "active"
-                              }
-                            />
-                            {!rubric.status && !canActivateRubric(rubric._id) && (
-                              <div className="relative group">
-                                <AlertTriangle className="h-4 w-4 text-destructive cursor-help" />
-                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                                  No se puede activar: excedería el 100%
-                                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                                </div>
-                              </div>
-                            )}
-                            {(rubric as RubricWithDetails).schoolCycleStatus !==
-                              "active" && (
+                              <Switch
+                                checked={rubric.status}
+                                onCheckedChange={() =>
+                                  handleToggleStatus(rubric._id, rubric.status)
+                                }
+                                disabled={
+                                  (!rubric.status &&
+                                    !canActivateRubric(rubric._id)) ||
+                                  (rubric as RubricWithDetails)
+                                    .schoolCycleStatus !== "active"
+                                }
+                              />
+                              {!rubric.status && !canActivateRubric(rubric._id) && (
                                 <div className="relative group">
-                                  <AlertTriangle className="h-4 w-4 text-muted-foreground cursor-help" />
+                                  <AlertTriangle className="h-4 w-4 text-destructive cursor-help" />
                                   <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                                    Ciclo escolar inactivo
+                                    No se puede activar: excedería el 100%
                                     <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
                                   </div>
                                 </div>
                               )}
-                          </div>
+                              {(rubric as RubricWithDetails).schoolCycleStatus !==
+                                "active" && (
+                                  <div className="relative group">
+                                    <AlertTriangle className="h-4 w-4 text-muted-foreground cursor-help" />
+                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                                      Ciclo escolar inactivo
+                                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                                    </div>
+                                  </div>
+                                )}
+                            </div>
                           }
 
                         </TableCell>
@@ -720,7 +720,7 @@ export default function RubricDashboard() {
               {editingRubric ? "Editar Rubrica" : "Nueva Rubrica"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-6 py-4 ">
+          <div className="space-y-4 py-4 ">
             <div className="space-y-2">
               <Label htmlFor="name">Nombre</Label>
               <Input
@@ -730,6 +730,7 @@ export default function RubricDashboard() {
                 onChange={(e) => setFormData({ name: e.target.value })}
                 placeholder="Nombre de Rubrica"
               />
+              
 
               {nameDuplicate && (
                 <div className="text-sm text-destructive p-1 flex justify-center items-center gap-2">
@@ -747,6 +748,15 @@ export default function RubricDashboard() {
                 </div>
               )}
             </div>
+            {!shouldShowFormValidation && (
+                <div className=" text-sm mt-2 text-blue-600 flex flex-row justify-center items-center">
+                  <AlertCircle className="h-5 text-blue-600" />
+                  <p className="p-2">
+                    Selecciona una clase y después el período para 
+                    asignar el porcentaje disponible
+                  </p>
+                </div>
+              )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="schoolCycle">Ciclo Escolar</Label>
@@ -777,7 +787,7 @@ export default function RubricDashboard() {
                   }}
                 >
                   <SelectTrigger className="w-full truncate">
-                    <SelectValue  placeholder="Selecciona una Clase" />
+                    <SelectValue placeholder="Selecciona una Clase" />
                   </SelectTrigger>
                   <SelectContent>
                     {classes
@@ -938,15 +948,7 @@ export default function RubricDashboard() {
                           <p>El porcentaje debe ser mayor a 0%</p>
                         </div>
                       )}
-                      {!shouldShowFormValidation && (
-                        <div className="text-center text-sm mt-2 text-blue-600 flex flex-row gap-2 justify-center">
-                          <AlertCircle className="h-5 text-blue-600" />
-                          <p>
-                            Selecciona una clase y período para ver el
-                            porcentaje disponible
-                          </p>
-                        </div>
-                      )}
+
                     </>
                   );
                 })()}
