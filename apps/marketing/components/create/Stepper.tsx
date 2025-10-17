@@ -36,8 +36,8 @@ export const Stepper: React.FC = () => {
 const StepperContent = () => {
   const { isSignedIn, isLoaded, signOut } = useAuth()
   const [ready, setReady] = useState(false)
-  const [isSelect, setSelected] = useState<string>('')
-  const [schooldId, setSchoolId] = useState<string>('')
+  const [idStripe, setSelected] = useState<string>('')
+  const [school_id, setSchoolId] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
  
   //const { signOut } = useClerk()
@@ -61,7 +61,7 @@ const StepperContent = () => {
   }
 
   const onSelectPrice = (idStripe: string) => {
-    alert(idStripe)
+    alert(idStripe);
     setSelected(idStripe)
     methods.next()
   }

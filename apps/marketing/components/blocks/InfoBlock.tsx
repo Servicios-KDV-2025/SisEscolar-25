@@ -1,8 +1,9 @@
 import React from 'react'//alias para evitar colisiones
+import React from 'react'//alias para evitar colisiones
 import { urlForImage } from '@/sanity/lib/utils';
 import Image from 'next/image';
- 
- 
+
+
 interface InfoBlockProps {
   title: string;
   subtitle?: string;
@@ -22,7 +23,7 @@ export const InfoBlock: React.FC<InfoBlockProps> = ({
     <div className="flex gap-4 items-start p-4 bg-white rounded-xl shadow-sm">
  
         {imageUrl ? (
-          <Image src={imageUrl} alt={title || 'icon'} width={70} height={70}  />
+          <Image src={imageUrl} alt={title || 'icon'} width={50} height={50}  />
         ) : (
           <div style={{ width: 28, height: 28, borderRadius: 4 }} />
         )}
