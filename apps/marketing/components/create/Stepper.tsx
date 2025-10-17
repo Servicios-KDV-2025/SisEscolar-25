@@ -131,11 +131,7 @@ interface ContentProps {
         <span className="font-semibold text-red-500">“Pagar ahora”</span> para ir a Stripe.
       </p>
 
-      <PayNowButton
-        priceId={props.priceId}
-        schoolId={props.schoolId}
-        userId={user.id}
-      />
+      <PayNowButton priceId={props.priceId} schoolId={props.schoolId} userId={user?.id!} />
     </StepperUi.Panel>
   );
 };
