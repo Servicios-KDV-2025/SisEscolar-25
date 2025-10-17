@@ -48,9 +48,10 @@ export function StripeConnectOnboarding ({ schoolId, schoolEmail }: StripeConnec
 
       // Abrir el onboarding
       await handleStartOnboarding()
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Error desconocido"
       toast.error("Error al crear cuenta", {
-        description: error.message,
+        description: errorMessage,
       })
     } finally {
       setIsCreating(false)
@@ -67,9 +68,10 @@ export function StripeConnectOnboarding ({ schoolId, schoolEmail }: StripeConnec
 
       // Abrir en nueva ventana
       window.open(result.url, "_blank")
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Error desconocido"
       toast.error("Error al crear link de onboarding", {
-        description: error.message,
+        description: errorMessage,
       })
     }
   }
@@ -89,9 +91,10 @@ export function StripeConnectOnboarding ({ schoolId, schoolEmail }: StripeConnec
           description: "Necesitas completar la configuración de tu cuenta.",
         })
       }
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Error desconocido"
       toast.error("Error al verificar estado", {
-        description: error.message,
+        description: errorMessage,
       })
     } finally {
       setIsCheckingStatus(false)
@@ -102,9 +105,10 @@ export function StripeConnectOnboarding ({ schoolId, schoolEmail }: StripeConnec
     try {
       const result = await createDashboardLink({ schoolId })
       window.open(result.url, "_blank")
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Error desconocido"
       toast.error("Error al abrir dashboard", {
-        description: error.message,
+        description: errorMessage,
       })
     }
   }

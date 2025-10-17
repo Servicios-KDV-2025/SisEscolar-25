@@ -9,6 +9,17 @@ import { toast } from "sonner"
 import { useAction } from "convex/react"
 import { api } from "@repo/convex/convex/_generated/api"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
+import Stripe from "stripe"
+
+interface OXXODetails {
+  clientSecret: string | null
+  paymentIntentId: string
+  customerId: string
+  status: Stripe.PaymentIntent.Status
+  oxxoNumber: string | null | undefined
+  expiresAt: number | null | undefined
+  hostedVoucherUrl: string | null | undefined
+}
 
 interface OXXOPaymentFormProps {
   billingId: Id<"billing">
@@ -37,7 +48,7 @@ export function OXXOPaymentForm({
   onCancel,
 }: OXXOPaymentFormProps) {
   const [isProcessing, setIsProcessing] = useState(false)
-  const [oxxoDetails, setOxxoDetails] = useState<any>(null)
+  const [oxxoDetails, setOxxoDetails] = useState<OXXODetails | null>(null)
 
   const createPaymentIntent = useAction(api.functions.stripePayments.createPaymentIntentWithOXXO)
 
@@ -60,9 +71,10 @@ export function OXXOPaymentForm({
       toast.success("Ficha OXXO generada", {
         description: "Paga en cualquier tienda OXXO con el número de referencia",
       })
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Error desconocido"
       toast.error("Error al generar ficha OXXO", {
-        description: error.message,
+        description: errorMessage,
       })
     } finally {
       setIsProcessing(false)
@@ -171,7 +183,11 @@ export function OXXOPaymentForm({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => copyToClipboard(oxxoDetails.oxxoNumber)}
+                onClick={() => {
+                  if (oxxoDetails.oxxoNumber) {
+                    copyToClipboard(oxxoDetails.oxxoNumber)
+                  }
+                }}
                 disabled={!oxxoDetails.oxxoNumber}
                 className="cursor-pointer flex-shrink-0"
               >

@@ -568,7 +568,7 @@ export const registerCashPaymentWithInvoice = action({
     console.log("📄 Creando Invoice en Stripe...");
 
     // 1. Crear o buscar Customer en Stripe
-    let customer;
+    let customer: Stripe.Customer;
     try {
       // Buscar si ya existe un customer con este email
       const existingCustomers = await stripe.customers.list({
@@ -578,8 +578,9 @@ export const registerCashPaymentWithInvoice = action({
         stripeAccount: school.stripeAccountId,
       });
 
-      if (existingCustomers.data.length > 0) {
-        customer = existingCustomers.data[0];
+      const existingCustomer = existingCustomers.data[0];
+      if (existingCustomer) {
+        customer = existingCustomer;
         console.log("✅ Customer existente encontrado:", customer.id);
       } else {
         // Crear nuevo customer

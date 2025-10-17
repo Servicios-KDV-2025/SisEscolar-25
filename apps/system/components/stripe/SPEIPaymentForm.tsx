@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { useAction } from "convex/react"
 import { api } from "@repo/convex/convex/_generated/api"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
+import Stripe from "stripe"
 
 interface SPEIPaymentFormProps {
   billingId: Id<"billing">
@@ -37,7 +38,7 @@ export function SPEIPaymentForm({
   onCancel,
 }: SPEIPaymentFormProps) {
   const [isProcessing, setIsProcessing] = useState(false)
-  const [transferInstructions, setTransferInstructions] = useState<any>(null)
+  const [transferInstructions, setTransferInstructions] = useState<Stripe.PaymentIntent.NextAction.DisplayBankTransferInstructions | null>(null)
 
   const createPaymentIntent = useAction(api.functions.stripePayments.createPaymentIntentWithSPEI)
 
@@ -66,9 +67,10 @@ export function SPEIPaymentForm({
           description: "Las instrucciones pueden tardar unos momentos en generarse. Revisa la consola para más detalles.",
         })
       }
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Error desconocido"
       toast.error("Error al generar instrucciones", {
-        description: error.message,
+        description: errorMessage,
       })
     } finally {
       setIsProcessing(false)
@@ -200,8 +202,13 @@ export function SPEIPaymentForm({
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => copyToClipboard(transferInstructions.financial_addresses[0]?.spei?.clabe)}
-                    disabled={!transferInstructions.financial_addresses[0]?.spei?.clabe}
+                    onClick={() => {
+                      const clabe = transferInstructions.financial_addresses?.[0]?.spei?.clabe
+                      if (clabe) {
+                        copyToClipboard(clabe)
+                      }
+                    }}
+                    disabled={!transferInstructions.financial_addresses?.[0]?.spei?.clabe}
                     className="cursor-pointer"
                   >
                     <Copy className="h-4 w-4" />
@@ -218,7 +225,12 @@ export function SPEIPaymentForm({
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => copyToClipboard(transferInstructions?.reference)}
+                    onClick={() => {
+                      const reference = transferInstructions?.reference
+                      if (reference && typeof reference === 'string') {
+                        copyToClipboard(reference)
+                      }
+                    }}
                     disabled={!transferInstructions?.reference}
                     className="cursor-pointer"
                   >

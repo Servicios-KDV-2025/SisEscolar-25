@@ -56,9 +56,10 @@ export function StripeCheckoutButton({
       } else {
         throw new Error("No se pudo obtener la URL de checkout")
       }
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Error desconocido"
       toast.error("Error al iniciar el pago", {
-        description: error.message,
+        description: errorMessage,
       })
       setIsProcessing(false)
     }

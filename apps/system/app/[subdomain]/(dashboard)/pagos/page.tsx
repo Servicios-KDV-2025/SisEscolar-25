@@ -16,7 +16,6 @@ import Pagos from "./pagos";
 import PaymentHistoryComponent from "./payment-history";
 import StripeConfigPage from "./escuela";
 import { Button } from "@repo/ui/components/shadcn/button";
-import Link from "next/link";
 import BillingConfig from "components/billings/BillingConfig"
 
 export default function Colegiaturas() {
