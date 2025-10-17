@@ -1,5 +1,4 @@
 import React from 'react'//alias para evitar colisiones
-import React from 'react'//alias para evitar colisiones
 import { urlForImage } from '@/sanity/lib/utils';
 import Image from 'next/image';
 

@@ -34,6 +34,8 @@
     "@stepperize/react": "^5.1.6",
     "@stripe/stripe-js": "^7.9.0",
     "@tailwindcss/typography": "0.5.19",
+    "@typescript-eslint/eslint-plugin": "^8.46.1",
+    "@typescript-eslint/parser": "^8.46.1",
     "@vercel/speed-insights": "1.2.0",
     "class-variance-authority": "^0.7.1",
     "classnames": "2.5.1",

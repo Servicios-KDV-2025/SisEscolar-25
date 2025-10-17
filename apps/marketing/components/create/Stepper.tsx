@@ -36,8 +36,8 @@ export const Stepper: React.FC = () => {
 const StepperContent = () => {
   const { isSignedIn, isLoaded, signOut } = useAuth()
   const [ready, setReady] = useState(false)
-  const [idStripe, setSelected] = useState<string>('')
-  const [school_id, setSchoolId] = useState<string>('')
+  const [isSelect, setSelected] = useState<string>('')
+  const [schooldId, setSchoolId] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
  
   //const { signOut } = useClerk()
@@ -108,6 +108,7 @@ const StepperContent = () => {
               ),
               'step-3': () => <Prices onSelect={onSelectPrice} />,
               'step-4': () => <Content priceId={isSelect} schoolId={schooldId} />,
+            
             })}
           </Fragment>
         )
@@ -131,7 +132,14 @@ interface ContentProps {
         <span className="font-semibold text-red-500">“Pagar ahora”</span> para ir a Stripe.
       </p>
 
-      <PayNowButton priceId={props.priceId} schoolId={props.schoolId} userId={user?.id!} />
+      if (!user?.id) return null
+      return (
+      <PayNowButton
+        priceId={props.priceId}
+        schoolId={props.schoolId}
+        userId={user.id}
+        />
+      )
     </StepperUi.Panel>
   );
 };

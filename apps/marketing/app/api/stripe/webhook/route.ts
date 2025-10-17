@@ -1,5 +1,4 @@
-import { stripeWebhook } from '@/enpoints/stripeWebhook' // o el path donde pusiste tu función
-
+import  stripeWebhook  from '@/enpoints/stripeWebhook'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
