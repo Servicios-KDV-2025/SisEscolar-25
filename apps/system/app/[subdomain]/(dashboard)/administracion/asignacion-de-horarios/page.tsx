@@ -52,6 +52,12 @@ import {
   SelectValue,
 } from "@repo/ui/components/shadcn/select";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@repo/ui/components/shadcn/tooltip";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -104,7 +110,7 @@ interface StepOneProps {
   classrooms?: ClassroomType[] | undefined;
   teachers: TeacherType[] | undefined;
   closeDialog: () => void;
-   activeSchoolCycleId?: string; 
+  activeSchoolCycleId?: string;
 }
 interface StepTwoProps {
   form: FullClassForm;
@@ -186,49 +192,58 @@ function StepTwoContent({
           <FormItem>
             <FormLabel>Seleccionar Horarios</FormLabel>
             <FormControl>
-              <div className="grid gap-2 max-h-60 overflow-y-auto border rounded-md p-4">
-                {schedules?.map((schedule) => {
-                  const isConflict = conflictScheduleIds.includes(schedule._id);
-                  return (
-                    <div
-                      key={schedule._id}
-                      className="flex items-center space-x-3"
-                    >
-                      <Checkbox
-                        id={schedule._id}
-                        checked={field.value?.includes(schedule._id)}
-                        disabled={isConflict}
-                        onCheckedChange={(checked) => {
-                          const currentIds = field.value || [];
-                          return checked
-                            ? field.onChange([...currentIds, schedule._id])
-                            : field.onChange(
-                                currentIds.filter((id) => id !== schedule._id)
-                              );
-                        }}
-                      />
-                      <label
-                        htmlFor={schedule._id}
-                        className={`text-sm font-medium leading-none flex-1 cursor-pointer ${
-                          isConflict
-                            ? "text-muted-foreground opacity-50 cursor-not-allowed"
-                            : ""
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">
-                            {getDayName(schedule.day)}
-                          </span>
-                          <span className="text-muted-foreground">
-                            {formatTime(schedule.startTime)} -{" "}
-                            {formatTime(schedule.endTime)}
-                          </span>
-                        </div>
-                      </label>
-                    </div>
-                  );
-                })}
-              </div>
+              <TooltipProvider>
+                <div className="grid gap-2 max-h-60 overflow-y-auto border rounded-md p-4">
+                  {schedules?.map((schedule) => {
+                    const isConflict = conflictScheduleIds.includes(schedule._id);
+                    return (
+                      <Tooltip key={schedule._id}>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center space-x-3">
+                            <Checkbox
+                              id={schedule._id}
+                              checked={field.value?.includes(schedule._id)}
+                              disabled={isConflict}
+                              onCheckedChange={(checked) => {
+                                const currentIds = field.value || [];
+                                return checked
+                                  ? field.onChange([...currentIds, schedule._id])
+                                  : field.onChange(
+                                    currentIds.filter((id) => id !== schedule._id)
+                                  );
+                              }}
+                            />
+                            <label
+                              htmlFor={schedule._id}
+                              className={`text-sm font-medium leading-none flex-1 cursor-pointer ${isConflict
+                                  ? "text-muted-foreground opacity-50 cursor-not-allowed"
+                                  : ""
+                                }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium">
+                                  {getDayName(schedule.day)}
+                                </span>
+                                <span className="text-muted-foreground">
+                                  {formatTime(schedule.startTime)} -{" "}
+                                  {formatTime(schedule.endTime)}
+                                </span>
+                              </div>
+                            </label>
+                          </div>
+                        </TooltipTrigger>
+                        {isConflict && (
+                          <TooltipContent side="right">
+                            <p className="text-xs">
+                              ⚠️ Este horario ya está asignado a otra clase con el mismo profesor o aula
+                            </p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    );
+                  })}
+                </div>
+              </TooltipProvider>
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -298,6 +313,43 @@ export default function HorariosPorClasePage() {
     }
   );
 
+  const editWatchedTeacherId = editClassForm.watch("teacherId");
+  const editWatchedClassroomId = editClassForm.watch("classroomId");
+
+  const editConflictScheduleIds = useQuery(
+    api.functions.schedule.getScheduleConflicts,
+    currentSchool?.school._id &&
+      isEditingClassDetails &&
+      editWatchedTeacherId &&
+      editWatchedClassroomId
+      ? {
+        schoolId: currentSchool.school._id,
+        teacherId: editWatchedTeacherId as Id<"user">,
+        classroomId: editWatchedClassroomId as Id<"classroom">,
+        classCatalogIdToExclude: (crudDialog.data as ClassItem)?.classCatalogId as Id<"classCatalog">,
+      }
+      : "skip"
+  );
+
+  const editScheduleConflicts = useQuery(
+  api.functions.schedule.getScheduleConflicts,
+  (() => {
+    const classItem = crudDialog.data as ClassItem | null;
+    return currentSchool?.school._id && 
+      crudDialog.operation === "edit" &&
+      !isEditingClassDetails &&
+      classItem?.teacher?._id &&
+      classItem?.classroom?._id
+        ? {
+            schoolId: currentSchool.school._id,
+            teacherId: classItem.teacher._id as Id<"user">,
+            classroomId: classItem.classroom._id as Id<"classroom">,
+            classCatalogIdToExclude: classItem.classCatalogId as Id<"classCatalog">,
+          }
+        : "skip";
+  })()
+);
+
   const {
     getStudentFilters,
     canCreateScheduleAssignament,
@@ -316,11 +368,11 @@ export default function HorariosPorClasePage() {
     api.functions.classSchedule.getClassScheduleWithRoleFilter,
     currentSchool && classFilters
       ? {
-          schoolId: currentSchool?.school._id as Id<"school">,
-          canViewAll: classFilters.canViewAll,
-          tutorId: classFilters.tutorId,
-          teacherId: classFilters.teacherId,
-        }
+        schoolId: currentSchool?.school._id as Id<"school">,
+        canViewAll: classFilters.canViewAll,
+        tutorId: classFilters.tutorId,
+        teacherId: classFilters.teacherId,
+      }
       : "skip"
   );
 
@@ -333,11 +385,11 @@ export default function HorariosPorClasePage() {
     api.functions.classCatalog.getAllClassCatalog,
     currentSchool && classFilters
       ? {
-          schoolId: currentSchool?.school._id as Id<"school">,
-          canViewAll: classFilters.canViewAll,
-          tutorId: classFilters.tutorId,
-          teacherId: classFilters.teacherId,
-        }
+        schoolId: currentSchool?.school._id as Id<"school">,
+        canViewAll: classFilters.canViewAll,
+        tutorId: classFilters.tutorId,
+        teacherId: classFilters.teacherId,
+      }
       : "skip"
   );
 
@@ -398,22 +450,22 @@ export default function HorariosPorClasePage() {
       setClasses(filtered as ClassItem[]);
     }
   }, [classesRaw, setClasses]);
-  useEffect(() => {
-    const itemToEdit = crudDialog.data as ClassItem | null;
-
-    // Solo rellenamos el formulario cuando abrimos el diálogo para editar
-    if (crudDialog.operation === "edit" && itemToEdit) {
-      editClassForm.reset({
-        name: itemToEdit.name,
-        status: itemToEdit.status,
-        schoolCycleId: itemToEdit.schoolCycleId as string,
-        subjectId: itemToEdit.subject?._id ?? "",
-        classroomId: itemToEdit.classroom?._id ?? "",
-        teacherId: itemToEdit.teacher?._id ?? "",
-        groupId: itemToEdit.group?._id ?? "",
-      });
-    }
-  }, [crudDialog.data, crudDialog.operation, editClassForm]);
+useEffect(() => {
+  const itemToEdit = crudDialog.data as ClassItem | null;
+  
+  if (crudDialog.operation === "edit" && itemToEdit) {
+    editClassForm.reset({
+      name: itemToEdit.name,
+      status: itemToEdit.status,
+      schoolCycleId: itemToEdit.schoolCycleId as string,
+      subjectId: itemToEdit.subject?._id ?? "",
+      classroomId: itemToEdit.classroom?._id ?? "",
+      teacherId: itemToEdit.teacher?._id ?? "",
+      groupId: itemToEdit.group?._id ?? "",
+      selectedScheduleIds: itemToEdit.selectedScheduleIds ?? [],
+    });
+  }
+}, [crudDialog.data, crudDialog.operation, editClassForm]);
 
   // Mutations and Actions
   const createClassWithSchedule = useAction(
@@ -439,10 +491,10 @@ export default function HorariosPorClasePage() {
     api.functions.schedule.getScheduleConflicts,
     currentSchool?.school._id && watchedTeacherId && watchedClassroomId
       ? {
-          schoolId: currentSchool.school._id,
-          teacherId: watchedTeacherId as Id<"user">,
-          classroomId: watchedClassroomId as Id<"classroom">,
-        }
+        schoolId: currentSchool.school._id,
+        teacherId: watchedTeacherId as Id<"user">,
+        classroomId: watchedClassroomId as Id<"classroom">,
+      }
       : "skip"
   );
 
@@ -517,29 +569,38 @@ export default function HorariosPorClasePage() {
       if (formData.selectedScheduleIds.length === 0) {
         throw new Error("Debe seleccionar al menos un horario");
       }
+
       const originalClass = crudDialog.data as ClassItem | null;
       if (!originalClass) {
-        throw new Error(
-          "No se pudo obtener la información de la clase original"
-        );
+        throw new Error("No se pudo obtener la información de la clase original");
       }
 
       const finalScheduleIds = formData.selectedScheduleIds as Id<"schedule">[];
-      if (formData.status === "active") {
+      
+      // Verificar si los horarios seleccionados son exactamente los mismos que ya tenía la clase
+      const originalScheduleIds = originalClass.selectedScheduleIds || [];
+      const sameSchedules = 
+        finalScheduleIds.length === originalScheduleIds.length && 
+        finalScheduleIds.every(id => originalScheduleIds.includes(id));
+      
+      // Solo validar conflictos si hay cambios en los horarios
+      if (!sameSchedules) {
+        // ✅ Validar conflictos independientemente del estado
         const validation = await validateConflictsMutation({
           classCatalogId: formData.classCatalogId as Id<"classCatalog">,
           selectedScheduleIds: finalScheduleIds,
           isEdit: true,
-          originalClassCatalogId:
-            originalClass.classCatalogId as Id<"classCatalog">,
+          originalClassCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
         });
+
         if (validation.hasConflicts) {
           const conflictMessages = validation.conflicts
             .map((c: { message: string }) => c.message)
-            .join(", ");
+            .join("\n");
 
           toast.error("Conflictos de Horario Detectados", {
             description: conflictMessages,
+            duration: 5000,
           });
           return;
         }
@@ -668,7 +729,7 @@ export default function HorariosPorClasePage() {
               className="gap-2"
               onClick={() => {
                 setFormStep(1);
-                
+
                 createForm.reset({
                   status: "active",
                   schoolCycleId: activeCycle?._id || "",
@@ -686,28 +747,28 @@ export default function HorariosPorClasePage() {
       {(currentRole === "superadmin" ||
         currentRole === "admin" ||
         currentRole === "auditor") && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat, index) => (
-            <Card
-              key={index}
-              className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {stat.title}
-                </CardTitle>
-                <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                  <stat.icon className="h-4 w-4 text-primary" />
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="text-3xl font-bold">{stat.value}</div>
-                <p className="text-xs text-muted-foreground">{stat.trend}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {stats.map((stat, index) => (
+              <Card
+                key={index}
+                className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    {stat.title}
+                  </CardTitle>
+                  <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                    <stat.icon className="h-4 w-4 text-primary" />
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="text-3xl font-bold">{stat.value}</div>
+                  <p className="text-xs text-muted-foreground">{stat.trend}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
       <Card>
         <CardHeader>
@@ -739,24 +800,24 @@ export default function HorariosPorClasePage() {
             {(currentRole === "superadmin" ||
               currentRole === "admin" ||
               currentRole === "auditor") && (
-              <div className="flex gap-2">
-                <Select
-                  onValueChange={(v) =>
-                    setFilter(v as "all" | "active" | "inactive")
-                  }
-                  value={filter || "all"}
-                >
-                  <SelectTrigger className="w-[160px]">
-                    <SelectValue placeholder="Filtrar estado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="active">Activos</SelectItem>
-                    <SelectItem value="inactive">Inactivos</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+                <div className="flex gap-2">
+                  <Select
+                    onValueChange={(v) =>
+                      setFilter(v as "all" | "active" | "inactive")
+                    }
+                    value={filter || "all"}
+                  >
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="Filtrar estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="active">Activos</SelectItem>
+                      <SelectItem value="inactive">Inactivos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
           </div>
         </CardContent>
       </Card>
@@ -960,12 +1021,12 @@ export default function HorariosPorClasePage() {
         defaultValues={
           crudDialog.operation === "edit" && crudDialog.data
             ? {
-                _id: (crudDialog.data as ClassItem)._id,
-                classCatalogId: (crudDialog.data as ClassItem).classCatalogId,
-                selectedScheduleIds: (crudDialog.data as ClassItem)
-                  .selectedScheduleIds,
-                status: (crudDialog.data as ClassItem).status,
-              }
+              _id: (crudDialog.data as ClassItem)._id,
+              classCatalogId: (crudDialog.data as ClassItem).classCatalogId,
+              selectedScheduleIds: (crudDialog.data as ClassItem)
+                .selectedScheduleIds,
+              status: (crudDialog.data as ClassItem).status,
+            }
             : crudDialog.defaultValues
         }
         data={crudDialog.data}
@@ -1008,7 +1069,7 @@ export default function HorariosPorClasePage() {
                   schoolCycles={schoolCycles}
                   classrooms={classrooms}
                   teachers={teachersData}
-                  activeSchoolCycleId={activeCycle?._id} 
+                  activeSchoolCycleId={activeCycle?._id}
                 />
 
                 <div className="flex justify-end gap-2 pt-4">
@@ -1076,7 +1137,7 @@ export default function HorariosPorClasePage() {
                             size="icon"
                             variant="ghost"
                             onClick={() => setIsEditingClassDetails(true)}
-                            className="h-8 w-8"
+                            className="h-8 w-8 cursor-pointer"
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -1148,7 +1209,7 @@ export default function HorariosPorClasePage() {
                       <span className="text-sm text-muted-foreground">
                         {Array.isArray(form.watch("selectedScheduleIds"))
                           ? (form.watch("selectedScheduleIds") as string[])
-                              .length
+                            .length
                           : 0}{" "}
                         seleccionados
                       </span>
@@ -1253,73 +1314,107 @@ export default function HorariosPorClasePage() {
                     <FormField
                       control={form.control}
                       name="selectedScheduleIds"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Seleccionar Horarios</FormLabel>
-                          <FormControl>
-                            <div className="grid gap-2 max-h-60 overflow-y-auto border rounded-md p-4">
-                              {schedules?.map((schedule: Schedule) => (
-                                <div
-                                  key={schedule._id}
-                                  className="flex items-center space-x-2"
-                                >
-                                  <Checkbox
-                                    id={`edit-${schedule._id}`}
-                                    checked={
-                                      Array.isArray(field.value)
-                                        ? (field.value as string[]).includes(
-                                            schedule._id
-                                          )
-                                        : false
-                                    }
-                                    onCheckedChange={(checked) => {
-                                      const currentIds = Array.isArray(
-                                        field.value
-                                      )
-                                        ? (field.value as string[])
-                                        : [];
-                                      if (checked) {
-                                        field.onChange([
-                                          ...currentIds,
-                                          schedule._id,
-                                        ]);
-                                      } else {
-                                        field.onChange(
-                                          currentIds.filter(
-                                            (id: string) => id !== schedule._id
-                                          )
-                                        );
-                                      }
-                                    }}
-                                    disabled={
-                                      operation !== "create" &&
-                                      operation !== "edit"
-                                    }
-                                  />
-                                  <label
-                                    htmlFor={`edit-${schedule._id}`}
-                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1 cursor-pointer"
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <span className="font-medium">
-                                        {getDayName(schedule.day)}
-                                      </span>
-                                      <span className="text-muted-foreground">
-                                        {formatTime(schedule.startTime)} -{" "}
-                                        {formatTime(schedule.endTime)}
-                                      </span>
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">
-                                      {schedule.name}
-                                    </div>
-                                  </label>
+                      render={({ field }) => {
+                        // Determinar qué conflictos usar según el contexto
+                        const activeConflicts = isEditingClassDetails
+                          ? (editConflictScheduleIds || [])
+                          : (editScheduleConflicts || []);
+
+                        return (
+                          <FormItem>
+                            <FormLabel>Seleccionar Horarios</FormLabel>
+                            <FormControl>
+                              <TooltipProvider>
+                                <div className="grid gap-2 max-h-60 overflow-y-auto border rounded-md p-4">
+                                  {schedules?.map((schedule: Schedule) => {
+                                    // Verificar si el horario está en la lista de conflictos
+                                    const isConflict = activeConflicts.includes(schedule._id);
+                                    // Verificar si el horario está actualmente seleccionado
+                                    const isCurrentlySelected = Array.isArray(field.value)
+                                      ? (field.value as string[]).includes(schedule._id)
+                                      : false;
+                                    
+                                    // Obtener la clase actual que se está editando
+                                    const currentClass = crudDialog.data as ClassItem | null;
+                                    // Verificar si el horario pertenece a la clase que se está editando
+                                    const belongsToCurrentClass = currentClass?.selectedScheduleIds?.includes(schedule._id);
+                                    
+                                    // Solo deshabilitar si hay conflicto, no está seleccionado actualmente,
+                                    // y no pertenece a la clase que se está editando
+                                    const isDisabled = isConflict && !isCurrentlySelected && !belongsToCurrentClass;
+
+                                    return (
+                                      <Tooltip key={schedule._id}>
+                                        <TooltipTrigger asChild>
+                                          <div className="flex items-center space-x-2">
+                                            <Checkbox
+                                              id={`edit-${schedule._id}`}
+                                              checked={isCurrentlySelected}
+                                              disabled={
+                                                isDisabled ||
+                                                (operation !== "create" && operation !== "edit")
+                                              }
+                                              onCheckedChange={(checked) => {
+                                                const currentIds = Array.isArray(field.value)
+                                                  ? (field.value as string[])
+                                                  : [];
+                                                if (checked) {
+                                                  field.onChange([...currentIds, schedule._id]);
+                                                } else {
+                                                  field.onChange(
+                                                    currentIds.filter((id: string) => id !== schedule._id)
+                                                  );
+                                                }
+                                              }}
+                                            />
+                                            <label
+                                              htmlFor={`edit-${schedule._id}`}
+                                              className={`text-sm font-medium leading-none flex-1 cursor-pointer ${isDisabled
+                                                  ? "text-muted-foreground opacity-50 cursor-not-allowed"
+                                                  : ""
+                                                } ${isCurrentlySelected && !isDisabled
+                                                  ? "text-primary"
+                                                  : ""
+                                                }`}
+                                            >
+                                              <div className="flex items-center justify-between">
+                                                <span className="font-medium flex items-center gap-2">
+                                                  {getDayName(schedule.day)}
+                                                  {isCurrentlySelected && (
+                                                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                                      Asignado
+                                                    </span>
+                                                  )}
+                                                </span>
+                                                <span className="text-muted-foreground">
+                                                  {formatTime(schedule.startTime)} -{" "}
+                                                  {formatTime(schedule.endTime)}
+                                                </span>
+                                              </div>
+                                              <div className="text-xs text-muted-foreground">
+                                                {schedule.name}
+                                              </div>
+                                            </label>
+                                          </div>
+                                        </TooltipTrigger>
+                                        {isDisabled && (
+                                          <TooltipContent side="right" className="max-w-xs">
+                                            <p className="text-xs">
+                                              ⚠️ Este horario ya está ocupado por otra clase con el mismo
+                                              profesor o aula
+                                            </p>
+                                          </TooltipContent>
+                                        )}
+                                      </Tooltip>
+                                    );
+                                  })}
                                 </div>
-                              ))}
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                              </TooltipProvider>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
                     />
                   )}
                 </div>
@@ -1361,7 +1456,7 @@ export default function HorariosPorClasePage() {
                   classrooms={classrooms}
                   schoolCycles={schoolCycles}
                   closeDialog={() => setIsCreateDialogOpen(false)}
-                  activeSchoolCycleId={activeCycle?._id} 
+                  activeSchoolCycleId={activeCycle?._id}
                 />
               )}
               {formStep === 2 && (
