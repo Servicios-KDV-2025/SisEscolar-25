@@ -57,9 +57,9 @@ export const getPaymentHistory = query({
           amount: payment.amount,
           method: payment.method,
           methodLabel: payment.method === "cash" 
-            ? (payment.stripePaymentIntentId ? "OXXO" : "Efectivo")
+            ? (payment.stripePaymentIntentId?.startsWith("pi_") ? "OXXO" : "Efectivo")
             : payment.method === "bank_transfer" 
-              ? (payment.stripePaymentIntentId ? "SPEI" : "Transferencia Bancaria")
+              ? (payment.stripePaymentIntentId?.startsWith("pi_") ? "SPEI" : "Transferencia Bancaria")
               : payment.method === "card" 
                 ? "Tarjeta"
                 : "Otro",

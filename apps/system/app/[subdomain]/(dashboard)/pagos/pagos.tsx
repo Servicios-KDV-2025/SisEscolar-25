@@ -34,7 +34,7 @@ import {
   DialogTitle,
 } from "@repo/ui/components/shadcn/dialog"
 import { toast } from "sonner"
-import { useQuery, useMutation } from "convex/react"
+import { useQuery, useMutation, useAction } from "convex/react"
 import { api } from "@repo/convex/convex/_generated/api"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
 import { useUser } from "@clerk/nextjs"
@@ -154,6 +154,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
 
   // Mutation para procesar el pago
   const processPayment = useMutation(api.functions.billing.processPayment)
+  const registerCashPayment = useAction(api.functions.stripePayments.registerCashPaymentWithInvoice)
 
   // Establecer el ciclo activo por defecto cuando se cargan los datos
   useEffect(() => {
@@ -419,20 +420,42 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
           ? amount 
           : Math.min(amount / paymentsToProcess.length, paymentRecord.amount)
 
-        const result = await processPayment({
-          billingId: paymentRecord.id as Id<"billing">,
-          tutorId: estudiante.tutorId as Id<"user">,
-          studentId: paymentRecord.studentId as Id<"student">,
-          method: paymentMethod,
-          amount: amountForThisBilling,
-          createdBy: currentUser._id,
-        })
-        
-        results.push(result)
+        // Usar registerCashPayment para efectivo (crea invoice en Stripe sin comisión)
+        // Usar processPayment para otros métodos (solo registra en DB)
+        if (paymentMethod === "cash") {
+          const result = await registerCashPayment({
+            billingId: paymentRecord.id as Id<"billing">,
+            amount: amountForThisBilling,
+            schoolId: currentSchool.school._id as Id<"school">,
+            studentId: paymentRecord.studentId as Id<"student">,
+            createdBy: currentUser._id,
+            receiptNumber: `REC-${Date.now()}-${paymentRecord.studentId.substring(0, 6)}`,
+            notes: `Pago en efectivo registrado por ${currentUser.name}`,
+          })
+          results.push(result)
+        } else {
+          const result = await processPayment({
+            billingId: paymentRecord.id as Id<"billing">,
+            tutorId: estudiante.tutorId as Id<"user">,
+            studentId: paymentRecord.studentId as Id<"student">,
+            method: paymentMethod,
+            amount: amountForThisBilling,
+            createdBy: currentUser._id,
+          })
+          results.push(result)
+        }
       }
 
+      // Mostrar notificación con opción de ver recibo (solo para pagos en efectivo)
+      const firstResult = results[0]
+      const hasInvoiceUrl = firstResult && 'invoiceUrl' in firstResult && firstResult.invoiceUrl
+      
       toast.success("Pago procesado exitosamente", {
         description: `Se procesaron ${results.length} pago(s) correctamente.`,
+        action: hasInvoiceUrl ? {
+          label: "Ver recibo",
+          onClick: () => window.open(firstResult.invoiceUrl as string, '_blank'),
+        } : undefined,
       })
 
       // Limpiar y cerrar modales

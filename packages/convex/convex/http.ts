@@ -285,14 +285,38 @@ http.route({
       const body = await request.text();
       console.log("📦 Body recibido (primeros 200 chars):", body.substring(0, 200));
       
-      const webhookSecret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET?.trim();
-      if (!webhookSecret) {
-        console.error("❌ STRIPE_CONNECT_WEBHOOK_SECRET no configurado");
-        throw new Error("STRIPE_CONNECT_WEBHOOK_SECRET no está configurado");
+      // Intentar verificar con ambos secrets
+      let event;
+      let usedSecret = "unknown";
+      
+      // Primero intentar con STRIPE_V2_WEBHOOK_SECRET (para invoices)
+      const v2Secret = process.env.STRIPE_V2_WEBHOOK_SECRET?.trim();
+      if (v2Secret) {
+        try {
+          event = await stripe.webhooks.constructEventAsync(body, sig, v2Secret);
+          usedSecret = "v2";
+          console.log("✅ Evento verificado con V2 secret");
+        } catch (err) {
+          console.log("⚠️ V2 secret falló, intentando con Connect secret...");
+        }
+      }
+      
+      // Si V2 falló o no existe, intentar con STRIPE_CONNECT_WEBHOOK_SECRET
+      if (!event) {
+        const connectSecret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET?.trim();
+        if (!connectSecret) {
+          console.error("❌ Ningún webhook secret configurado");
+          throw new Error("Se requiere STRIPE_V2_WEBHOOK_SECRET o STRIPE_CONNECT_WEBHOOK_SECRET");
+        }
+        event = await stripe.webhooks.constructEventAsync(body, sig, connectSecret);
+        usedSecret = "connect";
+        console.log("✅ Evento verificado con Connect secret");
       }
 
-      const event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecret);
-      console.log("✅ Evento verificado:", event.type, "ID:", event.id);
+      console.log("✅ Evento verificado:", event.type, "ID:", event.id, "Secret usado:", usedSecret);
+      console.log("🏢 Account:", event.account || "main account");
+      console.log("🎯 API Version:", event.api_version);
+      console.log("📦 Livemode:", event.livemode);
 
       switch (event.type) {
         case "checkout.session.completed":
@@ -312,6 +336,16 @@ http.route({
         case "account.updated":
           console.log("👤 Procesando account.updated");
           await handleAccountUpdated(ctx, event.data.object);
+          break;
+        // Eventos de Invoice (para pagos en efectivo)
+        case "invoice.created":
+          console.log("📄 Invoice creado - OK (no requiere acción)");
+          break;
+        case "invoice.finalized":
+          console.log("📄 Invoice finalizado - OK (no requiere acción)");
+          break;
+        case "invoice.paid":
+          console.log("💵 Invoice pagado - OK (ya procesado en registerCashPaymentWithInvoice)");
           break;
         default:
           console.log(`⚠️ Evento no manejado: ${event.type}`);
