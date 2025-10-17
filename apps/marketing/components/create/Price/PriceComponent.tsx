@@ -26,16 +26,16 @@ export const PriceComponent: React.FC<PriceProps> = (props) => {
   const { amount, title, idStripe, description, features, onSelect } = props
 
   return (
-    <Card className="h-full px-8">
+    <Card className="h-full px-8 flex flex-col">
       <CardHeader className="text-center space-y-4">
-  <div className="mx-auto rounded-full mb-4 p-3 w-fit">
+        <div className="mx-auto rounded-full mb-4 p-3 w-fit">
           <School className="w-6 h-6" />
         </div>
         <CardTitle className="text-2xl">{title}</CardTitle>
         {amount != null && <p className="text-lg font-semibold">$ {amount}</p>}
         <CardDescription className="text-base">{description}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-grow">
         {features?.map((f, index) => {
           return (
             <div key={index} className="flex items-center gap-3 pb-2">

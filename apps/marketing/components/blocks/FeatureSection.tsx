@@ -10,7 +10,7 @@ interface FeatureProps {
 }
 
 export const FeatureSection = ({title, description, features}: FeatureProps) => {
-    return <section id="features" className="py-20 sm:py-32 bg-muted/30">
+    return <section id="features" className="py-20 sm:py-32 bg-muted/30 bg-red-100">
       <div className="container max-w-screen-xl px-4">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl text-balance">
@@ -31,7 +31,7 @@ export const FeatureSection = ({title, description, features}: FeatureProps) => 
             >
               <CardHeader>
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                  {/* <feature.icon className="h-6 w-6 text-primary" /> */}
+                  {/* <ArrowBigDown className="h-6 w-6 text-primary" /> */}
                 </div>
                 <CardTitle className="text-xl">{feature.title}</CardTitle>
               </CardHeader>
