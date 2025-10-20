@@ -248,7 +248,7 @@ export const UserSchools: React.FC<UserSchoolsProps> = ({ clerkId }) => {
         <Card className="border-0 shadow-lg">
           <CardContent className="p-12 text-center">
             <Building2 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">
+            <h3 className="text-lg font-bold mb-2">
               {userSchools.length === 0
                 ? "Aún no tienes escuelas asignadas"
                 : showInactive
