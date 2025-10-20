@@ -26,7 +26,7 @@ export default function SignUpPage() {
       <Authenticated>
         {/* Esto no debería mostrarse, pero por seguridad */}
         <div className="flex items-center justify-center h-screen">
-          <p>Redirigiendo...</p>
+          <p>Redirigiendo..</p>
         </div>
       </Authenticated>
     </div>
