@@ -337,11 +337,11 @@ export default function EventDialog({
                       value={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un tipo de evento" />
+                        <SelectTrigger className="w-full truncate">
+                          <SelectValue placeholder="Selecciona un tipo de evento" className="py-1" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="max-h-80 overflow-y-auto">
                         {tiposDeEventos?.map((tipo) => {
                           const clases = convertirColorAClases(tipo.color);
                           const IconComponent =
@@ -365,9 +365,11 @@ export default function EventDialog({
                                     {tipo.name}
                                   </p>
                                   {tipo.description && (
-                                    <p className="text-xs text-slate-500 text-left break-words">
-                                      {tipo.description}
-                                    </p>
+                                    <div className="w-[200px] sm:w-md">
+                                      <p className="text-xs text-slate-500 text-left break-words">
+                                        {tipo.description}
+                                      </p>
+                                    </div>
                                   )}
                                 </div>
                               </div>
