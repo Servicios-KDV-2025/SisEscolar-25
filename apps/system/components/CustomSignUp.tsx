@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Label } from "@repo/ui/components/shadcn/label";
@@ -41,11 +42,12 @@ export default function SignUpForm() {
       .then((res) => {
         console.log(res);
       })
-      .catch((err: any) => {
-        console.error(err, null, 2);
-        setError(
-          `Error al registrarse con ${strategy === "oauth_google" ? "Google" : "Microsoft"}`
-        );
+      .catch((err: unknown) => {
+        console.error(err);
+        const errorMessage = isClerkAPIResponseError(err)
+          ? err.errors[0]?.longMessage || `Error al registrarse con ${strategy === "oauth_google" ? "Google" : "Microsoft"}`
+          : `Error al registrarse con ${strategy === "oauth_google" ? "Google" : "Microsoft"}`;
+        setError(errorMessage);
       });
   };
 
@@ -79,9 +81,12 @@ export default function SignUpForm() {
 
       // Cambiar la UI para mostrar el formulario de verificación
       setVerifying(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(JSON.stringify(err, null, 2));
-      setError(err.errors?.[0]?.longMessage || "Error al crear la cuenta. Por favor, intenta de nuevo.");
+      const errorMessage = isClerkAPIResponseError(err)
+        ? err.errors[0]?.longMessage || "Error al crear la cuenta. Por favor, intenta de nuevo."
+        : "Error al crear la cuenta. Por favor, intenta de nuevo.";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -107,9 +112,12 @@ export default function SignUpForm() {
         console.error(JSON.stringify(completeSignUp, null, 2));
         setError("Error en el proceso de verificación");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(JSON.stringify(err, null, 2));
-      setError("Código de verificación inválido. Por favor, intenta de nuevo.");
+      const errorMessage = isClerkAPIResponseError(err)
+        ? err.errors[0]?.longMessage || "Código de verificación inválido. Por favor, intenta de nuevo."
+        : "Código de verificación inválido. Por favor, intenta de nuevo.";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

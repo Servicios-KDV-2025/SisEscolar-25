@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useSignIn } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Label } from "@repo/ui/components/shadcn/label";
@@ -36,11 +37,12 @@ export default function SignInForm() {
       .then((res) => {
         console.log(res);
       })
-      .catch((err: any) => {
-        console.error(err, null, 2);
-        setError(
-          `Error al iniciar sesión con ${strategy === "oauth_google" ? "Google" : "Microsoft"}`
-        );
+      .catch((err: unknown) => {
+        console.error(err);
+        const errorMessage = isClerkAPIResponseError(err)
+          ? err.errors[0]?.longMessage || `Error al iniciar sesión con ${strategy === "oauth_google" ? "Google" : "Microsoft"}`
+          : `Error al iniciar sesión con ${strategy === "oauth_google" ? "Google" : "Microsoft"}`;
+        setError(errorMessage);
       });
   };
 
