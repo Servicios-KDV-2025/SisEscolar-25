@@ -1,19 +1,19 @@
 'use client'
 import React, { Fragment, useState } from 'react'
 import { School, User, CopySlash, Loader2 } from 'lucide-react'
-import { useAuth } from '@clerk/nextjs'
 import { defineStepper } from '../ui/stepper'
 import { Auth } from './Auth/Auth'
 import SchoolForm from './School/SchoolForm'
 import { Button } from '../ui/button'
 import { Prices } from './Price/Prices'
+import PayNowButton from '../PayNowButton'
+import { useAuth, useUser } from '@clerk/nextjs'
 
 // import { SignUp } from './Auth/SignUp'
 // import { SignIn } from './Auth/SignIn'
 // import { Prices } from './Prices/Prices'
-// // usa el componente genérico (no el de blocks)
-// import PayNowButton from '@/components/PayNowButton'
 // import SchoolForm from './School/SchoolForm'
+
 
 export const { Stepper: StepperUi, useStepper } = defineStepper(
   { id: 'step-1', title: 'Paso 1', description: 'Iniciar sesión para continuar', icon: <User /> },
@@ -36,8 +36,8 @@ export const Stepper: React.FC = () => {
 const StepperContent = () => {
   const { isSignedIn, isLoaded, signOut } = useAuth()
   const [ready, setReady] = useState(false)
-  const [, setSelected] = useState<string>('')
-  const [, setSchoolId] = useState<string>('')
+  const [isSelect, setSelected] = useState<string>('')
+  const [schooldId, setSchoolId] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
  
   //const { signOut } = useClerk()
@@ -61,6 +61,7 @@ const StepperContent = () => {
   }
 
   const onSelectPrice = (idStripe: string) => {
+    alert(idStripe);
     setSelected(idStripe)
     methods.next()
   }
@@ -103,40 +104,40 @@ const StepperContent = () => {
                     </Button>
                   )}
                 </div>
-             
+              
               ),
               'step-3': () => <Prices onSelect={onSelectPrice} />,
-              'step-4': () => <Content />,
+              'step-4': () => <Content priceId={isSelect} schoolId={schooldId} />,
+            
             })}
           </Fragment>
         )
 }
 
+interface ContentProps {
+   priceId: string
+   schoolId: string
+ }
+ //  const { user, isLoaded } = useUser() // respaldo solo para DEV
 
-// interface ContentProps {
-//   priceId: string
-//   schoolId: string
-// }
+ const Content: React.FC<ContentProps> = (props) => {
+  const { user, isLoaded } = useUser();
 
+  if (!isLoaded || !user) return null;
+ 
+  return (
+    <StepperUi.Panel className="...">
+      <p className="...">
+        ¡Casi estás por terminar! Da clic en{' '}
+        <span className="font-semibold text-red-500">“Pagar ahora”</span> para ir a Stripe.
+      </p>
 
-const Content = () => {
-
-  return <div></div>;
-
-  // const { user, isLoaded } = useUser() // respaldo solo para DEV
-
-  // if (!isLoaded) return null
-
-  // return (
-  //   <StepperUi.Panel className="h-[200px] rounded-2xl border border-gray-200 bg-white text-gray-800 p-8 shadow-lg flex flex-col justify-between">
-  //     {/* Mensaje */}
-  //     <p className="text-lg sm:text-xl font-medium mb-6 leading-relaxed">
-  //       ¡Casi estás por terminar! Da clic en{' '}
-  //       <span className="font-semibold text-red-500">“Pagar ahora”</span> para ir a Stripe.
-  //     </p>
-
-  //     {/* Botón */}
-  //     <PayNowButton priceId={props.priceId} schoolId={props.schoolId} userId={user?.id!} />
-  //   </StepperUi.Panel>
-  // )
-}
+      <PayNowButton
+        priceId={props.priceId}
+        schoolId={props.schoolId}
+        userId={user.id}
+        />
+      
+    </StepperUi.Panel>
+  );
+};
