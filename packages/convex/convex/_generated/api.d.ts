@@ -14,6 +14,7 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as actions_users from "../actions/users.js";
+import type * as crons from "../crons.js";
 import type * as functions_assignment from "../functions/assignment.js";
 import type * as functions_attendance from "../functions/attendance.js";
 import type * as functions_billing from "../functions/billing.js";
@@ -52,6 +53,7 @@ import type * as templates_paymentSuccess from "../templates/paymentSuccess.js";
  */
 declare const fullApi: ApiFromModules<{
   "actions/users": typeof actions_users;
+  crons: typeof crons;
   "functions/assignment": typeof functions_assignment;
   "functions/attendance": typeof functions_attendance;
   "functions/billing": typeof functions_billing;

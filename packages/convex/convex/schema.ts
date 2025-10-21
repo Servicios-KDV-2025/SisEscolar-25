@@ -73,6 +73,7 @@ const applicationTable = defineSchema({
     .index("by_phone", ["phone"])
     .index("by_email", ["email"])
     .index("by_status", ["status"]),
+
   //estudiantes
   student: defineTable({
     schoolId: v.id("school"),
@@ -80,13 +81,18 @@ const applicationTable = defineSchema({
     tutorId: v.id("user"),
     enrollment: v.string(),
     schoolCycleId: v.optional(v.id("schoolCycle")),
-    // balance: v.optional(v.number()),
     credit: v.optional(v.number()),
     name: v.string(),
     lastName: v.optional(v.string()),
     birthDate: v.optional(v.number()),
     admissionDate: v.optional(v.number()),
     imgUrl: v.optional(v.string()),
+    scholarshipType: v.optional(v.union(
+      v.literal("none"),
+      v.literal("partial"),
+      v.literal("full")
+    )),
+    scholarshipPercentage: v.optional(v.number()),
     status: v.union(v.literal("active"), v.literal("inactive")),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -386,6 +392,15 @@ const applicationTable = defineSchema({
     lateFee: v.optional(v.number()),
     totalAmount: v.optional(v.number()),
     paidAt: v.optional(v.number()),
+    appliedDiscounts: v.optional(v.array(v.object({
+      ruleId: v.optional(v.id("billingRule")),
+      reason: v.string(),
+      amount: v.number(),
+      percentage: v.optional(v.number()),
+      type: v.union(v.literal("scholarship"), v.literal("rule"))
+    }))),
+    totalDiscount: v.optional(v.number()),
+    lateFeeRuleId: v.optional(v.id("billingRule")),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

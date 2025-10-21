@@ -48,6 +48,150 @@ const shouldStudentHavePayment = async (ctx: any, student: any, billingConfig: a
   }
 };
 
+export const updatePaymentsForConfig = internalMutation({
+  args: {
+    billingConfigId: v.id("billingConfig"),
+  },
+  handler: async (ctx, args) => {
+    const billingConfig = await ctx.db.get(args.billingConfigId);
+    if (!billingConfig) {
+      throw new Error("Configuración de pago no encontrada");
+    }
+
+    if (billingConfig.status === "inactive") {
+      return {
+        message: "La configuración de pago está inactiva",
+        paymentConfig: {
+          id: billingConfig._id,
+          type: billingConfig.type,
+          recurrence_type: billingConfig.recurrence_type,
+          scope: billingConfig.scope,
+          status: billingConfig.status,
+        },
+        affectedStudents: [],
+      };
+    }
+
+    // const existingPayments = await ctx.db
+    //   .query("billing")
+    //   .withIndex("by_billingConfig", (q) => q.eq("billingConfigId", args.billingConfigId))
+    //   .filter((q) => q.neq(q.field("status"), "Pago cumplido"))
+    //   .collect();
+
+    let students: any[] = [];
+
+    if (billingConfig.scope === "all_students") {
+      // Todos los estudiantes del ciclo escolar
+      students = await ctx.db
+        .query("student")
+        .withIndex("by_schoolId", (q) => q.eq("schoolId", billingConfig.schoolId))
+        .filter((q) => q.eq(q.field("status"), "active"))
+        .filter((q) => q.eq(q.field("schoolCycleId"), billingConfig.schoolCycleId))
+        .collect();
+    } else if (billingConfig.scope === "specific_groups" && billingConfig.targetGroup) {
+      // Estudiantes de grupos específicos
+      const studentsPromises = billingConfig.targetGroup.map(async (groupId) => {
+        return await ctx.db
+          .query("student")
+          .withIndex("by_groupId", (q) => q.eq("groupId", groupId))
+          .filter((q) => q.eq(q.field("status"), "active"))
+          .filter((q) => q.eq(q.field("schoolCycleId"), billingConfig.schoolCycleId))
+          .collect();
+      });
+      const studentsArrays = await Promise.all(studentsPromises);
+      students = studentsArrays.flat();
+    } else if (billingConfig.scope === "specific_grades" && billingConfig.targetGrade) {
+      // Estudiantes de grados específicos
+      const allStudents = await ctx.db
+        .query("student")
+        .withIndex("by_schoolId", (q) => q.eq("schoolId", billingConfig.schoolId))
+        .filter((q) => q.eq(q.field("status"), "active"))
+        .filter((q) => q.eq(q.field("schoolCycleId"), billingConfig.schoolCycleId))
+        .collect();
+
+      // Filtrar por grado
+      const studentsWithGroups = await Promise.all(
+        allStudents.map(async (student) => {
+          const group = await ctx.db.get(student.groupId);
+          return { student, group };
+        })
+      );
+
+      students = studentsWithGroups
+        .filter(({ group }) => group && billingConfig.targetGrade && billingConfig.targetGrade.includes(group.grade))
+        .map(({ student }) => student);
+    } else if (billingConfig.scope === "specific_students" && billingConfig.targetStudent) {
+      // Estudiantes específicos
+      const studentsPromises = billingConfig.targetStudent.map(async (studentId) => {
+        return await ctx.db.get(studentId);
+      });
+      const studentsArray = await Promise.all(studentsPromises);
+      students = studentsArray.filter(student =>
+        student &&
+        student.schoolId === billingConfig.schoolId &&
+        student.schoolCycleId === billingConfig.schoolCycleId &&
+        student.status === "active"
+      );
+    }
+
+    const now = Date.now();
+    const affectedStudents: any[] = [];
+
+    for (const student of students) {
+
+      const existingPayments = await ctx.db
+        .query("billing")
+        .withIndex("by_student_and_config", (q) =>
+          q.eq("studentId", student._id).eq("billingConfigId", args.billingConfigId)
+        )
+        .filter((q) => q.neq(q.field("status"), "Pago cumplido"))
+        .collect();
+
+      for (const payment of existingPayments) {
+        await ctx.db.patch(payment._id, {
+          amount: billingConfig.amount,
+          totalAmount: billingConfig.amount,
+          updatedAt: now,
+        });
+
+        const group = await ctx.db.get(student.groupId as Id<"group">);
+
+        affectedStudents.push({
+          studentId: student._id,
+          studentName: `${student.name} ${student.lastName || ""}`,
+          enrollment: student.enrollment,
+          groupId: student.groupId,
+          group: `${group?.grade} ${group?.name}` || "No asignado",
+          paymentId: payment._id,
+        });
+      }
+    }
+
+    const schoolCycle = await ctx.db.get(billingConfig.schoolCycleId as Id<"schoolCycle">)
+
+    return {
+      message: `Se actualizaron ${affectedStudents.length} pagos`,
+      paymentConfig: {
+        id: billingConfig._id,
+        type: billingConfig.type,
+        endDate: billingConfig.endDate != null && billingConfig.endDate
+            ? new Date(billingConfig.endDate).toISOString().split('T')[0]
+            : new Date().toISOString().split('T')[0],
+        startDate: billingConfig.startDate != null && billingConfig.startDate
+            ? new Date(billingConfig.startDate).toISOString().split('T')[0]
+            : new Date().toISOString().split('T')[0],
+        recurrence_type: billingConfig.recurrence_type,
+        scope: billingConfig.scope,
+        status: billingConfig.status,
+        amount: billingConfig.amount,
+        ciclo: schoolCycle?.name,
+        cicloStatus: schoolCycle?.status
+      },
+      affectedStudents,
+    };
+  },
+});
+
 // Generar pagos para una configuración específica
 export const generatePaymentsForConfig = internalMutation({
   args: {
@@ -71,7 +215,7 @@ export const generatePaymentsForConfig = internalMutation({
           scope: billingConfig.scope,
           status: billingConfig.status,
         },
-        createdPayments: [],
+        affectedStudents: [],
       };
     }
 
@@ -132,7 +276,7 @@ export const generatePaymentsForConfig = internalMutation({
       );
     }
     const now = Date.now();
-    const createdPayments: any[] = [];
+    const affectedStudents: any[] = [];
 
     // Crear pagos para cada estudiante
     for (const student of students) {
@@ -150,16 +294,17 @@ export const generatePaymentsForConfig = internalMutation({
           billingConfigId: args.billingConfigId,
           status: "Pago pendiente",
           amount: billingConfig.amount,
-          totalAmount: billingConfig.amount, 
+          totalAmount: billingConfig.amount,
           createdAt: now,
           updatedAt: now,
         });
 
-        createdPayments.push({
+        affectedStudents.push({
           studentId: student._id,
           studentName: `${student.name} ${student.lastName || ""}`,
           enrollment: student.enrollment,
           groupId: student.groupId,
+          group: `${student?.grade} ${student?.name}` || "No asignado",
           paymentId,
         });
       }
@@ -168,10 +313,12 @@ export const generatePaymentsForConfig = internalMutation({
     const schoolCycle = await ctx.db.get(billingConfig.schoolCycleId as Id<"schoolCycle">)
 
     return {
-      message: `Se generaron ${createdPayments.length} pagos`,
+      message: `Se generaron ${affectedStudents.length} pagos`,
       paymentConfig: {
         id: billingConfig._id,
         type: billingConfig.type,
+        endDate: billingConfig.endDate,
+        startDate: billingConfig.startDate,
         recurrence_type: billingConfig.recurrence_type,
         scope: billingConfig.scope,
         status: billingConfig.status,
@@ -179,7 +326,7 @@ export const generatePaymentsForConfig = internalMutation({
         ciclo: schoolCycle?.name,
         cicloStatus: schoolCycle?.status
       },
-      createdPayments,
+      affectedStudents,
     };
   },
 });
@@ -517,29 +664,30 @@ export const getPaymentsPageData = query({
 
         return {
           id: student._id,
-          nombre: `${student.name} ${student.lastName || ""}`,
+          nombre: `${student.lastName} ${student.name || ""}`,
           grado: group?.grade || "N/A",
           grupo: group?.name || "N/A",
           matricula: student.enrollment,
-          padre: tutor ? `${tutor.name} ${tutor.lastName || ""}` : "N/A",
+          padre: tutor ? `${tutor.lastName} ${tutor.name || ""}` : "N/A",
           tutorId: student.tutorId,
           telefono: tutor?.phone || "N/A",
           metodoPago: "N/A", // Por defecto, se puede personalizar
           fechaVencimiento: paymentsWithLateDays.length > 0 && paymentsWithLateDays[0]
             ? new Date(paymentsWithLateDays[0].dueDate).toISOString().split('T')[0]
             : new Date().toISOString().split('T')[0],
-          montoColegiatura: paymentsWithLateDays.reduce((sum, p) => {
+          montoColegiatura: paymentsWithLateDays.filter((p) => p.status !== "Pago cumplido").reduce((sum, p) => {
             // totalAmount ahora ES el monto restante por pagar
             const montoPendiente = p.totalAmount || p.amount;
             return sum + montoPendiente;
           }, 0),
-          diasRetraso: Math.max(...paymentsWithLateDays.map(p => p.daysLate), 0),
+          diasRetraso: Math.max(...paymentsWithLateDays.filter((p) => p.status !== "Pago cumplido").map(p => p.daysLate), 0),
           estado: studentStatus,
           schoolCycleId: student.schoolCycleId,
           tipo: (paymentsWithLateDays.length > 0 && paymentsWithLateDays[0]
             ? paymentsWithLateDays[0].config?.type || "Colegiatura"
             : "Colegiatura") as "Inscripciones" | "Colegiatura",
           credit: student.credit || 0,
+
           pagos: paymentsWithLateDays.map(payment => {
             // totalAmount ES el monto restante por pagar
             const montoPendiente = payment.totalAmount || payment.amount;
@@ -547,13 +695,23 @@ export const getPaymentsPageData = query({
             return {
               id: payment._id,
               tipo: payment.config?.type || "Pago",
-              monto: montoPendiente, // Monto pendiente (totalAmount)
-              montoTotal: payment.amount, // Monto total original
-              montoPagado: montoPagado, // Lo que ya se ha pagado
+              statusBilling: payment.config?.status,
+              amount: payment.amount,
+              totalAmount: payment.totalAmount,
+              endDate: new Date(payment.config?.endDate ?? 0).toISOString().split("T")[0],
+              startDate: new Date(payment.config?.startDate ?? 0).toISOString().split("T")[0],
+              totalDiscount: payment.totalDiscount || 0,
+              lateFeeRuleId: payment.lateFeeRuleId,
+              lateFee: payment.lateFee || 0,
+              paidAt: new Date(payment.paidAt ?? 0).toISOString().split("T")[0],
+              appliedDiscounts: payment.appliedDiscounts,
               fechaVencimiento: new Date(payment.dueDate).toISOString().split('T')[0],
-              estado: (payment.status === "Pago cumplido" ? "Pagado" : 
-                     payment.status === "Pago vencido" ? "Vencido" : "Pendiente") as "Pendiente" | "Vencido" | "Pagado",
+              estado: (payment.status === "Pago cumplido" ? "Pagado" :
+                payment.status === "Pago pendiente" ? "Pendiente" :
+                  payment.status === "Pago retrasado" ? "Retrasado" :
+                    payment.status === "Pago parcial" ? "Parcial" : "Vencido") as "Pendiente" | "Vencido" | "Pagado",
               diasRetraso: payment.daysLate,
+
             };
           }),
         };
@@ -640,7 +798,6 @@ export const processPayment = mutation({
     // Actualizar el billing
     await ctx.db.patch(args.billingId, {
       status: newStatus,
-      totalAmount: Math.max(0, newTotalAmount), // Nunca negativo, el exceso va a credit
       paidAt: paidAt,
       updatedAt: now,
     });

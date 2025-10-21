@@ -43,7 +43,7 @@ export function BillingConfigCard({
             : 'skip'
     );
     const formatDate = (timestamp: number) => {
-        return new Date(timestamp).toLocaleDateString("es-ES", {
+        return new Date(timestamp).toLocaleDateString("es-MX", {
             year: "numeric",
             month: "short",
             day: "numeric",

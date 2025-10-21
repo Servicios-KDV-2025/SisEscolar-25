@@ -1,7 +1,7 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { BillingRuleCard } from "../../../../../components/billings/BillingRuleCard";
+import { BillingRuleCard } from "../../../../../components/billingRules/BillingRuleCard";
 import { useUserWithConvex } from "stores/userStore";
 import { useCurrentSchool } from "stores/userSchoolsStore";
 import { useBillingRule } from "stores/billingRuleStore";
@@ -39,7 +39,7 @@ import {
 import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@repo/ui/components/shadcn/badge";
-import { BillingRulesForm } from "components/billings/BillingRulesForm";
+import { BillingRulesForm } from "components/billingRules/BillingRulesForm";
 
 export default function BillingRulePage() {
   const { user: clerkUser, isLoaded } = useUser();

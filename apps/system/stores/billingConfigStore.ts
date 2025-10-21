@@ -162,7 +162,7 @@ export const useBillingConfig = (schoolId?: string) => {
                     break;
             }
 
-            await createBillingConfigMutation({
+            const result = await createBillingConfigMutation({
                 schoolId: data.schoolId,
                 schoolCycleId: data.schoolCycleId,
                 scope: data.scope,
@@ -179,6 +179,7 @@ export const useBillingConfig = (schoolId?: string) => {
                 createdBy: data.createdBy,
                 updatedBy: data.updatedBy,
             });
+            return result;
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Error al crear configuración de facturación';
             const errMess = errorMessage?.split(': ').at(-1);
@@ -213,7 +214,7 @@ export const useBillingConfig = (schoolId?: string) => {
                     data.targetGroup = [];
                     break;
             }
-            await updateBillingConfigMutation({
+            const result = await updateBillingConfigMutation({
                 id: data._id,
                 schoolId: data.schoolId,
                 schoolCycleId: data.schoolCycleId,
@@ -230,6 +231,7 @@ export const useBillingConfig = (schoolId?: string) => {
                 status: data.status,
                 updatedBy: data.updatedBy
             });
+            return result;
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Error al actualizar configuración de facturación';
             const errMess = errorMessage?.split(': ').at(-1);

@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@repo/ui/components/shadcn/card"
 import {
   Backpack,
@@ -9,14 +9,12 @@ import {
   Clock,
   DollarSign,
   Search,
-  User,
   CreditCard,
   Banknote,
   CircleAlert as ClockAlert,
   TriangleAlert,
-  AlertCircle,
   Loader2,
-} from "lucide-react"
+} from "@repo/ui/icons"
 import { Badge } from "@repo/ui/components/shadcn/badge"
 import { Input } from "@repo/ui/components/shadcn/input"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@repo/ui/components/shadcn/select"
@@ -40,6 +38,7 @@ import { useUserWithConvex } from "../../../../stores/userStore"
 import { useCurrentSchool } from "../../../../stores/userSchoolsStore"
 import { Label } from "@repo/ui/components/shadcn/label"
 import { RadioGroup, RadioGroupItem } from "@repo/ui/components/shadcn/radio-group"
+import { AlertCircle, Award, Calendar, ChevronDown, Equal, GraduationCap, Minus, Plus, Receipt, ShieldAlert, ShieldCheck, X } from "@repo/ui/icons"
 
 
 interface Estudiante {
@@ -62,16 +61,20 @@ interface Estudiante {
   pagos: Array<{
     id: string
     tipo: string
-    monto: number
-    montoTotal: number
-    montoPagado: number
+    amount: number
+    statusBilling: "required" | "optional" | "inactive"
+    totalAmount: number
+    totalDiscount: number
+    lateFee: number
+    paidAt?: number,
+    appliedDiscounts: any[]
     fechaVencimiento: string
-    estado: "Pendiente" | "Vencido" | "Pagado"
+    estado: "Pendiente" | "Vencido" | "Pagado" | "Rechazado" | "Parcial"
     diasRetraso: number
   }>
 }
 
-interface PaymentRecord {
+interface BillingRecord {
   id: string
   studentId: string
   studentName: string
@@ -81,7 +84,7 @@ interface PaymentRecord {
   paymentType: string
   amount: number
   dueDate: string
-  status: "Pendiente" | "Vencido" | "Pagado"
+  status: "Pendiente" | "Vencido" | "Pagado" | "Rechazado" | "Parcial"
   daysLate: number
 }
 
@@ -96,25 +99,30 @@ interface Group {
   updatedBy?: Id<"user">
 }
 
-
 interface PagosProps {
   selectedSchoolCycle: string
   setSelectedSchoolCycle: (cycle: string) => void
 }
 
-export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: PagosProps) {
+interface Discount {
+  type: 'scholarship' | 'discount';
+  percentage?: number;
+  amount: number;
+}
+
+export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycle }: PagosProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter] = useState<string | null>(null)
   const [tipoFilter] = useState<string | null>(null)
   const [gradeFilter, setGradeFilter] = useState<string | null>(null)
   const [groupFilter, setGroupFilter] = useState<string | null>(null)
-  const [selectedPayments, setSelectedPayments] = useState<string[]>([])
-  const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [selectedPaymentInModal, setSelectedPaymentInModal] = useState<string | null>(null)
-  const [showPaymentFormModal, setShowPaymentFormModal] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "bank_transfer" | "card" | "other">("cash")
-  const [paymentAmount, setPaymentAmount] = useState<string>("")
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false)
+  const [selectedBillings, setSelectedBillings] = useState<string[]>([])
+  const [showBillingModal, setShowBillingModal] = useState(false)
+  const [selectedBillingInModal, setSelectedBillingInModal] = useState<string | null>(null)
+  const [showBillingFormModal, setShowBillingFormModal] = useState(false)
+  const [paymentMethod, setBillingMethod] = useState<"cash" | "bank_transfer" | "card" | "other">("cash")
+  const [paymentAmount, setBillingAmount] = useState<string>("")
+  const [isProcessingBilling, setIsProcessingBilling] = useState(false)
 
   // Hooks para obtener datos del usuario y escuela
   const { user: clerkUser } = useUser()
@@ -130,24 +138,24 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
   // Obtener datos de pagos
   const paymentsData = useQuery(
     api.functions.billing.getPaymentsPageData,
-    currentSchool?.school._id && selectedSchoolCycle ? { 
+    currentSchool?.school._id && selectedSchoolCycle ? {
       schoolId: currentSchool.school._id,
       schoolCycleId: selectedSchoolCycle as Id<"schoolCycle">
     } : "skip"
   )
 
-  const uniqueGrades =useQuery(
+  const uniqueGrades = useQuery(
     api.functions.group.getUniqueGrades,
     currentSchool?.school._id ? { schoolId: currentSchool.school._id } : "skip"
   )
 
   const groupeByGrade = useQuery(
     api.functions.group.getAllGroupsBySchool,
-    currentSchool?.school._id ? {schoolId: currentSchool.school._id} : "skip"
+    currentSchool?.school._id ? { schoolId: currentSchool.school._id } : "skip"
   )
 
   // Mutation para procesar el pago
-  const processPayment = useMutation(api.functions.billing.processPayment)
+  const processBilling = useMutation(api.functions.billing.processPayment)
 
   // Establecer el ciclo activo por defecto cuando se cargan los datos
   useEffect(() => {
@@ -161,14 +169,12 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
     }
   }, [schoolCycles, selectedSchoolCycle, setSelectedSchoolCycle])
 
-  // Limpiar filtro de grupo cuando cambie el filtro de grado
   useEffect(() => {
     if (gradeFilter) {
       setGroupFilter(null)
     }
   }, [gradeFilter])
 
-  // Transformar datos de Convex para que coincidan con la interfaz
   const estudiantes: Estudiante[] = (paymentsData?.students || []).map(student => ({
     ...student,
     fechaVencimiento: student.fechaVencimiento || new Date().toISOString().split('T')[0],
@@ -208,12 +214,6 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
     return matchesSearch && matchesStatus && matchesTipo && matchesGrade && matchesGroup
   })
 
-  const calcularMontoPagar = (estudiante: Estudiante) => {
-    // montoColegiatura ahora ya incluye solo el monto pendiente (amount - deposit)
-    // Sumamos las penalizaciones por días de retraso
-    return estudiante.montoColegiatura + (estudiante.diasRetraso * 150)
-  }
-
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
       case "al-dia":
@@ -232,8 +232,8 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
         )
       case "moroso":
         return (
-          <Badge className="bg-transparent text-red-500 ">
-            <AlertTriangle className="w-4 h-4 mr-1 text-red-500 " />
+          <Badge className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100 transition-colors">
+            <AlertTriangle className="w-4 h-4 mr-1" />
             Moroso
           </Badge>
         )
@@ -242,22 +242,50 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
     }
   }
 
-  const handleDarDeBaja = (estudiante: Estudiante) => {
-    if (confirm(`¿Estás seguro de que deseas dar de baja a ${estudiante.nombre}? Esta acción no se puede deshacer.`)) {
-      alert(`${estudiante.nombre} ha sido dado de baja del sistema.`)
+  const getBillingStatusBadge = (estado: string) => {
+    switch (estado) {
+      case "Pagado":
+        return (
+          <Badge className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 transition-colors">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            {estado}
+          </Badge>
+        )
+      case "Pendiente":
+        return (
+          <Badge className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 transition-colors">
+            <Clock className="w-3 h-3 mr-1" />
+            {estado}
+          </Badge>
+        )
+      case "Parcial":
+        return (
+          <Badge className="bg-blue-50 text-blue-400 border-blue-200 hover:bg-blue-100 transition-colors">
+            <Clock className="w-3 h-3 mr-1" />
+            {estado}
+          </Badge>
+        )
+      case "Retrasado":
+        return (
+          <Badge className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100 transition-colors">
+            <AlertTriangle className="w-3 h-3 mr-1" />
+            {estado}
+          </Badge>
+        )
+      default:
+        return (
+          <Badge className="bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 transition-colors">
+            {estado}
+          </Badge>
+        )
     }
   }
 
-  const createPaymentRecords = (): PaymentRecord[] => {
-    const records: PaymentRecord[] = []
+  const createBillingRecords = (): BillingRecord[] => {
+    const records: BillingRecord[] = []
 
     filteredEstudiantesByCycle.forEach((estudiante) => {
       estudiante.pagos.forEach((pago) => {
-        // pago.monto ahora ya es el monto pendiente (amount - deposit)
-        // Solo agregamos las penalizaciones por días de retraso si hay pagos pendientes
-        const montoPendiente = pago.monto
-        const penalizacion = pago.estado !== "Pagado" ? pago.diasRetraso * 150 : 0
-        
         records.push({
           id: pago.id,
           studentId: estudiante.id,
@@ -266,7 +294,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
           studentGroup: estudiante.grupo,
           studentMatricula: estudiante.matricula,
           paymentType: pago.tipo,
-          amount: montoPendiente + penalizacion, // Monto pendiente + penalización
+          amount: pago.totalAmount,
           dueDate: (pago.fechaVencimiento || new Date().toISOString().split('T')[0]) as string,
           status: pago.estado,
           daysLate: pago.diasRetraso,
@@ -277,10 +305,10 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
     return records
   }
 
-  const paymentRecords = createPaymentRecords()
-  const unpaidPaymentRecords = paymentRecords.filter((record) => record.status !== "Pagado")
+  const paymentRecords = createBillingRecords()
+  const unpaidBillingRecords = paymentRecords.filter((record) => record.status !== "Pagado")
 
-  const handlePaymentSelection = (paymentId: string, checked: boolean) => {
+  const handleBillingSelection = (paymentId: string, checked: boolean) => {
     const paymentRecord = paymentRecords.find((p) => p.id === paymentId)
 
     if (paymentRecord?.status === "Pagado") {
@@ -291,38 +319,38 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
     }
 
     if (checked) {
-      setSelectedPayments((prev) => [...prev, paymentId])
+      setSelectedBillings((prev) => [...prev, paymentId])
     } else {
-      setSelectedPayments((prev) => prev.filter((id) => id !== paymentId))
+      setSelectedBillings((prev) => prev.filter((id) => id !== paymentId))
     }
   }
 
   const handleRealizarPagos = () => {
-    setShowPaymentModal(true)
+    setShowBillingModal(true)
   }
 
-  const getSelectedPaymentsData = () => {
-    if (selectedPayments.length > 0) {
-      return paymentRecords.filter((payment) => selectedPayments.includes(payment.id))
-    } else if (selectedPaymentInModal) {
-      return paymentRecords.filter((payment) => payment.id === selectedPaymentInModal)
+  const getSelectedBillingsData = () => {
+    if (selectedBillings.length > 0) {
+      return paymentRecords.filter((payment) => selectedBillings.includes(payment.id))
+    } else if (selectedBillingInModal) {
+      return paymentRecords.filter((payment) => payment.id === selectedBillingInModal)
     }
     return []
   }
 
-  const closePaymentModal = () => {
-    setShowPaymentModal(false)
-    setSelectedPayments([])
-    setSelectedPaymentInModal(null)
+  const closeBillingModal = () => {
+    setShowBillingModal(false)
+    setSelectedBillings([])
+    setSelectedBillingInModal(null)
   }
 
-  const closePaymentFormModal = () => {
-    setShowPaymentFormModal(false)
-    setPaymentMethod("cash")
-    setPaymentAmount("")
+  const closeBillingFormModal = () => {
+    setShowBillingFormModal(false)
+    setBillingMethod("cash")
+    setBillingAmount("")
   }
 
-  const handlePaymentSelectionInModal = (paymentId: string) => {
+  const handleBillingSelectionInModal = (paymentId: string) => {
     const paymentRecord = paymentRecords.find((p) => p.id === paymentId)
 
     if (paymentRecord?.status === "Pagado") {
@@ -332,12 +360,12 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
       return
     }
 
-    setSelectedPaymentInModal(paymentId)
+    setSelectedBillingInModal(paymentId)
   }
 
-  const handleOpenPaymentForm = () => {
-    const paymentsToProcess = getSelectedPaymentsData()
-    
+  const handleOpenBillingForm = () => {
+    const paymentsToProcess = getSelectedBillingsData()
+
     if (paymentsToProcess.length === 0) {
       toast.error("No hay pagos seleccionados", {
         description: "Por favor selecciona al menos un pago para continuar.",
@@ -347,14 +375,14 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
 
     // Calcular el monto total
     const totalAmount = paymentsToProcess.reduce((sum, payment) => sum + payment.amount, 0)
-    setPaymentAmount(totalAmount.toString())
-    
+    setBillingAmount(totalAmount.toString())
+
     // Cerrar el primer modal y abrir el formulario
-    setShowPaymentModal(false)
-    setShowPaymentFormModal(true)
+    setShowBillingModal(false)
+    setShowBillingFormModal(true)
   }
 
-  const handleConfirmPayment = async () => {
+  const handleConfirmBilling = async () => {
     if (!currentUser || !currentSchool) {
       toast.error("Error de autenticación", {
         description: "No se pudo verificar tu identidad.",
@@ -362,8 +390,8 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
       return
     }
 
-    const paymentsToProcess = getSelectedPaymentsData()
-    
+    const paymentsToProcess = getSelectedBillingsData()
+
     if (paymentsToProcess.length === 0) {
       toast.error("No hay pagos seleccionados")
       return
@@ -377,22 +405,22 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
       return
     }
 
-    setIsProcessingPayment(true)
+    setIsProcessingBilling(true)
 
     try {
       // Procesar cada pago seleccionado
       const results = []
-      
+
       for (const paymentRecord of paymentsToProcess) {
         const estudiante = filteredEstudiantesByCycle.find((e) => e.id === paymentRecord.studentId)
         if (!estudiante) continue
 
         // Calcular el monto a pagar para este cobro específico
-        const amountForThisBilling = paymentsToProcess.length === 1 
-          ? amount 
+        const amountForThisBilling = paymentsToProcess.length === 1
+          ? amount
           : Math.min(amount / paymentsToProcess.length, paymentRecord.amount)
 
-        const result = await processPayment({
+        const result = await processBilling({
           billingId: paymentRecord.id as Id<"billing">,
           tutorId: estudiante.tutorId as Id<"user">,
           studentId: paymentRecord.studentId as Id<"student">,
@@ -400,7 +428,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
           amount: amountForThisBilling,
           createdBy: currentUser._id,
         })
-        
+
         results.push(result)
       }
 
@@ -408,66 +436,188 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
         description: `Se procesaron ${results.length} pago(s) correctamente.`,
       })
 
-      // Limpiar y cerrar modales
-      closePaymentFormModal()
-      closePaymentModal()
-      
+      closeBillingFormModal()
+      closeBillingModal()
+
     } catch (error: unknown) {
       toast.error("Error al procesar el pago", {
         description: error instanceof Error ? error.message : "Ocurrió un error inesperado.",
       })
     } finally {
-      setIsProcessingPayment(false)
+      setIsProcessingBilling(false)
     }
   }
+
+  const stats = useMemo(() => {
+    const configs = filteredEstudiantes ?? []
+    return [
+      {
+        title: "Total de Cobros",
+        value: totalColegiaturas,
+        icon: Backpack,
+        trend: "Estudiantes activos",
+        variant: "default" as const
+      },
+      {
+        title: "Cobros del Día",
+        value: colegiaturasAlDia,
+        icon: CheckCircle,
+        trend: "Sin retrasos",
+        variant: "secondary" as const
+      },
+      {
+        title: "Cobros Pendientes",
+        value: colegiaturasRetrasadas,
+        icon: ClockAlert,
+        trend: "Requieren atención",
+        variant: "destructive" as const
+      },
+      {
+        title: "Cobros Morosos",
+        value: colegiaturasMorosas,
+        icon: TriangleAlert,
+        trend: "Atención inmediata",
+        variant: "default" as const
+      }
+    ]
+  }, [filteredEstudiantes])
+
+  const getEstadoConfig = (estado: string) => {
+    const configs = {
+      "al-dia": {
+        borderColor: "border-emerald-200",
+        hoverBorderColor: "hover:border-emerald-400",
+        accentColor: "bg-emerald-500",
+        hoverAccentColor: "group-hover:bg-emerald-600",
+        badgeBg: "bg-emerald-50",
+        badgeText: "text-emerald-700",
+        badgeBorder: "border-emerald-200",
+        icon: CheckCircle,
+        label: "Al día"
+      },
+      "moroso": {
+        borderColor: "border-gray-200",
+        hoverBorderColor: "hover:border-gray-400",
+        accentColor: "bg-gray-500",
+        hoverAccentColor: "group-hover:bg-gray-600",
+        badgeBg: "bg-gray-50",
+        badgeText: "text-gray-700",
+        badgeBorder: "border-gray-200",
+        icon: AlertTriangle,
+        label: "Moroso"
+      },
+      "retrasado": {
+        borderColor: "border-rose-200",
+        hoverBorderColor: "hover:border-rose-400",
+        accentColor: "bg-rose-500",
+        hoverAccentColor: "group-hover:bg-rose-600",
+        badgeBg: "bg-rose-50",
+        badgeText: "text-rose-700",
+        badgeBorder: "border-rose-200",
+        icon: Clock,
+        label: "Retrasado"
+      }
+    };
+    return configs[estado as keyof typeof configs] || configs["al-dia"];
+  };
+
+  const getEstadoBillingConfig = (estado: string) => {
+    const configs = {
+      "required": {
+        borderColor: "border-white-200",
+        hoverBorderColor: "hover:border-white-400",
+        accentColor: "bg-black-500",
+        hoverAccentColor: "group-hover:bg-white-600",
+        badgeBg: "bg-black",
+        badgeText: "text-white",
+        badgeBorder: "border-black-200",
+        icon: ShieldAlert,
+        label: "Obligatorio"
+      },
+      "optional": {
+        borderColor: "border-gray-200",
+        hoverBorderColor: "hover:border-gray-400",
+        accentColor: "bg-gray-500",
+        hoverAccentColor: "group-hover:bg-gray-600",
+        badgeBg: "bg-gray-50",
+        badgeText: "text-gray-700",
+        badgeBorder: "border-gray-200",
+        icon: ShieldCheck,
+        label: "Opcional"
+      },
+      "inactive": {
+        borderColor: "border-rose-200",
+        hoverBorderColor: "hover:border-rose-400",
+        accentColor: "bg-rose-500",
+        hoverAccentColor: "group-hover:bg-rose-600",
+        badgeBg: "bg-rose-50",
+        badgeText: "text-rose-700",
+        badgeBorder: "border-rose-200",
+        icon: X,
+        label: "Inactivo"
+      }
+    };
+    return configs[estado as keyof typeof configs] || configs["required"];
+  };
+
+  const getBillingStatusConfig = (estado: string) => {
+    const configs = {
+      "Pagado": {
+        icon: CheckCircle,
+        bg: "bg-emerald-50",
+        text: "text-emerald-700",
+        border: "border-emerald-200"
+      },
+      "Pendiente": {
+        icon: Clock,
+        bg: "bg-blue-50",
+        text: "text-blue-700",
+        border: "border-blue-200"
+      },
+      "Parcial": {
+        icon: Minus,
+        bg: "bg-sky-50",
+        text: "text-sky-700",
+        border: "border-sky-200"
+      },
+      "Vencido": {
+        icon: AlertCircle,
+        bg: "bg-rose-50",
+        text: "text-rose-700",
+        border: "border-rose-200"
+      },
+      "Retrasado": {
+        icon: Clock,
+        bg: "bg-rose-50",
+        text: "text-rose-700",
+        border: "border-rose-200"
+      }
+    };
+    return configs[estado as keyof typeof configs];
+  };
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 lg:pb-3">
-            <CardTitle className="text-xs lg:text-sm font-medium text-muted-foreground">Total de Cobros</CardTitle>
-            <div className="p-1.5 lg:p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-              <Backpack className="h-3 w-3 lg:h-4 lg:w-4 text-primary" />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-1 lg:space-y-2">
-            <div className="text-xl lg:text-3xl font-bold">{totalColegiaturas}</div>
-          </CardContent>
-        </Card>
-        <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 lg:pb-3">
-            <CardTitle className="text-xs lg:text-sm font-medium text-muted-foreground">Cobros al Día</CardTitle>
-            <div className="p-1.5 lg:p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-              <Banknote className="h-3 w-3 lg:h-4 lg:w-4" />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-1 lg:space-y-2">
-            <div className="text-xl lg:text-3xl font-bold">{colegiaturasAlDia}</div>
-          </CardContent>
-        </Card>
-        <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 lg:pb-3">
-            <CardTitle className="text-xs lg:text-sm font-medium text-muted-foreground">Cobros Pendientes</CardTitle>
-            <div className="p-1.5 lg:p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-              <ClockAlert className="h-3 w-3 lg:h-4 lg:w-4" />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-1 lg:space-y-2">
-            <div className="text-xl lg:text-3xl font-bold">{colegiaturasRetrasadas}</div>
-          </CardContent>
-        </Card>
-        <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 lg:pb-3">
-            <CardTitle className="text-xs lg:text-sm font-medium text-muted-foreground">Cobros Morosos</CardTitle>
-            <div className="p-1.5 lg:p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-              <TriangleAlert className="h-3 w-3 lg:h-4 lg:w-4 " />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-1 lg:space-y-2">
-            <div className="text-xl lg:text-3xl font-bold">{colegiaturasMorosas}</div>
-          </CardContent>
-        </Card>
+        {stats.map((stat, index) => (
+          <Card
+            key={index}
+            className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 lg:pb-3">
+              <CardTitle className="text-xs lg:text-sm font-medium text-muted-foreground">
+                {stat.title}
+              </CardTitle>
+              <div className="p-1.5 lg:p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                <stat.icon className="h-3 w-3 lg:h-4 lg:w-4 text-primary" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-1 lg:space-y-2">
+              <div className="text-xl font-bold">{stat.value}</div>
+              <p className="text-xs text-muted-foreground">{stat.trend}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <Card>
@@ -479,15 +629,13 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
                 Filtros y Búsqueda
               </CardTitle>
               <CardDescription>
-                {/* Encuentra los cobros por nombre, matrícula, tipo, estado o ciclo escolar. */}
                 Encuentra los cobros por nombre, matrícula, ciclo escolar, grado y grupo.
-
               </CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
+        <CardContent className="pt-0">
+          <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -495,13 +643,13 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
                   placeholder="Buscar por nombre o matrícula..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-11 text-base border-gray-200 focus:border-blue-300"
                 />
               </div>
             </div>
-            <div className="flex gap-2  max-md:flex-col">
+            <div className="flex gap-3 max-lg:flex-col">
               <Select value={selectedSchoolCycle} onValueChange={setSelectedSchoolCycle}>
-                <SelectTrigger className="w-[200px] max-md:w-full">
+                <SelectTrigger className="w-[220px] max-lg:w-full h-11">
                   <SelectValue placeholder="Ciclo escolar" />
                 </SelectTrigger>
                 <SelectContent>
@@ -514,7 +662,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
               </Select>
 
               <Select onValueChange={(v) => setGradeFilter(v === "all" ? null : v)} value={gradeFilter || ""}>
-                <SelectTrigger className="w-[160px] max-md:w-full">
+                <SelectTrigger className="w-[180px] max-lg:w-full h-11">
                   <SelectValue placeholder="Todos los grados" />
                 </SelectTrigger>
                 <SelectContent>
@@ -528,7 +676,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
               </Select>
 
               <Select onValueChange={(v) => setGroupFilter(v === "all" ? null : v)} value={groupFilter || ""}>
-                <SelectTrigger className="w-[160px] max-md:w-full">
+                <SelectTrigger className="w-[180px] max-lg:w-full h-11">
                   <SelectValue placeholder="Todos los grupos" />
                 </SelectTrigger>
                 <SelectContent>
@@ -555,29 +703,29 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
           <CardTitle className="flex items-center justify-between">
             <span>Lista de Cobros</span>
             <div className="flex items-center gap-2">
-              {selectedPayments.length > 0 && (
+              {selectedBillings.length > 0 && (
                 <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
-                  {selectedPayments.length} seleccionado{selectedPayments.length > 1 ? "s" : ""}
+                  {selectedBillings.length} seleccionado{selectedBillings.length > 1 ? "s" : ""}
                 </Badge>
               )}
               <Badge variant="outline">{filteredEstudiantes.length} registros</Badge>
             </div>
           </CardTitle>
-          <CardDescription className="text-gray-600 font-medium">
+          <CardDescription className="text-base text-gray-600">
             Selecciona los cobros que deseas procesar marcando las casillas correspondientes
           </CardDescription>
-          {selectedPayments.length > 0 && (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-4 border-t bg-gray-50/50 -mx-6 px-6 py-4 mt-4 rounded-lg">
-              <div className="flex items-center gap-2 flex-wrap">
+          {selectedBillings.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t border-gray-200 bg-gray-50/50 -mx-6 px-6 py-4 mt-4 rounded-lg">
+              <div className="flex items-center gap-3 flex-wrap">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-gray-300 text-gray-600 hover:bg-gray-50 bg-transparent"
+                  className="border-gray-300 text-gray-600 hover:bg-gray-50 bg-white"
                   onClick={() => {
-                    const allVisibleUnpaidIds = unpaidPaymentRecords
+                    const allVisibleUnpaidIds = unpaidBillingRecords
                       .filter((record) => filteredEstudiantes.some((e) => e.id === record.studentId))
                       .map((record) => record.id)
-                    setSelectedPayments(allVisibleUnpaidIds)
+                    setSelectedBillings(allVisibleUnpaidIds)
                   }}
                 >
                   Seleccionar todos los visibles
@@ -586,7 +734,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
                   variant="outline"
                   size="sm"
                   className="border-gray-300 text-gray-600 hover:bg-gray-50 bg-transparent"
-                  onClick={() => setSelectedPayments([])}
+                  onClick={() => setSelectedBillings([])}
                 >
                   Deseleccionar todos
                 </Button>
@@ -597,15 +745,11 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
                 className="bg-black text-white hover:bg-gray-800 shadow-lg border-0 max-"
               >
                 <CreditCard className="h-4 w-4 mr-2" />
-                {selectedPayments.length === 1
-                  ? "Realizar Pago"
-                  : selectedPayments.length > 1
-                    ? "Realizar Pagos"
-                    : "Realizar Pago"}
+                Realizar Pago{selectedBillings.length > 1 ? "s" : ""}
               </Button>
             </div>
           )}
-          {selectedPayments.length === 0 && (
+          {selectedBillings.length === 0 && (
             <div className="flex justify-end pt-2 max-md:justify-center ">
               <Button onClick={handleRealizarPagos} className="bg-black text-white hover:bg-gray-800 shadow-md max-md:w-full">
                 <CreditCard className="h-4 w-4 mr-2" />
@@ -629,297 +773,371 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
               </div>
             </div>
           ) : (
-          <Accordion type="single" collapsible className="space-y-2 max-md:space-y-6">
-            {filteredEstudiantes.map((estudiante) => { 
-              const studentPayments = estudiante.pagos
-              const hasSelectedPayments = studentPayments.some((pago) => selectedPayments.includes(pago.id))
+            <Accordion type="single" collapsible className="space-y-4">
+              {filteredEstudiantes.map((estudiante) => {
+                const studentBillings = estudiante.pagos
+                const config = getEstadoConfig(estudiante.estado);
+                const Icon = config.icon;
+                const hasSelectedBillings = studentBillings.some((pago) => selectedBillings.includes(pago.id))
 
-              return (
-                <AccordionItem
-                  key={estudiante.id}
-                  value={estudiante.id}
-                  className={`border rounded-lg transition-all duration-200  ${
-                    hasSelectedPayments ? "border-blue-300 bg-blue-50/70 shadow-md" : "border-border bg-accent/50"
-                  }`}
-                >
-                  <AccordionTrigger
-                    className={`px-3  sm:px-4 py-3 hover:no-underline rounded-lg transition-colors ${
-                      hasSelectedPayments ? "hover:bg-blue-100/70" : "hover:bg-accent/70"
-                    }`}
+                const selectedBillingsData = studentBillings.filter(p => selectedBillings.includes(p.id));
+                const totalSelected = selectedBillingsData.reduce((sum, p) => sum + p.totalAmount, 0);
+                const totalBase = selectedBillingsData.reduce((sum, p) => sum + p.amount, 0);
+                const totalDiscounts = selectedBillingsData.reduce((sum, p) => sum + p.totalDiscount, 0);
+                const totalFees = selectedBillingsData.reduce((sum, p) => sum + p.lateFee, 0);
+
+                return (
+                  <AccordionItem
+                    key={estudiante.id}
+                    value={estudiante.id}
+                    className={`border rounded-xl transition-all duration-300 shadow-sm ${hasSelectedBillings
+                      ? "border-blue-300 bg-blue-50/50 shadow-lg ring-1 ring-blue-200"
+                      : estudiante.estado === "retrasado"
+                        ? "border-red-200 bg-red-50/30"
+                        : estudiante.estado === "moroso"
+                          ? "border-yellow-200 bg-yellow-50/30"
+                          : "border-gray-200 bg-white hover:shadow-md"
+                      }`}
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full mr-2 sm:mr-4 gap-3 sm:gap-4">
-                      {/* Información principal - siempre visible */}
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0 flex-1">
-                        <div className="flex flex-col items-start min-w-0 flex-1">
-                          <h3 className={`font-semibold text-sm sm:text-base truncate w-full ${hasSelectedPayments ? "text-blue-900" : "text-foreground"}`}>
-                            {estudiante.nombre}
-                          </h3>
-                          <p className="text-xs sm:text-sm text-gray-500 truncate w-full">
-                            {estudiante.grado} - Grupo {estudiante.grupo}
-                          </p>
-                          <p className="text-xs text-gray-500 truncate w-full">
-                            Matrícula: {estudiante.matricula}
-                          </p>
-                          <div className="flex flex-wrap items-center gap-2 mt-1">
-                            <Badge variant="outline" className="text-xs px-2 py-0.5">
-                              {estudiante.tipo}
-                            </Badge>
-                            <span className="text-xs text-gray-500">
-                              {studentPayments.length} cobro{studentPayments.length > 1 ? "s" : ""}
-                            </span>
+                    <AccordionTrigger
+                      className={`px-4 sm:px-6 py-4 hover:no-underline rounded-xl transition-colors cursor-pointer ${hasSelectedBillings
+                        ? "hover:bg-blue-100/70"
+                        : estudiante.estado === "retrasado"
+                          ? "hover:bg-red-100/50"
+                          : estudiante.estado === "moroso"
+                            ? "hover:bg-yellow-100/50"
+                            : "hover:bg-gray-50/50"
+                        }`}
+                    >
+                      <div className={`w-1 h-16 lg:h-20 ${config.accentColor} ${config.hoverAccentColor} rounded-full flex-shrink-0 transition-colors duration-300`} />
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-1">
+                          <div className="flex flex-col">
+                            <div className="flex min-w-0 flex-col sm:flex-row sm:gap-1">
+                              <h3 className="text-lg lg:text-xl font-semibold text-gray-900 mb-2 truncate">
+                                {estudiante.nombre}
+                              </h3>
+
+                              <div className="flex items-center gap-2 sm:ml-3 mb-3 mt-1">
+                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border ${config.badgeBg} ${config.badgeText} ${config.badgeBorder}`}>
+                                  <Icon className="w-3.5 h-3.5" />
+                                  {config.label}
+                                </span>
+                              </div>
+
+                            </div>
+                            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                              <div className="flex items-center gap-2">
+                                <GraduationCap className="w-4 h-4 text-gray-400" />
+                                <span className="font-medium">{estudiante.grado} · Grupo {estudiante.grupo}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Receipt className="w-4 h-4 text-gray-400" />
+                                <span className="font-medium">{estudiante.matricula}</span>
+                              </div>
+                              <div className="flex items-center gap-2 px-2.5 py-1 bg-gray-50 rounded-md border border-gray-200">
+                                <CreditCard className="w-3.5 h-3.5 text-gray-500" />
+                                <span className="font-semibold text-gray-700">{estudiante.pagos.length} cobro{estudiante.pagos.length > 1 ? 's' : ''}</span>
+                              </div>
+                              {(estudiante.diasRetraso > 0 || estudiante.credit > 0) && (
+                                <div className="flex flex-wrap gap-2">
+                                  {estudiante.diasRetraso > 0 && (
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-xs font-semibold">
+                                      <AlertTriangle className="w-3.5 h-3.5" />
+                                      {estudiante.diasRetraso} días de retraso
+                                    </div>
+                                  )}
+                                  {estudiante.credit > 0 && (
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold">
+                                      <DollarSign className="w-3.5 h-3.5" />
+                                      Crédito disponible: ${estudiante.credit.toLocaleString()}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex-shrink-0 text-left md:text-right">
+                            <div className="text-sm text-gray-500 mb-1">Monto Total</div>
+                            <div className="text-2xl md:text-3xl font-bold text-gray-900">
+                              ${estudiante.montoColegiatura.toLocaleString()}
+                            </div>
+                            <div className="text-xs text-gray-500 font-medium">MXN</div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Información de estado y monto  */}
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 sm:flex-shrink-0">
-                        <div className="flex items-center justify-between sm:justify-end gap-2">
-                          {getEstadoBadge(estudiante.estado)}
-                        </div>
-                        <div className="text-left sm:text-right">
-                          <p className={`font-semibold text-sm sm:text-base ${hasSelectedPayments ? "text-blue-900" : "text-foreground"}`}>
-                            ${calcularMontoPagar(estudiante).toLocaleString()}
-                          </p>
-                          {estudiante.diasRetraso > 0 && (
-                            <p className="text-xs sm:text-sm text-gray-500">{estudiante.diasRetraso} días de retraso</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </AccordionTrigger>
+                        {
+                          selectedBillings.length > 0 && (
+                            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+                              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                                  <div className="flex items-center gap-6 text-sm">
+                                    <div>
+                                      <span className="text-gray-600">Pagos seleccionados: </span>
+                                      <span className="font-semibold text-gray-900">{selectedBillings.length}</span>
+                                    </div>
+                                    {(totalDiscounts > 0 || totalFees > 0) && (
+                                      <>
+                                        <div className="hidden sm:block w-px h-4 bg-gray-300"></div>
+                                        <div>
+                                          <span className="text-gray-600">Base: </span>
+                                          <span className="font-semibold text-gray-900">${totalBase.toLocaleString()}</span>
+                                        </div>
+                                        {totalDiscounts > 0 && (
+                                          <>
+                                            <div className="hidden sm:block w-px h-4 bg-gray-300"></div>
+                                            <div>
+                                              <span className="text-gray-600">Descuentos: </span>
+                                              <span className="font-semibold text-green-700">-${totalDiscounts.toLocaleString()}</span>
+                                            </div>
+                                          </>
+                                        )}
+                                        {totalFees > 0 && (
+                                          <>
+                                            <div className="hidden sm:block w-px h-4 bg-gray-300"></div>
+                                            <div>
+                                              <span className="text-gray-600">Recargos: </span>
+                                              <span className="font-semibold text-red-700">+${totalFees.toLocaleString()}</span>
+                                            </div>
+                                          </>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
 
-                  <AccordionContent className="px-3 sm:px-4 pb-4">
-                    <div className="space-y-4 sm:space-y-6 mt-3 sm:mt-4">
-                      <div>
-                        <h4 className="font-semibold text-foreground flex items-center gap-2 mb-3 sm:mb-4 text-sm sm:text-base">
-                          <CreditCard className="w-4 h-4" />
-                          Cobros Asociados
-                        </h4>
-                        <div className="space-y-2 sm:space-y-3">
-                          {studentPayments.map((pago) => {
-                            const isPaymentSelected = selectedPayments.includes(pago.id)
-                            const isPaid = pago.estado === "Pagado"
+                                  {/* Action Button */}
+                                  <div className="flex items-center gap-4">
+                                    <div className="text-right">
+                                      <div className="text-xs text-gray-500">Total</div>
+                                      <div className="text-xl font-semibold text-gray-900">${totalSelected.toLocaleString()}</div>
+                                    </div>
+                                    <Button
+                                      onClick={handleRealizarPagos}
+                                      size="lg"
+                                      className="bg-black text-white hover:bg-gray-800 shadow-lg border-0 max-"
+                                    >
+                                      <CreditCard className="h-4 w-4 mr-2" />
+                                      Realizar Pago{selectedBillings.length > 1 ? "s" : ""}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        }
+
+
+                      </div>
+                    </AccordionTrigger>
+
+                    <AccordionContent className="px-5 lg:px-6 pb-6">
+                      <div className="border-t border-gray-100 pt-5">
+                        <div className="mb-5">
+                          <h3 className="text-base font-semibold text-gray-900 mb-1">Detalle de Cobros</h3>
+                          <p className="text-sm text-gray-500">Selecciona los pagos que deseas procesar</p>
+                        </div>
+                        <div className="space-y-3">
+                          {estudiante.pagos.map((pago) => {
+                            const isBillingSelected = selectedBillings.includes(pago.id);
+                            const isPaid = pago.estado === "Pagado";
+                            const statusConfig = getBillingStatusConfig(pago.estado);
+                            const config = getEstadoBillingConfig(pago.statusBilling);
+                            const StatusIcon = statusConfig?.icon || CheckCircle;
 
                             return (
                               <div
                                 key={pago.id}
-                                className={`border rounded-lg p-3 sm:p-4 transition-all duration-200 ${
-                                  isPaymentSelected
-                                    ? "border-blue-300 bg-blue-50/70"
-                                    : isPaid
-                                      ? "border-green-200 bg-green-50/30"
-                                      : "border-gray-200 bg-gray-50/30"
-                                }`}
+                                className={`rounded-lg border transition-all duration-200 ${isBillingSelected
+                                  ? 'border-blue-400 bg-blue-50/30 shadow-md'
+                                  : isPaid
+                                    ? 'border-emerald-200 bg-emerald-50/20'
+                                    : 'border-gray-200 bg-gray-50/50 hover:border-gray-300'
+                                  }`}
                               >
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-                                  <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
-                                    <Checkbox
-                                      checked={isPaymentSelected}
-                                      onCheckedChange={(checked) => handlePaymentSelection(pago.id, checked as boolean)}
-                                      disabled={isPaid}
-                                      className={`mt-1 sm:mt-0 flex-shrink-0 ${isPaymentSelected ? "border-blue-500 data-[state=checked]:bg-blue-500" : "border-gray-400"}`}
-                                    />
-                                    <div className="min-w-0 flex-1">
-                                      <p
-                                        className={`font-medium text-sm sm:text-base truncate ${isPaymentSelected ? "text-blue-900" : "text-gray-700"}`}
-                                      >
-                                        {pago.tipo}
-                                      </p>
-                                      <p className="text-xs sm:text-sm text-gray-500">Vence: {pago.fechaVencimiento}</p>
-                                      {pago.diasRetraso > 0 && (
-                                        <p className="text-xs text-red-600">{pago.diasRetraso} días de retraso</p>
-                                      )}
+                                <div className="flex flex-col gap-4 p-4 lg:p-5">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="flex items-start gap-3 min-w-0 flex-1 pr-2">
+                                      <Checkbox
+                                        checked={isBillingSelected}
+                                        onCheckedChange={(checked) => handleBillingSelection(pago.id, checked as boolean)}
+                                        disabled={isPaid}
+                                        className={`mt-1 flex-shrink-0 ${isBillingSelected ? "border-blue-500 data-[state=checked]:bg-blue-500" : "border-gray-400"}`}
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                                          <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap mb-2">
+                                              <h5 className="text-base font-semibold text-gray-900">{pago.tipo.charAt(0).toUpperCase() + pago.tipo.slice(1).toLowerCase()}</h5>
+                                              {config && (
+                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border ${config.badgeBg} ${config.badgeText} ${config.badgeBorder}`}>
+                                                  <Icon className="w-3.5 h-3.5" />
+                                                  {config.label}
+                                                </span>
+                                              )}
+                                              {statusConfig && (
+                                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-medium border ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border}`}>
+                                                  <StatusIcon className="w-3 h-3" />
+                                                  {pago.estado}
+                                                </span>
+                                              )}
+                                              {pago.diasRetraso > 0 && (
+                                                <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-md text-xs font-semibold">
+                                                  <AlertTriangle className="w-3 h-3" />
+                                                  {pago.diasRetraso} días de retraso
+                                                </div>
+                                              )}
+                                            </div>
+                                            <div className="flex flex-col sm:flex-row pt-1 text-sm text-gray-600 gap-3">
+                                              <div className="flex items-center gap-2">
+                                                <Calendar className="w-4 h-4 text-gray-400" />
+                                                <span>Vencimiento: <span className="font-medium text-gray-900">{pago.fechaVencimiento}</span></span>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <DollarSign className="w-4 h-4 text-gray-400" />
+                                                <span>Monto base: <span className="font-medium text-gray-900">${pago.amount.toLocaleString()} MXN</span></span>
+                                              </div>
+                                            </div>
+                                          </div>
+                                          <div className="flex-shrink-0 text-left lg:text-right">
+                                            <div className="text-xs text-gray-500 mb-1">{pago.estado === "Pagado" ? "Pagado" : "Total a pagar"}</div>
+                                            <div className="text-2xl font-bold text-gray-900">
+                                              ${pago.totalAmount.toLocaleString()}
+                                            </div>
+                                            <div className="text-xs text-gray-500">MXN</div>
+                                          </div>
+                                        </div>
+                                        {(pago.totalDiscount > 0 || pago.lateFee > 0) && (
+                                          <Accordion type="single" collapsible className="w-full">
+                                            <AccordionItem value="calculation" className="border-none">
+                                              <AccordionTrigger className="py-3 px-4 hover:no-underline cursor-pointer  hover:bg-gray-50 rounded-lg transition-colors">
+                                                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                                                  <span>Ver desglose del cálculo</span>
+                                                </div>
+                                              </AccordionTrigger>
+
+                                              <AccordionContent className="px-4 pb-4 pt-2">
+                                                <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-lg p-4 space-y-3">
+                                                  <div className="flex items-center justify-between border-b border-gray-100">
+                                                    <span className="text-sm font-medium text-gray-600">Monto base</span>
+                                                    <span className="text-base font-semibold text-gray-900">
+                                                      ${pago.amount.toLocaleString('es-MX')}
+                                                    </span>
+                                                  </div>
+                                                  {pago.appliedDiscounts?.length > 0 && (
+                                                    <div className="space-y-2">
+                                                      {pago.appliedDiscounts.map((discount, idx) => (
+                                                        <div
+                                                          key={idx}
+                                                          className="flex items-center justify-between py-2 px-3 bg-green-50 rounded-md border border-green-100"
+                                                        >
+                                                          <div className="flex items-center gap-2">
+                                                            <div className="bg-green-100 p-1 rounded-full">
+                                                              <Minus className="w-3.5 h-3.5 text-green-700" />
+                                                            </div>
+                                                            <span className="font-bold text-sm text-gray-700">
+                                                              {discount.type === 'scholarship' ? 'Beca' : 'Descuento'}
+                                                              {discount.percentage != null && (
+                                                                <span className="ml-1 text-green-700 font-medium">
+                                                                  ({discount.percentage}%)
+                                                                </span>
+                                                              )}
+                                                            </span>
+                                                          </div>
+                                                          <span className="text-sm font-semibold text-green-700">
+                                                            -${discount.amount.toLocaleString('es-MX')}
+                                                          </span>
+                                                        </div>
+                                                      ))}
+                                                    </div>
+                                                  )}
+                                                  {pago.lateFee > 0 && (
+                                                    <div className="flex items-center justify-between py-2 px-3 bg-red-50 rounded-md border border-red-100">
+                                                      <div className="flex items-center gap-2">
+                                                        <div className="bg-red-100 p-1 rounded-full">
+                                                          <Plus className="w-3.5 h-3.5 text-red-700" />
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                          <div className="font-bold text-sm text-gray-700">
+                                                            Recargo por mora
+                                                          </div>
+                                                          <div className="text-xs text-rose-700 font-semibold">
+                                                            {pago.diasRetraso} días de retraso
+                                                          </div>
+                                                        </div>
+
+                                                      </div>
+                                                      <span className="text-sm font-semibold text-red-700">
+                                                        +${pago.lateFee.toLocaleString('es-MX')}
+                                                      </span>
+                                                    </div>
+                                                  )}
+                                                  <div className="pt-3 border-t-2 border-gray-200 mt-3">
+                                                    <div className="flex items-center justify-between py-2 px-3 rounded-md border border-blue-100">
+                                                      <div className="flex items-center gap-2">
+                                                        <div className="bg-gray-100 p-1 rounded-full">
+                                                          <Equal className="w-3.5 h-3.5" />
+                                                        </div>
+                                                        <span className="text-sm font-semibold text-gray-900">Total a pagar</span>
+                                                      </div>
+                                                      <span className="text-base font-bold">
+                                                        ${pago.totalAmount.toLocaleString('es-MX')}
+                                                      </span>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </AccordionContent>
+                                            </AccordionItem>
+                                          </Accordion>
+                                        )}
+
+                                      </div>
                                     </div>
-                                  </div>
-                                  <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3">
-                                    <Badge
-                                      className={`text-xs px-2 py-1 ${
-                                        pago.estado === "Pendiente"
-                                          ? "bg-transparent text-yellow-800"
-                                          : pago.estado === "Vencido"
-                                            ? "bg-transparent text-red-500"
-                                            : "bg-transparent text-green-800"
-                                      }`}
-                                    >
-                                      {pago.estado === "Pendiente" && <Clock className="w-3 h-3 mr-1" />}
-                                      {pago.estado === "Vencido" && <AlertTriangle className="w-3 h-3 mr-1" />}
-                                      {pago.estado === "Pagado" && <CheckCircle className="w-3 h-3 mr-1" />}
-                                      {pago.estado}
-                                    </Badge>
-                                    <p
-                                      className={`font-semibold text-sm sm:text-base ${isPaymentSelected ? "text-blue-900" : "text-gray-700"}`}
-                                    >
-                                      ${(pago.monto + (pago.estado !== "Pagado" ? pago.diasRetraso * 150 : 0)).toLocaleString()}
-                                    </p>
                                   </div>
                                 </div>
                               </div>
-                            )
+                            );
                           })}
                         </div>
                       </div>
-
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                        {/* Información del padre/tutor */}
-                        <div className="space-y-3 sm:space-y-4">
-                          <h4 className="font-semibold text-foreground flex items-center gap-2 text-sm sm:text-base">
-                            <User className="w-4 h-4" />
-                            Información del Padre/Tutor
-                          </h4>
-                          <div className="space-y-2 text-xs sm:text-sm">
-                            <p className="break-words">
-                              <span className="text-muted-foreground">Nombre:</span>{" "}
-                              <span className="text-foreground">{estudiante.padre}</span>
-                            </p>
-                            <p className="break-words">
-                              <span className="text-muted-foreground">Teléfono:</span>{" "}
-                              <span className="text-foreground">{estudiante.telefono}</span>
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Información de pago */}
-                        <div className="space-y-3 sm:space-y-4">
-                          <h4 className="font-semibold text-foreground flex items-center gap-2 text-sm sm:text-base">
-                            <CreditCard className="w-4 h-4" />
-                            Información de Pago
-                          </h4>
-                          <div className="space-y-2 text-xs sm:text-sm">
-                            <p className="break-words">
-                              <span className="text-muted-foreground">Tipo:</span>{" "}
-                              <span className="text-foreground">{estudiante.tipo}</span>
-                            </p>
-                            <p className="break-words">
-                              <span className="text-muted-foreground">Método de pago:</span>{" "}
-                              <span className="text-foreground">{estudiante.metodoPago}</span>
-                            </p>
-                            <p className="break-words">
-                              <span className="text-muted-foreground">Fecha de vencimiento:</span>{" "}
-                              <span className="text-foreground">{estudiante.fechaVencimiento}</span>
-                            </p>
-                            <p className="break-words">
-                              <span className="text-muted-foreground">Monto base:</span>{" "}
-                              <span className="text-foreground">${estudiante.montoColegiatura.toLocaleString()}</span>
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="lg:col-span-2">
-                          <h4 className="font-semibold text-foreground flex items-center gap-2 mb-3 sm:mb-4 text-sm sm:text-base">
-                            <DollarSign className="w-4 h-4" />
-                            Cálculo del Pago
-                          </h4>
-
-                          {estudiante.estado === "al-dia" && (
-                            <div className="bg-success/10 border border-success/20 rounded-lg p-3 sm:p-4">
-                              <div className="flex items-center gap-2 mb-2">
-                                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
-                                <span className="font-semibold text-success text-sm sm:text-base">Estudiante al día</span>
-                              </div>
-                              <p className="text-xs sm:text-sm text-foreground">
-                                El estudiante está al corriente con sus pagos. Monto a pagar:{" "}
-                                <span className="font-bold">${estudiante.montoColegiatura.toLocaleString()}</span>
-                              </p>
-                            </div>
-                          )}
-
-                          {estudiante.estado === "retrasado" && (
-                            <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 sm:p-4">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
-                                <span className="font-semibold text-warning text-sm sm:text-base">Pago retrasado</span>
-                              </div>
-                              <div className="space-y-2 text-xs sm:text-sm text-foreground">
-                                <p>Monto base: ${estudiante.montoColegiatura.toLocaleString()}</p>
-                                <p>
-                                  Penalización ({estudiante.diasRetraso} días × $150): $
-                                  {(estudiante.diasRetraso * 150).toLocaleString()}
-                                </p>
-                                <p className="font-bold text-lg">
-                                  Total a pagar: ${calcularMontoPagar(estudiante).toLocaleString()}
-                                </p>
-                              </div>
-                            </div>
-                          )}
-
-                          {estudiante.estado === "moroso" && (
-                            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 sm:p-4">
-                              <div className="flex items-center gap-2 mb-3">
-                                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-destructive" />
-                                <span className="font-semibold text-destructive text-sm sm:text-base">Estudiante moroso</span>
-                              </div>
-                              <div className="space-y-3">
-                                <p className="text-xs sm:text-sm text-foreground">
-                                  El estudiante lleva <span className="font-bold">{estudiante.diasRetraso} días</span>{" "}
-                                  sin pagar.
-                                </p>
-                                <div className="space-y-2 text-xs sm:text-sm text-foreground">
-                                  <p>Monto base: ${estudiante.montoColegiatura.toLocaleString()}</p>
-                                  <p>
-                                    Penalización ({estudiante.diasRetraso} días × $150): $
-                                    {(estudiante.diasRetraso * 150).toLocaleString()}
-                                  </p>
-                                  <p className="font-bold text-base sm:text-lg text-destructive">
-                                    Deuda total: ${calcularMontoPagar(estudiante).toLocaleString()}
-                                  </p>
-                                </div>
-                                <div className="pt-3 border-t border-destructive/20">
-                                  <p className="text-xs sm:text-sm text-foreground mb-3">
-                                    ¿Deseas dar de baja a este estudiante de la escuela?
-                                  </p>
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() => handleDarDeBaja(estudiante)}
-                                    className="bg-destructive text-white hover:bg-destructive/90 text-xs sm:text-sm px-3 py-2 max-md:w-full"
-                                  >
-                                    <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-white " />
-                                    Dar de baja
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              )
-            })}
-          </Accordion>
+                    </AccordionContent>
+                  </AccordionItem>
+                )
+              })}
+            </Accordion>
           )}
         </CardContent>
       </Card>
 
-      <Dialog open={ showPaymentModal} onOpenChange={setShowPaymentModal}>
+      <Dialog open={showBillingModal} onOpenChange={setShowBillingModal}>
         <DialogContent className="max-w-4xl max-h-[90vh] sm:max-h-[80vh] overflow-y-auto mx-2 sm:mx-4">
           <DialogHeader className="pb-3 sm:pb-4">
             <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
               <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />
-              Realizar Pago{selectedPayments.length > 1 ? "s" : ""}
+              Realizar Pago{selectedBillings.length > 1 ? "s" : ""}
             </DialogTitle>
             <DialogDescription className="text-sm sm:text-base">
-              {selectedPayments.length > 0
-                ? `Información de cobro para ${selectedPayments.length} cobro${selectedPayments.length > 1 ? "s" : ""}`
+              {selectedBillings.length > 0
+                ? `Información de cobro para ${selectedBillings.length} cobro${selectedBillings.length > 1 ? "s" : ""}`
                 : "Selecciona un cobro para procesar"}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 sm:space-y-6">
-            {selectedPayments.length === 0 && !selectedPaymentInModal && (
+            {selectedBillings.length === 0 && !selectedBillingInModal && (
               <Card className="border-2 border-dashed">
                 <CardHeader className="pb-3 sm:pb-4">
                   <CardTitle className="text-base sm:text-lg">Seleccionar Cobro</CardTitle>
                   <CardDescription className="text-sm">Elige un cobro pendiente del ciclo escolar activo para procesar</CardDescription>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <Select onValueChange={handlePaymentSelectionInModal}>
+                  <Select onValueChange={handleBillingSelectionInModal}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Seleccionar cobro..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {unpaidPaymentRecords
+                      {unpaidBillingRecords
                         .filter((record) => filteredEstudiantesByCycle.some((e) => e.id === record.studentId))
                         .map((paymentRecord) => (
                           <SelectItem key={paymentRecord.id} value={paymentRecord.id}>
@@ -943,7 +1161,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
               </Card>
             )}
 
-            {getSelectedPaymentsData().map((paymentRecord) => {
+            {getSelectedBillingsData().map((paymentRecord) => {
               const estudiante = filteredEstudiantesByCycle.find((e) => e.id === paymentRecord.studentId)
               if (!estudiante) return null
 
@@ -953,13 +1171,12 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
                     <CardTitle className="text-base sm:text-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
                       <span className="truncate">{paymentRecord.studentName}</span>
                       <Badge
-                        className={`text-xs px-2 py-1 ${
-                          paymentRecord.status === "Pendiente"
-                            ? "bg-transparent text-yellow-800"
-                            : paymentRecord.status === "Vencido"
-                              ? "bg-transparent text-red-500"
-                              : "bg-transparent text-green-800"
-                        }`}
+                        className={`text-xs px-2 py-1 ${paymentRecord.status === "Pendiente"
+                          ? "bg-transparent text-yellow-800"
+                          : paymentRecord.status === "Vencido"
+                            ? "bg-transparent text-red-500"
+                            : "bg-transparent text-green-800"
+                          }`}
                       >
                         {paymentRecord.status === "Pendiente" && <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />}
                         {paymentRecord.status === "Vencido" && <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />}
@@ -1011,7 +1228,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
                     </div>
                     <div className="border-t pt-3 sm:pt-4">
                       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
-                        <span className="text-base sm:text-lg font-semibold">Total a pagar:</span>
+                        <span className="text-base sm:text-lg font-semibold">{paymentRecord.status === "Pagado" ? "Pagado:" : "Total a pagar:"}:</span>
                         <span className="text-xl sm:text-2xl font-bold text-primary">
                           ${paymentRecord.amount.toLocaleString()}
                         </span>
@@ -1022,7 +1239,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
               )
             })}
 
-            {getSelectedPaymentsData().length > 0 && (
+            {getSelectedBillingsData().length > 0 && (
               <div className="relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-slate-50 to-slate-100 opacity-50" />
                 <Card className="relative border-2 border-slate-200 shadow-lg">
@@ -1036,8 +1253,8 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
                           <div>
                             <h3 className="text-lg sm:text-xl font-bold text-slate-900">Costo Total</h3>
                             <p className="text-xs sm:text-sm text-slate-600">
-                              {getSelectedPaymentsData().length} cobro{getSelectedPaymentsData().length > 1 ? "s" : ""}{" "}
-                              seleccionado{getSelectedPaymentsData().length > 1 ? "s" : ""}
+                              {getSelectedBillingsData().length} cobro{getSelectedBillingsData().length > 1 ? "s" : ""}{" "}
+                              seleccionado{getSelectedBillingsData().length > 1 ? "s" : ""}
                             </p>
                           </div>
                         </div>
@@ -1045,7 +1262,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
                       <div className="text-left sm:text-right">
                         <div className="text-2xl sm:text-4xl font-bold text-slate-900 mb-1">
                           $
-                          {getSelectedPaymentsData()
+                          {getSelectedBillingsData()
                             .reduce((total, payment) => total + payment.amount, 0)
                             .toLocaleString()}
                         </div>
@@ -1066,12 +1283,12 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
           </div>
 
           <DialogFooter className="gap-2 flex-col sm:flex-row">
-            <Button variant="outline" onClick={closePaymentModal} className="w-full sm:w-auto order-2 sm:order-1">
+            <Button variant="outline" onClick={closeBillingModal} className="w-full sm:w-auto order-2 sm:order-1">
               Cancelar
             </Button>
-            <Button 
-              onClick={handleOpenPaymentForm} 
-              disabled={selectedPayments.length === 0 && !selectedPaymentInModal}
+            <Button
+              onClick={handleOpenBillingForm}
+              disabled={selectedBillings.length === 0 && !selectedBillingInModal}
               className="w-full sm:w-auto order-1 sm:order-2"
             >
               Continuar
@@ -1080,8 +1297,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Formulario de Pago */}
-      <Dialog open={showPaymentFormModal} onOpenChange={setShowPaymentFormModal}>
+      <Dialog open={showBillingFormModal} onOpenChange={setShowBillingFormModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-2 sm:mx-4">
           <DialogHeader className="pb-4">
             <DialogTitle className="flex items-center gap-2 text-xl">
@@ -1094,14 +1310,13 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
           </DialogHeader>
 
           <div className="space-y-6">
-            {/* Resumen de pagos seleccionados */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Resumen de Cobros</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {getSelectedPaymentsData().map((payment) => (
+                  {getSelectedBillingsData().map((payment) => (
                     <div key={payment.id} className="flex justify-between items-center text-sm border-b pb-2">
                       <div>
                         <p className="font-medium">{payment.studentName}</p>
@@ -1113,7 +1328,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
                   <div className="flex justify-between items-center pt-2 font-bold">
                     <p>Total:</p>
                     <p className="text-lg">
-                      ${getSelectedPaymentsData()
+                      ${getSelectedBillingsData()
                         .reduce((sum, payment) => sum + payment.amount, 0)
                         .toLocaleString()}
                     </p>
@@ -1125,7 +1340,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
             {/* Método de Pago */}
             <div className="space-y-3">
               <Label className="text-base font-semibold">Método de Pago</Label>
-              <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as "cash" | "bank_transfer" | "card" | "other")}>
+              <RadioGroup value={paymentMethod} onValueChange={(value) => setBillingMethod(value as "cash" | "bank_transfer" | "card" | "other")}>
                 <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
                   <RadioGroupItem value="cash" id="cash" />
                   <Label htmlFor="cash" className="flex items-center gap-2 cursor-pointer flex-1">
@@ -1169,7 +1384,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
                   type="number"
                   placeholder="0.00"
                   value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  onChange={(e) => setBillingAmount(e.target.value)}
                   className="pl-8 text-lg"
                   min="0"
                   step="0.01"
@@ -1182,20 +1397,20 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
           </div>
 
           <DialogFooter className="gap-2 flex-col sm:flex-row pt-4">
-            <Button 
-              variant="outline" 
-              onClick={closePaymentFormModal} 
-              disabled={isProcessingPayment}
+            <Button
+              variant="outline"
+              onClick={closeBillingFormModal}
+              disabled={isProcessingBilling}
               className="w-full sm:w-auto order-2 sm:order-1"
             >
               Cancelar
             </Button>
-            <Button 
-              onClick={handleConfirmPayment} 
-              disabled={isProcessingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0}
+            <Button
+              onClick={handleConfirmBilling}
+              disabled={isProcessingBilling || !paymentAmount || parseFloat(paymentAmount) <= 0}
               className="w-full sm:w-auto order-1 sm:order-2"
             >
-              {isProcessingPayment ? (
+              {isProcessingBilling ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Procesando...
@@ -1210,6 +1425,7 @@ export default function Pagos({ selectedSchoolCycle, setSelectedSchoolCycle }: P
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   )
 }

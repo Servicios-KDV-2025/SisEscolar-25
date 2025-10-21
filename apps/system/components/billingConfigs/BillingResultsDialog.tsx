@@ -1,4 +1,4 @@
-import { CheckCircle2, Users, Calendar, DollarSign, FileText, TrendingUp, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Users, Calendar, DollarSign, FileText } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@repo/ui/components/shadcn/dialog';
 import { Badge } from '@repo/ui/components/shadcn/badge';
 import { Button } from '@repo/ui/components/shadcn/button';
@@ -7,13 +7,13 @@ import { PAYMENT_TYPES, RECURRENCE_TYPES, SCOPE_TYPES, STATUS_TYPES } from 'lib/
 import { ResultData } from '@/types/billingConfig';
 import { School } from '@repo/ui/icons';
 
-interface PaymentResultModalProps {
+interface BillingResultsDialogProps {
     isOpen: boolean;
     onClose: () => void;
     data: ResultData;
 }
 
-export function PaymentResultModal({ isOpen, onClose, data }: PaymentResultModalProps) {
+export function BillingResultsDialog({ isOpen, onClose, data }: BillingResultsDialogProps) {
     const getStatusVariant = (status: keyof typeof STATUS_TYPES) => {
         const variants = {
             required: "default",
@@ -26,7 +26,6 @@ export function PaymentResultModal({ isOpen, onClose, data }: PaymentResultModal
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-[95vw] sm:max-w-[90vw] lg:max-w-4xl max-h-[90vh] overflow-hidden p-0 gap-0 text-white">
-                {/* Header */}
                 <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white px-4 sm:px-6 py-4 sm:py-5">
                     <DialogHeader>
                         <div className="flex items-start justify-between gap-3">
@@ -50,7 +49,7 @@ export function PaymentResultModal({ isOpen, onClose, data }: PaymentResultModal
                 <ScrollArea className="h-[calc(90vh-180px)] sm:h-[calc(90vh-190px)]">
                     <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-5 sm:space-y-6">
                         {/* Summary Cards */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                             <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200 hover:shadow-sm transition-shadow">
                                 <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
                                     <Users className="w-4 h-4 text-gray-600 shrink-0" />
@@ -59,10 +58,10 @@ export function PaymentResultModal({ isOpen, onClose, data }: PaymentResultModal
                                     </span>
                                 </div>
                                 <p className="text-2xl sm:text-3xl font-bold text-gray-900">
-                                    {data.createdPayments.length}
+                                    {data.affectedStudents.length}
                                 </p>
                                 <p className="text-xs text-gray-600 mt-1">
-                                    estudiante{data.createdPayments.length !== 1 ? 's' : ''}
+                                    estudiante{data.affectedStudents.length !== 1 ? 's' : ''}
                                 </p>
                             </div>
 
@@ -83,21 +82,6 @@ export function PaymentResultModal({ isOpen, onClose, data }: PaymentResultModal
 
                             <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200 hover:shadow-sm transition-shadow">
                                 <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
-                                    <TrendingUp className="w-4 h-4 text-gray-600 shrink-0" />
-                                    <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">
-                                        Balance
-                                    </span>
-                                </div>
-                                <p className="text-2xl sm:text-3xl font-bold text-gray-900">
-                                    {data.createdPayments.filter(p => p.balanceUpdated).length}
-                                </p>
-                                <p className="text-xs text-gray-600 mt-1">
-                                    Balances actualizados
-                                </p>
-                            </div>
-
-                            <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200 hover:shadow-sm transition-shadow">
-                                <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
                                     <Calendar className="w-4 h-4 text-gray-600 shrink-0" />
                                     <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">
                                         Ciclo Escolar
@@ -107,7 +91,18 @@ export function PaymentResultModal({ isOpen, onClose, data }: PaymentResultModal
                                     {data.paymentConfig.ciclo}
                                 </p>
                                 <p className="text-xs text-gray-600 mt-1">
-                                    Ciclo escolar {data.paymentConfig.status}
+                                    Ciclo escolar {data.paymentConfig.status === 'required' ? 'Activo' : 'Inactivo'}
+                                </p>
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200 hover:shadow-sm transition-shadow">
+                                <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
+                                    <Calendar className="w-4 h-4 text-gray-600 shrink-0" />
+                                    <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+                                        Fecha de Vencimiento
+                                    </span>
+                                </div>
+                                <p className="text-2xl sm:text-3xl font-bold text-gray-900">
+                                    {data.paymentConfig.endDate}
                                 </p>
                             </div>
                         </div>
@@ -155,18 +150,6 @@ export function PaymentResultModal({ isOpen, onClose, data }: PaymentResultModal
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* <div className="bg-gray-50 p-3 sm:p-4 border-t border-gray-200">
-                  <div className="flex items-start gap-2">
-                    <Info className="w-4 h-4 text-gray-600 shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-xs sm:text-sm text-gray-600">ID de Configuración</span>
-                      <p className="text-xs sm:text-sm font-mono text-gray-900 mt-1 break-all">
-                        {data.paymentConfig.id}
-                      </p>
-                    </div>
-                  </div>
-                </div> */}
                             </div>
                         </div>
 
@@ -179,12 +162,12 @@ export function PaymentResultModal({ isOpen, onClose, data }: PaymentResultModal
                                     </h3>
                                 </div>
                                 <span className="text-xs sm:text-sm text-gray-600">
-                                    {data.createdPayments.length} estudiante(s)
+                                    {data.affectedStudents.length} estudiante(s)
                                 </span>
                             </div>
 
                             <div className="space-y-2 sm:space-y-2.5">
-                                {data.createdPayments.map((payment) => (
+                                {data.affectedStudents.map((payment) => (
                                     <div
                                         key={payment.paymentId}
                                         className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 hover:border-gray-300 hover:shadow-sm transition-all"
@@ -199,18 +182,11 @@ export function PaymentResultModal({ isOpen, onClose, data }: PaymentResultModal
                                                         {payment.studentName}
                                                     </h4>
                                                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs text-gray-600">
-                                                        <span className="font-mono truncate" title={`Balance: ${payment.balance}`}>
-                                                            {payment.balance >= 0 ? (
-                                                                <Badge variant="default" className="bg-green-600 text-white mt-2 text-xs whitespace-nowrap">
-                                                                    <CheckCircle2 className="w-3 h-3 mr-1 shrink-0" />
-                                                                    Balance: {payment.balance}
-                                                                </Badge>
-                                                            ) : (
-                                                                <Badge variant="secondary" className="bg-red-600 text-white mt-1 hover:bg-gray-100 text-xs whitespace-nowrap">
-                                                                    <AlertCircle className="w-3 h-3 mr-1 shrink-0" />
-                                                                    Balance: {payment.balance}
-                                                                </Badge>
-                                                            )}
+                                                        <span className="font-mono truncate" title={`Matrícula: ${payment.enrollment}`}>
+                                                            <Badge variant="default" className="bg-blue-600 text-white mt-1 text-xs whitespace-nowrap">
+                                                                <CheckCircle2 className="w-3 h-3 mr-1 shrink-0" />
+                                                                Matrícula: {payment.enrollment}
+                                                            </Badge>
                                                         </span>
                                                         <span className="font-mono truncate" title={`Grupo: ${payment.group}`}>
 
@@ -224,17 +200,10 @@ export function PaymentResultModal({ isOpen, onClose, data }: PaymentResultModal
                                             </div>
 
                                             <div className="flex items-center">
-                                                {payment.balanceUpdated ? (
-                                                    <Badge variant="default" className="bg-gray-900 text-xs whitespace-nowrap">
-                                                        <CheckCircle2 className="w-3 h-3 mr-1 shrink-0" />
-                                                        Balance actualizado
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge variant="secondary" className="bg-gray-100 text-gray-700 hover:bg-gray-100 text-xs whitespace-nowrap">
-                                                        <AlertCircle className="w-3 h-3 mr-1 shrink-0" />
-                                                        Pendiente
-                                                    </Badge>
-                                                )}
+                                                <Badge variant="default" className="bg-green-600 text-white text-xs whitespace-nowrap">
+                                                    <CheckCircle2 className="w-3 h-3 mr-1 shrink-0" />
+                                                    Pago generado
+                                                </Badge>
                                             </div>
                                         </div>
                                     </div>

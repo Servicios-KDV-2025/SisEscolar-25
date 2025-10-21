@@ -21,11 +21,11 @@ import { BillingConfigForm } from "./BillingConfigForm"
 import { BillingConfigCard } from "./BillingConfigCard"
 import { useGroup } from "stores/groupStore"
 import { useBillingConfig } from "stores/billingConfigStore"
-import { PaymentResultModal } from "./BillingResultsDialog"
+import { BillingResultsDialog } from "./BillingResultsDialog"
 import { ResultData } from "@/types/billingConfig"
 import { Badge } from "@repo/ui/components/shadcn/badge"
 
-export default function BillingConfig() {
+export default function BillingConfigPage() {
   const { user: clerkUser } = useUser()
   const { currentUser } = useUserWithConvex(clerkUser?.id)
   const { currentSchool, isLoading: schoolLoading } = useCurrentSchool(currentUser?._id)
@@ -166,15 +166,16 @@ export default function BillingConfig() {
           createdBy: currentUser?._id as Id<'user'>,
           updatedBy: currentUser?._id as Id<'user'>,
         })
-        if (result !== undefined && result !== null && typeof result === "object" && "createdPayments" in result) {
+        if (result !== undefined) {
+          console.log("Create")
           setResultData(result as ResultData);
+          setShowResultModal(true);
         } else {
           setResultData(null);
         }
-        setShowResultModal(true);
         toast.success("Configuración creada exitosamente")
       } else if (operation === "edit") {
-        await updateBillingConfig({
+        const result = await updateBillingConfig({
           _id: validatedValues._id as Id<'billingConfig'>,
           schoolId: currentSchool?.school._id as Id<'school'>,
           schoolCycleId: validatedValues.schoolCycleId as Id<"schoolCycle"> | undefined,
@@ -191,6 +192,16 @@ export default function BillingConfig() {
           status: validatedValues.status,
           updatedBy: currentUser?._id as Id<"user">
         })
+        console.log(result)
+        if (result !== undefined ) {
+              console.log("Handle")
+          setResultData(result as ResultData);
+          setShowResultModal(true);
+          console.log("Result", result)
+          console.log(showResultModal)
+        } else {
+          setResultData(null);
+        }
         toast.success("Configuración actualizada exitosamente")
       }
       close()
@@ -261,14 +272,13 @@ export default function BillingConfig() {
               />
             </div>
             <div className="flex flex-1 flex-col md:flex-row gap-3 justify-center">
-              <div className="flex flex-1 flex-col sm:flex-row gap-3 justify-center">
+              <div className="flex flex-2 flex-col sm:flex-row gap-3 justify-center">
                 <Select value={schoolCycleFilter} onValueChange={setSchoolCycleFilter}>
-                  <SelectTrigger className="w-full md:w-50">
+                  <SelectTrigger className="w-full">
                     <School className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="Ciclo escolar" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos los ciclos</SelectItem>
                     {schoolCycles?.map((cycle) => (
                       <SelectItem key={cycle._id} value={cycle._id}>
                         {cycle.name} {cycle.status && "(Activo)"}
@@ -323,8 +333,6 @@ export default function BillingConfig() {
                 </Select>
               </div>
             </div>
-
-
           </div>
         </CardContent>
       </Card>
@@ -367,7 +375,7 @@ export default function BillingConfig() {
               </p>
               <Button onClick={openCreate}>
                 <Plus className="h-4 w-4 mr-2" />
-                Nueva Configuración
+                Agregar Configuración
               </Button>
             </div>
           ) : (
@@ -448,7 +456,7 @@ export default function BillingConfig() {
       </CrudDialog>
 
       {showResultModal && resultData && (
-        <PaymentResultModal
+        <BillingResultsDialog
           isOpen={showResultModal}
           onClose={() => setShowResultModal(false)}
           data={resultData}

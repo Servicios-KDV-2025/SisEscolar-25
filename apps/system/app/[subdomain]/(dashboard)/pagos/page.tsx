@@ -7,9 +7,9 @@ import { api } from "@repo/convex/convex/_generated/api"
 import { useUser } from "@clerk/nextjs"
 import { useUserWithConvex } from "../../../../stores/userStore"
 import { useCurrentSchool } from "../../../../stores/userSchoolsStore"
-import Pagos from "./pagos"
 import PaymentHistoryComponent from "./payment-history"
-import BillingConfig from "components/billings/BillingConfig"
+import BillingConfigPage from "components/billingConfigs/BillingConfigPage"
+import BillingPage from "components/billing/BillingPage"
 
 export default function Colegiaturas() {
   const [selectedSchoolCycle, setSelectedSchoolCycle] = useState<string>("")
@@ -31,7 +31,7 @@ export default function Colegiaturas() {
       const activeCycle = schoolCycles.find(cycle => cycle.isActive)
       if (activeCycle) {
         setSelectedSchoolCycle(activeCycle.id)
-      } else if (schoolCycles[0]) {
+      } else if (schoolCycles[0]) {BillingConfigPage
         setSelectedSchoolCycle(schoolCycles[0]!.id)
       }
     }
@@ -87,11 +87,11 @@ export default function Colegiaturas() {
         </TabsList>
 
         <TabsContent value="configuracion" className="mt-4 md:mt-6">
-          <BillingConfig/>
+          <BillingConfigPage/>
         </TabsContent>
 
         <TabsContent value="pagos" className="mt-4 md:mt-6">
-          <Pagos selectedSchoolCycle={selectedSchoolCycle} setSelectedSchoolCycle={setSelectedSchoolCycle} />
+          <BillingPage selectedSchoolCycle={selectedSchoolCycle} setSelectedSchoolCycle={setSelectedSchoolCycle} />
         </TabsContent>
 
         <TabsContent value="historial" className="mt-4 md:mt-6">

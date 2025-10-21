@@ -1,5 +1,7 @@
 import { v } from "convex/values";
-import { mutation, query } from "../_generated/server";
+import { mutation, query, internalMutation } from "../_generated/server";
+import { Doc } from "../_generated/dataModel";
+import { internal } from "../_generated/api";
 
 export const getAllBillingRulesBySchool = query({
     args: {
@@ -151,6 +153,7 @@ export const updateBillingRuleWithSchoolId = mutation({
         }
 
         await ctx.db.patch(_id, data);
+        await ctx.runMutation(internal.functions.billingRule.applyBillingPolicies);
         return await ctx.db.get(_id);
     }
 });
@@ -170,9 +173,240 @@ export const deleteBillingRuleWithSchoolId = mutation({
             );
         }
         await ctx.db.delete(args._id);
+        await ctx.runMutation(internal.functions.billingRule.applyBillingPolicies);
         return {
             deleted: true,
             message: 'BillingRule borrado correctamente'
         };
     },
 });
+
+export const applyBillingPolicies = internalMutation({
+    args: {},
+    handler: async (ctx) => {
+        const now = Date.now();
+        const billingConfigs = await ctx.db
+            .query("billingConfig")
+            .collect();
+
+        console.log(`Procesando ${billingConfigs.length} configuraciones de cobro`);
+
+        for (const config of billingConfigs) {
+            await processConfigBillings(ctx, config, now);
+        }
+    },
+});
+
+async function processConfigBillings(
+    ctx: any,
+    config: Doc<"billingConfig">,
+    now: number
+) {
+    const rules = config.ruleIds
+        ? await Promise.all(config.ruleIds.map((id) => ctx.db.get(id)))
+        : []; 
+
+    const activeRules = rules.filter((rule) => rule && rule.status === "active");
+
+    const billings = await ctx.db
+        .query("billing")
+        .withIndex("by_billingConfig", (q: any) => q.eq("billingConfigId", config._id))
+        .filter((q: any) => q.neq(q.field("status"), "Pago cumplido"))
+        .collect();
+
+    console.log(`Procesando ${billings.length} cobros para config ${config._id}`);
+
+    for (const billing of billings) {
+        await applyPoliciesToBilling(ctx, billing, config, activeRules, now);
+    }
+}
+
+async function applyPoliciesToBilling(
+    ctx: any,
+    billing: Doc<"billing">,
+    config: Doc<"billingConfig">,
+    rules: Doc<"billingRule">[],
+    now: number
+) {
+    const student = await ctx.db.get(billing.studentId);
+    if (!student) return;
+
+    const appliedDiscounts: Array<{
+        ruleId?: any;
+        reason: string;
+        amount: number;
+        percentage?: number;
+        type: "scholarship" | "rule";
+    }> = [];
+
+    let totalDiscount = 0;
+    let lateFee = 0;
+    let lateFeeRuleId = undefined;
+
+    const scholarshipDiscount = calculateScholarshipDiscount(student, billing.amount);
+    if (scholarshipDiscount.amount > 0) {
+        appliedDiscounts.push(scholarshipDiscount);
+        totalDiscount += scholarshipDiscount.amount;
+    }
+
+    for (const rule of rules) {
+        if (!ruleAppliesToStudent(rule, student)) continue;
+
+        if (rule.type === "early_discount") {
+
+            const discount = await applyEarlyDiscount(rule, billing, now, config.startDate);
+            if (discount.amount > 0) {
+                appliedDiscounts.push(discount);
+                totalDiscount += discount.amount;
+            }
+        } else if (rule.type === "late_fee") {
+            const fee = applyLateFee(rule, billing, now, config.endDate);
+            if (fee > 0) {
+                const daysUntilDue = Math.floor((now - config.endDate) / (1000 * 60 * 60 * 24));
+                lateFee = fee * daysUntilDue;
+                lateFeeRuleId = rule._id;
+            }
+        }
+    }
+
+    const totalAmount = Math.max(0, billing.amount - totalDiscount + lateFee);
+
+    const newStatus = determineStatus(billing, now, totalAmount, config.endDate);
+
+    await ctx.db.patch(billing._id, {
+        appliedDiscounts: appliedDiscounts.length > 0 ? appliedDiscounts : undefined,
+        totalDiscount: totalDiscount > 0 ? totalDiscount : undefined,
+        lateFee: lateFee > 0 ? lateFee : undefined,
+        lateFeeRuleId,
+        totalAmount,
+        status: newStatus,
+        updatedAt: now,
+    });
+
+    console.log(
+        `Billing ${billing._id}: $${billing.amount} - $${totalDiscount} + $${lateFee} = $${totalAmount}`
+    );
+}
+
+function calculateScholarshipDiscount(
+    student: Doc<"student">,
+    amount: number
+) {
+    if (!student.scholarshipType || student.scholarshipType === "none") {
+        return { amount: 0, reason: "", type: "scholarship" as const };
+    }
+
+    if (student.scholarshipType === "full") {
+        return {
+            reason: "Beca 100%",
+            amount: amount,
+            percentage: 100,
+            type: "scholarship" as const,
+        };
+    }
+
+    if (student.scholarshipType === "partial" && student.scholarshipPercentage) {
+        return {
+            reason: `Beca ${student.scholarshipPercentage}%`,
+            amount: amount * (student.scholarshipPercentage / 100),
+            percentage: student.scholarshipPercentage,
+            type: "scholarship" as const,
+        };
+    }
+
+    return { amount: 0, reason: "", type: "scholarship" as const };
+}
+
+function ruleAppliesToStudent(
+    rule: Doc<"billingRule">,
+    student: Doc<"student">
+): boolean {
+    if (rule.scope === "all_students") return true;
+
+    if (rule.scope === "becarios") {
+        return student.scholarshipType !== "none" && !!student.scholarshipType;
+    }
+
+    if (rule.scope === "estandar") {
+        return !student.scholarshipType || student.scholarshipType === "none";
+    }
+
+    return false;
+}
+
+async function applyEarlyDiscount(
+    rule: Doc<"billingRule">,
+    billing: Doc<"billing">,
+    now: number,
+    startDate: number,
+) {
+    if (!startDate || !rule.endDay) {
+        return { amount: 0, reason: "", ruleId: rule._id, type: "rule" as const };
+    }
+    const date = new Date(startDate)
+    const ruleEndDate = date.setDate(date.getDate() + rule.endDay);
+
+    if (now <= ruleEndDate) {
+        if (rule.lateFeeType === "percentage" && rule.lateFeeValue) {
+            return {
+                ruleId: rule._id,
+                reason: `${rule.name} (${rule.lateFeeValue}%)`,
+                amount: billing.amount * (rule.lateFeeValue / 100),
+                percentage: rule.lateFeeValue,
+                type: "rule" as const,
+            };
+        } else if (rule.lateFeeType === "fixed" && rule.lateFeeValue) {
+            return {
+                ruleId: rule._id,
+                reason: rule.name,
+                amount: rule.lateFeeValue,
+                type: "rule" as const,
+            };
+        }
+    }
+
+    return { amount: 0, reason: "", ruleId: rule._id, type: "rule" as const };
+}
+
+function applyLateFee(
+    rule: Doc<"billingRule">,
+    billing: Doc<"billing">,
+    now: number,
+    endDate: number
+): number {
+    if (!endDate || !rule.startDay || !rule.endDay) return 0;
+
+    const date = new Date(endDate)
+    const ruleStartDate = date.setDate(date.getDate() + rule.startDay);
+    const ruleEndDate = date.setDate(date.getDate() + rule.endDay);
+
+    if (rule.startDay !== undefined && now < ruleStartDate) return 0;
+    if (rule.endDay !== undefined && now > ruleEndDate) return 0;
+
+    if (rule.lateFeeType === "percentage" && rule.lateFeeValue) {
+        return billing.amount * (rule.lateFeeValue / 100);
+    } else if (rule.lateFeeType === "fixed" && rule.lateFeeValue) {
+        return rule.lateFeeValue;
+    }
+
+    return 0;
+}
+
+function determineStatus(
+    billing: Doc<"billing">,
+    now: number,
+    totalAmount: number,
+    dueDate: number
+): Doc<"billing">["status"] {
+    if (billing.status === "Pago cumplido") return "Pago cumplido";
+    if (billing.paidAt) return "Pago cumplido";
+    if (totalAmount === 0) return "Pago cumplido";
+    if (!dueDate) return "Pago pendiente";
+
+    const daysLate = Math.floor((now - dueDate) / (1000 * 60 * 60 * 24));
+
+    if (daysLate > 30) return "Pago vencido";
+    if (daysLate > 0) return "Pago retrasado";
+
+    return "Pago pendiente";
+}
