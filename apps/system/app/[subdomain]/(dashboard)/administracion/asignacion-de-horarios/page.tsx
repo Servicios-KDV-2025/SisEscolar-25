@@ -669,8 +669,11 @@ export default function HorariosPorClasePage() {
                       </FormControl>
                       <SelectContent>
                         {classCatalogs?.map((cc) => (
-                          <SelectItem key={cc._id} value={cc._id}>
-                            {cc.name}
+                          <SelectItem
+                            key={cc._id}
+                            value={cc._id}
+                          >
+                            {cc.name} - {cc.teacher?.name} {cc.teacher?.lastName}
                           </SelectItem>
                         ))}
                       </SelectContent>
