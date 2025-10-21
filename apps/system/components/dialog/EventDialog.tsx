@@ -341,6 +341,7 @@ export default function EventDialog({
                           <SelectValue placeholder="Selecciona un tipo de evento" className="py-1" />
                         </SelectTrigger>
                       </FormControl>
+                      
                       <SelectContent className="max-h-80 overflow-y-auto">
                         {tiposDeEventos?.map((tipo) => {
                           const clases = convertirColorAClases(tipo.color);
