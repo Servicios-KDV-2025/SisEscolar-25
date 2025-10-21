@@ -216,8 +216,8 @@ function StepTwoContent({
                             <label
                               htmlFor={schedule._id}
                               className={`text-sm font-medium leading-none flex-1 cursor-pointer ${isConflict
-                                  ? "text-muted-foreground opacity-50 cursor-not-allowed"
-                                  : ""
+                                ? "text-muted-foreground opacity-50 cursor-not-allowed"
+                                : ""
                                 }`}
                             >
                               <div className="flex items-center justify-between">
@@ -332,23 +332,23 @@ export default function HorariosPorClasePage() {
   );
 
   const editScheduleConflicts = useQuery(
-  api.functions.schedule.getScheduleConflicts,
-  (() => {
-    const classItem = crudDialog.data as ClassItem | null;
-    return currentSchool?.school._id && 
-      crudDialog.operation === "edit" &&
-      !isEditingClassDetails &&
-      classItem?.teacher?._id &&
-      classItem?.classroom?._id
+    api.functions.schedule.getScheduleConflicts,
+    (() => {
+      const classItem = crudDialog.data as ClassItem | null;
+      return currentSchool?.school._id &&
+        crudDialog.operation === "edit" &&
+        !isEditingClassDetails &&
+        classItem?.teacher?._id &&
+        classItem?.classroom?._id
         ? {
-            schoolId: currentSchool.school._id,
-            teacherId: classItem.teacher._id as Id<"user">,
-            classroomId: classItem.classroom._id as Id<"classroom">,
-            classCatalogIdToExclude: classItem.classCatalogId as Id<"classCatalog">,
-          }
+          schoolId: currentSchool.school._id,
+          teacherId: classItem.teacher._id as Id<"user">,
+          classroomId: classItem.classroom._id as Id<"classroom">,
+          classCatalogIdToExclude: classItem.classCatalogId as Id<"classCatalog">,
+        }
         : "skip";
-  })()
-);
+    })()
+  );
 
   const {
     getStudentFilters,
@@ -409,18 +409,24 @@ export default function HorariosPorClasePage() {
       : "skip"
   );
 
-  const teachers = useQuery(
+  // const teachers = useQuery(
+  //   api.functions.userSchool.getByRole,
+  //   currentSchool?.school._id
+  //     ? { schoolId: currentSchool?.school._id, role: "teacher" }
+  //     : "skip"
+  // );
+
+  // const teacherUserIds = teachers?.map((relation) => relation._id) || [];
+  // const teachersData = useQuery(
+  //   api.functions.users.getUsersByIds,
+  //   teacherUserIds.length > 0
+  //     ? { userIds: teacherUserIds, status: "active" }
+  //     : "skip"
+  // );
+  const teachersData = useQuery(
     api.functions.userSchool.getByRole,
     currentSchool?.school._id
       ? { schoolId: currentSchool?.school._id, role: "teacher" }
-      : "skip"
-  );
-
-  const teacherUserIds = teachers?.map((relation) => relation._id) || [];
-  const teachersData = useQuery(
-    api.functions.users.getUsersByIds,
-    teacherUserIds.length > 0
-      ? { userIds: teacherUserIds, status: "active" }
       : "skip"
   );
 
@@ -447,25 +453,27 @@ export default function HorariosPorClasePage() {
       const filtered = classesRaw.filter(
         (c): c is NonNullable<typeof c> => c !== null
       );
-      setClasses(filtered as ClassItem[]);
+      setClasses(filtered as unknown as ClassItem[]);
     }
   }, [classesRaw, setClasses]);
-useEffect(() => {
-  const itemToEdit = crudDialog.data as ClassItem | null;
-  
-  if (crudDialog.operation === "edit" && itemToEdit) {
-    editClassForm.reset({
-      name: itemToEdit.name,
-      status: itemToEdit.status,
-      schoolCycleId: itemToEdit.schoolCycleId as string,
-      subjectId: itemToEdit.subject?._id ?? "",
-      classroomId: itemToEdit.classroom?._id ?? "",
-      teacherId: itemToEdit.teacher?._id ?? "",
-      groupId: itemToEdit.group?._id ?? "",
-      selectedScheduleIds: itemToEdit.selectedScheduleIds ?? [],
-    });
-  }
-}, [crudDialog.data, crudDialog.operation, editClassForm]);
+  useEffect(() => {
+    const itemToEdit = crudDialog.data as ClassItem | null;
+
+    if (crudDialog.operation === "edit" && itemToEdit) {
+      editClassForm.reset({
+        name: itemToEdit.name,
+        status: itemToEdit.status,
+        schoolCycleId: itemToEdit.schoolCycle?._id || itemToEdit.schoolCycleId || "",
+        subjectId: itemToEdit.subject?._id ?? "",
+        classroomId: itemToEdit.classroom?._id ?? "",
+        teacherId: itemToEdit.teacher?._id ?? "",
+        groupId: itemToEdit.group?._id ?? "",
+        selectedScheduleIds: itemToEdit.selectedScheduleIds ?? [],
+      });
+      // Reset del estado de edición
+      setIsEditingClassDetails(false);
+    }
+  }, [crudDialog.data, crudDialog.operation]);
 
   // Mutations and Actions
   const createClassWithSchedule = useAction(
@@ -576,13 +584,13 @@ useEffect(() => {
       }
 
       const finalScheduleIds = formData.selectedScheduleIds as Id<"schedule">[];
-      
+
       // Verificar si los horarios seleccionados son exactamente los mismos que ya tenía la clase
       const originalScheduleIds = originalClass.selectedScheduleIds || [];
-      const sameSchedules = 
-        finalScheduleIds.length === originalScheduleIds.length && 
+      const sameSchedules =
+        finalScheduleIds.length === originalScheduleIds.length &&
         finalScheduleIds.every(id => originalScheduleIds.includes(id));
-      
+
       // Solo validar conflictos si hay cambios en los horarios
       if (!sameSchedules) {
         // ✅ Validar conflictos independientemente del estado
@@ -630,30 +638,56 @@ useEffect(() => {
     data: z.infer<typeof FullClassSchema>
   ) => {
     const originalClass = crudDialog.data as ClassItem | null;
-    if (!originalClass || !currentSchool) return;
+    if (!originalClass || !currentSchool) {
+      toast.error("No se pudo obtener la información de la clase");
+      return;
+    }
 
-    await toast.promise(
-      updateClassCatalog({
-        classCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
-        schoolId: currentSchool.school._id as Id<"school">,
-        schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
-        subjectId: data.subjectId as Id<"subject">,
-        classroomId: data.classroomId as Id<"classroom">,
-        teacherId: data.teacherId as Id<"user">,
-        groupId: data.groupId as Id<"group">,
-        name: data.name,
-        status: data.status,
-        updatedAt: Date.now(),
-      }),
-      {
-        loading: "Actualizando la información de la clase...",
-        success: () => {
-          setIsEditingClassDetails(false);
-          return "Clase actualizada exitosamente.";
-        },
-        error: "No se pudo actualizar la clase.",
-      }
-    );
+    console.log("🔄 Actualizando clase con datos:", data); // Debug
+
+    try {
+      await toast.promise(
+        updateClassCatalog({
+          classCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
+          schoolId: currentSchool.school._id as Id<"school">,
+          schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
+          subjectId: data.subjectId as Id<"subject">,
+          classroomId: data.classroomId as Id<"classroom">,
+          teacherId: data.teacherId as Id<"user">,
+          groupId: data.groupId as Id<"group">,
+          name: data.name,
+          status: data.status,
+          updatedAt: Date.now(),
+        }),
+        {
+          loading: "Actualizando la información de la clase...",
+          success: () => {
+            setIsEditingClassDetails(false);
+
+            // ✅ IMPORTANTE: Actualizar también los horarios si cambiaron
+            const needsScheduleUpdate =
+              JSON.stringify(data.selectedScheduleIds?.sort()) !==
+              JSON.stringify(originalClass.selectedScheduleIds?.sort());
+
+            if (needsScheduleUpdate && data.selectedScheduleIds) {
+              handleEdit({
+                classCatalogId: originalClass.classCatalogId,
+                selectedScheduleIds: data.selectedScheduleIds,
+                status: data.status,
+              });
+            }
+
+            return "Clase actualizada exitosamente.";
+          },
+          error: (error) => {
+            console.error("❌ Error al actualizar:", error);
+            return "No se pudo actualizar la clase.";
+          },
+        }
+      );
+    } catch (error) {
+      console.error("❌ Error en handleUpdateClassDetails:", error);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -1069,7 +1103,7 @@ useEffect(() => {
                   schoolCycles={schoolCycles}
                   classrooms={classrooms}
                   teachers={teachersData}
-                  activeSchoolCycleId={activeCycle?._id}
+                  activeSchoolCycleId={activeCycle?._id || undefined}
                 />
 
                 <div className="flex justify-end gap-2 pt-4">
@@ -1134,12 +1168,13 @@ useEffect(() => {
                         <div>Información de la Clase</div>
                         {operation === "edit" && (
                           <Button
-                            size="icon"
-                            variant="ghost"
+                            variant="outline"
                             onClick={() => setIsEditingClassDetails(true)}
-                            className="h-8 w-8 cursor-pointer"
+                            className="cursor-pointer"
                           >
                             <Pencil className="h-4 w-4" />
+                            Editar Clase
+
                           </Button>
                         )}
                       </CardTitle>
@@ -1168,8 +1203,7 @@ useEffect(() => {
                                   Aula:
                                 </span>
                                 <p className="text-sm">
-                                  {selectedClassCatalog.classroom?.name ||
-                                    "N/A"}
+                                  {selectedClassCatalog.classroom?.name || "N/A"}
                                 </p>
                               </div>
                               <div>
@@ -1188,6 +1222,17 @@ useEffect(() => {
                                 <p className="text-sm">
                                   {selectedClassCatalog.group?.grade || ""}{" "}
                                   {selectedClassCatalog.group?.name || "N/A"}
+                                </p>
+                              </div>
+                              {/* ✅ NUEVO: Mostrar ciclo escolar */}
+                              <div>
+                                <span className="text-sm font-medium text-muted-foreground">
+                                  Ciclo Escolar:
+                                </span>
+                                <p className="text-sm">
+                                  {selectedClassCatalog.schoolCycle?.name ||
+                                    schoolCycles?.find(sc => sc._id === selectedClassCatalog.schoolCycleId)?.name ||
+                                    "N/A"}
                                 </p>
                               </div>
                             </div>
@@ -1333,12 +1378,12 @@ useEffect(() => {
                                     const isCurrentlySelected = Array.isArray(field.value)
                                       ? (field.value as string[]).includes(schedule._id)
                                       : false;
-                                    
+
                                     // Obtener la clase actual que se está editando
                                     const currentClass = crudDialog.data as ClassItem | null;
                                     // Verificar si el horario pertenece a la clase que se está editando
                                     const belongsToCurrentClass = currentClass?.selectedScheduleIds?.includes(schedule._id);
-                                    
+
                                     // Solo deshabilitar si hay conflicto, no está seleccionado actualmente,
                                     // y no pertenece a la clase que se está editando
                                     const isDisabled = isConflict && !isCurrentlySelected && !belongsToCurrentClass;
@@ -1370,8 +1415,8 @@ useEffect(() => {
                                             <label
                                               htmlFor={`edit-${schedule._id}`}
                                               className={`text-sm font-medium leading-none flex-1 cursor-pointer ${isDisabled
-                                                  ? "text-muted-foreground opacity-50 cursor-not-allowed"
-                                                  : ""
+                                                ? "text-muted-foreground opacity-50 cursor-not-allowed"
+                                                : ""
                                                 } ${isCurrentlySelected && !isDisabled
                                                   ? "text-primary"
                                                   : ""

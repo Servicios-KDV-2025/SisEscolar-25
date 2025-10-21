@@ -625,7 +625,6 @@ export const getClassScheduleWithRoleFilter = query({
 
     // 2) Si es tutor -> solo relaciones de las clases donde están matriculados sus estudiantes
     else if (tutorId) {
-      // obtener estudiantes del tutor en esa escuela
       const students = await ctx.db
         .query("student")
         .withIndex("by_schoolId", (q) => q.eq("schoolId", schoolId))
@@ -634,7 +633,6 @@ export const getClassScheduleWithRoleFilter = query({
 
       if (students.length === 0) return [];
 
-      // obtener studentClass de cada estudiante (solo activos)
       const studentClassArrays = await Promise.all(
         students.map((s) =>
           ctx.db
@@ -702,7 +700,7 @@ export const getClassScheduleWithRoleFilter = query({
       return acc;
     }, {} as Record<string, typeof classScheduleRecords>);
 
-    // Para cada grupo, construir la estructura enriquecida (igual a tu versión original)
+    // Para cada grupo, construir la estructura enriquecida
     const classesWithSchedules = await Promise.all(
       Object.entries(groupedSchedules).map(async ([classCatalogId, schedules]) => {
         const classCatalog = await ctx.db.get(classCatalogId as Id<"classCatalog">);
@@ -715,11 +713,13 @@ export const getClassScheduleWithRoleFilter = query({
           })
         );
 
-        const [subject, classroom, teacher, group] = await Promise.all([
+        // ✅ CAMBIO IMPORTANTE: Obtener también el schoolCycle
+        const [subject, classroom, teacher, group, schoolCycle] = await Promise.all([
           ctx.db.get(classCatalog.subjectId),
           ctx.db.get(classCatalog.classroomId),
           ctx.db.get(classCatalog.teacherId),
           classCatalog.groupId ? ctx.db.get(classCatalog.groupId) : Promise.resolve(null),
+          ctx.db.get(classCatalog.schoolCycleId), // ✅ NUEVO
         ]);
 
         const hasActiveRelations = schedules.some((cs) => cs.status === "active");
@@ -730,6 +730,8 @@ export const getClassScheduleWithRoleFilter = query({
           classCatalogId: classCatalog._id,
           name: classCatalog.name,
           status: classStatus,
+          schoolCycleId: classCatalog.schoolCycleId, // ✅ NUEVO
+          schoolCycle, // ✅ NUEVO: Objeto completo del ciclo escolar
           subject,
           classroom,
           teacher,
