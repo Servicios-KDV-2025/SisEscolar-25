@@ -44,7 +44,7 @@ export default async function IndexRoute({children}: {children: React.ReactNode}
   const {data} = await sanityFetch({query: settingsQuery})
   return (
     <>
-      <div className="flex min-h-screen flex-col bg-white text-black items-center">
+      <div className="flex min-h-screen flex-col bg-white text-black">
         <Navbar data={data} />
         <div className="flex-grow pb-10">{children}</div>
         {/* <footer className="bottom-0 w-full bg-white py-12 text-center md:py-20">

@@ -5,30 +5,34 @@
 import {type DocumentDefinition} from 'sanity'
 import {type StructureResolver} from 'sanity/structure'
 
-export const singletonPlugin = (types: string[]) => {
+import type {PluginOptions, TemplateItem, NewDocumentOptionsContext, DocumentActionComponent} from 'sanity'
+
+export const singletonPlugin = (types: string[]): PluginOptions => {
   return {
     name: 'singletonPlugin',
     document: {
-      // Hide 'Singletons (such as Home)' from new document options
-      // https://user-images.githubusercontent.com/81981/195728798-e0c6cf7e-d442-4e58-af3a-8cd99d7fcc28.png
-      newDocumentOptions: (prev, {creationContext}) => {
+      newDocumentOptions: (
+        prev: TemplateItem[],
+        {creationContext}: NewDocumentOptionsContext
+      ) => {
         if (creationContext.type === 'global') {
           return prev.filter((templateItem) => !types.includes(templateItem.templateId))
         }
-
         return prev
       },
-      // Removes the "duplicate" action on the Singletons (such as Home)
-      actions: (prev, {schemaType}) => {
+      actions: (
+        prev: DocumentActionComponent[],
+        {schemaType}: {schemaType: string}
+      ) => {
         if (types.includes(schemaType)) {
           return prev.filter(({action}) => action !== 'duplicate')
         }
-
         return prev
       },
     },
   }
 }
+
 
 // The StructureResolver is how we're changing the DeskTool structure to linking to document (named Singleton)
 // like how "Home" is handled.

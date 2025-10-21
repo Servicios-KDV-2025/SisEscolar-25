@@ -16,7 +16,7 @@ export const GridBlock = ({ items }: GridBlockProps) => {
 
     return <div className={columnCount === 1 ? 'grid grid-cols-1 gap-4' : columnCount === 2 ? 'grid grid-cols-2 gap-4' : 'grid grid-cols-3 gap-4'}>
         {
-            items!.map((item, index) => {
+            items!.map((item) => {
                 if (item._type === 'priceItem') {
                     return <PriceBlockComponent key={item._key} price={item.price!} />;
                 }

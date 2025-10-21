@@ -59,25 +59,10 @@ export default defineField({
           type: 'carousel',
         }),
         defineArrayMember({
-          name: 'acordeon',
-          type: 'acordeon',
-        }),
-        defineArrayMember({
-          name: 'carouselAvatar',
-          type: 'carouselAvatar',
-        }),
-        defineArrayMember({
-          name: 'contentWithMedia',
-          type: 'contentWithMedia',
-        }),
-        defineArrayMember({
-          name: 'priceBlock',
-          type: 'priceBlock',
-        }),
-        defineArrayMember({
-          name: 'grid',
-          type: 'grid',
-        }),
+            name: 'paymentStatus',
+            type: 'paymentStatus',
+        })
+        ,
         defineField({
             type: 'image',
             icon: ImageIcon,

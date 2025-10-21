@@ -8,7 +8,6 @@ import { FeatureSection } from '@/components/blocks/FeatureSection'
 import { StatsSection } from '@/components/blocks/StatsSection'
 import { CTASection } from '@/components/blocks/CTASection'
 import { InfoBlock } from '@/components/blocks/InfoBlock'
-import { urlForImage } from '@/sanity/lib/utils'
 import ImagewithText from '@/components/blocks/ImagewithText'
 import { CarouselBlock } from '@/components/blocks/CarouselBlock'
 import { Acordeon } from '@/components/blocks/Acordeon'
@@ -16,7 +15,7 @@ import { CarouselAvatar } from '@/components/blocks/CarouuselAvatar'
 import { ContentWithMediaBlock } from '@/components/blocks/ContentWithMedia'
 import { PriceBlockComponent } from '@/components/blocks/PriceBlock'
 import {GridBlock} from '@/components/blocks/GridBlock'
-
+import {PaymentStatusBlock} from '@/components/blocks/Payment'
 export function CustomPortableText({
   id,
   type,
@@ -114,6 +113,9 @@ export function CustomPortableText({
       grid : ({ value }) => {
         return <GridBlock {...value} />
       },
+       paymentStatus: ({ value }) => {
+        return <PaymentStatusBlock {...value} />
+      }
     },
   }
 
