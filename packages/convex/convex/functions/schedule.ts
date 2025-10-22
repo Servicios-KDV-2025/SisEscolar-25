@@ -120,32 +120,37 @@ export const getScheduleConflicts = query({
     classCatalogIdToExclude: v.optional(v.id("classCatalog")),
   },
   handler: async (ctx, args) => {
-    // 1. Obtener todas las asignaciones de horarios existentes en la escuela
-    const allClassesSchedules = await ctx.db
-      .query("classSchedule")
-      .collect();
-
-    // 2. Obtener los detalles de cada clase para saber su profesor y salón
+    // 1. Obtener todas las clases de la escuela
     const classCatalogs = await ctx.db
       .query("classCatalog")
       .filter(q => q.eq(q.field("schoolId"), args.schoolId))
       .collect();
       
-    // Crear un mapa para buscar eficientemente los detalles de una clase por su ID
-    const classCatalogMap = new Map(classCatalogs.map(c => [c._id, c]));
+    // 2. Filtrar las clases que NO son la que estamos editando
+    const relevantClasses = classCatalogs.filter(classInfo => {
+      // ✅ Excluir la clase que se está editando
+      if (args.classCatalogIdToExclude && classInfo._id === args.classCatalogIdToExclude) {
+        return false;
+      }
+      
+      // ✅ Solo incluir clases que tengan el mismo profesor O aula
+      return classInfo.teacherId === args.teacherId || 
+             classInfo.classroomId === args.classroomId;
+    });
 
+    // 3. Obtener los scheduleIds de esas clases
     const conflictingScheduleIds = new Set<string>();
 
-    for (const classSchedule of allClassesSchedules) {
-      const classInfo = classCatalogMap.get(classSchedule.classCatalogId);
-      if (!classInfo) continue;
-
-      // 3. Comprobar si hay un conflicto con el profesor O con el salón
-      if (classInfo.teacherId === args.teacherId) {
-        conflictingScheduleIds.add(classSchedule.scheduleId);
-      }
-      if (classInfo.classroomId === args.classroomId) {
-        conflictingScheduleIds.add(classSchedule.scheduleId);
+    for (const classInfo of relevantClasses) {
+      // Buscar todas las asignaciones de horario para esta clase
+      const classSchedules = await ctx.db
+        .query("classSchedule")
+        .withIndex("by_class_catalog", q => q.eq("classCatalogId", classInfo._id))
+        .collect();
+      
+      // Agregar todos los scheduleIds encontrados
+      for (const schedule of classSchedules) {
+        conflictingScheduleIds.add(schedule.scheduleId);
       }
     }
 
