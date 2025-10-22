@@ -323,7 +323,7 @@ export default function HorariosPorClasePage() {
   const editWatchedClassroomId = editClassForm.watch("classroomId");
 
   const editConflictScheduleIds = useQuery(
-  api.functions.schedule.getScheduleConflictsForEdit,
+  api.functions.schedule.getScheduleConflicts,
   currentSchool?.school._id &&
     isEditingClassDetails &&
     editWatchedTeacherId &&
@@ -490,7 +490,7 @@ export default function HorariosPorClasePage() {
   const watchedClassroomId = createForm.watch("classroomId");
 
   const conflictScheduleIds = useQuery(
-    api.functions.schedule.getScheduleConflicts,
+    api.functions.schedule.getScheduleConflicts ,
     currentSchool?.school._id && watchedTeacherId && watchedClassroomId
       ? {
         schoolId: currentSchool.school._id,
@@ -1025,6 +1025,7 @@ export default function HorariosPorClasePage() {
                         </span>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">
+                           
                             {classItem.group.grade} {classItem.group.name}
                           </p>
                         </div>

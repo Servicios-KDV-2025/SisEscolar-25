@@ -135,7 +135,7 @@ function TermForm({
             {operation !== "view" && (
               <FormDescription className="flex items-center gap-1.5 text-orange-600">
                 <AlertCircle className="h-3 w-3" />
-                El sistema tomará un día antes de la fecha seleccionada.
+                El sistema tomará un día despues de la fecha seleccionada.
               </FormDescription>
             )}
 
