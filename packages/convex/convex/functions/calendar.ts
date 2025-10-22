@@ -45,9 +45,7 @@ export const getSchoolCycleCalendar = query({
   },
 });
 
-/**
- * Obtiene los próximos eventos del calendario con información enriquecida
- */
+
 export const getUpcomingEvents = query({
   args: { 
     schoolId: v.id("school"), 
@@ -56,14 +54,17 @@ export const getUpcomingEvents = query({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startOfToday = today.getTime();
     
-    // Obtener eventos futuros del ciclo escolar
+    // Obtener eventos futuros y de hoy del ciclo escolar
     const events = await ctx.db
       .query("calendar")
       .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
       .filter((q) => q.eq(q.field("schoolCycleId"), args.schoolCycleId))
       .filter((q) => q.eq(q.field("status"), "active"))
-      .filter((q) => q.gte(q.field("date"), now))
+      .filter((q) => q.gte(q.field("date"), startOfToday))
       .collect();
 
     // Ordenar por fecha ascendente
