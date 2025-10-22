@@ -65,6 +65,13 @@ const applicationTable = defineSchema({
     status: v.union(v.literal("active"), v.literal("inactive")),
     createdAt: v.number(),
     updatedAt: v.number(),
+    stripeAccountId: v.optional(v.string()),
+    stripeAccountStatus: v.optional(v.union(
+      v.literal("enabled"),
+      v.literal("disabled"),
+      v.literal("pending"),  
+    )),
+    stripeOnboardingComplete: v.optional(v.boolean()),
   })
     .index("by_subdomain", ["subdomain"])
     .index("by_name", ["name"])
@@ -72,7 +79,8 @@ const applicationTable = defineSchema({
     .index("by_shortName", ["shortName"])
     .index("by_phone", ["phone"])
     .index("by_email", ["email"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_stripeAccountId", ["stripeAccountId"]),
   //estudiantes
   student: defineTable({
     schoolId: v.id("school"),
@@ -462,10 +470,14 @@ const applicationTable = defineSchema({
     createdBy: v.id("user"),
     createdAt: v.number(),
     updatedAt: v.number(),
+  stripePaymentIntentId: v.optional(v.string()),
+  stripeTransferId: v.optional(v.string()),
+  stripeChargeId: v.optional(v.string()),
   })
     .index("by_billing", ["billingId"])
     .index("by_student", ["studentId"])
-    .index("by_method", ["method"]),
+    .index("by_method", ["method"])
+  .index("by_stripePaymentIntentId", ["stripePaymentIntentId"]),
 
   billingRule: defineTable({
     schoolId: v.id("school"),

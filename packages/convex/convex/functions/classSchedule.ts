@@ -23,14 +23,10 @@ export const getClassSchedules = query({
     const filteredClassSchedules = classSchedules.filter(cs =>
       schoolClassIds.includes(cs.classCatalogId)
     );
-
-    // Filtrar por el ciclo activo
-    const activeCycle = filteredClassSchedules
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .first();
+    
 
     // Agrupar por classCatalogId
-    const groupedSchedules = activeCycle.reduce((acc, cs) => {
+    const groupedSchedules = filteredClassSchedules.reduce((acc, cs) => {
       if (!acc[cs.classCatalogId]) {
         acc[cs.classCatalogId] = [];
       }
