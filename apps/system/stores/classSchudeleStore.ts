@@ -17,6 +17,13 @@ export interface ClassItem {
   classCatalogId: string;
   name: string;
   status: "active" | "inactive";
+  schoolCycleId?: string; // Hacer opcional
+  schoolCycle?: {         // Hacer opcional
+    _id: string;
+    name: string;
+    startDate?: number;
+    endDate?: number;
+  };
   subject?: {
     _id: string;
     name: string;

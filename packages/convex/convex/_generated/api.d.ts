@@ -51,6 +51,7 @@ import type * as templates_paymentSuccess from "../templates/paymentSuccess.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  "actions/actionsclassSchedule": typeof actions_actionsclassSchedule;
   "actions/users": typeof actions_users;
   "functions/assignment": typeof functions_assignment;
   "functions/attendance": typeof functions_attendance;

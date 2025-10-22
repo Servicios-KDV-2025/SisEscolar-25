@@ -15,8 +15,6 @@ import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
 import Link from "next/link";
 
-
-
 export default function EscuelaHome() {
   // Get current user from Clerk
   const { user: clerkUser, isLoaded } = useUser();
@@ -25,23 +23,13 @@ export default function EscuelaHome() {
   // Get current school information using the subdomain
   const {
     currentSchool,
-    // subdomain,
     isLoading: schoolLoading,
     error: schoolError,
   } = useCurrentSchool(currentUser?._id);
 
   // Get user permissions for current school
   const {
-    // permissions,
     isLoading: permissionsLoading,
-    // canCreateUsers,
-    // canReadUsers,
-    // canUpdateUsers,
-    // canDeleteUsers,
-    // isSuperAdmin,
-    // isAdmin,
-    // isTutor,
-    // highestRole
     canReadInicioInfo,
   } = usePermissions(currentSchool?.school._id);
 
@@ -67,7 +55,7 @@ export default function EscuelaHome() {
   // Combined loading state
   const isLoading = !isLoaded || userLoading || schoolLoading || permissionsLoading;
 
-  // Calculate real statistics (debe estar antes del return temprano)
+  // Calculate real statistics
   const stats = React.useMemo(() => {
     const activeStudents = enrollmentStats?.totalStudents || 0;
     const teachersCount = teachersData?.length || 0;
@@ -135,7 +123,6 @@ export default function EscuelaHome() {
 
   // Prepare school data with loading and error states
   const schoolData = React.useMemo(() => {
-    // Loading state - incluye cuando currentUser existe pero currentSchool aún no
     if (isLoading || (currentUser && !currentSchool && !schoolError)) {
       return {
         name: "Cargando...",
@@ -149,7 +136,6 @@ export default function EscuelaHome() {
       };
     }
 
-    // Error or no school found - solo después de que ya terminó de cargar
     if (schoolError || (!currentSchool && currentUser && !isLoading)) {
       return {
         name: "Escuela no encontrada",
@@ -163,7 +149,6 @@ export default function EscuelaHome() {
       };
     }
 
-    // Valid school data
     if (currentSchool) {
       return {
         name: currentSchool.school.name,
@@ -177,7 +162,6 @@ export default function EscuelaHome() {
       };
     }
 
-    // Fallback para casos no contemplados
     return {
       name: "Cargando...",
       description: "Cargando información de la escuela...",
@@ -207,65 +191,142 @@ export default function EscuelaHome() {
   return (
     <div className="space-y-8 p-6 w-full">
 
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
+      {/* VERSION MOBILE: Card con imagen de fondo y overlay */}
+      <div className="block lg:hidden">
+        <div className="relative h-[500px] w-full overflow-hidden rounded-2xl shadow-xl">
+          {/* Imagen de fondo */}
+          <div className="absolute inset-0">
+            {schoolData.imgUrl && schoolData.imgUrl !== "/avatars/default-school.jpg" ? (
+              <Image
+                src={schoolData.imgUrl}
+                alt={schoolData.name}
+                fill
+                className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                unoptimized={true}
+              />
+
+            ) : (
+              <div className="h-full w-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+                <School className="w-32 h-32 text-white/30" />
+              </div>
+            )}
+          </div>
+
+          {/* Overlay difuminado en la parte inferior */}
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent backdrop-blur-sm p-6">
+            {/* Nombre y estado */}
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <h1 className="text-balance text-2xl font-bold text-white leading-tight">
+                {schoolData.name}
+              </h1>
+              <Badge
+                variant={schoolData.status === 'active' ? 'secondary' : 'destructive'}
+                className={`text-xs whitespace-nowrap ${schoolData.status === 'active' ? 'bg-green-500/90' : 'bg-gray-500/90'
+                  } text-white`}
+              >
+                {schoolData.status === 'active' ? 'Activa' : 'Inactiva'}
+              </Badge>
+            </div>
+
+            {/* Dirección */}
+            {schoolData.address && (
+              <div className="mb-3 flex items-start gap-2">
+                <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-white/80" />
+                <p className="text-pretty text-sm text-white/90">{schoolData.address}</p>
+              </div>
+            )}
+
+            {/* Descripción */}
+            <p className="mb-4 text-pretty text-sm text-white/80 leading-relaxed">
+              {schoolData.description}
+            </p>
+
+            {/* Botón */}
+            <Link href="/perfil-institucional/" className="block">
+              <Button size="lg" className="w-full gap-2 bg-white text-black hover:bg-white/90">
+                <Settings className="w-4 h-4" />
+                Configuración
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* VERSION DESKTOP: Layout horizontal original */}
+      <div className="hidden lg:block relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
         <div className="relative p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div className="flex items-center gap-6">
+          <div className="flex flex-row items-start justify-between gap-6">
+
+            {/* Sección principal: Logo + Información */}
+            <div className="flex flex-row items-center gap-6 flex-1 min-w-0">
+
+              {/* Logo */}
               <div className="relative shrink-0">
                 <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl" />
                 {schoolData.imgUrl && schoolData.imgUrl !== "/avatars/default-school.jpg" ? (
-                  <div className="relative w-[120px] h-[120px] rounded-2xl shadow-lg ring-1 ring-white/20 overflow-hidden">
+                  <div className="relative w-32 h-32 rounded-2xl shadow-lg ring-1 ring-white/20 overflow-hidden">
                     <Image
                       src={schoolData.imgUrl}
                       alt="Logo de la escuela"
                       fill
                       className="object-cover"
+                      unoptimized={true}
                     />
                   </div>
                 ) : (
-                  <div className="relative w-[100px] h-[100px] bg-primary/10 rounded-2xl shadow-lg ring-1 ring-white/20 flex items-center justify-center">
+                  <div className="relative w-28 h-28 bg-primary/10 rounded-2xl shadow-lg ring-1 ring-white/20 flex items-center justify-center">
                     <School className="w-12 h-12 text-primary/70" />
                   </div>
                 )}
               </div>
-              <div className="space-y-3">
+
+              {/* Información de la escuela */}
+              <div className="space-y-3 flex-1 min-w-0">
+
+                {/* Título y Badge */}
                 <div className="flex items-center gap-3">
-                  <h1 className="text-4xl font-bold tracking-tight">{schoolData.name}</h1>
+                  <h1 className="text-4xl font-bold tracking-tight break-words">
+                    {schoolData.name}
+                  </h1>
                   <Badge
                     variant={schoolData.status === 'active' ? 'secondary' : 'destructive'}
-                    className="text-xs bg-green-600 text-white -mb-2"
+                    className="text-xs bg-green-600 text-white"
                   >
                     {schoolData.status === 'active' ? 'Activa' : 'Inactiva'}
                   </Badge>
                 </div>
+
+                {/* Dirección */}
                 {schoolData.address && (
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <MapPin className="w-4 h-4" />
-                    <span>{schoolData.address}</span>
+                    <MapPin className="w-4 h-4 shrink-0" />
+                    <span className="break-words">{schoolData.address}</span>
                   </div>
                 )}
-                <p className="text-lg text-muted-foreground max-w-2xl">
-                  {/* Plataforma integral de gestión educativa para administrar estudiantes,
-                  calificaciones, horarios y recursos académicos de manera eficiente. */}
+
+                {/* Descripción */}
+                <p className="text-lg text-muted-foreground leading-relaxed">
                   {schoolData.description}
                 </p>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Link href={`/perfil-institucional/`}>
-                <Button size="lg" className="gap-2" >
+
+            {/* Botón de configuración */}
+            <div>
+              <Link href="/perfil-institucional/">
+                <Button size="lg" className="gap-2">
                   <Settings className="w-4 h-4" />
                   Configuración
                 </Button>
               </Link>
             </div>
+
           </div>
         </div>
       </div>
 
       {canReadInicioInfo ? (
-
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {stats.map((stat, index) => (
@@ -315,7 +376,6 @@ export default function EscuelaHome() {
                 </Card>
               ))}
             </div>
-
           </div>
         </>
       ) : (
@@ -360,7 +420,6 @@ export default function EscuelaHome() {
                 </p>
               </CardContent>
             </Card>
-
           </div>
 
           <div className="text-center space-y-2">
@@ -373,7 +432,6 @@ export default function EscuelaHome() {
           </div>
         </div>
       )}
-
 
     </div>
   );
