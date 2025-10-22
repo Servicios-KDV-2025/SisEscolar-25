@@ -27,6 +27,8 @@ import type * as functions_schedule from "../functions/schedule.js";
 import type * as functions_schoolCycles from "../functions/schoolCycles.js";
 import type * as functions_schoolSubscriptions from "../functions/schoolSubscriptions.js";
 import type * as functions_schools from "../functions/schools.js";
+import type * as functions_stripeConnect from "../functions/stripeConnect.js";
+import type * as functions_stripePayments from "../functions/stripePayments.js";
 import type * as functions_student from "../functions/student.js";
 import type * as functions_studentsClasses from "../functions/studentsClasses.js";
 import type * as functions_subject from "../functions/subject.js";
@@ -71,6 +73,8 @@ declare const fullApi: ApiFromModules<{
   "functions/schoolCycles": typeof functions_schoolCycles;
   "functions/schoolSubscriptions": typeof functions_schoolSubscriptions;
   "functions/schools": typeof functions_schools;
+  "functions/stripeConnect": typeof functions_stripeConnect;
+  "functions/stripePayments": typeof functions_stripePayments;
   "functions/student": typeof functions_student;
   "functions/studentsClasses": typeof functions_studentsClasses;
   "functions/subject": typeof functions_subject;

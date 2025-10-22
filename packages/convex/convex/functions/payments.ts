@@ -56,10 +56,13 @@ export const getPaymentHistory = query({
           billingStatus: billing.status,
           amount: payment.amount,
           method: payment.method,
-          methodLabel: payment.method === "cash" ? "Efectivo" 
-            : payment.method === "bank_transfer" ? "Transferencia Bancaria"
-            : payment.method === "card" ? "Tarjeta"
-            : "Otro",
+          methodLabel: payment.method === "cash" 
+            ? (payment.stripePaymentIntentId?.startsWith("pi_") ? "OXXO" : "Efectivo")
+            : payment.method === "bank_transfer" 
+              ? (payment.stripePaymentIntentId?.startsWith("pi_") ? "SPEI" : "Transferencia Bancaria")
+              : payment.method === "card" 
+                ? "Tarjeta"
+                : "Otro",
           billingAmount: billing.amount,
           billingDeposit: payment.amount, // El monto de este pago específico
           // Calcular el remanente correctamente
