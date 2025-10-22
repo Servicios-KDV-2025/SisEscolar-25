@@ -465,6 +465,8 @@ export default function TutorPage() {
         name: combinedData.name as string,
         lastName: combinedData.lastName as string,
         email: combinedData.email as string,
+        phone: combinedData.phone as string,
+        address: combinedData.address as string,
       };
 
       const userResult = await userActions.updateUser(
@@ -1271,7 +1273,7 @@ export default function TutorPage() {
                     <Input
                       {...field}
                       value={(field.value as string) || ""}
-                      placeholder="+52 555 1234567"
+                      placeholder="555 1234567"
                       disabled={currentOperation === "view"}
                     />
                   </FormControl>
