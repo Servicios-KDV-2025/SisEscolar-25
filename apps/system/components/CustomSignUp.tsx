@@ -15,12 +15,15 @@ import {
   CardTitle,
 } from "@repo/ui/components/shadcn/card";
 import Link from "next/link";
+import { Eye, EyeOff } from "@repo/ui/icons";
 
 export default function SignUpForm() {
   const { isLoaded, signUp, setActive } = useSignUp();
   const [emailAddress, setEmailAddress] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [firstName, setFirstName] = React.useState("");
   const [lastName, setLastName] = React.useState("");
   const [verifying, setVerifying] = React.useState(false);
@@ -332,19 +335,34 @@ export default function SignUpForm() {
               >
                 Contraseña
               </Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setPassword(e.target.value)
-                }
-                required
-                disabled={isLoading}
-                className="h-11"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setPassword(e.target.value)
+                  }
+                  required
+                  disabled={isLoading}
+                  className="h-11"
+                />
+                <Button
+                  type="button"
+                  variant="link"
+                  className="absolute right-0 top-0 h-full px-3 py-2"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-400" />
+                  )}
+                </Button>
+
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -354,10 +372,11 @@ export default function SignUpForm() {
               >
                 Confirmar Contraseña
               </Label>
+              <div className="relative">
               <Input
                 id="confirmPassword"
                 name="confirmPassword"
-                type="password"
+                type={showConfirmPassword ? "text" : "password"}
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -367,6 +386,19 @@ export default function SignUpForm() {
                 disabled={isLoading}
                 className="h-11"
               />
+                <Button
+                  type="button"
+                  variant="link"
+                  className="absolute right-0 top-0 h-full px-3 py-2"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-400" />
+                  )}
+                </Button>
+              </div>
             </div>
 
             {error && (
