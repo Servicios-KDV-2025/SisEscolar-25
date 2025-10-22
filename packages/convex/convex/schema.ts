@@ -125,7 +125,8 @@ const applicationTable = defineSchema({
   })
     .index("by_school", ["schoolId"])
     .index("by_status", ["status"])
-    .index("by_name", ["name"]),
+    .index("by_name", ["name"])
+    .index("by_school_and_name", ["schoolId", "name"]),
 
   //Aulas
   classroom: defineTable({
