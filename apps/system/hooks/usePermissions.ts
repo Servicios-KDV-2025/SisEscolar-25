@@ -463,7 +463,7 @@ export const usePermissions = (schoolId?: string) => {
 
       // permisos pagina de alumnos
       "create:users_alumnos": false,
-      "read:users_alumnos": false,
+      "read:users_alumnos": true,
       "update:users_alumnos": false,
       "delete:users_alumnos": false,
 

@@ -4,10 +4,19 @@ import { api } from "@repo/convex/convex/_generated/api";
 import type { Id } from "@repo/convex/convex/_generated/dataModel";
 
 interface UseTutorDashboardProps {
-  currentSchool: any;
-  currentUser: any;
+  currentSchool: {
+    school: {
+      _id: Id<"school">;
+    };
+  } | null;
+  currentUser: {
+    _id: Id<"user">;
+  } | null;
   currentRole: string | null;
-  ciclosEscolares: any[] | undefined;
+  ciclosEscolares: Array<{
+    _id: Id<"schoolCycle">;
+    status: string;
+  }> | undefined;
 }
 
 export function useTutorDashboard({
@@ -23,8 +32,8 @@ export function useTutorDashboard({
     api.functions.student.getStudentsByTutor,
     currentSchool && currentUser && isTutor
       ? {
-          schoolId: currentSchool.school._id,
-          tutorId: currentUser._id,
+          schoolId: currentSchool.school._id as Id<"school">,
+          tutorId: currentUser._id as Id<"user">,
         }
       : "skip"
   );
@@ -34,9 +43,9 @@ export function useTutorDashboard({
     api.functions.studentsClasses.getStudentClassesBySchoolWithRoleFilter,
     currentSchool && currentUser && isTutor
       ? {
-          schoolId: currentSchool.school._id,
+          schoolId: currentSchool.school._id as Id<"school">,
           canViewAll: false,
-          tutorId: currentUser._id,
+          tutorId: currentUser._id as Id<"user">,
         }
       : "skip"
   );
@@ -46,9 +55,9 @@ export function useTutorDashboard({
     api.functions.attendance.getAttendanceWithRoleFilter,
     currentSchool && currentUser && isTutor
       ? {
-          schoolId: currentSchool.school._id,
+          schoolId: currentSchool.school._id as Id<"school">,
           canViewAll: false,
-          tutorId: currentUser._id,
+          tutorId: currentUser._id as Id<"user">,
         }
       : "skip"
   );
@@ -58,8 +67,8 @@ export function useTutorDashboard({
     api.functions.assignment.getTutorStudentsAssignmentStats,
     currentSchool && currentUser && isTutor
       ? {
-          schoolId: currentSchool.school._id,
-          tutorId: currentUser._id,
+          schoolId: currentSchool.school._id as Id<"school">,
+          tutorId: currentUser._id as Id<"user">,
         }
       : "skip"
   );
@@ -74,8 +83,8 @@ export function useTutorDashboard({
     api.functions.calendar.getUpcomingEvents,
     currentSchool && activeCycle && isTutor
       ? {
-          schoolId: currentSchool.school._id,
-          schoolCycleId: activeCycle._id,
+          schoolId: currentSchool.school._id as Id<"school">,
+          schoolCycleId: activeCycle._id as Id<"schoolCycle">,
           limit: 5,
         }
       : "skip"
@@ -86,8 +95,8 @@ export function useTutorDashboard({
     api.functions.grades.getTutorStudentsRecentActivity,
     currentSchool && currentUser && isTutor
       ? {
-          schoolId: currentSchool.school._id,
-          tutorId: currentUser._id,
+          schoolId: currentSchool.school._id as Id<"school">,
+          tutorId: currentUser._id as Id<"user">,
           limit: 5,
         }
       : "skip"
@@ -162,10 +171,15 @@ export function useTutorDashboard({
     if (!upcomingEvents || upcomingEvents.length === 0) return [];
 
     const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    return upcomingEvents.map((event) => {
+    const formattedEvents = upcomingEvents.map((event) => {
       const eventDate = new Date(event.date);
-      const daysUntil = Math.ceil((event.date - now.getTime()) / (1000 * 60 * 60 * 24));
+      const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+      
+      const timeDiff = eventDay.getTime() - today.getTime();
+      const daysUntil = Math.round(timeDiff / (1000 * 60 * 60 * 24));
+
 
       const months = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
 
@@ -176,9 +190,12 @@ export function useTutorDashboard({
         name: event.eventType?.name || "Evento",
         description: event.description || event.eventType?.description || "",
         daysUntil,
-        daysUntilText: daysUntil === 0 ? "Hoy" : daysUntil === 1 ? "Mañana" : `En ${daysUntil} días`,
+        daysUntilText: daysUntil === 0 ? "Hoy" : daysUntil === 1 ? "Mañana" : daysUntil > 1 ? `En ${daysUntil} días` : "Pasado",
       };
     });
+
+
+    return formattedEvents;
   }, [upcomingEvents]);
 
   return {

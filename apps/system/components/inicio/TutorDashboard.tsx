@@ -29,11 +29,40 @@ interface FormattedEvent {
   daysUntilText: string;
 }
 
-type Activity = any; // Los tipos ya están definidos en RecentActivityCard
+type GradeActivity = {
+  type: 'grade';
+  _id: string;
+  studentName: string;
+  subject: string;
+  assignmentName: string;
+  score: number;
+  maxScore: number;
+  createdAt: number;
+};
+
+type AssignmentActivity = {
+  type: 'assignment';
+  _id: string;
+  subject: string;
+  assignmentName: string;
+  dueDate: number;
+  createdAt: number;
+};
+
+type EventActivity = {
+  type: 'event';
+  _id: string;
+  eventName: string;
+  description: string;
+  eventDate: number;
+  createdAt: number;
+};
+
+type Activity = GradeActivity | AssignmentActivity | EventActivity;
 
 interface TutorDashboardProps {
   studentsWithStats: StudentWithStats[];
-  recentActivity: Activity[] | undefined;
+  recentActivity: (Activity | null)[] | undefined;
   formattedUpcomingEvents: FormattedEvent[];
   getRelativeTime: (timestamp: number) => string;
 }
@@ -44,7 +73,7 @@ export function TutorDashboard({
   formattedUpcomingEvents,
   getRelativeTime,
 }: TutorDashboardProps) {
-  const borderColors = [
+  const borderColors: string[] = [
     'border-l-blue-500',
     'border-l-purple-500',
     'border-l-green-500',
@@ -53,7 +82,7 @@ export function TutorDashboard({
     'border-l-cyan-500',
   ];
 
-  const badgeColors = [
+  const badgeColors: string[] = [
     'bg-blue-500',
     'bg-purple-500',
     'bg-green-500',
@@ -74,8 +103,8 @@ export function TutorDashboard({
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {studentsWithStats.map((student, index) => {
-            const borderColor = borderColors[index % borderColors.length];
-            const badgeColor = badgeColors[index % badgeColors.length];
+            const borderColor = borderColors[index % borderColors.length] || 'border-l-gray-500';
+            const badgeColor = badgeColors[index % badgeColors.length] || 'bg-gray-500';
 
             return (
               <StudentCard
