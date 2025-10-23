@@ -50,6 +50,9 @@ import { useUser } from "@clerk/nextjs";
 import { useUserWithConvex } from "../../../../../stores/userStore";
 import { useGradeRubricStore } from "../../../../../stores/gradeRubricStore";
 import { usePermissions } from 'hooks/usePermissions';
+import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
+import ModalNewRubric from "components/rubric/ModalNewRubric";
+import { rubricSchema } from "schema/rubric";
 
 // Tipo para rúbricas con datos extendidos
 type RubricWithDetails = {
@@ -125,6 +128,8 @@ export default function RubricDashboard() {
     getStudentFilters,
     // isLoading: permissionsLoading
   } = usePermissions(currentSchool?.school._id);
+
+  const {isOpen, operation, data, openCreate, openEdit, openView, openDelete} = useCrudDialog(rubricSchema)
 
   const studentFilters = useMemo(() => {
     return getStudentFilters?.() || { canViewAll: false };
