@@ -698,8 +698,8 @@ export default function RubricDashboard() {
                           </div>
                           {canCreateRubricPermission && (
                             <Button
-                              onClick={() => setModalOpen(true)}
-                              className="gap-2"
+                              onClick={() => handleOpenModal()}
+                              className="gap-2 cursor-pointer"
                               disabled={false}
                             >
                               <Plus className="h-4 w-4" />
