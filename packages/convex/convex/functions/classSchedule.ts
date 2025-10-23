@@ -767,3 +767,4 @@ export const deleteScheduleById = internalMutation({
     await ctx.db.delete(args.scheduleId);
   },
 });
+
