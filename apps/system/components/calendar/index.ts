@@ -7,7 +7,7 @@ export { DraggableEvent } from "./draggable-event";
 export { DroppableCell } from "./droppable-cell";
 export { EventDialog } from "./event-dialog";
 export { EventItem } from "./event-item";
-export { EventsPopover } from "./events-popover";
+export { EventsPopup } from "./event-popup";
 export { EventCalendar } from "./event-calendar";
 export { MonthView } from "./month-view";
 export { WeekView } from "./week-view";
@@ -22,4 +22,4 @@ export * from "../../hooks/use-current-time-indicator";
 export * from "../../hooks/use-event-visibility";
 
 // Type exports
-export type { CalendarEvent, CalendarView, EventColor } from "../types";
+export type { CalendarEvent, CalendarView, EventColor } from "../../app/[subdomain]/(dashboard)/administracion/calendario/types";

@@ -1,9 +1,9 @@
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";
-
+import React from "react";
 import { useCalendarDnd } from "./";
-import { cn } from "@/lib/utils";
+import { cn } from "lib/utils";
 
 interface DroppableCellProps {
   id: string;

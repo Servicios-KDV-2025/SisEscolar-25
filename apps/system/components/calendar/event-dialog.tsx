@@ -3,18 +3,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { RiCalendarLine, RiDeleteBinLine } from "@remixicon/react";
 import { format, isBefore } from "date-fns";
-
+import React from "react";
 import type { CalendarEvent, EventColor } from "./";
 import {
   DefaultEndHour,
   DefaultStartHour,
   EndHour,
   StartHour
-} from "@/examples/event-calendar/constants";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Checkbox } from "@/components/ui/checkbox";
+} from "../../app/[subdomain]/(dashboard)/administracion/calendario/constants";
+import { cn } from "lib/utils";
+import { Button } from "@repo/ui/components/shadcn/button";
+import { Calendar } from "@repo/ui/components/shadcn/calendar";
+import { Checkbox } from "@repo/ui/components/shadcn/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -22,19 +22,20 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+} from "@repo/ui/components/shadcn/dialog";
+
+import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/shadcn/popover";
+import { RadioGroup, RadioGroupItem } from "@repo/ui/components/shadcn/radio-group";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+} from "@repo/ui/components/shadcn/select";
+import { Textarea } from "@repo/ui/components/shadcn/textarea";
+import { Label } from "@repo/ui/components/shadcn/label";
+import { Input } from "@repo/ui/components/shadcn/input";
 
 interface EventDialogProps {
   event: CalendarEvent | null;
@@ -218,7 +219,7 @@ export function EventDialog({ event, isOpen, onClose, onSave, onDelete }: EventD
   ];
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{event?.id ? "Edit Event" : "Create Event"}</DialogTitle>
@@ -234,7 +235,7 @@ export function EventDialog({ event, isOpen, onClose, onSave, onDelete }: EventD
         <div className="grid gap-4 py-4">
           <div className="*:not-first:mt-1.5">
             <Label htmlFor="title">Title</Label>
-            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Input id="title" value={title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)} />
           </div>
 
           <div className="*:not-first:mt-1.5">
@@ -242,7 +243,7 @@ export function EventDialog({ event, isOpen, onClose, onSave, onDelete }: EventD
             <Textarea
               id="description"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
               rows={3}
             />
           </div>
@@ -274,7 +275,7 @@ export function EventDialog({ event, isOpen, onClose, onSave, onDelete }: EventD
                     mode="single"
                     selected={startDate}
                     defaultMonth={startDate}
-                    onSelect={(date) => {
+                    onSelect={(date: Date | undefined) => {
                       if (date) {
                         setStartDate(date);
                         // If end date is before the new start date, update it to match the start date
@@ -337,7 +338,7 @@ export function EventDialog({ event, isOpen, onClose, onSave, onDelete }: EventD
                     selected={endDate}
                     defaultMonth={endDate}
                     disabled={{ before: startDate }}
-                    onSelect={(date) => {
+                    onSelect={(date: Date | undefined) => {
                       if (date) {
                         setEndDate(date);
                         setError(null);
@@ -372,14 +373,14 @@ export function EventDialog({ event, isOpen, onClose, onSave, onDelete }: EventD
             <Checkbox
               id="all-day"
               checked={allDay}
-              onCheckedChange={(checked) => setAllDay(checked === true)}
+              onCheckedChange={(checked: boolean | 'indeterminate') => setAllDay(checked === true)}
             />
             <Label htmlFor="all-day">All day</Label>
           </div>
 
           <div className="*:not-first:mt-1.5">
             <Label htmlFor="location">Location</Label>
-            <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} />
+            <Input id="location" value={location} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocation(e.target.value)} />
           </div>
           <fieldset className="space-y-4">
             <legend className="text-foreground text-sm leading-none font-medium">Etiquette</legend>

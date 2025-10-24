@@ -15,7 +15,7 @@ import {
   type UniqueIdentifier
 } from "@dnd-kit/core";
 import { addMinutes, differenceInMinutes } from "date-fns";
-
+import React from "react";
 import { EventItem, type CalendarEvent } from "./";
 
 // Define the context type

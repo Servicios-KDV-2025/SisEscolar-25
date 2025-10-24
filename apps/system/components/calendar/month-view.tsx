@@ -27,8 +27,8 @@ import {
   useEventVisibility,
   type CalendarEvent
 } from "./";
-import { DefaultStartHour } from "../constants";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DefaultStartHour } from "../../app/[subdomain]/(dashboard)/administracion/calendario/constants";
+import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/shadcn/popover";
 
 interface MonthViewProps {
   currentDate: Date;

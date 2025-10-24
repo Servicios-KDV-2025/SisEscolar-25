@@ -27,8 +27,8 @@ import {
   WeekCellsHeight,
   type CalendarEvent
 } from "./";
-import { EndHour, StartHour } from "../constants";
-import { cn } from "@/lib/utils";
+import { EndHour, StartHour } from "../../app/[subdomain]/(dashboard)/administracion/calendario/constants";
+import { cn } from "lib/utils";
 
 interface WeekViewProps {
   currentDate: Date;

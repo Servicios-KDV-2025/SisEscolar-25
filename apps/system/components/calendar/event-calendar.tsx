@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React,{ useEffect, useMemo, useState } from "react";
 import { RiCalendarCheckLine } from "@remixicon/react";
 import {
   addDays,
@@ -57,7 +57,7 @@ export function EventCalendar({
   onEventDelete,
   className,
   initialView = "month"
-}: EventCalendarProps) {
+}: EventCalendarProps): React.ReactElement {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<CalendarView>(initialView);
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
