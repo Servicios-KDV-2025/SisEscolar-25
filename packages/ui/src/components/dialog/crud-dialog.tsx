@@ -368,6 +368,7 @@ export function useCrudDialog(
     openDelete,
     close,
     schema,
-    defaultValues
+    defaultValues,
+    setData
   }
 } 

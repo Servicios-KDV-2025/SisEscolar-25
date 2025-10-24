@@ -248,15 +248,19 @@ export const UserSchools: React.FC<UserSchoolsProps> = ({ clerkId }) => {
         <Card className="border-0 shadow-lg">
           <CardContent className="p-12 text-center">
             <Building2 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">
-              {showInactive
+            <h3 className="text-lg font-bold mb-2">
+              {userSchools.length === 0
+                ? "Aún no tienes escuelas asignadas"
+                : showInactive
                 ? "¡Excelente! No hay escuelas inactivas"
-                : "Aún no tienes escuelas asignadas"}
+                : "Todas tus escuelas están inactivas"}
             </h3>
             <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-              {showInactive
+              {userSchools.length === 0
+                ? "Para acceder al sistema escolar, necesitas que un administrador de eKardex te asigne a una o más instituciones educativas."
+                : showInactive
                 ? "Todas tus escuelas están activas y listas para usar. ¡Perfecto para comenzar a trabajar!"
-                : "Para acceder al sistema escolar, necesitas que un administrador de eKardex te asigne a una o más instituciones educativas."}
+                : "Tus escuelas están inactivas. Contacta al administrador para activarlas."}
             </p>
             {!showInactive && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
