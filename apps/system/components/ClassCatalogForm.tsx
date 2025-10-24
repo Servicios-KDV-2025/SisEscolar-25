@@ -221,11 +221,11 @@ export function ClassCatalogForm({
                                     setIsNombreModificadoManualmente(true);
                                 }}
                                 placeholder="Ej: Matemáticas - Grupo A"
-                                disabled={operation === "view"}
+                                disabled={operation === "view" || operation === "edit" || operation === "create"}
                                 minLength={1}
                                 maxLength={40}
                             />
-                        </FormControl>
+                        </FormControl> 
                         <FormMessage />
                     </FormItem>
                 )}
