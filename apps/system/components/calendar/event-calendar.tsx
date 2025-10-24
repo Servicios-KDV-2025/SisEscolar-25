@@ -31,15 +31,15 @@ import {
   WeekCellsHeight,
   WeekView
 } from "./";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { cn } from "lib/utils";
+import { Button } from "@repo/ui/components/shadcn/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuShortcut,
   DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
+} from "@repo/ui/components/shadcn/dropdown-menu";
 
 export interface EventCalendarProps {
   events?: CalendarEvent[];

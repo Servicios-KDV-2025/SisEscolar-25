@@ -1,7 +1,7 @@
 "use client";
 
 // Component exports
-export { AgendaView } from "./agenda-view";
+export { AgendaView } from "./Agenda-view";
 export { DayView } from "./day-view";
 export { DraggableEvent } from "./draggable-event";
 export { DroppableCell } from "./droppable-cell";
@@ -15,11 +15,11 @@ export { CalendarDndProvider, useCalendarDnd } from "./Calendar-dnd-context";
 
 // Constants and utility exports
 export * from "../../app/[subdomain]/(dashboard)/administracion/calendario/constants";
-export * from "../utils";
+export * from "../../utils/utils";
 
 // Hook exports
-export * from "../hooks/use-current-time-indicator";
-export * from "../hooks/use-event-visibility";
+export * from "../../hooks/use-current-time-indicator";
+export * from "../../hooks/use-event-visibility";
 
 // Type exports
 export type { CalendarEvent, CalendarView, EventColor } from "../types";
