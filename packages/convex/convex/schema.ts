@@ -322,7 +322,9 @@ const applicationTable = defineSchema({
   calendar: defineTable({
     schoolCycleId: v.id("schoolCycle"),
     schoolId: v.id("school"),
-    date: v.number(),
+    // date: v.number(),
+    startDate: v.number(),
+    endDate: v.number(),
     eventTypeId: v.id("eventType"),
     description: v.optional(v.string()),
     status: v.union(v.literal("active"), v.literal("inactive")),
@@ -331,7 +333,8 @@ const applicationTable = defineSchema({
   })
     .index("by_school", ["schoolId"])
     .index("by_cycle", ["schoolCycleId"])
-    .index("by_date", ["date"]),
+    // .index("by_date", ["date"])
+    .index("by_cycle_and_start_date", ["schoolCycleId", "startDate"]),
 
   //Tipos de eventos del calendario escolar
   eventType: defineTable({

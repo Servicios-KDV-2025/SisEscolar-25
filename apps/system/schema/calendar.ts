@@ -1,7 +1,8 @@
 import { z } from "@repo/zod-config/index";
 
 export const CalendarSchema = z.object({
-    date: z.date().min(1, "La fecha es obligatoria"),
+    startDate: z.date().min(1, "La fecha inicio es obligatoria"),
+    endDate: z.date().min(1, "La fecha final es obligatoria"),
     eventTypeId: z.string().min(1, "Debe seleccionar un tipo de evento"),
     description: z
         .string()

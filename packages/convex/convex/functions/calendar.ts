@@ -5,7 +5,8 @@ import { mutation, query } from "../_generated/server";
 export const createCalendarEvent = mutation({
   args: {
     schoolCycleId: v.id("schoolCycle"),
-    date: v.number(),
+    startDate: v.number(),
+    endDate: v.number(),
     eventTypeId: v.id("eventType"),
     description: v.optional(v.string()),
     schoolId: v.id("school"),
@@ -14,7 +15,8 @@ export const createCalendarEvent = mutation({
     return await ctx.db.insert("calendar", {
       schoolCycleId: args.schoolCycleId,
       schoolId: args.schoolId,
-      date: args.date,
+      startDate: args.startDate,
+      endDate: args.endDate,
       eventTypeId: args.eventTypeId,
       description: args.description,
       status: "active",
@@ -63,7 +65,8 @@ export const updateCalendarEvent = mutation({
   args: {
     eventId: v.id("calendar"),
     schoolId: v.id("school"),
-    date: v.number(),
+    startDate: v.number(),
+    endDate: v.number(),
     eventTypeId: v.id("eventType"),
     description: v.optional(v.string()),
     schoolCycleId: v.id("schoolCycle"),
@@ -76,7 +79,8 @@ export const updateCalendarEvent = mutation({
     const event = await ctx.db.get(args.eventId);
     if (!event || event.schoolId !== args.schoolId) throw new Error("Not authorized or not found");
     return await ctx.db.patch(args.eventId, {
-      date: args.date,
+       startDate: args.startDate,
+      endDate: args.endDate,
       eventTypeId: args.eventTypeId,
       description: args.description,
       schoolCycleId: args.schoolCycleId,

@@ -88,7 +88,8 @@ export default function EventDialog({
   const form = useForm<CalendarFormValues>({
     resolver: zodResolver(CalendarSchema),
     defaultValues: {
-      date: selectedDate || new Date(),
+      startDate: selectedDate || new Date(),
+      endDate: selectedDate || new Date(),
       eventTypeId: "",
       description: "",
       schoolCycleId: "",
@@ -101,7 +102,8 @@ export default function EventDialog({
 
     if (eventoEditar) {
       form.reset({
-        date: new Date(eventoEditar?.date),
+        startDate: new Date(eventoEditar?.startDate),
+        endDate: new Date(eventoEditar?.endDate),
         eventTypeId: eventoEditar?.eventTypeId,
         description: eventoEditar.description || "",
         schoolCycleId: eventoEditar.schoolCycleId,
@@ -112,7 +114,8 @@ export default function EventDialog({
       });
     } else {
       form.reset({
-        date: selectedDate || new Date(),
+        startDate: selectedDate || new Date(),
+        endDate: selectedDate || new Date(),
         eventTypeId: "",
         description: "",
         schoolCycleId: "",
@@ -148,7 +151,8 @@ export default function EventDialog({
         await editarEvento({
           schoolId: escuelaId,
           eventId: eventoEditar._id,
-          date: data.date.getTime(),
+          startDate: data.startDate.getTime(),
+          endDate: data.endDate.getTime(),
           eventTypeId: data.eventTypeId as Id<"eventType">,
           description: data.description || undefined,
           schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
@@ -159,7 +163,8 @@ export default function EventDialog({
         await crearEvento({
           schoolId: escuelaId,
           schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
-          date: data.date.getTime(),
+          startDate: data.startDate.getTime(),
+          endDate: data.endDate.getTime(),
           eventTypeId: data.eventTypeId as Id<"eventType">,
           description: data.description || undefined,
         });
@@ -281,7 +286,7 @@ export default function EventDialog({
 
               <FormField
                 control={form.control}
-                name="date"
+                name="startDate"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>Fecha del Evento</FormLabel>
