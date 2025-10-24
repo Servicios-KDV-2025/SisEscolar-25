@@ -1,5 +1,6 @@
-import { mutation, query } from "../_generated/server"; 
+import { mutation, query, internalMutation } from "../_generated/server"; 
 import { v } from "convex/values";
+import { internal } from "../_generated/api";
 
 export const ObtenerCiclosEscolares = query({
   args: {escuelaID: v.id("school")}, 
@@ -75,9 +76,11 @@ export const CrearCicloEscolar = mutation({
   },
 });
 
+// En schoolCycles.ts
+
 export const ActualizarCicloEscolar = mutation({
   args: {
-    cicloEscolarID: v.id("schoolCycle"),
+    cicloEscolarID: v.id("schoolCycle"), // El ciclo que estás editando (ej: Ciclo B)
     escuelaID: v.id("school"),
     nombre: v.optional(v.string()),
     fechaInicio: v.optional(v.number()),
@@ -122,7 +125,8 @@ export const ActualizarCicloEscolar = mutation({
       throw new Error("La fecha de inicio debe ser anterior a la fecha de fin.");
     }
 
-    // Si se cambia a estado activo, desactivar todos los demás ciclos
+    // --- LÓGICA CORREGIDA ---
+    // Si se cambia a estado activo (Estás activando el "Ciclo B")
     if (args.status === "active" && ciclo.status !== "active") {
       const activeCycles = await ctx.db
         .query("schoolCycle")
@@ -130,21 +134,35 @@ export const ActualizarCicloEscolar = mutation({
         .filter((q) => 
           q.and(
             q.eq(q.field("status"), "active"),
-            q.neq(q.field("_id"), args.cicloEscolarID)
+            // Excluir el ciclo que estamos activando (Ciclo B)
+            q.neq(q.field("_id"), args.cicloEscolarID) 
           )
         )
         .collect();
 
-      // Cambiar todos los otros ciclos activos a inactivos
-      for (const cycle of activeCycles) {
+      // Cambiar todos los otros ciclos (ej: "Ciclo A") a inactivos
+      for (const cycle of activeCycles) { // 'cycle' aquí es el "Ciclo A"
         await ctx.db.patch(cycle._id, {
           status: "inactive",
           updatedAt: Date.now()
         });
+    
+        // ¡AQUÍ ESTÁ LA CORRECCIÓN!
+        // Programamos la desactivación de horarios para el "Ciclo A"
+        // que acabamos de inactivar.
+        await ctx.scheduler.runAfter(0, internal.functions.schoolCycles.internalDeactivateSchedules, { 
+          schoolCycleId: cycle._id // Usamos el ID del "Ciclo A"
+        });
       }
     }
+    // --- FIN DE LA CORRECCIÓN ---
 
-    // Actualizar con patch
+
+    // 1. Determinar si el ciclo que estás editando (Ciclo B) 
+    //    se está guardando como inactivo o archivado
+    const isNowInactive = args.status === "inactive" || args.status === "archived";
+
+    // Actualizar con patch (el ciclo B)
     await ctx.db.patch(args.cicloEscolarID, {
       schoolId: args.escuelaID,
       ...(args.nombre && { name: args.nombre }),
@@ -153,6 +171,14 @@ export const ActualizarCicloEscolar = mutation({
       ...(args.status && { status: args.status }),
       updatedAt: Date.now(),
     });
+
+    // 2. Si guardaste el "Ciclo B" como inactivo, 
+    //    programar la desactivación para él mismo.
+    if (isNowInactive) {
+      await ctx.scheduler.runAfter(0, internal.functions.schoolCycles.internalDeactivateSchedules, { 
+        schoolCycleId: args.cicloEscolarID // Usamos el ID del "Ciclo B"
+      });
+    }
 
     // Devolver el documento actualizado
     return await ctx.db.get(args.cicloEscolarID);
@@ -193,5 +219,51 @@ export const getAllSchoolCycles = query({
       endDate: new Date(cycle.endDate).toISOString().split('T')[0],
       isActive: cycle.status === "active",
     }));
+  },
+});
+
+export const internalDeactivateSchedules = internalMutation({
+  args: { schoolCycleId: v.id("schoolCycle") },
+  handler: async (ctx, args) => {
+    console.log(`Iniciando desactivación de horarios para el ciclo: ${args.schoolCycleId}`);
+
+    // 1. Encontrar todas las clases (classCatalog) en este ciclo escolar
+    //    Usando el índice "by_cycle" de tu schema.ts
+    const classesInCycle = await ctx.db
+      .query("classCatalog")
+      .withIndex("by_cycle", (q) => q.eq("schoolCycleId", args.schoolCycleId))
+      .collect();
+
+    if (classesInCycle.length === 0) {
+      console.log("No se encontraron clases para este ciclo.");
+      return;
+    }
+
+    const classIds = classesInCycle.map(c => c._id);
+    console.log(`Encontradas ${classIds.length} clases.`);
+
+    // 2. Para cada clase, encontrar sus classSchedule y desactivarlos
+    const patchPromises: Promise<any>[] = [];
+
+    for (const classId of classIds) {
+      // Usamos el índice "by_class_catalog" de la tabla classSchedule
+      const schedules = await ctx.db
+        .query("classSchedule")
+        .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", classId)) 
+        .collect();
+
+      for (const schedule of schedules) {
+        // Solo actualizar si no está ya inactivo
+        if (schedule.status !== "inactive") {
+          patchPromises.push(
+            ctx.db.patch(schedule._id, { status: "inactive" })
+          );
+        }
+      }
+    }
+
+    // 3. Ejecutar todas las actualizaciones en paralelo
+    await Promise.all(patchPromises);
+    console.log(`Desactivados ${patchPromises.length} horarios.`);
   },
 });

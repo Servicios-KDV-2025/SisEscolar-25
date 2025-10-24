@@ -277,6 +277,9 @@ export default function HorariosPorClasePage() {
     setSearchTerm,
     setClasses,
     updateClass,
+    filterByActiveCycle,
+    setFilterByActiveCycle,
+    setActiveSchoolCycleId,
   } = useClassScheduleStore();
 
   const { subjects } = useSubject(currentSchool?.school._id);
@@ -323,7 +326,7 @@ export default function HorariosPorClasePage() {
   const editWatchedClassroomId = editClassForm.watch("classroomId");
 
   const editConflictScheduleIds = useQuery(
-  api.functions.schedule.getScheduleConflictsForEdit,
+  api.functions.schedule.getScheduleConflicts,
   currentSchool?.school._id &&
     isEditingClassDetails &&
     editWatchedTeacherId &&
@@ -389,7 +392,15 @@ export default function HorariosPorClasePage() {
     currentSchool?.school._id ? { escuelaID: currentSchool.school._id } : "skip"
   );
 
-
+  // --- NUEVO useEffect PARA SINCRONIZAR EL CICLO ACTIVO ---
+  useEffect(() => {
+    if (activeCycle) {
+      setActiveSchoolCycleId(activeCycle._id);
+    } else {
+      setActiveSchoolCycleId(null);
+    }
+  }, [activeCycle, setActiveSchoolCycleId]);
+  // --- FIN ---
 
   const schedules = useQuery(
     api.functions.schedule.getSchedulesBySchools,
@@ -490,7 +501,7 @@ export default function HorariosPorClasePage() {
   const watchedClassroomId = createForm.watch("classroomId");
 
   const conflictScheduleIds = useQuery(
-    api.functions.schedule.getScheduleConflicts,
+    api.functions.schedule.getScheduleConflicts ,
     currentSchool?.school._id && watchedTeacherId && watchedClassroomId
       ? {
         schoolId: currentSchool.school._id,
@@ -873,14 +884,14 @@ export default function HorariosPorClasePage() {
             {(currentRole === "superadmin" ||
               currentRole === "admin" ||
               currentRole === "auditor") && (
-                <div className="flex gap-2">
+                <div className="flex flex-col md:flex-row gap-4 md:items-center">
                   <Select
                     onValueChange={(v) =>
                       setFilter(v as "all" | "active" | "inactive")
                     }
                     value={filter || "all"}
                   >
-                    <SelectTrigger className="w-[160px]">
+                    <SelectTrigger className="w-full md:w-[160px]">
                       <SelectValue placeholder="Filtrar estado" />
                     </SelectTrigger>
                     <SelectContent>
@@ -889,6 +900,27 @@ export default function HorariosPorClasePage() {
                       <SelectItem value="inactive">Inactivos</SelectItem>
                     </SelectContent>
                   </Select>
+
+                  {/* --- CHECKBOX AÑADIDO --- */}
+                  <div className="flex items-center space-x-2 pt-2 md:pt-0">
+                    <Checkbox
+                      id="filter-active-cycle"
+                      checked={filterByActiveCycle}
+                      onCheckedChange={(checked) =>
+                        setFilterByActiveCycle(checked as boolean)
+                      }
+                      disabled={!activeCycle}
+                    />
+                    <label
+                      htmlFor="filter-active-cycle"
+                      className={`text-sm font-medium leading-none cursor-pointer ${
+                        !activeCycle ? "text-muted-foreground opacity-70" : ""
+                      }`}
+                    >
+                      Mostrar solo ciclo activo
+                    </label>
+                  </div>
+                  {/* --- FIN DEL CHECKBOX --- */}
                 </div>
               )}
           </div>
@@ -1025,6 +1057,7 @@ export default function HorariosPorClasePage() {
                         </span>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">
+                           
                             {classItem.group.grade} {classItem.group.name}
                           </p>
                         </div>

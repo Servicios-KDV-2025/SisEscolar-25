@@ -97,6 +97,103 @@ export const getAssignmentsForTutor = query({
 });
 
 /**
+ * Tutor: Obtiene estadísticas de asignaciones pendientes para todos sus estudiantes
+ */
+export const getTutorStudentsAssignmentStats = query({
+  args: {
+    schoolId: v.id("school"),
+    tutorId: v.id("user"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("No estás autenticado.");
+
+    const user = await ctx.db
+      .query("user")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!user) throw new Error("Usuario no encontrado.");
+
+    // Validar que el usuario autenticado es el tutor solicitado
+    if (user._id !== args.tutorId) {
+      throw new Error("Acceso denegado: No puedes ver información de otros tutores.");
+    }
+
+    // 1. Obtener todos los estudiantes del tutor
+    const students = await ctx.db
+      .query("student")
+      .withIndex("by_schoolId", (q) => q.eq("schoolId", args.schoolId))
+      .filter((q) => q.eq(q.field("tutorId"), args.tutorId))
+      .collect();
+
+    if (students.length === 0) return [];
+
+    // 2. Para cada estudiante, obtener sus estadísticas
+    const studentStats = await Promise.all(
+      students.map(async (student) => {
+        // Obtener las inscripciones (studentClass) del estudiante
+        const studentClasses = await ctx.db
+          .query("studentClass")
+          .withIndex("by_student", (q) => q.eq("studentId", student._id))
+          .filter((q) => q.eq(q.field("status"), "active"))
+          .collect();
+
+        if (studentClasses.length === 0) {
+          return {
+            studentId: student._id,
+            totalAssignments: 0,
+            completedAssignments: 0,
+            pendingAssignments: 0,
+          };
+        }
+
+        // Obtener las clases (classCatalog) para obtener las asignaciones
+        const classCatalogIds = studentClasses.map((sc) => sc.classCatalogId);
+        
+        // Obtener todas las asignaciones de esas clases
+        const assignmentPromises = classCatalogIds.map(async (classId) => {
+          return await ctx.db
+            .query("assignment")
+            .withIndex("by_classCatalogId", (q) => q.eq("classCatalogId", classId))
+            .collect();
+        });
+
+        const assignmentsByClass = await Promise.all(assignmentPromises);
+        const allAssignments = assignmentsByClass.flat();
+
+        // Obtener todas las calificaciones (grades) del estudiante
+        const gradePromises = studentClasses.map(async (sc) => {
+          return await ctx.db
+            .query("grade")
+            .withIndex("by_student_class", (q) => q.eq("studentClassId", sc._id))
+            .collect();
+        });
+
+        const gradesByClass = await Promise.all(gradePromises);
+        const allGrades = gradesByClass.flat();
+
+        // Crear un Set de assignmentIds que tienen calificación
+        const gradedAssignmentIds = new Set(allGrades.map((g) => g.assignmentId));
+
+        // Contar asignaciones pendientes (las que no tienen calificación)
+        const pendingAssignments = allAssignments.filter(
+          (assignment) => !gradedAssignmentIds.has(assignment._id)
+        ).length;
+
+        return {
+          studentId: student._id,
+          totalAssignments: allAssignments.length,
+          completedAssignments: allGrades.length,
+          pendingAssignments,
+        };
+      })
+    );
+
+    return studentStats;
+  },
+});
+
+/**
  * Maestro: Obtiene todas las tareas creadas por el usuario autenticado.
  */
 export const getTeacherAssignments = query({

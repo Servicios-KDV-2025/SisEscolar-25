@@ -23,6 +23,7 @@ export const getClassSchedules = query({
     const filteredClassSchedules = classSchedules.filter(cs =>
       schoolClassIds.includes(cs.classCatalogId)
     );
+    
 
     // Agrupar por classCatalogId
     const groupedSchedules = filteredClassSchedules.reduce((acc, cs) => {
@@ -766,3 +767,4 @@ export const deleteScheduleById = internalMutation({
     await ctx.db.delete(args.scheduleId);
   },
 });
+

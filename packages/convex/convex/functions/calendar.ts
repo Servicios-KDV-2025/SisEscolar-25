@@ -47,6 +47,57 @@ export const getSchoolCycleCalendar = query({
   },
 });
 
+
+export const getUpcomingEvents = query({
+  args: { 
+    schoolId: v.id("school"), 
+    schoolCycleId: v.id("schoolCycle"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startOfToday = today.getTime();
+    
+    // Obtener eventos futuros y de hoy del ciclo escolar
+    const events = await ctx.db
+      .query("calendar")
+      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+      .filter((q) => q.eq(q.field("schoolCycleId"), args.schoolCycleId))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .filter((q) => q.gte(q.field("date"), startOfToday))
+      .collect();
+
+    // Ordenar por fecha ascendente
+    const sortedEvents = events.sort((a, b) => a.date - b.date);
+
+    // Limitar cantidad si se especifica
+    const limitedEvents = args.limit ? sortedEvents.slice(0, args.limit) : sortedEvents;
+
+    // Enriquecer con información del eventType
+    const enrichedEvents = await Promise.all(
+      limitedEvents.map(async (event) => {
+        const eventType = await ctx.db.get(event.eventTypeId);
+        
+        return {
+          ...event,
+          eventType: eventType ? {
+            _id: eventType._id,
+            name: eventType.name,
+            key: eventType.key,
+            description: eventType.description,
+            color: eventType.color,
+            icon: eventType.icon,
+          } : null,
+        };
+      })
+    );
+
+    return enrichedEvents;
+  },
+});
+
 export const getCalendarEventById = query({
   args: {
     schoolId: v.id("school"),
