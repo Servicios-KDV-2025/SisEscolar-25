@@ -8,6 +8,12 @@
  * @module
  */
 
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
+import type * as actions_actionsclassSchedule from "../actions/actionsclassSchedule.js";
 import type * as actions_users from "../actions/users.js";
 import type * as functions_assignment from "../functions/assignment.js";
 import type * as functions_attendance from "../functions/attendance.js";
@@ -39,12 +45,6 @@ import type * as functions_users from "../functions/users.js";
 import type * as http from "../http.js";
 import type * as templates_paymentSuccess from "../templates/paymentSuccess.js";
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
-
 /**
  * A utility for referencing Convex functions in your app's API.
  *
@@ -54,6 +54,7 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  "actions/actionsclassSchedule": typeof actions_actionsclassSchedule;
   "actions/users": typeof actions_users;
   "functions/assignment": typeof functions_assignment;
   "functions/attendance": typeof functions_attendance;
@@ -85,15 +86,11 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "templates/paymentSuccess": typeof templates_paymentSuccess;
 }>;
-declare const fullApiWithMounts: typeof fullApi;
-
 export declare const api: FilterApi<
-  typeof fullApiWithMounts,
+  typeof fullApi,
   FunctionReference<any, "public">
 >;
 export declare const internal: FilterApi<
-  typeof fullApiWithMounts,
+  typeof fullApi,
   FunctionReference<any, "internal">
 >;
-
-export declare const components: {};

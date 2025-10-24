@@ -6,15 +6,18 @@ import { Input } from "@repo/ui/components/shadcn/input";
 import { Subject } from "stores/subjectStore";
 import { Group } from "stores/groupStore";
 import { ClassroomType, SchoolCycleType, TeacherType } from '@/types/temporalSchema';
+import { z } from "zod";
+import { FullClassSchema } from "@/types/fullClassSchema";
 
 interface FormularioCatalogoDeClasesProps {
-    form: UseFormReturn<Record<string, unknown>>;
+    form: UseFormReturn<z.infer<typeof FullClassSchema>>;
     operation: "create" | "edit" | "view" | "delete";
     subjects: Subject[] | undefined;
     groups: Group[] | undefined;
     schoolCycles: SchoolCycleType[] | undefined;
     classrooms?: ClassroomType[] | undefined;
     teachers: TeacherType[] | undefined;
+     activeSchoolCycleId?: string; 
 }
 
 export function ClassCatalogForm({
@@ -25,11 +28,19 @@ export function ClassCatalogForm({
     schoolCycles,
     classrooms,
     teachers,
+    activeSchoolCycleId,
 }: FormularioCatalogoDeClasesProps) {
     const [isNombreModificadoManualmente, setIsNombreModificadoManualmente] = useState(false);
 
     const subjectId = useWatch({ control: form.control, name: "subjectId" });
     const groupId = useWatch({ control: form.control, name: "groupId" });
+
+    useEffect(() => {
+        // Se ejecuta solo al crear y si el campo aún no tiene un valor.
+        if (operation === 'create' && activeSchoolCycleId && !form.getValues("schoolCycleId")) {
+            form.setValue("schoolCycleId", activeSchoolCycleId, { shouldValidate: true });
+        }
+    }, [operation, activeSchoolCycleId, form]);
 
     useEffect(() => {
         if (operation === 'view') return;
@@ -47,12 +58,12 @@ export function ClassCatalogForm({
             <FormField
                 control={form.control}
                 name="schoolCycleId"
-                render={({ field }) => (
+                render={({ field }) => ( 
                     <FormItem>
                         <FormLabel>Ciclo Escolar</FormLabel>
                         <Select
                             onValueChange={field.onChange}
-                            value={field.value as string}
+                            value={field.value ?? ""}
                             disabled={operation === "view"}
                         >
                             <FormControl>
@@ -62,7 +73,7 @@ export function ClassCatalogForm({
                             </FormControl>
                             <SelectContent>
                                 {schoolCycles?.map((c) => (
-                                    <SelectItem key={c._id} value={c._id}>
+                                    <SelectItem disabled={true} key={c._id} value={c._id}>
                                         {c.name}
                                     </SelectItem>
                                 ))}
@@ -210,11 +221,11 @@ export function ClassCatalogForm({
                                     setIsNombreModificadoManualmente(true);
                                 }}
                                 placeholder="Ej: Matemáticas - Grupo A"
-                                disabled={operation === "view"}
+                                disabled={operation === "view" || operation === "edit" || operation === "create"}
                                 minLength={1}
                                 maxLength={40}
                             />
-                        </FormControl>
+                        </FormControl> 
                         <FormMessage />
                     </FormItem>
                 )}
