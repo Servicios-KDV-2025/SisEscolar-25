@@ -10,6 +10,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@repo/ui/components/shadcn/dialog";
@@ -36,7 +37,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@repo/ui/components/shadcn/popover";
-import { Badge } from "@repo/ui/components/shadcn/badge";
 import { toast } from "sonner";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { CalendarFormValues, CalendarSchema } from "schema/calendar";
@@ -46,6 +46,8 @@ import { CalendarDays, Save, Trash2, X } from "@repo/ui/icons";
 import { Calendar } from "@repo/ui/components/shadcn/calendar";
 import { CalendarType } from "@/types/calendar";
 import { cn } from "lib/utils";
+import { Input } from '@repo/ui/components/shadcn/input';
+
 interface EventModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -75,6 +77,9 @@ export default function EventDialog({
     api.functions.schoolCycles.ObtenerCiclosEscolares,
     escuelaId ? { escuelaID: escuelaId } : "skip"
   );
+
+  const cicloEscolarActual = ciclosEscolares?.filter(ce => ce.status === 'active')[0];
+
   const tiposDeEventos = useQuery(
     api.functions.eventType.getEventType,
     escuelaId ? { schoolId: escuelaId } : "skip"
@@ -91,7 +96,7 @@ export default function EventDialog({
       date: selectedDate || new Date(),
       eventTypeId: "",
       description: "",
-      schoolCycleId: "",
+      schoolCycleId: cicloEscolarActual?._id,
       status: "active",
     },
   });
@@ -151,14 +156,14 @@ export default function EventDialog({
           date: data.date.getTime(),
           eventTypeId: data.eventTypeId as Id<"eventType">,
           description: data.description || undefined,
-          schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
+          schoolCycleId: cicloEscolarActual?._id as Id<"schoolCycle">,
           status: data.status,
         });
         toast.success("¡Evento editado exitosamente!");
       } else {
         await crearEvento({
           schoolId: escuelaId,
-          schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
+          schoolCycleId: cicloEscolarActual?._id as Id<"schoolCycle">,
           date: data.date.getTime(),
           eventTypeId: data.eventTypeId as Id<"eventType">,
           description: data.description || undefined,
@@ -194,39 +199,272 @@ export default function EventDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">
-            {confirmingDelete
-              ? "Confirmar Eliminación"
-              : !canUpdateCalendar
-              ? "Detalle del Evento"
-              : eventoEditar
-              ? "Editar Evento"
-                  : "Crear Nuevo Evento"}
-          </DialogTitle>
-          <DialogDescription>
-            {confirmingDelete
-              ? `¿Estás seguro de que deseas eliminar este evento? Esta acción no se puede deshacer.`
-              : canUpdateCalendar
-                ? "Editar evento del calendario escolar"
-                : eventoEditar
-                  ? "Detalles del evento del calendario escolar"
-                  : "Agrega un nuevo evento al calendario escolar"}
-          </DialogDescription>
-        </DialogHeader>
+      {!confirmingDelete
+        ? (
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold">
+                {!canUpdateCalendar
+                  ? "Detalle del Evento"
+                  : eventoEditar
+                    ? "Editar Evento"
+                    : "Crear Nuevo Evento"}
+              </DialogTitle>
+              <DialogDescription>
+                {canUpdateCalendar
+                  ? "Editar evento del calendario escolar"
+                  : eventoEditar
+                    ? "Detalles del evento del calendario escolar"
+                    : "Agrega un nuevo evento al calendario escolar"}
+              </DialogDescription>
+            </DialogHeader>
 
-        {/* ✅ 3. RENDERIZADO CONDICIONAL: CONFIRMACIÓN O FORMULARIO */}
-        {confirmingDelete ? (
-          <div className="py-6">
-            <p className="text-center text-slate-700">
-              El evento será eliminado permanentemente.
-            </p>
-            <div className="flex justify-end gap-3 pt-6 mt-6 border-t">
+            {/* ✅ 3. RENDERIZADO CONDICIONAL: CONFIRMACIÓN O FORMULARIO */}
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="schoolCycleId"
+                  render={() => (
+                    <FormItem>
+                      <FormLabel>Ciclo Escolar</FormLabel>
+                      <Input
+                        value={
+                          cicloEscolarActual
+                            ? cicloEscolarActual?.name
+                            : 'Ciclo Escolar'
+                        }
+                        readOnly={true}
+                        disabled={true}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="date"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Fecha del Evento</FormLabel>
+                      <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              disabled={!canUpdateCalendar}
+                              variant="outline"
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP", { locale: es })
+                              ) : (
+                                <span>Selecciona una fecha</span>
+                              )}
+                              <CalendarDays className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={(date) => {
+                              field.onChange(date);
+                              setCalendarOpen(false);
+                            }}
+                            disabled={(date) =>
+                              date < new Date(new Date().setHours(0, 0, 0, 0))
+                            }
+                            locale={es}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="eventTypeId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo de Evento</FormLabel>
+                      <Select
+                        disabled={!canUpdateCalendar}
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full truncate">
+                            <SelectValue placeholder="Selecciona un tipo de evento" className="py-1" />
+                          </SelectTrigger>
+                        </FormControl>
+
+                        <SelectContent className="max-h-80 overflow-y-auto">
+                          {tiposDeEventos?.map((tipo) => {
+                            const clases = convertirColorAClases(tipo.color);
+                            const IconComponent =
+                              iconMap[tipo.icon || "BookOpen"] || CalendarDays;
+                            return (
+                              <SelectItem key={tipo._id} value={tipo._id}>
+                                <div className="flex max-w-full min-w-[200px] items-start gap-3">
+                                  <div className="flex items-center self-center">
+                                    <div
+                                      className={cn(
+                                        "p-2 rounded-md flex-shrink-0",
+                                        clases.color
+                                      )}
+                                    >
+                                      <IconComponent className="h-4 w-4 text-white" />
+                                    </div>
+                                  </div>
+
+                                  <div className="flex flex-col flex-grow">
+                                    <p className="font-medium text-left">
+                                      {tipo.name}
+                                    </p>
+                                    {tipo.description && (
+                                      <div className="w-[200px] sm:w-md">
+                                        <p className="text-xs text-slate-500 text-left break-words">
+                                          {tipo.description}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription className="text-slate-500">
+                        Selecciona el tipo de evento que deseas crear
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Descripción (Opcional)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          disabled={!canUpdateCalendar}
+                          placeholder="Describe los detalles del evento..."
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-slate-500">
+                        Proporciona detalles adicionales sobre el evento (máximo
+                        500 caracteres)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {canUpdateCalendar && (
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Estado</FormLabel>
+                        <Select
+                          disabled={!canUpdateCalendar}
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona el estado" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="active">Activo</SelectItem>
+                            <SelectItem value="inactive">Inactivo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                <div className="flex gap-3 pt-4 border-t justify-between">
+                  {canDeleteCalendar && eventoEditar && (
+                    // ✅ 2. BOTÓN QUE ACTIVA LA CONFIRMACIÓN
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={() => setConfirmingDelete(true)}
+                      disabled={isLoading}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Eliminar
+                    </Button>
+                  )}
+                  <div className="flex gap-3 ml-auto">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => onOpenChange(false)}
+                      disabled={isLoading}
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Cerrar
+                    </Button>
+                    {canUpdateCalendar && (
+                      <Button
+                        type="submit"
+                        disabled={isLoading}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        {isLoading ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>
+                              {eventoEditar ? "Guardando..." : "Creando..."}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Save className="w-4 h-4" />
+                            <span>{eventoEditar ? "Guardar" : "Crear"}</span>
+                          </div>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        )
+        : (
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className='text-lg font-semibold'>
+                ¿Estás seguro?
+              </DialogTitle>
+              <DialogDescription className='text-muted-foreground text-sm'>
+                Esta acción no se puede deshacer.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
               <Button
                 variant="outline"
                 onClick={() => setConfirmingDelete(false)}
-                disabled={isLoading}
+                className="min-w-[100px]"
               >
                 Cancelar
               </Button>
@@ -234,259 +472,15 @@ export default function EventDialog({
                 variant="destructive"
                 onClick={handleEliminar}
                 disabled={isLoading}
+                className="min-w-[100px]"
               >
-                {isLoading ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4 mr-2" />
-                )}
-                Sí, eliminar
+                {isLoading ? "Eliminando..." : "Eliminar"}
               </Button>
-            </div>
-          </div>
-        ) : (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="schoolCycleId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Ciclo Escolar</FormLabel>
-                    <Select
+            </DialogFooter>
+          </DialogContent>
+        )
+      }
 
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      disabled={!canUpdateCalendar}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un ciclo escolar" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {ciclosEscolares?.map((ciclo) => (
-                          <SelectItem key={ciclo._id} value={ciclo._id}>
-                            <Badge variant="outline" className="text-xs">
-                              {ciclo.name}
-                            </Badge>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Fecha del Evento</FormLabel>
-                    <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            disabled={!canUpdateCalendar}
-                            variant="outline"
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP", { locale: es })
-                            ) : (
-                              <span>Selecciona una fecha</span>
-                            )}
-                            <CalendarDays className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={(date) => {
-                            field.onChange(date);
-                            setCalendarOpen(false);
-                          }}
-                          disabled={(date) =>
-                            date < new Date(new Date().setHours(0, 0, 0, 0))
-                          }
-                          locale={es}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="eventTypeId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo de Evento</FormLabel>
-                    <Select
-                      disabled={!canUpdateCalendar}
-                      onValueChange={field.onChange}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full truncate">
-                          <SelectValue placeholder="Selecciona un tipo de evento" className="py-1" />
-                        </SelectTrigger>
-                      </FormControl>
-                      
-                      <SelectContent className="max-h-80 overflow-y-auto">
-                        {tiposDeEventos?.map((tipo) => {
-                          const clases = convertirColorAClases(tipo.color);
-                          const IconComponent =
-                            iconMap[tipo.icon || "BookOpen"] || CalendarDays;
-                          return (
-                            <SelectItem key={tipo._id} value={tipo._id}>
-                              <div className="flex max-w-full min-w-[200px] items-start gap-3">
-                                <div className="flex items-center self-center">
-                                  <div
-                                    className={cn(
-                                      "p-2 rounded-md flex-shrink-0",
-                                      clases.color
-                                    )}
-                                  >
-                                    <IconComponent className="h-4 w-4 text-white" />
-                                  </div>
-                                </div>
-
-                                <div className="flex flex-col flex-grow">
-                                  <p className="font-medium text-left">
-                                    {tipo.name}
-                                  </p>
-                                  {tipo.description && (
-                                    <div className="w-[200px] sm:w-md">
-                                      <p className="text-xs text-slate-500 text-left break-words">
-                                        {tipo.description}
-                                      </p>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription className="text-slate-500">
-                      Selecciona el tipo de evento que deseas crear
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descripción (Opcional)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        disabled={!canUpdateCalendar}
-                        placeholder="Describe los detalles del evento..."
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription className="text-slate-500">
-                      Proporciona detalles adicionales sobre el evento (máximo
-                      500 caracteres)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {canUpdateCalendar && (
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Estado</FormLabel>
-                      <Select
-                        disabled={!canUpdateCalendar}
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona el estado" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="active">Activo</SelectItem>
-                          <SelectItem value="inactive">Inactivo</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              <div className="flex gap-3 pt-4 border-t justify-between">
-                {canDeleteCalendar && eventoEditar && (
-                  // ✅ 2. BOTÓN QUE ACTIVA LA CONFIRMACIÓN
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={() => setConfirmingDelete(true)}
-                    disabled={isLoading}
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Eliminar
-                  </Button>
-                )}
-                <div className="flex gap-3 ml-auto">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => onOpenChange(false)}
-                    disabled={isLoading}
-                  >
-                    <X className="w-4 h-4 mr-2" />
-                    Cerrar
-                  </Button>
-                  {canUpdateCalendar && (
-                    <Button
-                      type="submit"
-                      disabled={isLoading}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      {isLoading ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>
-                            {eventoEditar ? "Guardando..." : "Creando..."}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <Save className="w-4 h-4" />
-                          <span>{eventoEditar ? "Guardar" : "Crear"}</span>
-                        </div>
-                      )}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </form>
-          </Form>
-        )}
-      </DialogContent>
     </Dialog>
   );
 }
