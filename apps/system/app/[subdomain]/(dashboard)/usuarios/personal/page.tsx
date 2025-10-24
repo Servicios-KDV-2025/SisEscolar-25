@@ -1637,7 +1637,7 @@ export default function PersonalPage() {
                     <Input
                       {...field}
                       value={(field.value as string) || ""}
-                      placeholder="+52 555 1234567"
+                      placeholder="555 1234567"
                       disabled={currentOperation === "view"}
                     />
                   </FormControl>
