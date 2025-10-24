@@ -663,16 +663,13 @@ export default function HorariosPorClasePage() {
                       disabled={operation === 'view'}
                     >
                       <FormControl>
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full truncate">
                           <SelectValue placeholder="Seleccione una clase" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {classCatalogs?.map((cc) => (
-                          <SelectItem
-                            key={cc._id}
-                            value={cc._id}
-                          >
+                          <SelectItem key={cc._id} value={cc._id}>
                             {cc.name} - {cc.teacher?.name} {cc.teacher?.lastName}
                           </SelectItem>
                         ))}

@@ -426,13 +426,13 @@ export const getClassesBySchoolCycle = query({
 // Obtener clases por maestro
 export const getClassesByTeacher = query({
   args: {
-    schoolId: v.id("school"),
-    teacherId: v.id("user"),
+    schoolId: v.optional(v.id("school")),
+    teacherId: v.optional(v.id("user")),
   },
   handler: async (ctx, args) => {
     const classes = await ctx.db
       .query("classCatalog")
-      .withIndex("by_teacher", (q) => q.eq("teacherId", args.teacherId))
+      .withIndex("by_teacher", (q) => q.eq("teacherId", args.teacherId!))
       .filter((q) => q.eq(q.field("schoolId"), args.schoolId))
       .collect();
 
