@@ -452,7 +452,7 @@ export default function ClassroomManagement() {
                     />
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Select
                     value={locationFilter}
                     onValueChange={setLocationFilter}
