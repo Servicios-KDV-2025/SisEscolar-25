@@ -10,7 +10,6 @@ import { Button } from "@repo/ui/components/shadcn/button";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Label } from "@repo/ui/components/shadcn/label";
 import { Textarea } from "@repo/ui/components/shadcn/textarea";
-import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Edit, GraduationCap, Loader2, Save, School, X } from "@repo/ui/icons";
 import { useUser } from "@clerk/nextjs";
@@ -20,6 +19,7 @@ import { api } from "@repo/convex/convex/_generated/api";
 import { toast } from "sonner";
 import { useForm, UseFormRegister, FieldError } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import Image from "next/image";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import {
   schoolValidationSchema,
@@ -40,9 +40,9 @@ export default function ConfiguracionPage() {
   );
   const updateSchool = useMutation(api.functions.schools.updateSchoolDetails);
 
-  const { 
-    canUpdatePerfilInstitucional, 
-    isLoading: permissionsLoading 
+  const {
+    canUpdatePerfilInstitucional,
+    isLoading: permissionsLoading
   } = usePermissions(currentSchool?.school._id);
 
   const {
@@ -96,11 +96,11 @@ export default function ConfiguracionPage() {
       </div>
     );
   }
-  
+
   if (error) {
     return <div>Error al cargar los datos: {error}</div>;
   }
-  
+
   if (!currentSchool) {
     return <div>No se encontró la escuela o no tienes acceso.</div>;
   }
@@ -109,8 +109,8 @@ export default function ConfiguracionPage() {
     <div className="space-y-8 p-6">
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-500/10 via-gray-500/5 to-background border">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,gray)]" />
-        <div className="relative p-8">
-          <div className="flex items-center justify-between">
+        <div className="relative max-md:p-6 lg:p-8">
+          <div className="flex items-center lg:flex-row lg:items-center lg:justify-between  justify-between max-md:flex-col gap-6 max-md:h-full">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-gray-500/10 rounded-xl border">
                 <GraduationCap className="h-8 w-8 text-gray-600" />
@@ -124,13 +124,14 @@ export default function ConfiguracionPage() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
+        
               {isEditing ? (
                 <>
+                <div className="flex max-md:flex-col gap-3 max-md:h-24 max-md:w-full">
                   <Button
                     variant="outline"
                     size="lg"
-                    className="gap-2"
+                    className="flex-1 gap-2 max-md:text-base "
                     onClick={handleCancel}
                     disabled={isSaving}
                   >
@@ -138,7 +139,7 @@ export default function ConfiguracionPage() {
                   </Button>
                   <Button
                     size="lg"
-                    className="gap-2"
+                    className="flex-1 gap-2 max-md:text-base"
                     onClick={handleSubmit(handleSave)}
                     disabled={isSaving}
                   >
@@ -149,20 +150,22 @@ export default function ConfiguracionPage() {
                     )}{" "}
                     Guardar Cambios
                   </Button>
+                  </div>
                 </>
               ) : (
-                // Solo mostrar botón de editar si tiene permisos de actualización
                 canUpdatePerfilInstitucional && (
+                  <div className="flex max-md:w-full">
                   <Button
                     size="lg"
-                    className="gap-2"
+                    className="gap-2 flex-1"
                     onClick={() => setIsEditing(true)}
                   >
                     <Edit className="w-4 h-4" /> Editar Información
                   </Button>
+                  </div>
                 )
               )}
-            </div>
+            
           </div>
         </div>
       </div>
@@ -179,8 +182,9 @@ export default function ConfiguracionPage() {
                 <Image
                   src={imgUrlValue!}
                   alt="Logo de la escuela"
+                  className="w-full h-full object-cover"
                   fill
-                  className="object-cover"
+                  unoptimized={true}
                 />
               ) : (
                 <div className="relative aspect-square max-w-[220px] rounded-2xl shadow-lg overflow-hidden flex items-center justify-center">
@@ -266,7 +270,6 @@ export default function ConfiguracionPage() {
   );
 }
 
-// El componente FormField permanece igual
 function FormField({
   label,
   name,

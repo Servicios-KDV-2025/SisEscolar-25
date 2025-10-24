@@ -15,7 +15,7 @@ import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/shadcn/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@repo/ui/components/shadcn/command";
 import {
-  Users, Search, Plus, Eye, Edit, Trash2, Filter, Calendar, UserCheck, UserX, GraduationCap, AlertCircle, Loader2, Check, ChevronsUpDown
+  Users, Search, Plus, Eye, Edit, Trash2, Filter, Calendar, UserCheck, UserX, GraduationCap, AlertCircle, Loader2, Check, ChevronsUpDown, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight
 } from "@repo/ui/icons";
 import { studentSchema } from "@/types/form/userSchemas";
 import { useStudentsWithPermissions, type CreateStudentData, type UpdateStudentData } from "../../../../../stores/studentStore";
@@ -68,6 +68,8 @@ export default function AlumnosPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [groupFilter, setGroupFilter] = useState<string>("all");
   const [tutorPopoverOpen, setTutorPopoverOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [cyclePopoverOpen, setCyclePopoverOpen] = useState(false);
 
   // Hook del student store con filtros por rol
@@ -138,6 +140,17 @@ export default function AlumnosPage() {
     imgUrl: "",
   }), [currentSchool?.school._id, nextEnrollment]);
 
+  const paginatedStudents = useMemo(() => {
+    const dataToUse = filteredStudents.length > 0 ? filteredStudents : students;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return dataToUse.slice(startIndex, endIndex);
+  }, [filteredStudents, students, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(
+    (filteredStudents.length > 0 ? filteredStudents.length : students.length) / itemsPerPage
+  );
+
   // Hook del CRUD Dialog
   const {
     isOpen,
@@ -160,6 +173,11 @@ export default function AlumnosPage() {
       searchTerm: searchTerm || undefined,
     });
   }, [searchTerm, statusFilter, groupFilter, students, filterStudents, currentSchool]);
+
+  // Resetear página cuando cambien los filtros
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, groupFilter]);
 
   // Limpiar errores al cambiar
   useEffect(() => {
@@ -290,6 +308,126 @@ export default function AlumnosPage() {
       age--;
     }
     return `${age} años`;
+  };
+
+  // Componente de Paginación (agregar antes del return principal):
+  const PaginationControls = () => {
+    const totalItems = filteredStudents.length > 0 ? filteredStudents.length : students.length;
+    const startItem = (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+    return (
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-4 border-t">
+        {/* Info de registros */}
+        <div className="text-sm text-muted-foreground">
+          Mostrando <span className="font-medium">{startItem}</span> a{" "}
+          <span className="font-medium">{endItem}</span> de{" "}
+          <span className="font-medium">{totalItems}</span> registros
+        </div>
+
+        {/* Controles de paginación */}
+        <div className="flex items-center gap-2">
+          {/* Selector de items por página */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Mostrar:</span>
+            <Select
+              value={itemsPerPage.toString()}
+              onValueChange={(value) => {
+                setItemsPerPage(Number(value));
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-20 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-1">
+            {/* Primera página */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+
+            {/* Página anterior */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+
+            {/* Números de página */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNumber;
+
+                if (totalPages <= 5) {
+                  pageNumber = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNumber = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNumber = totalPages - 4 + i;
+                } else {
+                  pageNumber = currentPage - 2 + i;
+                }
+
+                return (
+                  <Button
+                    key={pageNumber}
+                    variant={currentPage === pageNumber ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(pageNumber)}
+                    className="h-8 w-8 p-0"
+                  >
+                    {pageNumber}
+                  </Button>
+                );
+              })}
+            </div>
+
+            {/* Página siguiente */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+              disabled={currentPage === totalPages}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+
+            {/* Última página */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const stats = [
@@ -552,58 +690,168 @@ export default function AlumnosPage() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Lista de Alumnos</span>
-            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{filteredStudents.length} estudiantes</Badge>
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+              {filteredStudents.length > 0 ? filteredStudents.length : students.length} estudiantes
+            </Badge>
           </CardTitle>
         </CardHeader>
+
         <CardContent>
-          <div className="rounded-md border">
-            {isLoading ? (
-              <div className="space-y-4 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                <p className="text-muted-foreground">Cargando asignaciones...</p>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Cargando alumnos...</p>
               </div>
-            ) : filteredStudents.length === 0 ? (
-              <div className="text-center py-12">
-                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No se encontraron alumnos</h3>
-                <p className="text-muted-foreground mb-4">
-                  Intenta ajustar los filtros o agregar un nuevo alumno.
-                </p>
-                {canCreateUsersAlumnos && (
-                  <Button
-                    onClick={openCreate}
-                    className="gap-2 bg-blue-600 hover:bg-blue-700"
-                    disabled={!groups?.length || !tutors?.length}
-                    title={
-                      !groups?.length ? "No hay grupos disponibles" :
-                        !tutors?.length ? "No hay tutores disponibles" : ""
-                    }
-                  >
-                    <Plus className="w-4 h-4" />
-                    Agregar Alumno
-                  </Button>
-                )}
+            </div>
+          ) : (filteredStudents.length === 0 && students.length === 0) ? (
+            <div className="text-center py-12">
+              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">No se encontraron alumnos</h3>
+              <p className="text-muted-foreground mb-4">
+                {searchTerm || statusFilter !== "all" || groupFilter !== "all"
+                  ? "Intenta ajustar los filtros para ver más resultados."
+                  : "Aún no hay alumnos registrados en esta escuela."}
+              </p>
+              {canCreateUsersAlumnos && (
+                <Button
+                  onClick={openCreate}
+                  className="gap-2 bg-blue-600 hover:bg-blue-700"
+                  disabled={!groups?.length || !tutors?.length}
+                >
+                  <Plus className="h-4 w-4" />
+                  Agregar Alumno
+                </Button>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* Vista de tabla para pantallas medianas y grandes */}
+              <div className="hidden md:block rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[250px]">Estudiante</TableHead>
+                      <TableHead className="text-center">Matrícula</TableHead>
+                      <TableHead className="text-center">Grupo</TableHead>
+                      <TableHead className="text-center">Ciclo Escolar</TableHead>
+                      <TableHead className="text-center hidden lg:table-cell">Tutor</TableHead>
+                      <TableHead className="text-center">Estado</TableHead>
+                      <TableHead className="text-center hidden xl:table-cell">Fecha de Ingreso</TableHead>
+                      <TableHead className="text-center">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedStudents.map((student) => (
+                      <TableRow key={student._id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={student.imgUrl} alt={student.name} />
+                              <AvatarFallback className="bg-indigo-500/10">
+                                {getInitials(student.name, student.lastName)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium">
+                                {student.name} {student.lastName}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {calculateAge(student.birthDate)}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="font-mono">
+                            {student.enrollment}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell className="text-center">
+                          <Badge variant="secondary">
+                            {getGroupInfo(student.groupId)}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell className="text-center hidden lg:table-cell">
+                          <div className="text-sm">
+                            {getTutorInfo(student.tutorId)}
+                          </div>
+                        </TableCell>
+<                       TableCell className="text-center">
+                          <Badge variant="secondary">
+                            {getSchoolCycleInfo(student.schoolCycleId)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant={student.status === "active" ? "default" : "secondary"}
+                            className={student.status === "active"
+                              ? "bg-green-600 text-white"
+                              : "bg-gray-600/70 text-white"}
+                          >
+                            {student.status === "active" ? "Activo" : "Inactivo"}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell className="text-center hidden xl:table-cell">
+                          <div className="flex items-center gap-1 text-sm justify-center">
+                            <Calendar className="h-3 w-3 text-muted-foreground" />
+                            {formatDate(student.admissionDate)}
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="flex justify-center text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openView(student as unknown as Record<string, unknown>)}
+                              className="h-8 w-8 p-0"
+                              disabled={isUpdating || isDeleting}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            {canUpdateUsersAlumnos && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openEdit(student as unknown as Record<string, unknown>)}
+                                className="h-8 w-8 p-0"
+                                disabled={isUpdating || isDeleting}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {canDeleteUsersAlumnos && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openDelete(student as unknown as Record<string, unknown>)}
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                disabled={isUpdating || isDeleting}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[110px] px-4">Estudiante</TableHead>
-                    <TableHead className="text-center">Matrícula</TableHead>
-                    <TableHead className="text-center">Grupo</TableHead>
-                    <TableHead className="text-center">Ciclo Escolar</TableHead>
-                    <TableHead className="text-center">Tutor</TableHead>
-                    <TableHead className="text-center">Estado</TableHead>
-                    <TableHead >Fecha de Ingreso</TableHead>
-                    <TableHead className="text-center">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(filteredStudents.length > 0 ? filteredStudents : students).map((student) => (
-                    <TableRow key={student._id}>
-                      <TableCell >
+
+              {/* Vista de tarjetas para pantallas pequeñas */}
+              <div className="md:hidden space-y-4">
+                {paginatedStudents.map((student) => (
+                  <Card key={student._id} className="overflow-hidden">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10">
+                          <Avatar className="h-12 w-12">
                             <AvatarImage src={student.imgUrl} alt={student.name} />
                             <AvatarFallback className="bg-indigo-500/10">
                               {getInitials(student.name, student.lastName)}
@@ -613,97 +861,88 @@ export default function AlumnosPage() {
                             <div className="font-medium">
                               {student.name} {student.lastName}
                             </div>
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-xs text-muted-foreground">
                               {calculateAge(student.birthDate)}
                             </div>
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="outline" className="font-mono">
-                          {student.enrollment}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="secondary">
-                          {getGroupInfo(student.groupId)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="secondary">
-                          {getSchoolCycleInfo(student.schoolCycleId)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="text-sm">
-                          {getTutorInfo(student.tutorId)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
                         <Badge
                           variant={student.status === "active" ? "default" : "secondary"}
                           className={student.status === "active"
-                            ? "bg-green-600 text-white flex-shrink-0 ml-2"
-                            : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}
+                            ? "bg-green-600 text-white"
+                            : "bg-gray-600/70 text-white"}
                         >
                           {student.status === "active" ? "Activo" : "Inactivo"}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center gap-1 text-sm">
+                      </div>
+
+                      <div className="space-y-2 mb-3">
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground font-medium">Matrícula:</span>
+                          <Badge variant="outline" className="font-mono">
+                            {student.enrollment}
+                          </Badge>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground font-medium">Grupo:</span>
+                          <Badge variant="secondary">
+                            {getGroupInfo(student.groupId)}
+                          </Badge>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground font-medium">Tutor:</span>
+                          <span>{getTutorInfo(student.tutorId)}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-sm">
                           <Calendar className="h-3 w-3 text-muted-foreground" />
-                          {formatDate(student.admissionDate)}
+                          <span>{formatDate(student.admissionDate)}</span>
                         </div>
-                      </TableCell>
-                      <TableCell className="flex  justify-center">
-                        <div className="flex items-center  gap-2">
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 pt-3 border-t">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openView(student as unknown as Record<string, unknown>)}
+                          disabled={isUpdating || isDeleting}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          Ver
+                        </Button>
+                        {canUpdateUsersAlumnos && (
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
-                            onClick={() => openView(student as unknown as Record<string, unknown>)}
-                            className="hover:scale-105 transition-transform cursor-pointer"
+                            onClick={() => openEdit(student as unknown as Record<string, unknown>)}
+                            disabled={isUpdating || isDeleting}
                           >
-                            <Eye className="h-4 w-4" />
+                            <Edit className="h-4 w-4 mr-1" />
+                            Editar
                           </Button>
-                          {canUpdateUsersAlumnos && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEdit(student as unknown as Record<string, unknown>)}
-                              className="hover:scale-105 transition-transform cursor-pointer"
-                              disabled={isUpdating || isDeleting}
-                            >
-                              {isUpdating ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Edit className="h-4 w-4" />
-                              )}
-                            </Button>
-                          )}
-                          {canDeleteUsersAlumnos && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openDelete(student as unknown as Record<string, unknown>)}
-                              className="hover:scale-105 transition-transform text-destructive hover:text-destructive cursor-pointer"
-                              disabled={isUpdating || isDeleting}
-                            >
-                              {isDeleting ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))} 
-                </TableBody>
-              </Table>
-            )} 
-          </div>
+                        )}
+                        {canDeleteUsersAlumnos && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openDelete(student as unknown as Record<string, unknown>)}
+                            className="text-destructive hover:text-destructive"
+                            disabled={isUpdating || isDeleting}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
+          )}
         </CardContent>
+        {(filteredStudents.length > 0 || students.length > 0) && <PaginationControls />}
       </Card>
 
         {/* Dialog CRUD */}

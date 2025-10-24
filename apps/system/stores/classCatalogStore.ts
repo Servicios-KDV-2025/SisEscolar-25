@@ -213,14 +213,15 @@ export const useClassCatalog = (
         setUpdateError(null);
         try {
             await updateClassCatalogMutation({
-                ...data,
-                _id: data._id as Id<"classCatalog">,
+                classCatalogId: data._id as Id<"classCatalog">,
                 schoolId: data.schoolId as Id<"school">,
                 schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
                 subjectId: data.subjectId as Id<"subject">,
                 classroomId: data.classroomId as Id<"classroom">,
                 teacherId: data.teacherId as Id<"user">,
                 groupId: data.groupId as Id<"group">,
+                name: data.name,
+                status: data.status,
                 updatedAt: data.updatedAt,
             });
         } catch (error) {

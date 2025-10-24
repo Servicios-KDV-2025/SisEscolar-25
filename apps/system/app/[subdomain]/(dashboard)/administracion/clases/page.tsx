@@ -24,6 +24,13 @@ import { Input } from '@repo/ui/components/shadcn/input';
 import { Badge } from '@repo/ui/components/shadcn/badge';
 import { usePermissions } from 'hooks/usePermissions';
 import NotAuth from 'components/NotAuth';
+import { z } from 'zod';
+
+import { UseFormReturn } from 'react-hook-form';
+
+
+type ClassCatalogFormData = z.infer<typeof classCatalogSchema>;
+
 
 export default function ClassCatalogPage() {
     // Get current user from Clerk
@@ -42,7 +49,6 @@ export default function ClassCatalogPage() {
     const {
         canCreateClassCatalog,
         canReadClassCatalog,
-        canUpdateClassCatalog,
         canDeleteClassCatalog,
         isSuperAdmin,
         isAdmin,
@@ -526,48 +532,42 @@ export default function ClassCatalogPage() {
                                                                 </TableCell>
                                                                 <TableCell>{classCat.createData?.name} {classCat.createData?.lastName}</TableCell>
                                                                 <TableCell className="flex justify-end gap-2">
-                                                                    {canReadClassCatalog && (
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation()
-                                                                                openView(classCat);
-                                                                            }}
-                                                                            className="hover:scale-105 transition-transform cursor-pointer"
-                                                                            disabled={isUpdatingClassCat || isDeletingClassCat}
-                                                                        >
-                                                                            <Eye className="h-4 w-4" />
-                                                                        </Button>
-                                                                    )}
-                                                                    {canUpdateClassCatalog && (
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation()
-                                                                                openEdit(classCat);
-                                                                            }}
-                                                                            className="hover:scale-105 transition-transform cursor-pointer"
-                                                                            disabled={isUpdatingClassCat || isDeletingClassCat}
-                                                                        >
-                                                                            <Pencil className="h-4 w-4" />
-                                                                        </Button>
-                                                                    )}
-                                                                    {canDeleteClassCatalog && (
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation()
-                                                                                openDelete(classCat)
-                                                                            }}
-                                                                            className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive"
-                                                                            disabled={isUpdatingClassCat || isDeletingClassCat}
-                                                                        >
-                                                                            <Trash2 className="h-4 w-4" />
-                                                                        </Button>
-                                                                    )}
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation()
+                                                                            openView(classCat);
+                                                                        }}
+                                                                        className="hover:scale-105 transition-transform cursor-pointer"
+                                                                        disabled={isUpdatingClassCat || isDeletingClassCat}
+                                                                    >
+                                                                        <Eye className="h-4 w-4" />
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation()
+                                                                            openEdit(classCat);
+                                                                        }}
+                                                                        className="hover:scale-105 transition-transform cursor-pointer"
+                                                                        disabled={isUpdatingClassCat || isDeletingClassCat}
+                                                                    >
+                                                                        <Pencil className="h-4 w-4" />
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation()
+                                                                            openDelete(classCat)
+                                                                        }}
+                                                                        className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive"
+                                                                        disabled={isUpdatingClassCat || isDeletingClassCat}
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </Button>
                                                                 </TableCell>
                                                             </TableRow>
                                                         ))
@@ -579,6 +579,8 @@ export default function ClassCatalogPage() {
                                 )}
                             </CardContent>
                         </Card>
+
+
 
                         {/* CrudDialog */}
                         <CrudDialog
@@ -613,7 +615,7 @@ export default function ClassCatalogPage() {
                         >
                             {(form, operation) => (
                                 <ClassCatalogForm
-                                    form={form}
+                                    form={form as unknown as UseFormReturn<ClassCatalogFormData>}
                                     operation={operation}
                                     subjects={subjects}
                                     groups={groups || []}

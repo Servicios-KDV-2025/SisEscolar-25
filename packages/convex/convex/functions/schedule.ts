@@ -111,3 +111,132 @@ export const deleteSchedule = mutation({
     return true;
   },
 });
+
+export const getScheduleConflicts = query({
+  args: {
+    schoolId: v.id("school"),
+    teacherId: v.id("user"),
+    classroomId: v.id("classroom"),
+    classCatalogIdToExclude: v.optional(v.id("classCatalog")),
+  },
+  handler: async (ctx, args) => {
+    // 1. Obtener todas las clases de la escuela
+    const classCatalogs = await ctx.db
+      .query("classCatalog")
+      .filter(q => q.eq(q.field("schoolId"), args.schoolId))
+      .collect();
+      
+    // 2. Filtrar las clases que NO son la que estamos editando
+    const relevantClasses = classCatalogs.filter(classInfo => {
+      // ✅ Excluir la clase que se está editando
+      if (args.classCatalogIdToExclude && classInfo._id === args.classCatalogIdToExclude) {
+        return false;
+      }
+      
+      // ✅ Solo incluir clases que tengan el mismo profesor O aula
+      return classInfo.teacherId === args.teacherId || 
+             classInfo.classroomId === args.classroomId;
+    });
+
+    // 3. Obtener los scheduleIds de esas clases
+    const conflictingScheduleIds = new Set<string>();
+
+    for (const classInfo of relevantClasses) {
+      // Buscar todas las asignaciones de horario para esta clase
+      const classSchedules = await ctx.db
+        .query("classSchedule")
+        .withIndex("by_class_catalog", q => q.eq("classCatalogId", classInfo._id))
+        .collect();
+      
+      // Agregar todos los scheduleIds encontrados
+      for (const schedule of classSchedules) {
+        conflictingScheduleIds.add(schedule.scheduleId);
+      }
+    }
+
+    // 4. Devolver un array con los IDs de los horarios en conflicto
+    return Array.from(conflictingScheduleIds);
+  },
+});
+
+export const getScheduleConflictsForEdit = query({
+  args: {
+    schoolId: v.id("school"),
+    teacherId: v.id("user"),
+    classroomId: v.id("classroom"),
+    classCatalogIdToExclude: v.id("classCatalog"),
+  },
+  handler: async (ctx, args) => {
+    const allClassCatalogs = await ctx.db
+      .query("classCatalog")
+      .filter(q => q.eq(q.field("schoolId"), args.schoolId))
+      .collect();
+
+    const otherClasses = allClassCatalogs.filter(
+      (c) => c._id !== args.classCatalogIdToExclude
+    );
+
+    const conflictingScheduleIds = new Set<string>();
+
+    // En lugar de traer todos los horarios, iteramos sobre las clases relevantes
+    for (const classCat of otherClasses) {
+      // Si la clase tiene un profesor o salón que nos interesa...
+      if (classCat.teacherId === args.teacherId || classCat.classroomId === args.classroomId) {
+        // ...buscamos sus horarios asignados usando un índice
+        const schedules = await ctx.db
+          .query("classSchedule")
+          .withIndex("by_class_catalog", q => q.eq("classCatalogId", classCat._id))
+          .collect();
+        
+        // Y añadimos esos IDs de horario a nuestra lista de conflictos
+        for (const s of schedules) {
+          conflictingScheduleIds.add(s.scheduleId);
+        }
+      }
+    }
+
+    return Array.from(conflictingScheduleIds);
+  },
+});
+
+export const getOccupiedScheduleIds = query({
+  args: { schoolId: v.id("school") },
+  handler: async (ctx, args) => {
+    // 1. Encuentra el ciclo escolar que está marcado como "activo"
+    const activeCycle = await ctx.db
+      .query("schoolCycle")
+      .withIndex("by_school_status", (q) =>
+        q.eq("schoolId", args.schoolId).eq("status", "active")
+      )
+      .unique();
+
+    // Si no hay ciclo activo, no puede haber horarios ocupados.
+    if (!activeCycle) {
+      return [];
+    }
+
+    // 2. Busca todas las clases que pertenecen a ese ciclo activo.
+    const classesInActiveCycle = await ctx.db
+      .query("classCatalog")
+      .withIndex("by_cycle", (q) => q.eq("schoolCycleId", activeCycle._id))
+      .collect();
+    
+    if (classesInActiveCycle.length === 0) {
+      return [];
+    }
+    
+    // Crea un conjunto de IDs de esas clases para buscar más rápido.
+    const classIdsInActiveCycle = new Set(classesInActiveCycle.map(c => c._id));
+
+    // 3. Busca en la tabla de asignaciones (classSchedule).
+    const allSchedulesAssignments = await ctx.db.query("classSchedule").collect();
+
+    // 4. Filtra las asignaciones para quedarte solo con las que pertenecen a las clases del ciclo activo.
+    const occupiedScheduleIds = allSchedulesAssignments
+      .filter(assignment => classIdsInActiveCycle.has(assignment.classCatalogId))
+      .map(assignment => assignment.scheduleId);
+
+    // 5. Devuelve una lista de IDs de horarios únicos (sin duplicados).
+    return [...new Set(occupiedScheduleIds)];
+  },
+});
