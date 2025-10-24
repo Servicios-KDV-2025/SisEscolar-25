@@ -11,8 +11,8 @@ const sampleEvents: CalendarEvent[] = [
     id: "1",
     title: "Annual Planning",
     description: "Strategic planning for next year",
-    start: subDays(new Date(), 24), // 24 days before today
-    end: subDays(new Date(), 23), // 23 days before today
+    start: subDays(new Date(), 24),
+    end: subDays(new Date(), 23),
     allDay: true,
     color: "sky",
     location: "Main Conference Hall"
