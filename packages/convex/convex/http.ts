@@ -107,7 +107,7 @@ async function validateRequest(req: Request): Promise<WebhookEvent | null> {
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-09-30.clover",
 });
-
+ 
 http.route({
   path: "/subscription-webhook",
   method: "POST",
@@ -267,5 +267,218 @@ async function handleSubscriptionUpdated(ctx: any, subscription: Stripe.Subscrip
   });
 }
 
+// Webhook para Stripe Connect payments
+http.route({
+  path: "/stripe-connect-webhook",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    console.log("🔔 Webhook recibido en /stripe-connect-webhook");
+    
+    try {
+      const sig = request.headers.get("stripe-signature");
+      if (!sig) {
+        console.error("❌ Falta firma de Stripe");
+        return new Response("Falta la firma de Stripe", { status: 400 });
+      }
 
+      const body = await request.text();
+      console.log("📦 Body recibido (primeros 200 chars):", body.substring(0, 200));
+      
+      // Intentar verificar con ambos secrets
+      let event;
+      let usedSecret = "unknown";
+      
+      // Primero intentar con STRIPE_V2_WEBHOOK_SECRET (para invoices)
+      const v2Secret = process.env.STRIPE_V2_WEBHOOK_SECRET?.trim();
+      if (v2Secret) {
+        try {
+          event = await stripe.webhooks.constructEventAsync(body, sig, v2Secret);
+          usedSecret = "v2";
+          console.log("✅ Evento verificado con V2 secret");
+        } catch (err) {
+          console.log("⚠️ V2 secret falló, intentando con Connect secret...");
+        }
+      }
+      
+      // Si V2 falló o no existe, intentar con STRIPE_CONNECT_WEBHOOK_SECRET
+      if (!event) {
+        const connectSecret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET?.trim();
+        if (!connectSecret) {
+          console.error("❌ Ningún webhook secret configurado");
+          throw new Error("Se requiere STRIPE_V2_WEBHOOK_SECRET o STRIPE_CONNECT_WEBHOOK_SECRET");
+        }
+        event = await stripe.webhooks.constructEventAsync(body, sig, connectSecret);
+        usedSecret = "connect";
+        console.log("✅ Evento verificado con Connect secret");
+      }
+
+      console.log("✅ Evento verificado:", event.type, "ID:", event.id, "Secret usado:", usedSecret);
+      console.log("🏢 Account:", event.account || "main account");
+      console.log("🎯 API Version:", event.api_version);
+      console.log("📦 Livemode:", event.livemode);
+
+      switch (event.type) {
+        case "checkout.session.completed":
+          console.log("🛒 Procesando checkout.session.completed");
+          await handleCheckoutSessionCompletedForBilling(ctx, event.data.object);
+          console.log("✅ Checkout procesado exitosamente");
+          break;
+        case "payment_intent.succeeded":
+          console.log("💳 Procesando payment_intent.succeeded");
+          await handlePaymentIntentSucceeded(ctx, event.data.object);
+          console.log("✅ Payment intent procesado exitosamente");
+          break;
+        case "payment_intent.payment_failed":
+          console.log("❌ Procesando payment_intent.payment_failed");
+          await handlePaymentIntentFailed(ctx, event.data.object);
+          break;
+        case "account.updated":
+          console.log("👤 Procesando account.updated");
+          await handleAccountUpdated(ctx, event.data.object);
+          break;
+        // Eventos de Invoice (para pagos en efectivo)
+        case "invoice.created":
+          console.log("📄 Invoice creado - OK (no requiere acción)");
+          break;
+        case "invoice.finalized":
+          console.log("📄 Invoice finalizado - OK (no requiere acción)");
+          break;
+        case "invoice.paid":
+          console.log("💵 Invoice pagado - OK (ya procesado en registerCashPaymentWithInvoice)");
+          break;
+        default:
+          console.log(`⚠️ Evento no manejado: ${event.type}`);
+      }
+
+      console.log("✅ Webhook procesado completamente");
+      return new Response(JSON.stringify({ received: true }), { status: 200 });
+    } catch (error: any) {
+      console.error("❌ Error procesando webhook:", error);
+      console.error("   Stack:", error.stack);
+      console.error("   Message:", error.message);
+      
+      // Retornar 500 para que Stripe reintente
+      return new Response(JSON.stringify({ 
+        error: "Internal server error",
+        message: error.message 
+      }), { status: 500 });
+    }
+  }),
+});
+
+async function handleCheckoutSessionCompletedForBilling(ctx: ActionCtx, session: Stripe.Checkout.Session) {
+  console.log("✅ checkout.session.completed (billing):", session.id);
+  console.log("📋 Session metadata:", JSON.stringify(session.metadata, null, 2));
+  console.log("💰 Amount total:", session.amount_total);
+  console.log("💳 Payment intent:", session.payment_intent);
+  console.log("💵 Currency:", session.currency);
+  console.log("👤 Customer:", session.customer);
+
+  const metadata = session.metadata;
+  
+  if (!metadata?.billingId || !metadata?.studentId || !metadata?.tutorId) {
+    console.error("❌ Metadata incompleta en Checkout Session");
+    console.error("   billingId:", metadata?.billingId);
+    console.error("   studentId:", metadata?.studentId);
+    console.error("   tutorId:", metadata?.tutorId);
+    console.error("   schoolId:", metadata?.schoolId);
+    
+    // Lanzar error en lugar de return para que el webhook devuelva 500
+    throw new Error(`Metadata incompleta: billingId=${metadata?.billingId}, studentId=${metadata?.studentId}, tutorId=${metadata?.tutorId}`);
+  }
+
+  // Obtener el Payment Intent asociado
+  const paymentIntentId = session.payment_intent as string;
+  console.log("💳 Payment Intent ID extraído:", paymentIntentId);
+  
+  if (!paymentIntentId) {
+    console.error("❌ No se encontró Payment Intent en la sesión");
+    throw new Error("No se encontró Payment Intent en la sesión");
+  }
+
+  console.log("💾 Intentando confirmar pago en la base de datos...");
+  console.log("   billingId:", metadata.billingId);
+  console.log("   studentId:", metadata.studentId);
+  console.log("   tutorId:", metadata.tutorId);
+  console.log("   amount:", (session.amount_total || 0) / 100);
+
+  // Confirmar el pago en la base de datos
+  await ctx.runMutation(internal.functions.stripePayments.confirmPayment, {
+    paymentIntentId: paymentIntentId,
+    billingId: metadata.billingId as Id<"billing">,
+    studentId: metadata.studentId as Id<"student">,
+    amount: (session.amount_total || 0) / 100, // Convertir de centavos a pesos
+    createdBy: metadata.tutorId as Id<"user">,
+    stripeChargeId: paymentIntentId,
+  });
+
+  console.log("✅ Pago de billing confirmado en base de datos desde Checkout");
+}
+
+async function handlePaymentIntentSucceeded(ctx: ActionCtx, paymentIntent: Stripe.PaymentIntent) {
+  console.log("✅ payment_intent.succeeded:", paymentIntent.id);
+  console.log("📋 Payment Intent metadata:", JSON.stringify(paymentIntent.metadata, null, 2));
+  console.log("💰 Amount:", paymentIntent.amount);
+  console.log("💵 Currency:", paymentIntent.currency);
+  console.log("💳 Latest charge:", paymentIntent.latest_charge);
+  console.log("🎯 Status:", paymentIntent.status);
+  console.log("💳 Payment method types:", paymentIntent.payment_method_types);
+
+  const metadata = paymentIntent.metadata;
+  
+  if (!metadata.billingId || !metadata.studentId || !metadata.tutorId) {
+    console.error("❌ Metadata incompleta en Payment Intent");
+    console.error("   billingId:", metadata?.billingId);
+    console.error("   studentId:", metadata?.studentId);
+    console.error("   tutorId:", metadata?.tutorId);
+    console.error("   schoolId:", metadata?.schoolId);
+    
+    // Lanzar error en lugar de return
+    throw new Error(`Metadata incompleta en Payment Intent: billingId=${metadata?.billingId}, studentId=${metadata?.studentId}, tutorId=${metadata?.tutorId}`);
+  }
+
+  // Detectar el método de pago real
+  let paymentMethod: "cash" | "bank_transfer" | "card" | "other" = "other";
+  
+  if (paymentIntent.payment_method_types.includes("oxxo")) {
+    paymentMethod = "cash"; // OXXO es pago en efectivo
+    console.log("💵 Método detectado: OXXO (cash)");
+  } else if (paymentIntent.payment_method_types.includes("customer_balance")) {
+    paymentMethod = "bank_transfer"; // SPEI/transferencia bancaria
+    console.log("🏦 Método detectado: SPEI (bank_transfer)");
+  } else if (paymentIntent.payment_method_types.includes("card")) {
+    paymentMethod = "card"; // Tarjeta
+    console.log("💳 Método detectado: Tarjeta (card)");
+  }
+
+  console.log("💾 Intentando confirmar pago en la base de datos...");
+  console.log("   billingId:", metadata.billingId);
+  console.log("   studentId:", metadata.studentId);
+  console.log("   tutorId:", metadata.tutorId);
+  console.log("   amount:", paymentIntent.amount / 100);
+  console.log("   method:", paymentMethod);
+
+  // Confirmar el pago en la base de datos
+  await ctx.runMutation(internal.functions.stripePayments.confirmPayment, {
+    paymentIntentId: paymentIntent.id,
+    billingId: metadata.billingId as Id<"billing">,
+    studentId: metadata.studentId as Id<"student">,
+    amount: paymentIntent.amount / 100, // Convertir de centavos a pesos
+    createdBy: metadata.tutorId as Id<"user">,
+    stripeChargeId: paymentIntent.latest_charge as string,
+    paymentMethod: paymentMethod,
+  });
+
+  console.log("✅ Pago confirmado en base de datos desde Payment Intent");
+}
+
+async function handlePaymentIntentFailed(ctx: ActionCtx, paymentIntent: Stripe.PaymentIntent) {
+  console.log("❌ payment_intent.failed:", paymentIntent.id);
+  // Aquí puedes agregar lógica para notificar al usuario sobre el fallo
+}
+
+async function handleAccountUpdated(ctx: ActionCtx, account: Stripe.Account) {
+  console.log("✅ account.updated:", account.id);
+  // Puedes actualizar el estado de la cuenta en tu base de datos si lo necesitas
+}
 export default http;

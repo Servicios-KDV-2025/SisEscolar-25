@@ -17,6 +17,13 @@ export interface ClassItem {
   classCatalogId: string;
   name: string;
   status: "active" | "inactive";
+  schoolCycleId?: string; // Hacer opcional
+  schoolCycle?: {         // Hacer opcional
+    _id: string;
+    name: string;
+    startDate?: number;
+    endDate?: number;
+  };
   subject?: {
     _id: string;
     name: string;
@@ -55,6 +62,11 @@ interface ClassScheduleState {
   filter: "all" | "active" | "inactive";
   searchTerm: string;
 
+  // --- NUEVO ESTADO ---
+  filterByActiveCycle: boolean;
+  activeSchoolCycleId: string | null;
+  // --- FIN ---
+
   // Estado de formularios
   isCreateFormOpen: boolean;
   isEditFormOpen: boolean;
@@ -80,6 +92,11 @@ interface ClassScheduleState {
   setFilter: (filter: "all" | "active" | "inactive") => void;
   setSearchTerm: (term: string) => void;
 
+  // --- NUEVAS ACCIONES ---
+  setFilterByActiveCycle: (isActive: boolean) => void;
+  setActiveSchoolCycleId: (id: string | null) => void;
+  // --- FIN ---
+
   // Acciones de formularios
   openCreateForm: () => void;
   closeCreateForm: () => void;
@@ -102,6 +119,12 @@ export const useClassScheduleStore = create<ClassScheduleState>()(
       error: null,
       filter: "all",
       searchTerm: "",
+
+      // --- NUEVO ESTADO INICIAL ---
+      filterByActiveCycle: true, // Iniciar encendido por defecto
+      activeSchoolCycleId: null,
+      // --- FIN ---
+
       isCreateFormOpen: false,
       isEditFormOpen: false,
       isViewFormOpen: false,
@@ -168,6 +191,11 @@ export const useClassScheduleStore = create<ClassScheduleState>()(
       setFilter: (filter) => set({ filter }),
       setSearchTerm: (searchTerm) => set({ searchTerm }),
 
+      // --- IMPLEMENTACIÓN NUEVAS ACCIONES ---
+      setFilterByActiveCycle: (filterByActiveCycle) => set({ filterByActiveCycle }),
+      setActiveSchoolCycleId: (activeSchoolCycleId) => set({ activeSchoolCycleId }),
+      // --- FIN ---
+
       // Acciones de formularios
       openCreateForm: () => set({ isCreateFormOpen: true }),
       closeCreateForm: () => set({ isCreateFormOpen: false }),
@@ -190,9 +218,11 @@ export const useClassScheduleStore = create<ClassScheduleState>()(
   )
 );
 
-// Selectores derivados
+// --- SELECTOR `useFilteredClasses` ACTUALIZADO ---
 export const useFilteredClasses = (classS: ClassItem[] | null | undefined) => {
-  const { filter, searchTerm } = useClassScheduleStore();
+  // Obtener el nuevo estado del store
+  const { filter, searchTerm, filterByActiveCycle, activeSchoolCycleId } =
+    useClassScheduleStore();
   
   return (classS?.filter(Boolean) || []).filter((classItem) => {
     const matchesFilter =
@@ -204,9 +234,15 @@ export const useFilteredClasses = (classS: ClassItem[] | null | undefined) => {
       classItem.teacher?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       classItem.teacher?.lastName?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    return matchesFilter && matchesSearch;
+    // Lógica del nuevo filtro
+    const matchesActiveCycle =
+      !filterByActiveCycle || // Si el filtro está apagado, siempre coincide
+      (filterByActiveCycle && activeSchoolCycleId && classItem.schoolCycleId === activeSchoolCycleId); // Si está prendido, el ID debe existir y coincidir
+    
+    return matchesFilter && matchesSearch && matchesActiveCycle;
   });
 };
+// --- FIN DEL SELECTOR ---
 
 export const useClassStats = () => {
   const { classes } = useClassScheduleStore();

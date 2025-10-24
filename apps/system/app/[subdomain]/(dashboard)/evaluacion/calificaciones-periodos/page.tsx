@@ -455,9 +455,9 @@ export default function GradeManagementDashboard() {
                   No se pueden mostrar las calificaciones
                 </h3>
                 <p className="">Registra:</p>
-
+                <div className="flex justify-center gap-3">
                 {!hasStudents && (
-                  <Link href={`/clasesPorAlumnos`}>
+                  <Link href={`/administracion/asignacion-de-clases`}>
                     <Button>
                       <Plus className="w-4 h-4" />
                       Estudiantes en esta clase
@@ -465,7 +465,7 @@ export default function GradeManagementDashboard() {
                   </Link>
                 )}
                 {!hasTerms && (
-                  <Link href={`/periodos`}>
+                  <Link href={`/administracion/periodos`}>
                     <Button>
                       <Plus className="w-4 h-4" />
                       Periodos en este ciclo{" "}
@@ -473,13 +473,14 @@ export default function GradeManagementDashboard() {
                   </Link>
                 )}
                 {!hasClasses && (
-                  <Link href={`/clasesPorAlumnos`}>
+                  <Link href={`/administracion/clases`}>
                     <Button>
                       <Plus className="w-4 h-4" />
                       Clases{" "}
                     </Button>
                   </Link>
                 )}
+                </div>
               </div>
             </div>
           )}

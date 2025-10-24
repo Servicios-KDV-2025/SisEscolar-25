@@ -157,7 +157,6 @@ export const useClassCatalog = (
             tutorId: roleFilters!.tutorId,
         } : "skip"
     );
-
     const classCatalogWithRoleFilter = useQuery(
         api.functions.classCatalog.getClassCatalogWithRoleFilter,
         schoolId && roleFilters ? {
@@ -166,7 +165,14 @@ export const useClassCatalog = (
             tutorId: roleFilters.tutorId,
             teacherId: roleFilters.teacherId
         } : 'skip'
-    )
+    );
+    const getClassByTeacher = useQuery(
+        api.functions.classCatalog.getClassesByTeacher,
+        {
+            schoolId: schoolId as Id<'school'>,
+            teacherId: roleFilters?.teacherId as Id<'user'>
+        }
+    );
 
     // Mutations
     const createClassCatalogMutation = useMutation(api.functions.classCatalog.createClassCatalog);
@@ -207,14 +213,15 @@ export const useClassCatalog = (
         setUpdateError(null);
         try {
             await updateClassCatalogMutation({
-                ...data,
-                _id: data._id as Id<"classCatalog">,
+                classCatalogId: data._id as Id<"classCatalog">,
                 schoolId: data.schoolId as Id<"school">,
                 schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
                 subjectId: data.subjectId as Id<"subject">,
                 classroomId: data.classroomId as Id<"classroom">,
                 teacherId: data.teacherId as Id<"user">,
                 groupId: data.groupId as Id<"group">,
+                name: data.name,
+                status: data.status,
                 updatedAt: data.updatedAt,
             });
         } catch (error) {
@@ -260,6 +267,7 @@ export const useClassCatalog = (
     return {
         classCatalogs,
         classCatalogsWithDetails: (classCatalogsQuery as ClassCatalogWithDetails[]) || [],
+        getClassByTeacher,
         selectedClassCatalog,
         isLoading,
         isCreating,
