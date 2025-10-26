@@ -7,7 +7,7 @@ export const CalendarSchema = z.object({
         .string()
         .max(500, "La descripción no puede exceder 500 caracteres")
         .optional(),
-    schoolCycleId: z.string().min(1, "Debe seleccionar un ciclo escolar"),
+    schoolCycleId: z.string(),
     status: z.enum(['active', 'inactive']).optional()
 });
 

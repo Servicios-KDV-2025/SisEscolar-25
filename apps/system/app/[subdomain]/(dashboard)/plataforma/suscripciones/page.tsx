@@ -474,14 +474,20 @@ export default function SubscriptionsManagement() {
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
         <div className="relative p-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div className="space-y-3">
+            <div className="space-y-2 lg:space-y-3"> {/* 1. Reduce el espaciado vertical */}
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-primary/10 rounded-xl">
-                  <CreditCard className="h-8 w-8 text-primary" />
+                {/* 2. Reduce el padding del contenedor y el radio del borde */}
+                <div className="p-2 lg:p-3 bg-primary/10 rounded-lg lg:rounded-xl">
+                  {/* 3. Reduce el tamaño del icono */}
+                  <CreditCard className="h-6 w-6 text-primary lg:h-8 lg:w-8" />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-bold tracking-tight">Suscripciones</h1>
-                  <p className="text-lg text-muted-foreground">
+                  {/* 4. Reduce el tamaño del título */}
+                  <h1 className="text-2xl font-bold tracking-tight lg:text-4xl">
+                    Suscripciones
+                  </h1>
+                  {/* 5. Reduce el tamaño de la descripción */}
+                  <p className="text-sm text-muted-foreground lg:text-lg">
                     Administra las suscripciones y pagos de tu institución educativa
                   </p>
                 </div>
@@ -628,7 +634,8 @@ export default function SubscriptionsManagement() {
                 />
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+
               <Select value={planFilter} onValueChange={setPlanFilter}>
                 <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder="Filtrar plan" />

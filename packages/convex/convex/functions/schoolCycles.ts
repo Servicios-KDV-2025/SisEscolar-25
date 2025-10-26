@@ -1,4 +1,4 @@
-import { mutation, query } from "../_generated/server"; 
+import { mutation, query, internalMutation } from "../_generated/server"; 
 import { v } from "convex/values";
 
 export const ObtenerCiclosEscolares = query({
@@ -195,3 +195,4 @@ export const getAllSchoolCycles = query({
     }));
   },
 });
+

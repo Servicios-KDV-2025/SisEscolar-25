@@ -1,6 +1,5 @@
-import { mutation, query } from "../_generated/server";
+import { mutation, query, internalQuery, internalMutation } from "../_generated/server";
 import { v } from "convex/values";
-import { api } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
 
 // Obtener todas las relaciones classSchedule con información completa
@@ -24,6 +23,7 @@ export const getClassSchedules = query({
     const filteredClassSchedules = classSchedules.filter(cs =>
       schoolClassIds.includes(cs.classCatalogId)
     );
+    
 
     // Agrupar por classCatalogId
     const groupedSchedules = filteredClassSchedules.reduce((acc, cs) => {
@@ -626,7 +626,6 @@ export const getClassScheduleWithRoleFilter = query({
 
     // 2) Si es tutor -> solo relaciones de las clases donde están matriculados sus estudiantes
     else if (tutorId) {
-      // obtener estudiantes del tutor en esa escuela
       const students = await ctx.db
         .query("student")
         .withIndex("by_schoolId", (q) => q.eq("schoolId", schoolId))
@@ -635,7 +634,6 @@ export const getClassScheduleWithRoleFilter = query({
 
       if (students.length === 0) return [];
 
-      // obtener studentClass de cada estudiante (solo activos)
       const studentClassArrays = await Promise.all(
         students.map((s) =>
           ctx.db
@@ -703,7 +701,7 @@ export const getClassScheduleWithRoleFilter = query({
       return acc;
     }, {} as Record<string, typeof classScheduleRecords>);
 
-    // Para cada grupo, construir la estructura enriquecida (igual a tu versión original)
+    // Para cada grupo, construir la estructura enriquecida
     const classesWithSchedules = await Promise.all(
       Object.entries(groupedSchedules).map(async ([classCatalogId, schedules]) => {
         const classCatalog = await ctx.db.get(classCatalogId as Id<"classCatalog">);
@@ -716,11 +714,13 @@ export const getClassScheduleWithRoleFilter = query({
           })
         );
 
-        const [subject, classroom, teacher, group] = await Promise.all([
+        // ✅ CAMBIO IMPORTANTE: Obtener también el schoolCycle
+        const [subject, classroom, teacher, group, schoolCycle] = await Promise.all([
           ctx.db.get(classCatalog.subjectId),
           ctx.db.get(classCatalog.classroomId),
           ctx.db.get(classCatalog.teacherId),
           classCatalog.groupId ? ctx.db.get(classCatalog.groupId) : Promise.resolve(null),
+          ctx.db.get(classCatalog.schoolCycleId), // ✅ NUEVO
         ]);
 
         const hasActiveRelations = schedules.some((cs) => cs.status === "active");
@@ -731,6 +731,8 @@ export const getClassScheduleWithRoleFilter = query({
           classCatalogId: classCatalog._id,
           name: classCatalog.name,
           status: classStatus,
+          schoolCycleId: classCatalog.schoolCycleId, // ✅ NUEVO
+          schoolCycle, // ✅ NUEVO: Objeto completo del ciclo escolar
           subject,
           classroom,
           teacher,
@@ -745,3 +747,24 @@ export const getClassScheduleWithRoleFilter = query({
     return classesWithSchedules.filter(Boolean);
   },
 });
+
+export const getSchedulesByClassCatalog = internalQuery({
+  args: { classCatalogId: v.id("classCatalog") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("classSchedule")
+      .withIndex("by_class_catalog", (q) =>
+        q.eq("classCatalogId", args.classCatalogId)
+      )
+      .collect();
+  },
+});
+
+// Mutación interna para borrar un horario específico por su ID
+export const deleteScheduleById = internalMutation({
+  args: { scheduleId: v.id("classSchedule") },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.scheduleId);
+  },
+});
+
