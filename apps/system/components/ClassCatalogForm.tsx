@@ -3,6 +3,7 @@ import { UseFormReturn, useWatch } from "react-hook-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select";
 import { Input } from "@repo/ui/components/shadcn/input";
+import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Subject } from "stores/subjectStore";
 import { Group } from "stores/groupStore";
 import { ClassroomType, SchoolCycleType, TeacherType } from '@/types/temporalSchema';
@@ -17,7 +18,7 @@ interface FormularioCatalogoDeClasesProps {
     schoolCycles: SchoolCycleType[] | undefined;
     classrooms?: ClassroomType[] | undefined;
     teachers: TeacherType[] | undefined;
-     activeSchoolCycleId?: string; 
+    activeSchoolCycleId?: string;
 }
 
 export function ClassCatalogForm({
@@ -34,6 +35,9 @@ export function ClassCatalogForm({
 
     const subjectId = useWatch({ control: form.control, name: "subjectId" });
     const groupId = useWatch({ control: form.control, name: "groupId" });
+    const schoolCycleId = useWatch({ control: form.control, name: "schoolCycleId" });
+
+    const selectedCycle = schoolCycles?.find(c => c._id === schoolCycleId);
 
     useEffect(() => {
         // Se ejecuta solo al crear y si el campo aún no tiene un valor.
@@ -58,27 +62,14 @@ export function ClassCatalogForm({
             <FormField
                 control={form.control}
                 name="schoolCycleId"
-                render={({ field }) => ( 
+                render={() => (
                     <FormItem>
                         <FormLabel>Ciclo Escolar</FormLabel>
-                        <Select
-                            onValueChange={field.onChange}
-                            value={field.value ?? ""}
-                            disabled={operation === "view"}
-                        >
-                            <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecciona un Ciclo Escolar" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                {schoolCycles?.map((c) => (
-                                    <SelectItem disabled={true} key={c._id} value={c._id}>
-                                        {c.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <div className="flex h-10 w-full items-center" >
+                            <Badge variant="secondary" className="text-sm font-normal px-3 py-1">
+                                {selectedCycle?.name || "No seleccionado"}
+                            </Badge>
+                        </div>
                         <FormMessage />
                     </FormItem>
                 )}
@@ -225,7 +216,7 @@ export function ClassCatalogForm({
                                 minLength={1}
                                 maxLength={40}
                             />
-                        </FormControl> 
+                        </FormControl>
                         <FormMessage />
                     </FormItem>
                 )}

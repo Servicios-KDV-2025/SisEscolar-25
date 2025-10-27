@@ -119,6 +119,7 @@ interface StepTwoProps {
   getDayName: (day: string) => string;
   formatTime: (time: string) => string;
   conflictScheduleIds: string[];
+  existingClass?: { _id: Id<"classCatalog">; name: string; } | null; // permitir null
 }
 
 // Componente para el Paso 1 del formulario de creación
@@ -179,18 +180,42 @@ function StepTwoContent({
   getDayName,
   formatTime,
   conflictScheduleIds,
+  existingClass, // ← NUEVO PROP
 }: StepTwoProps) {
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-medium text-center">
-        Paso 2: Horarios Disponibles (Opcional)
+        Paso 2: Horarios Disponibles
       </h3>
+
+      {/* ✅ MENSAJE SI LA CLASE YA EXISTE */}
+      {existingClass && (
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-blue-800">
+                Clase existente detectada
+              </p>
+              <p className="text-sm text-blue-700 mt-1">
+                Esta combinación de materia, profesor, grupo y aula ya existe.
+                Los horarios seleccionados se agregarán a la clase existente: <strong>{existingClass.name}</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <FormField
         control={form.control}
         name="selectedScheduleIds"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Seleccionar Horarios</FormLabel>
+            <FormLabel>Seleccionar Horarios *</FormLabel>
             <FormControl>
               <TooltipProvider>
                 <div className="grid gap-2 max-h-60 overflow-y-auto border rounded-md p-4">
@@ -216,8 +241,8 @@ function StepTwoContent({
                             <label
                               htmlFor={schedule._id}
                               className={`text-sm font-medium leading-none flex-1 cursor-pointer ${isConflict
-                                ? "text-muted-foreground opacity-50 cursor-not-allowed"
-                                : ""
+                                  ? "text-muted-foreground opacity-50 cursor-not-allowed"
+                                  : ""
                                 }`}
                             >
                               <div className="flex items-center justify-between">
@@ -249,11 +274,14 @@ function StepTwoContent({
           </FormItem>
         )}
       />
+
       <div className="flex justify-between pt-4">
         <Button type="button" variant="outline" onClick={() => setFormStep(1)}>
           ← Volver
         </Button>
-        <Button type="submit">Guardar Clase</Button>
+        <Button type="submit">
+          {existingClass ? "Agregar Horarios" : "Guardar Clase"}
+        </Button>
       </div>
     </div>
   );
@@ -326,40 +354,64 @@ export default function HorariosPorClasePage() {
   const editWatchedClassroomId = editClassForm.watch("classroomId");
 
   const editConflictScheduleIds = useQuery(
-  api.functions.schedule.getScheduleConflicts,
-  currentSchool?.school._id &&
-    isEditingClassDetails &&
-    editWatchedTeacherId &&
-    editWatchedClassroomId &&
-    (crudDialog.data as ClassItem)?.classCatalogId
-    ? {
-      schoolId: currentSchool.school._id,
-      teacherId: editWatchedTeacherId as Id<"user">,
-      classroomId: editWatchedClassroomId as Id<"classroom">,
-      classCatalogIdToExclude: (crudDialog.data as ClassItem).classCatalogId as Id<"classCatalog">,
-    }
-    : "skip"
-);
-
-  const editScheduleConflicts = useQuery(
-  api.functions.schedule.getScheduleConflictsForEdit,
-  (() => {
-    const classItem = crudDialog.data as ClassItem | null;
-    return currentSchool?.school._id &&
-      crudDialog.operation === "edit" &&
-      !isEditingClassDetails &&
-      classItem?.teacher?._id &&
-      classItem?.classroom?._id &&
-      classItem?.classCatalogId
+    api.functions.schedule.getScheduleConflicts,
+    currentSchool?.school._id &&
+      isEditingClassDetails &&
+      editWatchedTeacherId &&
+      editWatchedClassroomId &&
+      (crudDialog.data as ClassItem)?.classCatalogId
       ? {
         schoolId: currentSchool.school._id,
-        teacherId: classItem.teacher._id as Id<"user">,
-        classroomId: classItem.classroom._id as Id<"classroom">,
-        classCatalogIdToExclude: classItem.classCatalogId as Id<"classCatalog">,
+        teacherId: editWatchedTeacherId as Id<"user">,
+        classroomId: editWatchedClassroomId as Id<"classroom">,
+        classCatalogIdToExclude: (crudDialog.data as ClassItem).classCatalogId as Id<"classCatalog">,
+
       }
-      : "skip";
-  })()
-);
+      : "skip"
+  );
+
+  const editScheduleConflicts = useQuery(
+    api.functions.schedule.getScheduleConflictsForEdit,
+    (() => {
+      const classItem = crudDialog.data as ClassItem | null;
+      return currentSchool?.school._id &&
+        crudDialog.operation === "edit" &&
+        !isEditingClassDetails &&
+        classItem?.teacher?._id &&
+        classItem?.classroom?._id &&
+        classItem?.classCatalogId
+        ? {
+          schoolId: currentSchool.school._id,
+          teacherId: classItem.teacher._id as Id<"user">,
+          classroomId: classItem.classroom._id as Id<"classroom">,
+          classCatalogIdToExclude: classItem.classCatalogId as Id<"classCatalog">,
+        }
+        : "skip";
+    })()
+  );
+
+  const existingClass = useQuery(
+    api.functions.classCatalog.checkDuplicateClass,
+    (() => {
+      const watchedData = createForm.watch();
+      return currentSchool?.school._id &&
+        isCreateDialogOpen &&
+        watchedData.subjectId &&
+        watchedData.classroomId &&
+        watchedData.teacherId &&
+        watchedData.groupId &&
+        watchedData.schoolCycleId
+        ? {
+          schoolId: currentSchool.school._id,
+          subjectId: watchedData.subjectId as Id<"subject">,
+          classroomId: watchedData.classroomId as Id<"classroom">,
+          teacherId: watchedData.teacherId as Id<"user">,
+          groupId: watchedData.groupId as Id<"group">,
+          schoolCycleId: watchedData.schoolCycleId as Id<"schoolCycle">,
+        }
+        : "skip";
+    })()
+  );
 
   const {
     getStudentFilters,
@@ -501,7 +553,7 @@ export default function HorariosPorClasePage() {
   const watchedClassroomId = createForm.watch("classroomId");
 
   const conflictScheduleIds = useQuery(
-    api.functions.schedule.getScheduleConflicts ,
+    api.functions.schedule.getScheduleConflicts,
     currentSchool?.school._id && watchedTeacherId && watchedClassroomId
       ? {
         schoolId: currentSchool.school._id,
@@ -533,20 +585,63 @@ export default function HorariosPorClasePage() {
   // Handlers
   const handleCreateSubmit = async (data: Record<string, unknown>) => {
     const values = FullClassSchema.parse(data);
-    if (
-      !values.selectedScheduleIds ||
-      values.selectedScheduleIds.length === 0
-    ) {
-      toast.info("Clase creada sin horarios", {
-        description: "Podrás asignarle horarios más tarde editando la clase.",
+
+    // ✅ Validar que se hayan seleccionado horarios
+    if (!values.selectedScheduleIds || values.selectedScheduleIds.length === 0) {
+      toast.error("Horarios requeridos", {
+        description: "Debes asignar al menos un horario a la clase.",
       });
+      return;
     }
+
     try {
       if (!currentSchool?.school._id || !currentUser?._id)
         throw new Error(
           "La información de la escuela o del usuario no está disponible."
         );
 
+      // ✅ Si ya existe una clase idéntica, reutilizarla
+      if (existingClass) {
+        console.log("📌 Clase existente encontrada, agregando horarios...");
+
+        // Obtener los horarios actuales de la clase existente
+        const existingClassWithSchedules = classesRaw?.find(
+          c => c?.classCatalogId === existingClass._id
+        );
+
+        const existingScheduleIds = existingClassWithSchedules?.selectedScheduleIds || [];
+
+        // Combinar horarios existentes con los nuevos seleccionados
+        const combinedSchedules = [
+          ...new Set([
+            ...existingScheduleIds,
+            ...values.selectedScheduleIds,
+          ]),
+        ] as Id<"schedule">[];
+
+        await toast.promise(
+          updateClassAndSchedules({
+            oldClassCatalogId: existingClass._id as Id<"classCatalog">,
+            newClassCatalogId: existingClass._id as Id<"classCatalog">,
+            selectedScheduleIds: combinedSchedules,
+            status: "active",
+          }),
+          {
+            loading: "Asignando horarios a la clase existente...",
+            success: "¡Horarios asignados exitosamente a la clase existente!",
+            error: (err) => err.message || "No se pudo completar la operación.",
+          }
+        );
+
+        setIsCreateDialogOpen(false);
+        createForm.reset({
+          status: "active",
+          schoolCycleId: activeCycle?._id || "",
+        });
+        return;
+      }
+
+      // ✅ Si no existe, crear nueva clase
       await toast.promise(
         createClassWithSchedule({
           classData: {
@@ -560,16 +655,20 @@ export default function HorariosPorClasePage() {
             schoolId: currentSchool.school._id,
             createdBy: currentUser._id,
           },
-          selectedScheduleIds: (values.selectedScheduleIds ||
-            []) as Id<"schedule">[],
+          selectedScheduleIds: values.selectedScheduleIds as Id<"schedule">[],
         }),
         {
-          loading: "Guardando clase...",
+          loading: "Creando nueva clase...",
           success: "¡Clase creada exitosamente!",
           error: (err) => err.message || "No se pudo completar la operación.",
         }
       );
+
       setIsCreateDialogOpen(false);
+      createForm.reset({
+        status: "active",
+        schoolCycleId: activeCycle?._id || "",
+      });
     } catch (error) {
       console.error("Error al crear la clase:", error);
     }
@@ -913,9 +1012,8 @@ export default function HorariosPorClasePage() {
                     />
                     <label
                       htmlFor="filter-active-cycle"
-                      className={`text-sm font-medium leading-none cursor-pointer ${
-                        !activeCycle ? "text-muted-foreground opacity-70" : ""
-                      }`}
+                      className={`text-sm font-medium leading-none cursor-pointer ${!activeCycle ? "text-muted-foreground opacity-70" : ""
+                        }`}
                     >
                       Mostrar solo ciclo activo
                     </label>
@@ -1057,7 +1155,7 @@ export default function HorariosPorClasePage() {
                         </span>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">
-                           
+
                             {classItem.group.grade} {classItem.group.name}
                           </p>
                         </div>
@@ -1270,7 +1368,7 @@ export default function HorariosPorClasePage() {
                       <CardHeader>
                         <CardTitle className="text-lg flex items-center gap-2 justify-between">
                           <div>Información de la Clase</div>
-                          {crudDialog.operation === "edit" && ( // <--- Corrección aquí también
+                          {crudDialog.operation === "edit" && (
                             <Button
                               variant="outline"
                               onClick={() => setIsEditingClassDetails(true)}
@@ -1347,13 +1445,6 @@ export default function HorariosPorClasePage() {
                         </span>
                       )}
                     </div>
-
-                    {/*
-                      *
-                      * 👇 SEGUNDA CORRECCIÓN AQUÍ (Línea 1421 original)
-                      * Se usa 'crudDialog.operation' en lugar de 'operation'.
-                      *
-                      */}
                     {crudDialog.operation === "view" || crudDialog.operation === "delete" ? (
                       <div className="space-y-2">
                         {(() => {
@@ -1486,8 +1577,8 @@ export default function HorariosPorClasePage() {
                                               <label
                                                 htmlFor={`edit-${schedule._id}`}
                                                 className={`text-sm font-medium leading-none flex-1 cursor-pointer ${isDisabled
-                                                    ? "text-muted-foreground opacity-50 cursor-not-allowed"
-                                                    : ""
+                                                  ? "text-muted-foreground opacity-50 cursor-not-allowed"
+                                                  : ""
                                                   } ${isCurrentlySelected && !isDisabled
                                                     ? "text-primary"
                                                     : ""
@@ -1583,6 +1674,7 @@ export default function HorariosPorClasePage() {
                   getDayName={getDayName}
                   formatTime={formatTime}
                   conflictScheduleIds={conflictScheduleIds || []}
+                  existingClass={existingClass} // ← AGREGAR ESTA LÍNEA
                 />
               )}
             </form>
