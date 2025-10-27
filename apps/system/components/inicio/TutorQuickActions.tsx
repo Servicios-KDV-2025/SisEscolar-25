@@ -19,7 +19,7 @@ export function TutorQuickActions() {
       description: "Ver horarios de clases",
       icon: Calendar,
       color: "bg-purple-500",
-      href: "/administracion/asignacion-de-horarios",
+      href: "/administracion/clases",
     },
     {
       title: "Asistencia",
