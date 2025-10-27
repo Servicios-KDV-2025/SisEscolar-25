@@ -228,21 +228,28 @@ export function ClassCatalogForm({
                 render={({ field }) => (
                     <FormItem className="space-y-2">
                         <FormLabel>Estado</FormLabel>
-                        <Select
-                            onValueChange={field.onChange}
-                            value={field.value?.toString()}
-                            disabled={operation === "view"}
-                        >
-                            <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecciona un estado" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="active">Materia activo</SelectItem>
-                                <SelectItem value="inactive">Materia inactivo</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        {operation === "view" ? (
+                            <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 py-2">
+                                <Badge variant="secondary" className="text-sm font-normal px-3 py-1">
+                                    {field.value === "active" ? "Materia activo" : "Materia inactivo"}
+                                </Badge>
+                            </div>
+                        ) : (
+                            <Select
+                                onValueChange={field.onChange}
+                                value={field.value?.toString()}                                
+                            >
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecciona un estado" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="active">Materia activo</SelectItem>
+                                    <SelectItem value="inactive">Materia inactivo</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        )}
                         <FormMessage />
                     </FormItem>
                 )}
