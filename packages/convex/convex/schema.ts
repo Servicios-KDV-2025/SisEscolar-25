@@ -66,11 +66,9 @@ const applicationTable = defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
     stripeAccountId: v.optional(v.string()),
-    stripeAccountStatus: v.optional(v.union(
-      v.literal("enabled"),
-      v.literal("disabled"),
-      v.literal("pending"),  
-    )),
+    stripeAccountStatus: v.optional(
+      v.union(v.literal("enabled"), v.literal("disabled"), v.literal("pending"))
+    ),
     stripeOnboardingComplete: v.optional(v.boolean()),
   })
     .index("by_subdomain", ["subdomain"])
@@ -307,14 +305,14 @@ const applicationTable = defineSchema({
 
   //Asistencia
   attendance: defineTable({
-    schoolId: v.optional(v.id('school')),
+    schoolId: v.optional(v.id("school")),
     studentClassId: v.id("studentClass"),
     date: v.number(),
     attendanceState: v.union(
-      v.literal('present'),
-      v.literal('absent'),
-      v.literal('justified'),
-      v.literal('unjustified'),
+      v.literal("present"),
+      v.literal("absent"),
+      v.literal("justified"),
+      v.literal("unjustified")
     ),
     comments: v.optional(v.string()),
     createdBy: v.id("user"),
@@ -330,7 +328,9 @@ const applicationTable = defineSchema({
   calendar: defineTable({
     schoolCycleId: v.id("schoolCycle"),
     schoolId: v.id("school"),
-    // date: v.number(),
+    title: v.string(),
+    allDay: v.boolean(),
+    location: v.optional(v.string()),
     startDate: v.number(),
     endDate: v.number(),
     eventTypeId: v.id("eventType"),
@@ -341,7 +341,6 @@ const applicationTable = defineSchema({
   })
     .index("by_school", ["schoolId"])
     .index("by_cycle", ["schoolCycleId"])
-    // .index("by_date", ["date"])
     .index("by_cycle_and_start_date", ["schoolCycleId", "startDate"]),
 
   //Tipos de eventos del calendario escolar
@@ -414,7 +413,7 @@ const applicationTable = defineSchema({
       v.literal("all_students"),
       v.literal("specific_groups"),
       v.literal("specific_grades"),
-      v.literal("specific_students"),
+      v.literal("specific_students")
     ),
     targetGroup: v.optional(v.array(v.id("group"))),
     targetGrade: v.optional(v.array(v.string())),
@@ -427,7 +426,7 @@ const applicationTable = defineSchema({
       v.literal("diario"),
       v.literal("semanal"),
       v.literal("anual"),
-      v.literal("unico"),
+      v.literal("unico")
     ),
     type: v.union(
       v.literal("inscripción"),
@@ -444,7 +443,11 @@ const applicationTable = defineSchema({
     ruleIds: v.optional(v.array(v.id("billingRule"))),
     createdBy: v.id("user"),
     updatedBy: v.id("user"),
-    status: v.union(v.literal("required"), v.literal("optional"), v.literal("inactive")),
+    status: v.union(
+      v.literal("required"),
+      v.literal("optional"),
+      v.literal("inactive")
+    ),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -474,14 +477,14 @@ const applicationTable = defineSchema({
     createdBy: v.id("user"),
     createdAt: v.number(),
     updatedAt: v.number(),
-  stripePaymentIntentId: v.optional(v.string()),
-  stripeTransferId: v.optional(v.string()),
-  stripeChargeId: v.optional(v.string()),
+    stripePaymentIntentId: v.optional(v.string()),
+    stripeTransferId: v.optional(v.string()),
+    stripeChargeId: v.optional(v.string()),
   })
     .index("by_billing", ["billingId"])
     .index("by_student", ["studentId"])
     .index("by_method", ["method"])
-  .index("by_stripePaymentIntentId", ["stripePaymentIntentId"]),
+    .index("by_stripePaymentIntentId", ["stripePaymentIntentId"]),
 
   billingRule: defineTable({
     schoolId: v.id("school"),
@@ -495,10 +498,12 @@ const applicationTable = defineSchema({
     scope: v.union(
       v.literal("estandar"),
       v.literal("becarios"),
-      v.literal("all_students"),
+      v.literal("all_students")
     ),
     status: v.union(v.literal("active"), v.literal("inactive")),
-    lateFeeType: v.optional(v.union(v.literal("percentage"), v.literal("fixed"))),
+    lateFeeType: v.optional(
+      v.union(v.literal("percentage"), v.literal("fixed"))
+    ),
     lateFeeValue: v.optional(v.number()),
     startDay: v.optional(v.number()),
     endDay: v.optional(v.number()),
@@ -512,8 +517,7 @@ const applicationTable = defineSchema({
   })
     .index("by_school", ["schoolId"])
     .index("by_type", ["type"])
-    .index("by_status", ["status"])
+    .index("by_status", ["status"]),
 });
-
 
 export default applicationTable;

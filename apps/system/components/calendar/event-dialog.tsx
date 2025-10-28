@@ -5,6 +5,7 @@ import { RiCalendarLine, RiDeleteBinLine } from "@remixicon/react";
 import { format, isBefore } from "date-fns";
 import React from "react";
 import type { CalendarEvent, EventColor } from "./";
+import { EventType } from "@/types/eventType";
 import {
   DefaultEndHour,
   DefaultStartHour,
@@ -43,9 +44,19 @@ interface EventDialogProps {
   onClose: () => void;
   onSave: (event: CalendarEvent) => void;
   onDelete: (eventId: string) => void;
+  eventTypes: EventType[] | undefined;
+  onAddNewEventType: () => void;
 }
 
-export function EventDialog({ event, isOpen, onClose, onSave, onDelete }: EventDialogProps) {
+export function EventDialog({
+  event,
+  isOpen,
+  onClose,
+  onSave,
+  onDelete,
+  eventTypes,
+  onAddNewEventType,
+}: EventDialogProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState<Date>(new Date());
@@ -54,7 +65,7 @@ export function EventDialog({ event, isOpen, onClose, onSave, onDelete }: EventD
   const [endTime, setEndTime] = useState(`${DefaultEndHour}:00`);
   const [allDay, setAllDay] = useState(false);
   const [location, setLocation] = useState("");
-  const [color, setColor] = useState<EventColor>("sky");
+  const [eventTypeId, setEventTypeId] = useState<string | undefined>();
   const [error, setError] = useState<string | null>(null);
   const [startDateOpen, setStartDateOpen] = useState(false);
   const [endDateOpen, setEndDateOpen] = useState(false);
@@ -78,7 +89,7 @@ export function EventDialog({ event, isOpen, onClose, onSave, onDelete }: EventD
       setEndTime(formatTimeForInput(end));
       setAllDay(event.allDay || false);
       setLocation(event.location || "");
-      setColor((event.color as EventColor) || "sky");
+      setEventTypeId((event as any).eventTypeId);
       setError(null); // Reset error when opening dialog
     } else {
       resetForm();
@@ -94,7 +105,7 @@ export function EventDialog({ event, isOpen, onClose, onSave, onDelete }: EventD
     setEndTime(`${DefaultEndHour}:00`);
     setAllDay(false);
     setLocation("");
-    setColor("sky");
+    setEventTypeId(undefined);
     setError(null);
   };
 
@@ -152,9 +163,11 @@ export function EventDialog({ event, isOpen, onClose, onSave, onDelete }: EventD
       return;
     }
 
-    // Use generic title if empty
     const eventTitle = title.trim() ? title : "(no title)";
+    const selectedEventType = eventTypes?.find(et => et._id === eventTypeId);    
+    const eventColor = (selectedEventType?.color as EventColor) || "sky";
 
+    
     onSave({
       id: event?.id || "",
       title: eventTitle,
@@ -163,8 +176,9 @@ export function EventDialog({ event, isOpen, onClose, onSave, onDelete }: EventD
       end,
       allDay,
       location,
-      color
-    });
+      color: eventColor,
+      eventTypeId: eventTypeId,
+    }as CalendarEvent);
   };
 
   const handleDelete = () => {
@@ -382,8 +396,8 @@ export function EventDialog({ event, isOpen, onClose, onSave, onDelete }: EventD
             <Label htmlFor="location">Location</Label>
             <Input id="location" value={location} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocation(e.target.value)} />
           </div>
-          <fieldset className="space-y-4">
-            <legend className="text-foreground text-sm leading-none font-medium">Etiquette</legend>
+          {/* <fieldset className="space-y-4">
+            <legend className="text-foreground text-sm leading-none font-medium">Etiqueta</legend>
             <RadioGroup
               className="flex gap-1.5"
               defaultValue={colorOptions[0]?.value}
@@ -395,11 +409,52 @@ export function EventDialog({ event, isOpen, onClose, onSave, onDelete }: EventD
                   id={`color-${colorOption.value}`}
                   value={colorOption.value}
                   aria-label={colorOption.label}
-                  className={cn("size-6 shadow-none", colorOption.bgClass, colorOption.borderClass)}
+                  className={cn("size-6 shadow-none text-transparent", colorOption.bgClass, colorOption.borderClass
+                    
+                  )}
                 />
               ))}
             </RadioGroup>
-          </fieldset>
+          </fieldset> */}
+          <div className="space-y-1.5">
+            <Label htmlFor="event-type">Tipo de Evento</Label>
+            <div className="flex gap-2">
+              <Select value={eventTypeId} onValueChange={setEventTypeId}>
+                <SelectTrigger id="event-type" className="flex-1">
+                  <SelectValue placeholder="Selecciona un tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {eventTypes?.map((tipo) => (
+                    <SelectItem key={tipo._id} value={tipo._id}>
+                      <div className="flex items-center gap-2">
+                        {/* Círculo de color (opcional) */}
+                        <span
+                          className={cn(
+                            "size-3 rounded-full",
+                            // Asumiendo que guardas colores de Tailwind (ej: 'sky-400')
+                            // Si guardas 'sky', necesitas un map
+                            `bg-${tipo.color}` 
+                          )}
+                        />
+                        {tipo.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {/* --- BOTÓN DE ATAJO --- */}
+              <Button
+                type="button" // Evita que envíe el formulario
+                variant="outline"
+                size="icon"
+                onClick={onAddNewEventType}
+                aria-label="Crear nuevo tipo de evento"
+              >
+                +
+              </Button>
+            </div>
+          </div>
         </div>
         <DialogFooter className="flex-row sm:justify-between">
           {event?.id && (
@@ -409,9 +464,9 @@ export function EventDialog({ event, isOpen, onClose, onSave, onDelete }: EventD
           )}
           <div className="flex flex-1 justify-end gap-2">
             <Button variant="outline" onClick={onClose}>
-              Cancel
+              Cancelar
             </Button>
-            <Button onClick={handleSave}>Save</Button>
+            <Button onClick={handleSave}>Guardar</Button>
           </div>
         </DialogFooter>
       </DialogContent>
