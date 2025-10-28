@@ -19,7 +19,7 @@ interface FormularioCatalogoDeClasesProps {
     classrooms?: ClassroomType[] | undefined;
     teachers: TeacherType[] | undefined;
     activeSchoolCycleId?: string;
-    existingClassWarning?: { _id: string; name: string } | null; // ← NUEVO PROP
+    existingClassWarning?: { _id: string; name: string; status: "active" | "inactive" } | null; 
 }
 
 export function ClassCatalogForm({
@@ -262,11 +262,12 @@ export function ClassCatalogForm({
                                     <SelectTrigger>
                                         <SelectValue placeholder="Selecciona un estado" />
                                     </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="active">Materia activo</SelectItem>
-                                    <SelectItem value="inactive">Materia inactivo</SelectItem>
-                                </SelectContent>
+                                </FormControl>                               
+                                    <SelectContent>
+                                        <SelectItem value="active">Materia activo</SelectItem>
+                                        <SelectItem value="inactive">Materia inactivo</SelectItem>
+                                    </SelectContent>
+                                
                             </Select>
                             <FormMessage />
                         </FormItem>

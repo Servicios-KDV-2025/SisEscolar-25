@@ -611,6 +611,7 @@ export const checkDuplicateClass = query({
       return {
         _id: existingClass._id,
         name: existingClass.name,
+        status: existingClass.status,
       };
     }
 

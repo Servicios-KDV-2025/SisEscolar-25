@@ -613,7 +613,7 @@ export default function HorariosPorClasePage() {
   const handleCreateSubmit = async (data: Record<string, unknown>) => {
     const values = FullClassSchema.parse(data);
 
-    // ✅ Validar que se hayan seleccionado horarios
+    // ... (validación de horarios seleccionados, no cambia)
     if (!values.selectedScheduleIds || values.selectedScheduleIds.length === 0) {
       toast.error("Horarios requeridos", {
         description: "Debes asignar al menos un horario a la clase.",
@@ -627,9 +627,21 @@ export default function HorariosPorClasePage() {
           "La información de la escuela o del usuario no está disponible."
         );
 
-      // ✅ Si ya existe una clase idéntica, reutilizarla
+      // ✅ INICIO DE LA VALIDACIÓN (TU SUGERENCIA)
       if (existingClass) {
-        console.log("📌 Clase existente encontrada, agregando horarios...");
+        
+        // 1. COMPROBAR SI QUIEREN GUARDARLA COMO INACTIVA
+        if (values.status === 'inactive') {
+          // 2. MOSTRAR ADVERTENCIA Y DETENER TODO
+          toast.error("Acción no permitida", {
+            description: "Ya existe una clase con estas características. No puede ser creada o combinada como 'inactiva'. Por favor, establécela como 'activa' para continuar.",
+            duration: 5000,
+          });
+          return; // <-- Detenemos la ejecución
+        }
+        
+        // 3. SI LLEGA AQUÍ, ES 'active' Y PROCEDE A COMBINAR
+        console.log("📌 Clase existente encontrada, combinando como 'activa'...");
 
         // Obtener los horarios actuales de la clase existente
         const existingClassWithSchedules = classesRaw?.find(
@@ -651,7 +663,7 @@ export default function HorariosPorClasePage() {
             oldClassCatalogId: existingClass._id as Id<"classCatalog">,
             newClassCatalogId: existingClass._id as Id<"classCatalog">,
             selectedScheduleIds: combinedSchedules,
-            status: "active",
+            status: "active" // <-- Usamos 'active'
           }),
           {
             loading: "Asignando horarios a la clase existente...",
@@ -667,8 +679,9 @@ export default function HorariosPorClasePage() {
         });
         return;
       }
+      // ✅ FIN DE LA VALIDACIÓN
 
-      // ✅ Si no existe, crear nueva clase
+      // Si no existe, crear nueva clase (aquí sí respeta 'active' o 'inactive')
       await toast.promise(
         createClassWithSchedule({
           classData: {
