@@ -241,8 +241,8 @@ function StepTwoContent({
                             <label
                               htmlFor={schedule._id}
                               className={`text-sm font-medium leading-none flex-1 cursor-pointer ${isConflict
-                                  ? "text-muted-foreground opacity-50 cursor-not-allowed"
-                                  : ""
+                                ? "text-muted-foreground opacity-50 cursor-not-allowed"
+                                : ""
                                 }`}
                             >
                               <div className="flex items-center justify-between">
@@ -385,6 +385,33 @@ export default function HorariosPorClasePage() {
           teacherId: classItem.teacher._id as Id<"user">,
           classroomId: classItem.classroom._id as Id<"classroom">,
           classCatalogIdToExclude: classItem.classCatalogId as Id<"classCatalog">,
+        }
+        : "skip";
+    })()
+  );
+
+  const existingClassOnEdit = useQuery(
+    api.functions.classCatalog.checkDuplicateClass,
+    (() => {
+      const watchedData = editClassForm.watch();
+      const currentClassItem = crudDialog.data as ClassItem | null;
+
+      return currentSchool?.school._id &&
+        isEditingClassDetails &&
+        watchedData.subjectId &&
+        watchedData.classroomId &&
+        watchedData.teacherId &&
+        watchedData.groupId &&
+        watchedData.schoolCycleId &&
+        currentClassItem?.classCatalogId
+        ? {
+          schoolId: currentSchool.school._id,
+          subjectId: watchedData.subjectId as Id<"subject">,
+          classroomId: watchedData.classroomId as Id<"classroom">,
+          teacherId: watchedData.teacherId as Id<"user">,
+          groupId: watchedData.groupId as Id<"group">,
+          schoolCycleId: watchedData.schoolCycleId as Id<"schoolCycle">,
+          excludeClassCatalogId: currentClassItem.classCatalogId as Id<"classCatalog">, // Excluir la clase actual
         }
         : "skip";
     })()
@@ -751,6 +778,60 @@ export default function HorariosPorClasePage() {
     console.log("🔄 Actualizando clase con datos:", data);
 
     try {
+      // ✅ SI EXISTE UNA CLASE DUPLICADA, COMBINARLAS
+      if (existingClassOnEdit && existingClassOnEdit._id !== originalClass.classCatalogId) {
+        console.log("📌 Clase duplicada encontrada, combinando clases...");
+
+        // Obtener los horarios de ambas clases
+        const originalScheduleIds = originalClass.selectedScheduleIds || [];
+        const targetClass = classesRaw?.find(
+          c => c?.classCatalogId === existingClassOnEdit._id
+        );
+        const targetScheduleIds = targetClass?.selectedScheduleIds || [];
+
+        // Combinar horarios (sin duplicados)
+        const combinedSchedules = [
+          ...new Set([
+            ...targetScheduleIds,
+            ...originalScheduleIds,
+          ]),
+        ] as Id<"schedule">[];
+
+        await toast.promise(
+          (async () => {
+            // 1. Actualizar la clase existente con los horarios combinados
+            await updateClassAndSchedules({
+              oldClassCatalogId: existingClassOnEdit._id as Id<"classCatalog">,
+              newClassCatalogId: existingClassOnEdit._id as Id<"classCatalog">,
+              selectedScheduleIds: combinedSchedules,
+              status: data.status,
+            });
+
+            // 2. Eliminar la clase original ya que se fusionó con la existente
+            await deleteClassAndSchedulesAction({
+              classCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
+            });
+
+            return true;
+          })(),
+          {
+            loading: "Combinando clases...",
+            success: () => {
+              setIsEditingClassDetails(false);
+              crudDialog.close();
+              return `¡Clases combinadas exitosamente! Los horarios se agregaron a "${existingClassOnEdit.name}".`;
+            },
+            error: (err) => {
+              console.error("❌ Error al combinar:", err);
+              return "No se pudo completar la combinación de clases.";
+            },
+          }
+        );
+
+        return; // Salir después de combinar
+      }
+
+      // ✅ SI NO HAY DUPLICADO, ACTUALIZAR NORMALMENTE
       await toast.promise(
         updateClassCatalog({
           classCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
@@ -811,7 +892,6 @@ export default function HorariosPorClasePage() {
             };
 
             updateClass(originalClass._id, updatedClassItem);
-
             crudDialog.setData(updatedClassItem);
 
             const needsScheduleUpdate =
@@ -1260,7 +1340,9 @@ export default function HorariosPorClasePage() {
           crudDialog.operation === "view"
             ? undefined
             : isEditingClassDetails
-              ? "Actualizar Clase"
+              ? (existingClassOnEdit && existingClassOnEdit._id !== (crudDialog.data as ClassItem)?.classCatalogId
+                ? "Combinar con clase existente"
+                : "Actualizar Clase")
               : "Guardar Cambios"
         }
         onDelete={handleDelete}
@@ -1288,15 +1370,6 @@ export default function HorariosPorClasePage() {
             <div>
               {isEditingClassDetails ? (
                 <>
-                  {(() => {
-                    console.log("🔍 Datos para edición:", {
-                      schoolCycleId: editClassForm.watch("schoolCycleId"),
-                      schoolCycles: schoolCycles?.map(sc => ({ id: sc._id, name: sc.name })),
-                      activeCycleId: activeCycle?._id,
-                      currentClassItem: crudDialog.data
-                    });
-                    return null;
-                  })()}
                   <ClassCatalogForm
                     form={editClassForm}
                     operation="edit"
@@ -1306,6 +1379,7 @@ export default function HorariosPorClasePage() {
                     classrooms={classrooms}
                     teachers={teachersData}
                     activeSchoolCycleId={activeCycle?._id}
+                    existingClassWarning={existingClassOnEdit} // ← AGREGAR ESTA PROP
                   />
 
                   <div className="flex justify-end gap-2 pt-4">
@@ -1316,6 +1390,7 @@ export default function HorariosPorClasePage() {
                     >
                       Volver a Horarios
                     </Button>
+
                   </div>
                 </>
               ) : (
@@ -1340,21 +1415,36 @@ export default function HorariosPorClasePage() {
                         <FormItem>
                           <FormLabel>Estado</FormLabel>
                           <FormControl>
-                            <Select
-                              onValueChange={field.onChange}
-                              value={field.value as "active" | "inactive"}
-                              disabled={crudDialog.operation === "view"} // <--- Corrección aquí también
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Selecciona un estado" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="active">Activo</SelectItem>
-                                <SelectItem value="inactive">Inactivo</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            {crudDialog.operation === "view" ? (
+                              <div className="flex h-10 w-full items-center">
+                                <Badge
+                                  variant={field.value === "active" ? "default" : "secondary"}
+                                  className={
+                                    field.value === "active"
+                                      ? "bg-green-600 text-white flex-shrink-0"
+                                      : "bg-gray-600/70 text-white flex-shrink-0"
+                                  }
+                                >
+                                  {field.value === "active" ? "Activa" : "Inactiva"}
+                                </Badge>
+                              </div>
+                            ) : (
+                              <Select
+                                onValueChange={field.onChange}
+                                value={field.value as "active" | "inactive"}
+
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecciona un estado" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="active">Activo</SelectItem>
+                                  <SelectItem value="inactive">Inactivo</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
                           </FormControl>
                           <FormMessage />
                         </FormItem>

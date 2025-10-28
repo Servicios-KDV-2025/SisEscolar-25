@@ -577,28 +577,44 @@ export const checkDuplicateClass = query({
     teacherId: v.id("user"),
     groupId: v.id("group"),
     schoolCycleId: v.id("schoolCycle"),
+    excludeClassCatalogId: v.optional(v.id("classCatalog")), // ← NUEVO
   },
   handler: async (ctx, args) => {
-    // Buscar si ya existe una clase con esta combinación exacta
     const existingClass = await ctx.db
       .query("classCatalog")
       .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
-      .filter((q) =>
-        q.and(
+      .filter((q) => {
+        const baseConditions = q.and(
           q.eq(q.field("subjectId"), args.subjectId),
           q.eq(q.field("classroomId"), args.classroomId),
           q.eq(q.field("teacherId"), args.teacherId),
           q.eq(q.field("groupId"), args.groupId),
           q.eq(q.field("schoolCycleId"), args.schoolCycleId),
-          // Solo considerar clases activas o inactivas (no eliminadas)
           q.or(
             q.eq(q.field("status"), "active"),
             q.eq(q.field("status"), "inactive")
           )
-        )
-      )
+        );
+
+        if (args.excludeClassCatalogId) {
+          return q.and(
+            baseConditions,
+            q.neq(q.field("_id"), args.excludeClassCatalogId)
+          );
+        }
+
+        return baseConditions;
+      })
       .first();
 
-    return existingClass;
+    if (existingClass) {
+      return {
+        _id: existingClass._id,
+        name: existingClass.name,
+      };
+    }
+
+    return null;
   },
 });
+
