@@ -568,3 +568,54 @@ export const getClassCatalogWithRoleFilter = query({
     return [];
   },
 });
+
+export const checkDuplicateClass = query({
+  args: {
+    schoolId: v.id("school"),
+    subjectId: v.id("subject"),
+    classroomId: v.id("classroom"),
+    teacherId: v.id("user"),
+    groupId: v.id("group"),
+    schoolCycleId: v.id("schoolCycle"),
+    excludeClassCatalogId: v.optional(v.id("classCatalog")), // ← NUEVO
+  },
+  handler: async (ctx, args) => {
+    const existingClass = await ctx.db
+      .query("classCatalog")
+      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+      .filter((q) => {
+        const baseConditions = q.and(
+          q.eq(q.field("subjectId"), args.subjectId),
+          q.eq(q.field("classroomId"), args.classroomId),
+          q.eq(q.field("teacherId"), args.teacherId),
+          q.eq(q.field("groupId"), args.groupId),
+          q.eq(q.field("schoolCycleId"), args.schoolCycleId),
+          q.or(
+            q.eq(q.field("status"), "active"),
+            q.eq(q.field("status"), "inactive")
+          )
+        );
+
+        if (args.excludeClassCatalogId) {
+          return q.and(
+            baseConditions,
+            q.neq(q.field("_id"), args.excludeClassCatalogId)
+          );
+        }
+
+        return baseConditions;
+      })
+      .first();
+
+    if (existingClass) {
+      return {
+        _id: existingClass._id,
+        name: existingClass.name,
+        status: existingClass.status,
+      };
+    }
+
+    return null;
+  },
+});
+

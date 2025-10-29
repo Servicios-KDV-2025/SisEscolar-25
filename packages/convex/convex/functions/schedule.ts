@@ -1,5 +1,6 @@
 import { query, mutation } from "../_generated/server"
 import { v } from "convex/values"
+import { internal } from "../_generated/api";
 
 // Obtener horarios POR una escuela específica
 export const getSchedulesBySchools = query({
@@ -18,7 +19,7 @@ export const getSchedulesBySchools = query({
   },
 });
 
-// Obtener un solo horiario por su ID
+// Obtener un solo horario por su ID
 export const getScheduleById = query({
   args: {
     id: v.id('schedule'),
@@ -112,6 +113,57 @@ export const deleteSchedule = mutation({
   },
 });
 
+// En schedule.ts - Funciones mejoradas para considerar el status de classSchedule
+
+// ✅ VERSIÓN MEJORADA: Solo cuenta horarios con status "active"
+export const getOccupiedScheduleIds = query({
+  args: { schoolId: v.id("school") },
+  handler: async (ctx, args) => {
+    // 1. Encuentra el ciclo escolar que está marcado como "activo"
+    const activeCycle = await ctx.db
+      .query("schoolCycle")
+      .withIndex("by_school_status", (q) =>
+        q.eq("schoolId", args.schoolId).eq("status", "active")
+      )
+      .unique();
+
+    // Si no hay ciclo activo, no puede haber horarios ocupados.
+    if (!activeCycle) {
+      return [];
+    }
+
+    // 2. Busca todas las clases que pertenecen a ese ciclo activo.
+    const classesInActiveCycle = await ctx.db
+      .query("classCatalog")
+      .withIndex("by_cycle", (q) => q.eq("schoolCycleId", activeCycle._id))
+      .collect();
+    
+    if (classesInActiveCycle.length === 0) {
+      return [];
+    }
+    
+    // Crea un conjunto de IDs de esas clases para buscar más rápido.
+    const classIdsInActiveCycle = new Set(classesInActiveCycle.map(c => c._id));
+
+    // 3. Busca en la tabla de asignaciones (classSchedule).
+    const allSchedulesAssignments = await ctx.db.query("classSchedule").collect();
+
+    // ✅ 4. Filtra las asignaciones para quedarte solo con:
+    //    - Las que pertenecen a las clases del ciclo activo
+    //    - Y que tengan status "active"
+    const occupiedScheduleIds = allSchedulesAssignments
+      .filter(assignment => 
+        classIdsInActiveCycle.has(assignment.classCatalogId) && 
+        assignment.status === "active"  // ✅ NUEVO: Solo horarios activos
+      )
+      .map(assignment => assignment.scheduleId);
+
+    // 5. Devuelve una lista de IDs de horarios únicos (sin duplicados).
+    return [...new Set(occupiedScheduleIds)];
+  },
+});
+
+// ✅ VERSIÓN MEJORADA: Considera el status en conflictos
 export const getScheduleConflicts = query({
   args: {
     schoolId: v.id("school"),
@@ -146,6 +198,7 @@ export const getScheduleConflicts = query({
       const classSchedules = await ctx.db
         .query("classSchedule")
         .withIndex("by_class_catalog", q => q.eq("classCatalogId", classInfo._id))
+        .filter(q => q.eq(q.field("status"), "active")) // ✅ NUEVO: Solo activos
         .collect();
       
       // Agregar todos los scheduleIds encontrados
@@ -159,6 +212,7 @@ export const getScheduleConflicts = query({
   },
 });
 
+// ✅ VERSIÓN MEJORADA: Considera el status en edición
 export const getScheduleConflictsForEdit = query({
   args: {
     schoolId: v.id("school"),
@@ -186,6 +240,7 @@ export const getScheduleConflictsForEdit = query({
         const schedules = await ctx.db
           .query("classSchedule")
           .withIndex("by_class_catalog", q => q.eq("classCatalogId", classCat._id))
+          .filter(q => q.eq(q.field("status"), "active")) // ✅ NUEVO: Solo activos
           .collect();
         
         // Y añadimos esos IDs de horario a nuestra lista de conflictos
@@ -199,10 +254,17 @@ export const getScheduleConflictsForEdit = query({
   },
 });
 
-export const getOccupiedScheduleIds = query({
+// ✅ NUEVA FUNCIÓN: Obtener horarios disponibles (no ocupados) para una escuela
+export const getAvailableScheduleIds = query({
   args: { schoolId: v.id("school") },
   handler: async (ctx, args) => {
-    // 1. Encuentra el ciclo escolar que está marcado como "activo"
+    // 1. Obtener todos los horarios de la escuela
+    const allSchedules = await ctx.db
+      .query("schedule")
+      .withIndex("by_school_day", (q) => q.eq("schoolId", args.schoolId))
+      .collect();
+
+    // 2. Encuentra el ciclo escolar activo
     const activeCycle = await ctx.db
       .query("schoolCycle")
       .withIndex("by_school_status", (q) =>
@@ -210,33 +272,40 @@ export const getOccupiedScheduleIds = query({
       )
       .unique();
 
-    // Si no hay ciclo activo, no puede haber horarios ocupados.
     if (!activeCycle) {
-      return [];
+      // Si no hay ciclo activo, todos los horarios están disponibles
+      return allSchedules.map(s => s._id);
     }
 
-    // 2. Busca todas las clases que pertenecen a ese ciclo activo.
+    // 3. Busca todas las clases del ciclo activo
     const classesInActiveCycle = await ctx.db
       .query("classCatalog")
       .withIndex("by_cycle", (q) => q.eq("schoolCycleId", activeCycle._id))
       .collect();
     
     if (classesInActiveCycle.length === 0) {
-      return [];
+      return allSchedules.map(s => s._id);
     }
     
-    // Crea un conjunto de IDs de esas clases para buscar más rápido.
     const classIdsInActiveCycle = new Set(classesInActiveCycle.map(c => c._id));
 
-    // 3. Busca en la tabla de asignaciones (classSchedule).
+    // 4. Obtener horarios ocupados (solo activos)
     const allSchedulesAssignments = await ctx.db.query("classSchedule").collect();
+    
+    const occupiedScheduleIds = new Set(
+      allSchedulesAssignments
+        .filter(assignment => 
+          classIdsInActiveCycle.has(assignment.classCatalogId) && 
+          assignment.status === "active"
+        )
+        .map(assignment => assignment.scheduleId)
+    );
 
-    // 4. Filtra las asignaciones para quedarte solo con las que pertenecen a las clases del ciclo activo.
-    const occupiedScheduleIds = allSchedulesAssignments
-      .filter(assignment => classIdsInActiveCycle.has(assignment.classCatalogId))
-      .map(assignment => assignment.scheduleId);
+    // 5. Filtrar solo los disponibles
+    const availableSchedules = allSchedules.filter(
+      schedule => !occupiedScheduleIds.has(schedule._id)
+    );
 
-    // 5. Devuelve una lista de IDs de horarios únicos (sin duplicados).
-    return [...new Set(occupiedScheduleIds)];
+    return availableSchedules.map(s => s._id);
   },
 });
