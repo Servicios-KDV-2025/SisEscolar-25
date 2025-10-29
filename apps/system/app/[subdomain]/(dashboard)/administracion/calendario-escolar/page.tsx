@@ -52,7 +52,7 @@ interface TipoEventoConfig {
   icono: React.ElementType;
   description: string;
   colorBase: string;
-  dotColor: string;
+ 
 }
 
 export default function CalendarioEscolar() {
@@ -336,7 +336,6 @@ export default function CalendarioEscolar() {
           color: "bg-gray-500 text-white",
           bgLight: "bg-gray-50",
           borderColor: "border-l-gray-300",
-          dotColor: "before:bg-gray-500",
         };
 
         const extractColorBase = (bgClass: string) => {
@@ -357,7 +356,7 @@ export default function CalendarioEscolar() {
           icono: iconMap[tipo.icon || "BookOpen"] || BookOpen,
           description: tipo.description || "Sin descripción",
           colorBase: extractColorBase(clases.color || "bg-gray-500") || "gray",
-          dotColor: clases.dotColor,
+          
         };
 
         return acc;
