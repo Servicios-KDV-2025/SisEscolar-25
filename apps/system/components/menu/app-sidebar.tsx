@@ -143,10 +143,6 @@ const defaultNavData = {
           title: "Asignación de Clases",
           url: `/administracion/asignacion-de-clases`,
         },
-        {
-          title: "Asignación de Horarios",
-          url: `/administracion/asignacion-de-horarios`,
-        },
       ],
     },
     {
@@ -215,6 +211,7 @@ export function AppSidebar({  school, ...props }: AppSidebarProps) {
                       className="object-cover rounded-lg"
                       onError={() => setImageError(true)}
                       onLoad={() => setImageError(false)}
+                      unoptimized={true}
                     />
                   ) : (
                     <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">

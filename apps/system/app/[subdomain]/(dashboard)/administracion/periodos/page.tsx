@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
+import { FormControl, FormField,FormDescription, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
 
@@ -102,6 +102,15 @@ function TermForm({
                 disabled={operation === "view"}
               />
             </FormControl>
+            
+            {/* --- MENSAJE DE ADVERTENCIA --- */}
+            {operation !== "view" && (
+              <FormDescription className="flex items-center gap-1.5 text-orange-600">
+                <AlertCircle className="h-3 w-3" />
+                El sistema tomará un día antes de la fecha seleccionada.
+              </FormDescription>
+            )}
+            
             <FormMessage />
           </FormItem>
         )}
@@ -121,6 +130,15 @@ function TermForm({
                 disabled={operation === "view"}
               />
             </FormControl>
+            
+            {/* --- MENSAJE DE ADVERTENCIA --- */}
+            {operation !== "view" && (
+              <FormDescription className="flex items-center gap-1.5 text-orange-600">
+                <AlertCircle className="h-3 w-3" />
+                El sistema tomará un día antes de la fecha seleccionada.
+              </FormDescription>
+            )}
+
             <FormMessage />
           </FormItem>
         )}

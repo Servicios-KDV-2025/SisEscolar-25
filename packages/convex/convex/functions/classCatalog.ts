@@ -1,5 +1,36 @@
 import { v } from "convex/values";
-import { mutation, query } from "../_generated/server";
+import { mutation, query, internalMutation } from "../_generated/server";
+
+
+// ++ NUEVA FUNCIÓN INTERNA PARA CREAR ++
+export const internalCreateClassCatalog = internalMutation({
+  args: {
+    schoolId: v.id("school"),
+    schoolCycleId: v.id("schoolCycle"),
+    subjectId: v.id("subject"),
+    classroomId: v.id("classroom"),
+    teacherId: v.id("user"),
+    groupId: v.id("group"),
+    name: v.string(),
+    status: v.union(v.literal('active'), v.literal('inactive')),
+    createdBy: v.optional(v.id("user"))
+  },
+  handler: async (ctx, args) => {
+    const id = await ctx.db.insert("classCatalog", {
+        ...args,
+        updatedAt: Date.now()
+    });
+    return id;
+  },
+});
+
+// ++ NUEVA FUNCIÓN INTERNA PARA ELIMINAR (para el rollback) ++
+export const internalDeleteClassCatalog = internalMutation({
+    args: { classCatalogId: v.id("classCatalog") },
+    handler: async (ctx, args) => {
+        await ctx.db.delete(args.classCatalogId);
+    }
+});
 
 // Create
 export const createClassCatalog = mutation({
@@ -194,7 +225,7 @@ export const getClassCatalog = query({
 // Update
 export const updateClassCatalog = mutation({
   args: {
-    _id: v.id("classCatalog"),
+    classCatalogId: v.id("classCatalog"),
     schoolId: v.id("school"),
     schoolCycleId: v.id("schoolCycle"),
     subjectId: v.id("subject"),
@@ -210,12 +241,12 @@ export const updateClassCatalog = mutation({
     updatedAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const catalog = await ctx.db.get(args._id);
+    const catalog = await ctx.db.get(args.classCatalogId);
 
     if (!catalog || catalog.schoolId !== args.schoolId) return null;
 
-    const { _id, ...data } = args;
-    await ctx.db.patch(_id, data);
+    const { classCatalogId, ...data } = args;
+    await ctx.db.patch(classCatalogId, data);
   }
 });
 
@@ -426,13 +457,13 @@ export const getClassesBySchoolCycle = query({
 // Obtener clases por maestro
 export const getClassesByTeacher = query({
   args: {
-    schoolId: v.id("school"),
-    teacherId: v.id("user"),
+    schoolId: v.optional(v.id("school")),
+    teacherId: v.optional(v.id("user")),
   },
   handler: async (ctx, args) => {
     const classes = await ctx.db
       .query("classCatalog")
-      .withIndex("by_teacher", (q) => q.eq("teacherId", args.teacherId))
+      .withIndex("by_teacher", (q) => q.eq("teacherId", args.teacherId!))
       .filter((q) => q.eq(q.field("schoolId"), args.schoolId))
       .collect();
 
@@ -537,3 +568,54 @@ export const getClassCatalogWithRoleFilter = query({
     return [];
   },
 });
+
+export const checkDuplicateClass = query({
+  args: {
+    schoolId: v.id("school"),
+    subjectId: v.id("subject"),
+    classroomId: v.id("classroom"),
+    teacherId: v.id("user"),
+    groupId: v.id("group"),
+    schoolCycleId: v.id("schoolCycle"),
+    excludeClassCatalogId: v.optional(v.id("classCatalog")), // ← NUEVO
+  },
+  handler: async (ctx, args) => {
+    const existingClass = await ctx.db
+      .query("classCatalog")
+      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+      .filter((q) => {
+        const baseConditions = q.and(
+          q.eq(q.field("subjectId"), args.subjectId),
+          q.eq(q.field("classroomId"), args.classroomId),
+          q.eq(q.field("teacherId"), args.teacherId),
+          q.eq(q.field("groupId"), args.groupId),
+          q.eq(q.field("schoolCycleId"), args.schoolCycleId),
+          q.or(
+            q.eq(q.field("status"), "active"),
+            q.eq(q.field("status"), "inactive")
+          )
+        );
+
+        if (args.excludeClassCatalogId) {
+          return q.and(
+            baseConditions,
+            q.neq(q.field("_id"), args.excludeClassCatalogId)
+          );
+        }
+
+        return baseConditions;
+      })
+      .first();
+
+    if (existingClass) {
+      return {
+        _id: existingClass._id,
+        name: existingClass.name,
+        status: existingClass.status,
+      };
+    }
+
+    return null;
+  },
+});
+

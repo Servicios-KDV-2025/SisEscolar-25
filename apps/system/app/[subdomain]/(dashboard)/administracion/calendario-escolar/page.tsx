@@ -97,9 +97,9 @@ export default function CalendarioEscolar() {
     api.functions.calendar.getSchoolCycleCalendar,
     currentSchool?.school._id && filtroCicloEscolarId
       ? {
-          schoolId: currentSchool?.school._id as Id<"school">,
-          schoolCycleId: filtroCicloEscolarId as Id<"schoolCycle">,
-        }
+        schoolId: currentSchool?.school._id as Id<"school">,
+        schoolCycleId: filtroCicloEscolarId as Id<"schoolCycle">,
+      }
       : "skip"
   );
 
@@ -352,7 +352,7 @@ export default function CalendarioEscolar() {
                   </CardHeader>
                   <CardContent>
                     {datosCalendario.eventosDelDia.length > 0 ? (
-                      <div className="space-y-3 max-h-84 overflow-y-auto">
+                      <div className="space-y-4 max-h-84 overflow-y-auto py-2">
                         {datosCalendario.eventosDelDia.map((evento) => {
                           const tipoEvento = getTipoEventoById(
                             evento.eventTypeId
@@ -369,7 +369,7 @@ export default function CalendarioEscolar() {
                               }}
                               key={evento._id}
                               className={cn(
-                                "p-4 rounded-xl border-l-4 mx-2",
+                                "p-4 rounded-xl border-l-4 mx-2 transition-all duration-200 hover:shadow-md cursor-pointer",
                                 config?.bgLight || "bg-gray-50",
                                 config?.borderColor || "border-l-gray-300"
                               )}
@@ -452,7 +452,7 @@ export default function CalendarioEscolar() {
                 </CardHeader>
                 <CardContent>
                   {datosCalendario.eventos &&
-                  datosCalendario.eventos?.length > 0 ? (
+                    datosCalendario.eventos?.length > 0 ? (
                     <div className="space-y-3 max-h-84 overflow-y-auto">
                       {datosCalendario.eventos
                         ?.filter(
@@ -539,16 +539,16 @@ export default function CalendarioEscolar() {
                       {datosCalendario.eventos?.filter(
                         (evento) => new Date(evento.date) >= new Date()
                       ).length === 0 && (
-                        <div className="text-center py-8">
-                          <CalendarDays className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                          <p className="text-slate-500 font-medium">
-                            No hay próximos eventos programados
-                          </p>
-                          <p className="text-slate-400 text-sm mt-1">
-                            Revisa el calendario para más información
-                          </p>
-                        </div>
-                      )}
+                          <div className="text-center py-8">
+                            <CalendarDays className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                            <p className="text-slate-500 font-medium">
+                              No hay próximos eventos programados
+                            </p>
+                            <p className="text-slate-400 text-sm mt-1">
+                              Revisa el calendario para más información
+                            </p>
+                          </div>
+                        )}
                     </div>
                   ) : (
                     <div className="text-center py-8">
@@ -690,7 +690,7 @@ export default function CalendarioEscolar() {
                             setModalAbiertoT(true);
                           }}
                           className={cn(
-                            "p-4 rounded-xl border-2 transition-all duration-200 hover:shadow-md cursor-pointer",
+                            "p-4 rounded-xl  transition-all duration-200 hover:shadow-md cursor-pointer",
                             config.bgLight,
                             config.borderColor.replace("border-l-", "border-")
                           )}
@@ -756,6 +756,7 @@ export default function CalendarioEscolar() {
               </Card>
             </div>
           </div>
+
           <EventTypeDialog
             isOpen={modalAbiertoT}
             onOpenChange={(open) => {
@@ -769,6 +770,7 @@ export default function CalendarioEscolar() {
             tipoEventoEditar={tipoDeEventoEditar}
             escuelaId={currentSchool?.school._id as Id<"school">}
           />
+
           <EventDialog
             isOpen={modalAbierto}
             onOpenChange={(open: boolean) => {
@@ -782,6 +784,7 @@ export default function CalendarioEscolar() {
             escuelaId={currentSchool?.school._id as Id<"school">}
             eventoEditar={eventoEditar}
           />
+
         </div>
       ) : (
         <NotAuth
