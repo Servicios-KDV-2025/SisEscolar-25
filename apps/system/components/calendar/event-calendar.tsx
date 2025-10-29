@@ -64,7 +64,7 @@ export function EventCalendar({
   onEventUpdate,
   onEventDelete,
   className,
-  initialView = "month",
+  initialView = "mes",
   eventTypes,
   onAddNewEventType,
 }: EventCalendarProps): React.ReactElement {
@@ -91,13 +91,13 @@ export function EventCalendar({
 
       switch (e.key.toLowerCase()) {
         case "m":
-          setView("month");
+          setView("mes");
           break;
         case "w":
-          setView("week");
+          setView("semana");
           break;
         case "d":
-          setView("day");
+          setView("dia");
           break;
         case "a":
           setView("agenda");
@@ -113,11 +113,11 @@ export function EventCalendar({
   }, [isEventDialogOpen]);
 
   const handlePrevious = () => {
-    if (view === "month") {
+    if (view === "mes") {
       setCurrentDate(subMonths(currentDate, 1));
-    } else if (view === "week") {
+    } else if (view === "semana") {
       setCurrentDate(subWeeks(currentDate, 1));
-    } else if (view === "day") {
+    } else if (view === "dia") {
       setCurrentDate(addDays(currentDate, -1));
     } else if (view === "agenda") {
       // For agenda view, go back 30 days (a full month)
@@ -126,11 +126,11 @@ export function EventCalendar({
   };
 
   const handleNext = () => {
-    if (view === "month") {
+    if (view === "mes") {
       setCurrentDate(addMonths(currentDate, 1));
-    } else if (view === "week") {
+    } else if (view === "semana") {
       setCurrentDate(addWeeks(currentDate, 1));
-    } else if (view === "day") {
+    } else if (view === "dia") {
       setCurrentDate(addDays(currentDate, 1));
     } else if (view === "agenda") {
       // For agenda view, go forward 30 days (a full month)
@@ -226,9 +226,9 @@ export function EventCalendar({
   };
 
   const viewTitle = useMemo(() => {
-    if (view === "month") {
+    if (view === "mes") {
       return format(currentDate, "MMMM yyyy");
-    } else if (view === "week") {
+    } else if (view === "semana") {
       const start = startOfWeek(currentDate, { weekStartsOn: 0 });
       const end = endOfWeek(currentDate, { weekStartsOn: 0 });
       if (isSameMonth(start, end)) {
@@ -236,7 +236,7 @@ export function EventCalendar({
       } else {
         return `${format(start, "MMM")} - ${format(end, "MMM yyyy")}`;
       }
-    } else if (view === "day") {
+    } else if (view === "dia") {
       return (
         <>
           <span className="min-[480px]:hidden" aria-hidden="true">
@@ -338,13 +338,13 @@ export function EventCalendar({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-32">
-                <DropdownMenuItem onClick={() => setView("month")}>
+                <DropdownMenuItem onClick={() => setView("mes")}>
                   Mes <DropdownMenuShortcut>M</DropdownMenuShortcut>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setView("week")}>
+                <DropdownMenuItem onClick={() => setView("semana")}>
                   Semana <DropdownMenuShortcut>S</DropdownMenuShortcut>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setView("day")}>
+                <DropdownMenuItem onClick={() => setView("dia")}>
                   Día <DropdownMenuShortcut>D</DropdownMenuShortcut>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setView("agenda")}>
@@ -371,7 +371,7 @@ export function EventCalendar({
         </div>
 
         <div className="flex flex-1 flex-col">
-          {view === "month" && (
+          {view === "mes" && (
             <MonthView
               currentDate={currentDate}
               events={events}
@@ -379,7 +379,7 @@ export function EventCalendar({
               onEventCreate={handleEventCreate}
             />
           )}
-          {view === "week" && (
+          {view === "semana" && (
             <WeekView
               currentDate={currentDate}
               events={events}
@@ -387,7 +387,7 @@ export function EventCalendar({
               onEventCreate={handleEventCreate}
             />
           )}
-          {view === "day" && (
+          {view === "dia" && (
             <DayView
               currentDate={currentDate}
               events={events}

@@ -22,7 +22,7 @@ export function getEventColorClasses(color?: EventColor | string): string {
     case "orange":
       return "bg-orange-200/50 hover:bg-orange-200/40 dark:bg-orange-400/25 dark:hover:bg-orange-400/20 dark:shadow-orange-700/8";
     default:
-      return "bg-sky-200/50 hover:bg-sky-200/40 dark:bg-sky-400/25 dark:hover:bg-sky-400/20 dark:shadow-sky-700/8";
+      return "bg-yellow-200/50 hover:bg-yellow-200/40 dark:bg-yellow-400/25 dark:hover:bg-yellow-400/20 dark:shadow-yellow-700/8";
   }
 }
 

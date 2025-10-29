@@ -1,21 +1,18 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { toast } from "sonner"; 
+import { toast } from "sonner";
 import { EventCalendar, type CalendarEvent } from "components/calendar";
 import {
   BookOpen,
   AlertTriangle,
-  
   TrendingUp,
   School,
-  
   Calendar as CalendarIcon,
 } from "@repo/ui/icons";
 import {
   Card,
   CardContent,
-
   CardHeader,
   CardTitle,
 } from "@repo/ui/components/shadcn/card";
@@ -35,13 +32,12 @@ import { api } from "@repo/convex/convex/_generated/api";
 import { useCurrentSchool } from "stores/userSchoolsStore";
 import { useUserWithConvex } from "stores/userStore";
 import { useUser } from "@clerk/nextjs";
-import { colorMap, iconMap } from "lib/iconMap";
+import { iconMap } from "lib/iconMap";
 import { cn } from "lib/utils";
 import { EventType } from "@/types/eventType";
 import EventTypeDialog from "components/dialog/EventTypeDialog";
 import { usePermissions } from "hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
-
 
 interface TipoEventoConfig {
   id: GenericId<"eventType">;
@@ -77,7 +73,9 @@ export default function CalendarioEscolar() {
 
   const crearEvento = useMutation(api.functions.calendar.createCalendarEvent);
   const editarEvento = useMutation(api.functions.calendar.updateCalendarEvent);
-  const eliminarEvento = useMutation(api.functions.calendar.deleteCalendarEvent);
+  const eliminarEvento = useMutation(
+    api.functions.calendar.deleteCalendarEvent
+  );
 
   const getTipoEventoById = useCallback(
     (tipoEventoId: string) => {
@@ -109,7 +107,7 @@ export default function CalendarioEscolar() {
       const tipoEvento = getTipoEventoById(evento.eventTypeId);
 
       // 2. Determina el color (usa el color del tipo o 'sky' por defecto)
-      const eventColor = (tipoEvento?.color as CalendarEvent["color"]) || "sky";
+      const eventColor = (tipoEvento?.color as CalendarEvent["color"]) || "blue";
 
       // 3. Mapea los campos
       return {
@@ -126,7 +124,6 @@ export default function CalendarioEscolar() {
     });
   }, [eventos, getTipoEventoById]);
 
-
   const {
     canCreateCalendar,
     canReadCalendar,
@@ -136,7 +133,8 @@ export default function CalendarioEscolar() {
 
   const handleEventAdd = async (event: CalendarEvent) => {
     // Estas IDs vienen del 'handleSave' en el modal (que arreglaremos en el Paso 3)
-    const { title, description, start, end, allDay, location, eventTypeId } = event;
+    const { title, description, start, end, allDay, location, eventTypeId } =
+      event;
     const schoolId = currentSchool?.school._id;
     const schoolCycleId = filtroCicloEscolarId; // Tomamos el ciclo del filtro
 
@@ -166,9 +164,9 @@ export default function CalendarioEscolar() {
 
   const handleEventUpdate = async (event: CalendarEvent) => {
     // (Esta es la misma lógica que usamos para el Drag-n-Drop)
-    const originalEvent = eventos?.find(e => e._id === event.id);
+    const originalEvent = eventos?.find((e) => e._id === event.id);
     const schoolId = currentSchool?.school._id;
-    
+
     if (!originalEvent || !schoolId) return;
 
     try {
@@ -181,7 +179,8 @@ export default function CalendarioEscolar() {
         description: event.description,
         allDay: event.allDay ?? false,
         location: event.location,
-        eventTypeId: (event.eventTypeId || originalEvent.eventTypeId) as Id<"eventType">,
+        eventTypeId: (event.eventTypeId ||
+          originalEvent.eventTypeId) as Id<"eventType">,
         schoolCycleId: originalEvent.schoolCycleId,
         status: originalEvent.status,
       });
@@ -197,9 +196,9 @@ export default function CalendarioEscolar() {
     if (!schoolId) return;
 
     try {
-      await eliminarEvento({ 
-        schoolId: schoolId as Id<"school">, 
-        eventId: eventId as Id<"calendar"> 
+      await eliminarEvento({
+        schoolId: schoolId as Id<"school">,
+        eventId: eventId as Id<"calendar">,
       });
       toast.success("Evento eliminado");
     } catch (error) {
@@ -226,30 +225,120 @@ export default function CalendarioEscolar() {
   }, [ciclosEscolares, filtroCicloEscolarId]);
 
   const convertirColorAClases = useCallback((color: string | undefined) => {
-    if (!color)
-      return {
+    // 1. Define el mapa de colores AQUÍ ADENTRO
+    const localColorMap: Record<
+      string,
+      { color: string; bgLight: string; borderColor: string; dotColor: string }
+    > = {
+      blue: {
+        color: "bg-blue-500 text-white",
+        bgLight: "bg-blue-50",
+        borderColor: "border-l-blue-300",
+        dotColor: "before:bg-blue-500",
+      },
+      green: {
+        color: "bg-green-500 text-white",
+        bgLight: "bg-green-50",
+        borderColor: "border-l-green-300",
+        dotColor: "before:bg-green-500",
+      },
+      yellow: {
+        color: "bg-yellow-500 text-white",
+        bgLight: "bg-yellow-50",
+        borderColor: "border-l-yellow-300",
+        dotColor: "before:bg-yellow-500",
+      },
+      red: {
+        color: "bg-red-500 text-white",
+        bgLight: "bg-red-50",
+        borderColor: "border-l-red-300",
+        dotColor: "before:bg-red-500",
+      },
+      purple: {
+        color: "bg-purple-500 text-white",
+        bgLight: "bg-purple-50",
+        borderColor: "border-l-purple-300",
+        dotColor: "before:bg-purple-500",
+      },
+      cyan: {
+        color: "bg-cyan-500 text-white",
+        bgLight: "bg-cyan-50",
+        borderColor: "border-l-cyan-300",
+        dotColor: "before:bg-cyan-500",
+      },
+      orange: {
+        color: "bg-orange-500 text-white",
+        bgLight: "bg-orange-50",
+        borderColor: "border-l-orange-300",
+        dotColor: "before:bg-orange-500",
+      },
+      pink: {
+        color: "bg-pink-500 text-white",
+        bgLight: "bg-pink-50",
+        borderColor: "border-l-pink-300",
+        dotColor: "before:bg-pink-500",
+      },
+      // Colores de respaldo (los que tenías en types.ts)
+      sky: {
+        color: "bg-sky-500 text-white",
+        bgLight: "bg-sky-50",
+        borderColor: "border-l-sky-300",
+        dotColor: "before:bg-sky-500",
+      },
+      amber: {
+        color: "bg-amber-500 text-white",
+        bgLight: "bg-amber-50",
+        borderColor: "border-l-amber-300",
+        dotColor: "before:bg-amber-500",
+      },
+      violet: {
+        color: "bg-violet-500 text-white",
+        bgLight: "bg-violet-50",
+        borderColor: "border-l-violet-300",
+        dotColor: "before:bg-violet-500",
+      },
+      rose: {
+        color: "bg-rose-500 text-white",
+        bgLight: "bg-rose-50",
+        borderColor: "border-l-rose-300",
+        dotColor: "before:bg-rose-500",
+      },
+      emerald: {
+        color: "bg-emerald-500 text-white",
+        bgLight: "bg-emerald-50",
+        borderColor: "border-l-emerald-300",
+        dotColor: "before:bg-emerald-500",
+      },
+      gray: {
         color: "bg-gray-500 text-white",
         bgLight: "bg-gray-50",
         borderColor: "border-l-gray-300",
         dotColor: "before:bg-gray-500",
-      };
+      },
+    };
 
-    return (
-      colorMap[color] || {
-        color: "bg-gray-500 text-white",
-        bgLight: "bg-gray-50",
-        borderColor: "border-l-gray-300",
-        dotColor: "before:bg-gray-500",
-      }
-    );
-  }, []);
+    // 2. Si no hay color, devuelve el gris
+    if (!color) {
+      return localColorMap.gray;
+    }
+
+    // 3. Busca el color en el mapa local. Si no lo encuentra, devuelve gris.
+    return localColorMap[color] || localColorMap.gray;
+  }, []); // <-- El array vacío ahora es correcto, porque no depende de nada externo
 
   const tipoEventoMap = useMemo(() => {
     if (!tiposDeEventos) return {};
 
     return tiposDeEventos.reduce(
       (acc, tipo) => {
-        const clases = convertirColorAClases(tipo.color);
+        
+        const clases = convertirColorAClases(tipo.color) || {
+          color: "bg-gray-500 text-white",
+          bgLight: "bg-gray-50",
+          borderColor: "border-l-gray-300",
+          dotColor: "before:bg-gray-500",
+        };
+
         const extractColorBase = (bgClass: string) => {
           const match = bgClass.match(/bg-([a-z]+)-\d+/);
           return match ? match[1] : "gray";
@@ -370,7 +459,7 @@ export default function CalendarioEscolar() {
                         name: config.name,
                         key: config.key,
                         description: config.description,
-                        color: config.colorB,
+                        color: config.color,
                         icon: config.icon,
                         status: config.status,
                       };
@@ -462,7 +551,6 @@ export default function CalendarioEscolar() {
             tipoEventoEditar={tipoDeEventoEditar}
             escuelaId={currentSchool?.school._id as Id<"school">}
           />
-
         </div>
       ) : (
         <NotAuth
