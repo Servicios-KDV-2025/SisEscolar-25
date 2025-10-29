@@ -4,13 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { RiCalendarLine, RiDeleteBinLine } from "@remixicon/react";
 import { format, isBefore } from "date-fns";
 import React from "react";
-import type { CalendarEvent, EventColor } from "./";
+import type { CalendarEvent, EventColor } from "./"; // Asegúrate de que CalendarEvent en './' (o types.ts) tenga 'eventTypeId?: string'
 import { EventType } from "@/types/eventType";
 import {
   DefaultEndHour,
   DefaultStartHour,
   EndHour,
-  StartHour
+  StartHour,
 } from "../../app/[subdomain]/(dashboard)/administracion/calendario/constants";
 import { cn } from "lib/utils";
 import { Button } from "@repo/ui/components/shadcn/button";
@@ -22,17 +22,20 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle
+  DialogTitle,
 } from "@repo/ui/components/shadcn/dialog";
 
-import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/shadcn/popover";
-import { RadioGroup, RadioGroupItem } from "@repo/ui/components/shadcn/radio-group";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@repo/ui/components/shadcn/popover";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
 } from "@repo/ui/components/shadcn/select";
 import { Textarea } from "@repo/ui/components/shadcn/textarea";
 import { Label } from "@repo/ui/components/shadcn/label";
@@ -65,15 +68,10 @@ export function EventDialog({
   const [endTime, setEndTime] = useState(`${DefaultEndHour}:00`);
   const [allDay, setAllDay] = useState(false);
   const [location, setLocation] = useState("");
-  const [eventTypeId, setEventTypeId] = useState<string | undefined>();
+  const [eventTypeId, setEventTypeId] = useState<string | undefined>(); // <-- Estado principal
   const [error, setError] = useState<string | null>(null);
   const [startDateOpen, setStartDateOpen] = useState(false);
   const [endDateOpen, setEndDateOpen] = useState(false);
-
-  // Debug log to check what event is being passed
-  useEffect(() => {
-    console.log("EventDialog received event:", event);
-  }, [event]);
 
   useEffect(() => {
     if (event) {
@@ -89,8 +87,8 @@ export function EventDialog({
       setEndTime(formatTimeForInput(end));
       setAllDay(event.allDay || false);
       setLocation(event.location || "");
-      setEventTypeId((event as any).eventTypeId);
-      setError(null); // Reset error when opening dialog
+      setEventTypeId(event.eventTypeId); // <-- Actualizado (sin 'any')
+      setError(null);
     } else {
       resetForm();
     }
@@ -105,7 +103,7 @@ export function EventDialog({
     setEndTime(`${DefaultEndHour}:00`);
     setAllDay(false);
     setLocation("");
-    setEventTypeId(undefined);
+    setEventTypeId(undefined); // <-- Actualizado
     setError(null);
   };
 
@@ -115,7 +113,6 @@ export function EventDialog({
     return `${hours}:${minutes.toString().padStart(2, "0")}`;
   };
 
-  // Memoize time options so they're only calculated once
   const timeOptions = useMemo(() => {
     const options = [];
     for (let hour = StartHour; hour <= EndHour; hour++) {
@@ -123,14 +120,13 @@ export function EventDialog({
         const formattedHour = hour.toString().padStart(2, "0");
         const formattedMinute = minute.toString().padStart(2, "0");
         const value = `${formattedHour}:${formattedMinute}`;
-        // Use a fixed date to avoid unnecessary date object creations
         const date = new Date(2000, 0, 1, hour, minute);
         const label = format(date, "h:mm a");
         options.push({ value, label });
       }
     }
     return options;
-  }, []); // Empty dependency array ensures this only runs once
+  }, []);
 
   const handleSave = () => {
     const start = new Date(startDate);
@@ -146,7 +142,9 @@ export function EventDialog({
         endHours < StartHour ||
         endHours > EndHour
       ) {
-        setError(`Selected time must be between ${StartHour}:00 and ${EndHour}:00`);
+        setError(
+          `Selected time must be between ${StartHour}:00 and ${EndHour}:00`
+        );
         return;
       }
 
@@ -157,17 +155,17 @@ export function EventDialog({
       end.setHours(23, 59, 59, 999);
     }
 
-    // Validate that end date is not before start date
     if (isBefore(end, start)) {
       setError("End date cannot be before start date");
       return;
     }
 
     const eventTitle = title.trim() ? title : "(no title)";
-    const selectedEventType = eventTypes?.find(et => et._id === eventTypeId);    
+    
+    // --- Lógica de color actualizada ---
+    const selectedEventType = eventTypes?.find((et) => et._id === eventTypeId);
     const eventColor = (selectedEventType?.color as EventColor) || "sky";
 
-    
     onSave({
       id: event?.id || "",
       title: eventTitle,
@@ -176,9 +174,9 @@ export function EventDialog({
       end,
       allDay,
       location,
-      color: eventColor,
-      eventTypeId: eventTypeId,
-    }as CalendarEvent);
+      color: eventColor, // <-- Color derivado
+      eventTypeId: eventTypeId, // <-- ID del tipo
+    } as CalendarEvent);
   };
 
   const handleDelete = () => {
@@ -187,50 +185,13 @@ export function EventDialog({
     }
   };
 
-  // Updated color options to match types.ts
-  const colorOptions: Array<{
-    value: EventColor;
-    label: string;
-    bgClass: string;
-    borderClass: string;
-  }> = [
-    {
-      value: "sky",
-      label: "Sky",
-      bgClass: "bg-sky-400 data-[state=checked]:bg-sky-400",
-      borderClass: "border-sky-400 data-[state=checked]:border-sky-400"
-    },
-    {
-      value: "amber",
-      label: "Amber",
-      bgClass: "bg-amber-400 data-[state=checked]:bg-amber-400",
-      borderClass: "border-amber-400 data-[state=checked]:border-amber-400"
-    },
-    {
-      value: "violet",
-      label: "Violet",
-      bgClass: "bg-violet-400 data-[state=checked]:bg-violet-400",
-      borderClass: "border-violet-400 data-[state=checked]:border-violet-400"
-    },
-    {
-      value: "rose",
-      label: "Rose",
-      bgClass: "bg-rose-400 data-[state=checked]:bg-rose-400",
-      borderClass: "border-rose-400 data-[state=checked]:border-rose-400"
-    },
-    {
-      value: "emerald",
-      label: "Emerald",
-      bgClass: "bg-emerald-400 data-[state=checked]:bg-emerald-400",
-      borderClass: "border-emerald-400 data-[state=checked]:border-emerald-400"
-    },
-    {
-      value: "orange",
-      label: "Orange",
-      bgClass: "bg-orange-400 data-[state=checked]:bg-orange-400",
-      borderClass: "border-orange-400 data-[state=checked]:border-orange-400"
-    }
-  ];
+  // Mapa de colores para mostrar en el Select (si guardas hexadecimales)
+  // Si guardas nombres de color (ej: "sky"), puedes usar un map de clases
+  const colorStyle = (color?: string | null) => {
+    return {
+      backgroundColor: color ? color : 'rgb(156 163 175)' // gris por defecto
+    };
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
@@ -238,7 +199,9 @@ export function EventDialog({
         <DialogHeader>
           <DialogTitle>{event?.id ? "Edit Event" : "Create Event"}</DialogTitle>
           <DialogDescription className="sr-only">
-            {event?.id ? "Edit the details of this event" : "Add a new event to your calendar"}
+            {event?.id
+              ? "Edit the details of this event"
+              : "Add a new event to your calendar"}
           </DialogDescription>
         </DialogHeader>
         {error && (
@@ -249,7 +212,13 @@ export function EventDialog({
         <div className="grid gap-4 py-4">
           <div className="*:not-first:mt-1.5">
             <Label htmlFor="title">Title</Label>
-            <Input id="title" value={title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)} />
+            <Input
+              id="title"
+              value={title}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setTitle(e.target.value)
+              }
+            />
           </div>
 
           <div className="*:not-first:mt-1.5">
@@ -257,11 +226,15 @@ export function EventDialog({
             <Textarea
               id="description"
               value={description}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                setDescription(e.target.value)
+              }
               rows={3}
             />
           </div>
 
+          {/* ... (Todo el JSX de Start Date, End Date, Time, All day, Location) ... */}
+          
           <div className="flex gap-4">
             <div className="flex-1 *:not-first:mt-1.5">
               <Label htmlFor="start-date">Start Date</Label>
@@ -292,7 +265,6 @@ export function EventDialog({
                     onSelect={(date: Date | undefined) => {
                       if (date) {
                         setStartDate(date);
-                        // If end date is before the new start date, update it to match the start date
                         if (isBefore(endDate, date)) {
                           setEndDate(date);
                         }
@@ -387,35 +359,25 @@ export function EventDialog({
             <Checkbox
               id="all-day"
               checked={allDay}
-              onCheckedChange={(checked: boolean | 'indeterminate') => setAllDay(checked === true)}
+              onCheckedChange={(checked: boolean | "indeterminate") =>
+                setAllDay(checked === true)
+              }
             />
             <Label htmlFor="all-day">All day</Label>
           </div>
 
           <div className="*:not-first:mt-1.5">
             <Label htmlFor="location">Location</Label>
-            <Input id="location" value={location} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocation(e.target.value)} />
+            <Input
+              id="location"
+              value={location}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setLocation(e.target.value)
+              }
+            />
           </div>
-          {/* <fieldset className="space-y-4">
-            <legend className="text-foreground text-sm leading-none font-medium">Etiqueta</legend>
-            <RadioGroup
-              className="flex gap-1.5"
-              defaultValue={colorOptions[0]?.value}
-              value={color}
-              onValueChange={(value: EventColor) => setColor(value)}>
-              {colorOptions.map((colorOption) => (
-                <RadioGroupItem
-                  key={colorOption.value}
-                  id={`color-${colorOption.value}`}
-                  value={colorOption.value}
-                  aria-label={colorOption.label}
-                  className={cn("size-6 shadow-none text-transparent", colorOption.bgClass, colorOption.borderClass
-                    
-                  )}
-                />
-              ))}
-            </RadioGroup>
-          </fieldset> */}
+
+          {/* --- SECCIÓN REEMPLAZADA --- */}
           <div className="space-y-1.5">
             <Label htmlFor="event-type">Tipo de Evento</Label>
             <div className="flex gap-2">
@@ -427,14 +389,9 @@ export function EventDialog({
                   {eventTypes?.map((tipo) => (
                     <SelectItem key={tipo._id} value={tipo._id}>
                       <div className="flex items-center gap-2">
-                        {/* Círculo de color (opcional) */}
                         <span
-                          className={cn(
-                            "size-3 rounded-full",
-                            // Asumiendo que guardas colores de Tailwind (ej: 'sky-400')
-                            // Si guardas 'sky', necesitas un map
-                            `bg-${tipo.color}` 
-                          )}
+                          className="size-3 rounded-full"
+                          style={colorStyle(tipo.color)} // <-- Usa estilo en línea
                         />
                         {tipo.name}
                       </div>
@@ -442,7 +399,7 @@ export function EventDialog({
                   ))}
                 </SelectContent>
               </Select>
-              
+
               {/* --- BOTÓN DE ATAJO --- */}
               <Button
                 type="button" // Evita que envíe el formulario
@@ -458,7 +415,12 @@ export function EventDialog({
         </div>
         <DialogFooter className="flex-row sm:justify-between">
           {event?.id && (
-            <Button variant="outline" size="icon" onClick={handleDelete} aria-label="Delete event">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleDelete}
+              aria-label="Delete event"
+            >
               <RiDeleteBinLine size={16} aria-hidden="true" />
             </Button>
           )}

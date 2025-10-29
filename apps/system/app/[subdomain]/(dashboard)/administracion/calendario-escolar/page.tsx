@@ -1,25 +1,24 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { Calendar } from "@repo/ui/components/shadcn/calendar";
+import { useMutation, useQuery } from "convex/react";
+import { toast } from "sonner"; 
 import { EventCalendar, type CalendarEvent } from "components/calendar";
 import {
   BookOpen,
   AlertTriangle,
-  Bell,
+  
   TrendingUp,
   School,
-  CalendarDays,
+  
   Calendar as CalendarIcon,
 } from "@repo/ui/icons";
 import {
   Card,
   CardContent,
-  CardDescription,
+
   CardHeader,
   CardTitle,
 } from "@repo/ui/components/shadcn/card";
-import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Button } from "@repo/ui/components/shadcn/button";
 import {
   Select,
@@ -37,15 +36,12 @@ import { useCurrentSchool } from "stores/userSchoolsStore";
 import { useUserWithConvex } from "stores/userStore";
 import { useUser } from "@clerk/nextjs";
 import { colorMap, iconMap } from "lib/iconMap";
-import { format } from "date-fns";
 import { cn } from "lib/utils";
-import { es } from "date-fns/locale";
-import { CalendarType } from "@/types/calendar";
 import { EventType } from "@/types/eventType";
 import EventTypeDialog from "components/dialog/EventTypeDialog";
-import EventDialog from "components/dialog/EventDialog";
 import { usePermissions } from "hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+
 
 interface TipoEventoConfig {
   id: GenericId<"eventType">;
@@ -64,10 +60,6 @@ interface TipoEventoConfig {
 }
 
 export default function CalendarioEscolar() {
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-    new Date()
-  );
-  const [currentMonth, setCurrentMonth] = useState(new Date());
   const { user: clerkUser } = useUser();
   const { currentUser } = useUserWithConvex(clerkUser?.id);
   const { currentSchool, isLoading: schoolLoading } = useCurrentSchool(
@@ -82,6 +74,10 @@ export default function CalendarioEscolar() {
     api.functions.eventType.getEventType,
     currentSchool ? { schoolId: currentSchool.school._id } : "skip"
   );
+
+  const crearEvento = useMutation(api.functions.calendar.createCalendarEvent);
+  const editarEvento = useMutation(api.functions.calendar.updateCalendarEvent);
+  const eliminarEvento = useMutation(api.functions.calendar.deleteCalendarEvent);
 
   const getTipoEventoById = useCallback(
     (tipoEventoId: string) => {
@@ -104,7 +100,7 @@ export default function CalendarioEscolar() {
       : "skip"
   );
 
-const formattedEvents = useMemo((): CalendarEvent[] => {
+  const formattedEvents = useMemo((): CalendarEvent[] => {
     if (!eventos) {
       return []; // Devuelve vacío si no hay datos (cargando o 'skip')
     }
@@ -128,12 +124,7 @@ const formattedEvents = useMemo((): CalendarEvent[] => {
         eventTypeId: evento.eventTypeId, // <-- Pasa el ID al calendario
       };
     });
-  }, [eventos, getTipoEventoById]); // <-- ¡Añade getTipoEventoById a las dependencias!
-
-  useEffect(() => {
-    setEvents(formattedEvents);
-  }, [formattedEvents]);
-
+  }, [eventos, getTipoEventoById]);
 
 
   const {
@@ -143,28 +134,79 @@ const formattedEvents = useMemo((): CalendarEvent[] => {
     canDeleteCalendar,
   } = usePermissions(currentSchool?.school._id);
 
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const handleEventAdd = async (event: CalendarEvent) => {
+    // Estas IDs vienen del 'handleSave' en el modal (que arreglaremos en el Paso 3)
+    const { title, description, start, end, allDay, location, eventTypeId } = event;
+    const schoolId = currentSchool?.school._id;
+    const schoolCycleId = filtroCicloEscolarId; // Tomamos el ciclo del filtro
 
-  const handleEventAdd = (event: CalendarEvent) => {
-    setEvents([...events, event]);
+    if (!schoolId || !schoolCycleId || !eventTypeId) {
+      toast.error("Faltan datos para crear el evento (escuela, ciclo o tipo).");
+      return;
+    }
+
+    try {
+      await crearEvento({
+        schoolId: schoolId as Id<"school">,
+        schoolCycleId: schoolCycleId as Id<"schoolCycle">,
+        title,
+        description,
+        startDate: start.getTime(),
+        endDate: end.getTime(),
+        allDay: allDay || false,
+        location,
+        eventTypeId: eventTypeId as Id<"eventType">,
+      });
+      toast.success(`Evento "${title}" creado`);
+    } catch (error) {
+      toast.error("Error al crear el evento.");
+      console.error(error);
+    }
   };
 
-  const handleEventUpdate = (updatedEvent: CalendarEvent) => {
-    setEvents(
-      events.map((event) =>
-        event.id === updatedEvent.id ? updatedEvent : event
-      )
-    );
+  const handleEventUpdate = async (event: CalendarEvent) => {
+    // (Esta es la misma lógica que usamos para el Drag-n-Drop)
+    const originalEvent = eventos?.find(e => e._id === event.id);
+    const schoolId = currentSchool?.school._id;
+    
+    if (!originalEvent || !schoolId) return;
+
+    try {
+      await editarEvento({
+        schoolId: schoolId as Id<"school">,
+        eventId: event.id as Id<"calendar">,
+        startDate: event.start.getTime(),
+        endDate: event.end.getTime(),
+        title: event.title,
+        description: event.description,
+        allDay: event.allDay ?? false,
+        location: event.location,
+        eventTypeId: (event.eventTypeId || originalEvent.eventTypeId) as Id<"eventType">,
+        schoolCycleId: originalEvent.schoolCycleId,
+        status: originalEvent.status,
+      });
+      toast.success(`Evento "${event.title}" actualizado`);
+    } catch (error) {
+      toast.error("Error al actualizar el evento.");
+      console.error(error);
+    }
   };
 
-  const handleEventDelete = (eventId: string) => {
-    setEvents(events.filter((event) => event.id !== eventId));
+  const handleEventDelete = async (eventId: string) => {
+    const schoolId = currentSchool?.school._id;
+    if (!schoolId) return;
+
+    try {
+      await eliminarEvento({ 
+        schoolId: schoolId as Id<"school">, 
+        eventId: eventId as Id<"calendar"> 
+      });
+      toast.success("Evento eliminado");
+    } catch (error) {
+      toast.error("Error al eliminar el evento.");
+      console.error(error);
+    }
   };
-
-  // Calendarios
-  const [modalAbierto, setModalAbierto] = useState(false);
-  const [eventoEditar, setEventoEditar] = useState<CalendarType | null>(null);
-
   // Tipos de eventos
   const [modalAbiertoT, setModalAbiertoT] = useState(false);
   const [tipoDeEventoEditar, setTipoDeEventoEditar] =
@@ -235,95 +277,6 @@ const formattedEvents = useMemo((): CalendarEvent[] => {
     );
   }, [tiposDeEventos, convertirColorAClases]);
 
-  const datosCalendario = useMemo(() => {
-    if (!eventos)
-      return {
-        fechasConEventos: new Map<string, string>(),
-        contadorEventos: {} as Record<string, number>,
-        eventosDelDia: [],
-        eventosFiltrados: [],
-      };
-
-    const fechasConEventos = new Map<string, string>();
-    const contadorEventos: Record<string, number> = {};
-    const eventosDelDia: typeof eventos = [];
-
-    eventos.forEach((evento) => {
-      const fecha = format(new Date(evento.startDate), "yyyy-MM-dd");
-      const tipoClave = evento.eventTypeId.toLowerCase().trim();
-      const tipoEvento = getTipoEventoById(evento.eventTypeId);
-
-      fechasConEventos.set(fecha, tipoEvento?.key || "");
-      contadorEventos[tipoClave] = (contadorEventos[tipoClave] || 0) + 1;
-
-      if (selectedDate && format(selectedDate, "yyyy-MM-dd") === fecha) {
-        eventosDelDia.push(evento);
-      }
-    });
-
-    return { fechasConEventos, contadorEventos, eventosDelDia, eventos };
-  }, [eventos, selectedDate, getTipoEventoById]);
-
-  const normalizarFecha = (fecha: Date | string) => {
-    const f = typeof fecha === "string" ? new Date(fecha) : fecha;
-    return format(f, "yyyy-MM-dd");
-  };
-
-  const getTipoEvento = useCallback(
-    (date: Date) => {
-      const fechaStr = normalizarFecha(date);
-      const tipo = datosCalendario.fechasConEventos.get(fechaStr);
-      return tipo;
-    },
-    [datosCalendario.fechasConEventos]
-  );
-
-  const generateModifiers = useCallback(() => {
-    const modifiers: Record<string, (date: Date) => boolean> = {};
-
-    for (const tipoClave in tipoEventoMap) {
-      modifiers[tipoClave] = (date: Date) => {
-        const tipo = getTipoEvento(date);
-        return tipo === tipoClave;
-      };
-    }
-
-    return modifiers;
-  }, [tipoEventoMap, getTipoEvento]);
-
-  const generateModifiersClassNames = useCallback(() => {
-    const classNames: Record<string, string> = {};
-    const dotColorMap: Record<string, string> = {
-      blue: "after:bg-blue-500 after:border-blue-600 hover:ring-blue-300/50",
-      pink: "after:bg-pink-500 after:border-pink-600 hover:ring-pink-300/50",
-      yellow:
-        "after:bg-yellow-500 after:border-yellow-600 hover:ring-yellow-300/50",
-      gray: "after:bg-gray-500 after:border-gray-600 hover:ring-gray-300/50",
-      green:
-        "after:bg-green-500 after:border-green-600 hover:ring-green-300/50",
-      purple:
-        "after:bg-purple-500 after:border-purple-600 hover:ring-purple-300/50",
-      cyan: "after:bg-cyan-500 after:border-cyan-600 hover:ring-cyan-300/50",
-      orange:
-        "after:bg-orange-500 after:border-orange-600 hover:ring-orange-300/50",
-      red: "after:bg-red-500 after:border-red-600 hover:ring-red-300/50",
-    };
-
-    for (const tipoClave in tipoEventoMap) {
-      const config = tipoEventoMap[tipoClave];
-      const color = config?.colorBase ?? "gray";
-      const dotClasses = dotColorMap[color] ?? dotColorMap.gray;
-
-      classNames[tipoClave] = cn(
-        "hover:scale-110 sm:p-1",
-        "after:content-[''] after:absolute after:top-1.5 after:right-1.5 after:w-1 sm:after:w-1.5 md:after:w-2.5",
-        "after:h-1 sm:after:h-1.5 md:after:h-2.5 after:rounded-full after:shadow-sm",
-        dotClasses
-      );
-    }
-    return classNames;
-  }, [tipoEventoMap]);
-
   if (schoolLoading || (currentUser && !currentSchool)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -377,7 +330,7 @@ const formattedEvents = useMemo((): CalendarEvent[] => {
           <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             <div className="row-span-2 col-span-3 lg:col-span-2 xl:col-span-3">
               <EventCalendar
-                events={events}
+                events={formattedEvents}
                 onEventAdd={handleEventAdd}
                 onEventUpdate={handleEventUpdate}
                 onEventDelete={handleEventDelete}
@@ -510,19 +463,6 @@ const formattedEvents = useMemo((): CalendarEvent[] => {
             escuelaId={currentSchool?.school._id as Id<"school">}
           />
 
-          <EventDialog
-            isOpen={modalAbierto}
-            onOpenChange={(open: boolean) => {
-              if (!open) {
-                setEventoEditar(null);
-              }
-              setModalAbierto(open);
-            }}
-            canUpdateCalendar={canUpdateCalendar}
-            canDeleteCalendar={canDeleteCalendar}
-            escuelaId={currentSchool?.school._id as Id<"school">}
-            eventoEditar={eventoEditar}
-          />
         </div>
       ) : (
         <NotAuth
