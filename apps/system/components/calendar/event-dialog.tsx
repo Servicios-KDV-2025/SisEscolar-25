@@ -11,7 +11,7 @@ import {
   DefaultStartHour,
   EndHour,
   StartHour,
-} from "../../app/[subdomain]/(dashboard)/administracion/calendario/constants";
+} from "../../app/[subdomain]/(dashboard)/administracion/calendario-escolar/constants";
 import { cn } from "lib/utils";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Calendar } from "@repo/ui/components/shadcn/calendar";
@@ -49,6 +49,9 @@ interface EventDialogProps {
   onDelete: (eventId: string) => void;
   eventTypes: EventType[] | undefined;
   onAddNewEventType: () => void;
+  canCreateCalendar?: boolean;
+  canUpdateCalendar?: boolean;
+  canDeleteCalendar?: boolean;
 }
 
 export function EventDialog({
@@ -59,6 +62,9 @@ export function EventDialog({
   onDelete,
   eventTypes,
   onAddNewEventType,
+  canCreateCalendar,
+  canUpdateCalendar,
+  canDeleteCalendar,
 }: EventDialogProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -133,7 +139,9 @@ export function EventDialog({
     const end = new Date(endDate);
 
     if (!allDay) {
-      const [startHours = 0, startMinutes = 0] = startTime.split(":").map(Number);
+      const [startHours = 0, startMinutes = 0] = startTime
+        .split(":")
+        .map(Number);
       const [endHours = 0, endMinutes = 0] = endTime.split(":").map(Number);
 
       if (
@@ -161,7 +169,7 @@ export function EventDialog({
     }
 
     const eventTitle = title.trim() ? title : "(no title)";
-    
+
     // --- Lógica de color actualizada ---
     const selectedEventType = eventTypes?.find((et) => et._id === eventTypeId);
     const eventColor = (selectedEventType?.color as EventColor) || "sky";
@@ -189,7 +197,7 @@ export function EventDialog({
   // Si guardas nombres de color (ej: "sky"), puedes usar un map de clases
   const colorStyle = (color?: string | null) => {
     return {
-      backgroundColor: color ? color : 'rgb(156 163 175)' // gris por defecto
+      backgroundColor: color ? color : "rgb(156 163 175)", // gris por defecto
     };
   };
 
@@ -215,6 +223,7 @@ export function EventDialog({
             <Input
               id="title"
               value={title}
+              disabled={!canUpdateCalendar}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setTitle(e.target.value)
               }
@@ -225,6 +234,7 @@ export function EventDialog({
             <Label htmlFor="description">Descripción</Label>
             <Textarea
               id="description"
+              disabled={!canUpdateCalendar}
               value={description}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                 setDescription(e.target.value)
@@ -233,8 +243,6 @@ export function EventDialog({
             />
           </div>
 
-          {/* ... (Todo el JSX de Start Date, End Date, Time, All day, Location) ... */}
-          
           <div className="flex gap-4">
             <div className="flex-1 *:not-first:mt-1.5">
               <Label htmlFor="start-date">Fecha Inicial</Label>
@@ -242,12 +250,19 @@ export function EventDialog({
                 <PopoverTrigger asChild>
                   <Button
                     id="start-date"
+                    disabled={!canUpdateCalendar}
                     variant={"outline"}
                     className={cn(
                       "group bg-background hover:bg-background border-input w-full justify-between px-3 font-normal outline-offset-0 outline-none focus-visible:outline-[3px]",
                       !startDate && "text-muted-foreground"
-                    )}>
-                    <span className={cn("truncate", !startDate && "text-muted-foreground")}>
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "truncate",
+                        !startDate && "text-muted-foreground"
+                      )}
+                    >
                       {startDate ? format(startDate, "PPP") : "Pick a date"}
                     </span>
                     <RiCalendarLine
@@ -280,7 +295,7 @@ export function EventDialog({
             {!allDay && (
               <div className="min-w-28 *:not-first:mt-1.5">
                 <Label htmlFor="start-time">Hora Inicio</Label>
-                <Select value={startTime} onValueChange={setStartTime}>
+                <Select value={startTime} onValueChange={setStartTime} disabled={!canUpdateCalendar}>
                   <SelectTrigger id="start-time">
                     <SelectValue placeholder="Select time" />
                   </SelectTrigger>
@@ -303,12 +318,19 @@ export function EventDialog({
                 <PopoverTrigger asChild>
                   <Button
                     id="end-date"
+                    disabled={!canUpdateCalendar}
                     variant={"outline"}
                     className={cn(
                       "group bg-background hover:bg-background border-input w-full justify-between px-3 font-normal outline-offset-0 outline-none focus-visible:outline-[3px]",
                       !endDate && "text-muted-foreground"
-                    )}>
-                    <span className={cn("truncate", !endDate && "text-muted-foreground")}>
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "truncate",
+                        !endDate && "text-muted-foreground"
+                      )}
+                    >
                       {endDate ? format(endDate, "PPP") : "Pick a date"}
                     </span>
                     <RiCalendarLine
@@ -339,7 +361,7 @@ export function EventDialog({
             {!allDay && (
               <div className="min-w-28 *:not-first:mt-1.5">
                 <Label htmlFor="end-time">Hora Fin</Label>
-                <Select value={endTime} onValueChange={setEndTime}>
+                <Select value={endTime} onValueChange={setEndTime} disabled={!canUpdateCalendar}>
                   <SelectTrigger id="end-time">
                     <SelectValue placeholder="Select time" />
                   </SelectTrigger>
@@ -358,6 +380,7 @@ export function EventDialog({
           <div className="flex items-center gap-2">
             <Checkbox
               id="all-day"
+              disabled={!canUpdateCalendar}
               checked={allDay}
               onCheckedChange={(checked: boolean | "indeterminate") =>
                 setAllDay(checked === true)
@@ -370,6 +393,7 @@ export function EventDialog({
             <Label htmlFor="location">Ubicación</Label>
             <Input
               id="location"
+              disabled={!canUpdateCalendar}
               value={location}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setLocation(e.target.value)
@@ -381,7 +405,7 @@ export function EventDialog({
           <div className="space-y-1.5">
             <Label htmlFor="event-type">Tipo de Evento</Label>
             <div className="flex gap-2">
-              <Select value={eventTypeId} onValueChange={setEventTypeId}>
+              <Select value={eventTypeId} onValueChange={setEventTypeId} disabled={!canUpdateCalendar}>
                 <SelectTrigger id="event-type" className="flex-1">
                   <SelectValue placeholder="Selecciona un tipo" />
                 </SelectTrigger>
@@ -391,7 +415,7 @@ export function EventDialog({
                       <div className="flex items-center gap-2">
                         <span
                           className="size-3 rounded-full"
-                          style={colorStyle(tipo.color)} // <-- Usa estilo en línea
+                          style={colorStyle(tipo.color)}
                         />
                         {tipo.name}
                       </div>
@@ -401,7 +425,7 @@ export function EventDialog({
               </Select>
 
               {/* --- BOTÓN DE ATAJO --- */}
-              <Button
+              {canCreateCalendar &&  (<Button
                 type="button" // Evita que envíe el formulario
                 variant="outline"
                 size="icon"
@@ -409,12 +433,12 @@ export function EventDialog({
                 aria-label="Crear nuevo tipo de evento"
               >
                 +
-              </Button>
+              </Button>)}
             </div>
           </div>
         </div>
         <DialogFooter className="flex-row sm:justify-between">
-          {event?.id && (
+          {canDeleteCalendar && event?.id && (
             <Button
               variant="outline"
               size="icon"
@@ -425,10 +449,16 @@ export function EventDialog({
             </Button>
           )}
           <div className="flex flex-1 justify-end gap-2">
-            <Button variant="outline" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSave}>Guardar</Button>
+            {canUpdateCalendar ? (
+              <>
+                <Button variant="outline" onClick={onClose}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleSave}>Guardar</Button>
+              </>
+            ): (
+              <Button onClick={onClose}>Cerrar</Button>
+            )}
           </div>
         </DialogFooter>
       </DialogContent>

@@ -129,7 +129,7 @@ export default function EventTypeDialog({
         name: tipoEventoEditar.name,
         key: tipoEventoEditar.key,
         description: tipoEventoEditar.description || "",
-        color: tipoEventoEditar.color || "#3B82F6",
+        color: (tipoEventoEditar.color || "blue") as EventTypeFormData['color'],
         icon: tipoEventoEditar.icon || "calendar",
         status:
           tipoEventoEditar.status === "active" ||
@@ -142,7 +142,7 @@ export default function EventTypeDialog({
         name: "",
         key: "",
         description: "",
-        color: "#3B82F6",
+        color: "blue",
         icon: "calendar",
         status: "active",
       });

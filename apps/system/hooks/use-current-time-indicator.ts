@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { endOfWeek, isSameDay, isWithinInterval, startOfWeek } from "date-fns";
 
 // import { EndHour, StartHour } from "@/examples/event-calendar/constants";
-import { EndHour, StartHour } from "../app/[subdomain]/(dashboard)/administracion/calendario/constants";
+import { EndHour, StartHour } from "../app/[subdomain]/(dashboard)/administracion/calendario-escolar/constants";
 
 export function useCurrentTimeIndicator(currentDate: Date, view: "day" | "week") {
   const [currentTimePosition, setCurrentTimePosition] = useState<number>(0);

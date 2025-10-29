@@ -427,6 +427,9 @@ export default function CalendarioEscolar() {
                   setModalAbiertoT(false);
                   setModalAbiertoT(true);
                 }}
+                canCreateCalendar={canCreateCalendar}
+                canUpdateCalendar={canUpdateCalendar}
+                canDeleteCalendar={canDeleteCalendar}
               />
             </div>
 

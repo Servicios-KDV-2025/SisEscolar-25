@@ -27,7 +27,7 @@ import {
   WeekCellsHeight,
   type CalendarEvent
 } from "./";
-import { EndHour, StartHour } from "../../app/[subdomain]/(dashboard)/administracion/calendario/constants";
+import { EndHour, StartHour } from "../../app/[subdomain]/(dashboard)/administracion/calendario-escolar/constants";
 import { cn } from "lib/utils";
 
 interface WeekViewProps {

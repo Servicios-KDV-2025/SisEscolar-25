@@ -27,7 +27,7 @@ import {
   useEventVisibility,
   type CalendarEvent
 } from "./";
-import { DefaultStartHour } from "../../app/[subdomain]/(dashboard)/administracion/calendario/constants";
+import { DefaultStartHour } from "../../app/[subdomain]/(dashboard)/administracion/calendario-escolar/constants";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/shadcn/popover";
 
 interface MonthViewProps {

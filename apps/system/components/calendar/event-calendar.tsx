@@ -49,6 +49,9 @@ import type { EventType } from "@/types/eventType";
 
 export interface EventCalendarProps {
   events?: CalendarEvent[];
+  canCreateCalendar?: boolean;
+  canUpdateCalendar?: boolean;
+  canDeleteCalendar?: boolean;
   onEventAdd?: (event: CalendarEvent) => void;
   onEventUpdate?: (event: CalendarEvent) => void;
   onEventDelete?: (eventId: string) => void;
@@ -67,6 +70,9 @@ export function EventCalendar({
   initialView = "mes",
   eventTypes,
   onAddNewEventType,
+  canCreateCalendar,
+  canUpdateCalendar,
+  canDeleteCalendar,
 }: EventCalendarProps): React.ReactElement {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<CalendarView>(initialView);
@@ -149,6 +155,12 @@ export function EventCalendar({
   };
 
   const handleEventCreate = (startTime: Date) => {
+    if (!canUpdateCalendar) {
+      // O puedes usar 'canCreateCalendar' si lo pasas
+      toast.error("No tienes permiso para crear un nuevo evento.");
+      return;
+    }
+
     console.log("Creating new event at:", startTime); // Debug log
 
     // Snap to 15-minute intervals
@@ -352,21 +364,23 @@ export function EventCalendar({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button
-              className="max-[479px]:aspect-square max-[479px]:p-0!"
-              size="sm"
-              onClick={() => {
-                setSelectedEvent(null); // Ensure we're creating a new event
-                setIsEventDialogOpen(true);
-              }}
-            >
-              <PlusIcon
-                className="opacity-60 sm:-ms-1"
-                size={16}
-                aria-hidden="true"
-              />
-              <span className="max-sm:sr-only">Nuevo Evento</span>
-            </Button>
+            {canCreateCalendar && (
+              <Button
+                className="max-[479px]:aspect-square max-[479px]:p-0!"
+                size="sm"
+                onClick={() => {
+                  setSelectedEvent(null); // Ensure we're creating a new event
+                  setIsEventDialogOpen(true);
+                }}
+              >
+                <PlusIcon
+                  className="opacity-60 sm:-ms-1"
+                  size={16}
+                  aria-hidden="true"
+                />
+                <span className="max-sm:sr-only">Nuevo Evento</span>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -405,6 +419,9 @@ export function EventCalendar({
         </div>
 
         <EventDialog
+          canCreateCalendar={canCreateCalendar}
+          canUpdateCalendar={canUpdateCalendar}
+          canDeleteCalendar={canDeleteCalendar}
           event={selectedEvent}
           isOpen={isEventDialogOpen}
           onClose={() => {

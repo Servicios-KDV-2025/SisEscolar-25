@@ -14,7 +14,7 @@ export { WeekView } from "./week-view";
 export { CalendarDndProvider, useCalendarDnd } from "./Calendar-dnd-context";
 
 // Constants and utility exports
-export * from "../../app/[subdomain]/(dashboard)/administracion/calendario/constants";
+export * from "../../app/[subdomain]/(dashboard)/administracion/calendario-escolar/constants";
 export * from "../../utils/utils";
 
 // Hook exports
@@ -22,4 +22,4 @@ export * from "../../hooks/use-current-time-indicator";
 export * from "../../hooks/use-event-visibility";
 
 // Type exports
-export type { CalendarEvent, CalendarView, EventColor } from "../../app/[subdomain]/(dashboard)/administracion/calendario/types";
+export type { CalendarEvent, CalendarView, EventColor } from "../../app/[subdomain]/(dashboard)/administracion/calendario-escolar/types";
