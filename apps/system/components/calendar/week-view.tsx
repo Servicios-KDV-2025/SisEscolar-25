@@ -17,7 +17,7 @@ import {
   startOfDay,
   startOfWeek
 } from "date-fns";
-
+import { es } from "date-fns/locale";
 import {
   DraggableEvent,
   DroppableCell,
@@ -215,7 +215,7 @@ export function WeekView({ currentDate, events, onEventSelect, onEventCreate }: 
             <span className="sm:hidden" aria-hidden="true">
               {format(day, "E")[0]} {format(day, "d")}
             </span>
-            <span className="max-sm:hidden">{format(day, "EEE dd")}</span>
+            <span className="max-sm:hidden">{format(day, "EEE dd", { locale: es }).toUpperCase()}</span>
           </div>
         ))}
       </div>

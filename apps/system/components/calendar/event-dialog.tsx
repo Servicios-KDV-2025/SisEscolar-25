@@ -40,6 +40,7 @@ import {
 import { Textarea } from "@repo/ui/components/shadcn/textarea";
 import { Label } from "@repo/ui/components/shadcn/label";
 import { Input } from "@repo/ui/components/shadcn/input";
+import {es} from 'date-fns/locale';
 
 interface EventDialogProps {
   event: CalendarEvent | null;
@@ -127,7 +128,7 @@ export function EventDialog({
         const formattedMinute = minute.toString().padStart(2, "0");
         const value = `${formattedHour}:${formattedMinute}`;
         const date = new Date(2000, 0, 1, hour, minute);
-        const label = format(date, "h:mm a");
+        const label = format(date, "h:mm a", { locale: es });
         options.push({ value, label });
       }
     }
@@ -205,7 +206,7 @@ export function EventDialog({
     <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{event?.id ? "Edit Event" : "Create Event"}</DialogTitle>
+          <DialogTitle>{event?.id ? "Editar Evento" : "Crear Evento"}</DialogTitle>
           <DialogDescription className="sr-only">
             {event?.id
               ? "Edit the details of this event"
@@ -263,7 +264,7 @@ export function EventDialog({
                         !startDate && "text-muted-foreground"
                       )}
                     >
-                      {startDate ? format(startDate, "PPP") : "Pick a date"}
+                      {startDate ? format(startDate, "PPP", {locale: es} ) : "Pick a date"}
                     </span>
                     <RiCalendarLine
                       size={16}
@@ -287,6 +288,7 @@ export function EventDialog({
                         setStartDateOpen(false);
                       }
                     }}
+                    locale={es}
                   />
                 </PopoverContent>
               </Popover>
@@ -331,7 +333,7 @@ export function EventDialog({
                         !endDate && "text-muted-foreground"
                       )}
                     >
-                      {endDate ? format(endDate, "PPP") : "Pick a date"}
+                      {endDate ? format(endDate, "PPP",{locale: es}) : "Pick a date"}
                     </span>
                     <RiCalendarLine
                       size={16}
@@ -353,6 +355,7 @@ export function EventDialog({
                         setEndDateOpen(false);
                       }
                     }}
+                    locale={es}
                   />
                 </PopoverContent>
               </Popover>

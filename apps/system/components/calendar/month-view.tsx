@@ -13,7 +13,7 @@ import {
   startOfMonth,
   startOfWeek
 } from "date-fns";
-
+import { es } from "date-fns/locale";
 import {
   DraggableEvent,
   DroppableCell,
@@ -50,7 +50,7 @@ export function MonthView({ currentDate, events, onEventSelect, onEventCreate }:
   const weekdays = useMemo(() => {
     return Array.from({ length: 7 }).map((_, i) => {
       const date = addDays(startOfWeek(new Date()), i);
-      return format(date, "EEE");
+      return format(date, "EEE",{ locale: es }).toUpperCase();
     });
   }, []);
 
@@ -202,7 +202,7 @@ export function MonthView({ currentDate, events, onEventSelect, onEventCreate }:
                               } as React.CSSProperties
                             }>
                             <div className="space-y-2">
-                              <div className="text-sm font-medium">{format(day, "EEE d")}</div>
+                              <div className="text-sm font-medium">{format(day, "EEE", {locale :es}).toUpperCase()}</div>
                               <div className="space-y-1">
                                 {sortEvents(allEvents).map((event) => {
                                   const eventStart = new Date(event.start);

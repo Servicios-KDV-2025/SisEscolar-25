@@ -13,6 +13,7 @@ import {
   subMonths,
   subWeeks,
 } from "date-fns";
+import { es } from "date-fns/locale";
 import {
   ChevronDownIcon,
   ChevronLeftIcon,
@@ -194,7 +195,7 @@ export function EventCalendar({
       onEventUpdate?.(event);
       // Show toast notification when an event is updated
       toast(`Event "${event.title}" updated`, {
-        description: format(new Date(event.start), "MMM d, yyyy"),
+        description: format(new Date(event.start), "MMM d, yyyy", { locale: es }),
         position: "bottom-left",
       });
     } else {
@@ -204,7 +205,7 @@ export function EventCalendar({
       });
       // Show toast notification when an event is added
       toast(`Event "${event.title}" added`, {
-        description: format(new Date(event.start), "MMM d, yyyy"),
+        description: format(new Date(event.start), "MMM d, yyyy", { locale: es }),
         position: "bottom-left",
       });
     }
@@ -232,33 +233,33 @@ export function EventCalendar({
 
     // Show toast notification when an event is updated via drag and drop
     toast(`Event "${updatedEvent.title}" moved`, {
-      description: format(new Date(updatedEvent.start), "MMM d, yyyy"),
+      description: format(new Date(updatedEvent.start), "MMM d, yyyy", { locale: es }),
       position: "bottom-left",
     });
   };
 
   const viewTitle = useMemo(() => {
     if (view === "mes") {
-      return format(currentDate, "MMMM yyyy");
+      return format(currentDate, "MMMM yyyy" ,{ locale: es }).toUpperCase();
     } else if (view === "semana") {
       const start = startOfWeek(currentDate, { weekStartsOn: 0 });
       const end = endOfWeek(currentDate, { weekStartsOn: 0 });
       if (isSameMonth(start, end)) {
-        return format(start, "MMMM yyyy");
+        return format(start, "MMMM yyyy", { locale: es }).toUpperCase();
       } else {
-        return `${format(start, "MMM")} - ${format(end, "MMM yyyy")}`;
+        return `${format(start, "MMM")} - ${format(end, "MMM yyyy", { locale: es }).toUpperCase()}`;
       }
     } else if (view === "dia") {
       return (
         <>
           <span className="min-[480px]:hidden" aria-hidden="true">
-            {format(currentDate, "MMM d, yyyy")}
+            {format(currentDate, "MMM d, yyyy", { locale: es }).toUpperCase()}
           </span>
           <span className="max-[479px]:hidden min-md:hidden" aria-hidden="true">
-            {format(currentDate, "MMMM d, yyyy")}
+            {format(currentDate, "MMMM d, yyyy", { locale: es }).toUpperCase()}
           </span>
           <span className="max-md:hidden">
-            {format(currentDate, "EEE MMMM d, yyyy")}
+            {format(currentDate, "EEE MMMM d, yyyy", { locale: es }).toUpperCase()}
           </span>
         </>
       );
@@ -268,12 +269,12 @@ export function EventCalendar({
       const end = addDays(currentDate, AgendaDaysToShow - 1);
 
       if (isSameMonth(start, end)) {
-        return format(start, "MMMM yyyy");
+        return format(start, "MMMM yyyy", { locale: es });
       } else {
-        return `${format(start, "MMM")} - ${format(end, "MMM yyyy")}`;
+        return `${format(start, "MMM")} - ${format(end, "MMM yyyy", { locale: es })}`;
       }
     } else {
-      return format(currentDate, "MMMM yyyy");
+      return format(currentDate, "MMMM yyyy", { locale: es });
     }
   }, [currentDate, view]);
 
@@ -306,7 +307,7 @@ export function EventCalendar({
                 size={16}
                 aria-hidden="true"
               />
-              <span className="max-[479px]:sr-only">Today</span>
+              <span className="max-[479px]:sr-only">Hoy</span>
             </Button>
             <div className="flex items-center sm:gap-2">
               <Button

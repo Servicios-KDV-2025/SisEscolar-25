@@ -461,7 +461,7 @@ export default function CalendarioEscolar() {
                         name: config.name,
                         key: config.key,
                         description: config.description,
-                        color: config.color,
+                        color: config.colorB,
                         icon: config.icon,
                         status: config.status,
                       };
