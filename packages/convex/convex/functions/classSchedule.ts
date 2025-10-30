@@ -23,7 +23,7 @@ export const getClassSchedules = query({
     const filteredClassSchedules = classSchedules.filter(cs =>
       schoolClassIds.includes(cs.classCatalogId)
     );
-    
+
 
     // Agrupar por classCatalogId
     const groupedSchedules = filteredClassSchedules.reduce((acc, cs) => {
@@ -175,8 +175,8 @@ export const validateScheduleConflicts = mutation({
         }
 
         // Si estamos editando la misma clase, no es conflicto
-        if (args.isEdit && args.originalClassCatalogId && 
-            existingClass._id === args.originalClassCatalogId) {
+        if (args.isEdit && args.originalClassCatalogId &&
+          existingClass._id === args.originalClassCatalogId) {
           continue;
         }
 
@@ -314,7 +314,7 @@ export const updateClassSchedule = mutation({
 
     // ✅ VALIDAR CONFLICTOS ANTES DE ACTUALIZAR
     const conflicts = [];
-    
+
     for (const scheduleId of args.selectedScheduleIds) {
       const schedule = await ctx.db.get(scheduleId);
       if (!schedule) continue;
@@ -376,9 +376,11 @@ export const updateClassSchedule = mutation({
     );
 
     if (uniqueConflicts.length > 0) {
-      throw new Error(
-        `No se puede actualizar debido a conflictos:\n${uniqueConflicts.map(c => `- ${c.message}`).join('\n')}`
-      );
+      const conflictList = uniqueConflicts
+        .map(c => c.message)
+        .join('\n• ');
+
+      throw new Error(`CONFLICT_ERROR::No se puede actualizar debido a conflictos:\n• ${conflictList}`);
     }
 
     // ✅ SI NO HAY CONFLICTOS, PROCEDER CON LA ACTUALIZACIÓN
@@ -448,7 +450,7 @@ export const updateClassAndSchedules = mutation({
 
     // ✅ VALIDAR CONFLICTOS ANTES DE ACTUALIZAR
     const conflicts = [];
-    
+
     for (const scheduleId of args.selectedScheduleIds) {
       const schedule = await ctx.db.get(scheduleId);
       if (!schedule) continue;
@@ -510,9 +512,11 @@ export const updateClassAndSchedules = mutation({
     );
 
     if (uniqueConflicts.length > 0) {
-      throw new Error(
-        `No se puede actualizar debido a conflictos:\n${uniqueConflicts.map(c => `- ${c.message}`).join('\n')}`
-      );
+      const conflictList = uniqueConflicts
+        .map(c => c.message)
+        .join('\n• ');
+
+      throw new Error(`CONFLICT_ERROR::No se puede actualizar debido a conflictos:\n• ${conflictList}`);
     }
 
     // ✅ SI NO HAY CONFLICTOS, PROCEDER CON LA ACTUALIZACIÓN
