@@ -125,12 +125,17 @@ export default function AlumnosPage() {
   // Flag para mostrar pantalla de no autorización
   const showNotAuth = (permissionsError || !canReadUsersAlumnos) && !permissionsLoading && !isLoading;
 
+  // Oct30: Obtener el ciclo escolar activo
+  const activeCycle = useMemo(() => {
+    return schoolCycles?.find((cycle) => cycle.status === "active");
+  }, [schoolCycles]);
+
   // Default values para el formulario
   const defaultValues = useMemo(() => ({
     schoolId: currentSchool?.school._id || "",
     groupId: "", // Dejar vacío para forzar selección
     tutorId: "", // Dejar vacío para forzar selección
-    schoolCycleId: "", // Dejar vacío para forzar selección
+    schoolCycleId: activeCycle?._id || "", // Oct30: Usar el ciclo activo por defecto
     enrollment: nextEnrollment || "", // Usar la matrícula generada automáticamente
     name: "",
     lastName: "",
@@ -138,7 +143,7 @@ export default function AlumnosPage() {
     admissionDate: Date.now(),
     birthDate: undefined,
     imgUrl: "",
-  }), [currentSchool?.school._id, nextEnrollment]);
+  }), [currentSchool?.school._id, nextEnrollment, activeCycle?._id]);
 
   const paginatedStudents = useMemo(() => {
     const dataToUse = filteredStudents.length > 0 ? filteredStudents : students;
@@ -539,15 +544,24 @@ export default function AlumnosPage() {
    <div className="space-y-8 p-6">
 
         {/* Mostrar alerta cuando no hay datos necesarios para crear estudiantes */}
-        {canCreateUsersAlumnos && (!groups?.length || !tutors?.length) && (
+        {canCreateUsersAlumnos && (!groups?.length || !tutors?.length || !activeCycle) && (
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              {!groups?.length && !tutors?.length
-                ? "No se pueden crear estudiantes porque no hay grupos ni tutores disponibles. Debes crear grupos y asignar tutores primero."
-                : !groups?.length
-                  ? "No se pueden crear estudiantes porque no hay grupos disponibles. Debes crear grupos primero."
-                  : "No se pueden crear estudiantes porque no hay tutores disponibles. Debes asignar tutores a esta escuela primero."
+              {/*Oct30: Se muestra mensaje de alerta para distintos escenarios (se agrega el del ciclo escolar activo) */}
+              {!groups?.length && !tutors?.length && !activeCycle
+                ? "No se pueden crear estudiantes porque no hay grupos, tutores disponibles ni un ciclo escolar activo. Debes crear grupos, asignar tutores y activar un ciclo escolar primero."
+                : !groups?.length && !tutors?.length
+                  ? "No se pueden crear estudiantes porque no hay grupos ni tutores disponibles. Debes crear grupos y asignar tutores primero."
+                  : !groups?.length && !activeCycle
+                    ? "No se pueden crear estudiantes porque no hay grupos disponibles ni un ciclo escolar activo. Debes crear grupos y activar un ciclo escolar primero."
+                    : !tutors?.length && !activeCycle
+                      ? "No se pueden crear estudiantes porque no hay tutores disponibles ni un ciclo escolar activo. Debes asignar tutores y activar un ciclo escolar primero."
+                      : !groups?.length
+                        ? "No se pueden crear estudiantes porque no hay grupos disponibles. Debes crear grupos primero."
+                        : !tutors?.length
+                          ? "No se pueden crear estudiantes porque no hay tutores disponibles. Debes asignar tutores a esta escuela primero."
+                          : "No se pueden crear estudiantes porque no hay un ciclo escolar activo. Debes activar un ciclo escolar primero."
               }
             </AlertDescription>
           </Alert>
@@ -587,11 +601,12 @@ export default function AlumnosPage() {
                   size="lg"
                   className="gap-2 bg-blue-600 hover:bg-blue-700"
                   onClick={openCreate}
-                  disabled={isCreating || !currentSchool || !groups?.length || !tutors?.length}
+                  disabled={isCreating || !currentSchool || !groups?.length || !tutors?.length || !activeCycle}
                   title={
                     !groups?.length ? "No hay grupos disponibles" :
                       !tutors?.length ? "No hay tutores disponibles" :
-                        !currentSchool ? "No hay escuela seleccionada" : ""
+                        !activeCycle ? "No hay un ciclo escolar activo" :
+                          !currentSchool ? "No hay escuela seleccionada" : ""
                   }
                 >
                   {isCreating ? (
@@ -717,7 +732,7 @@ export default function AlumnosPage() {
                 <Button
                   onClick={openCreate}
                   className="gap-2 bg-blue-600 hover:bg-blue-700"
-                  disabled={!groups?.length || !tutors?.length}
+                  disabled={!groups?.length || !tutors?.length || !activeCycle}
                 >
                   <Plus className="h-4 w-4" />
                   Agregar Alumno
@@ -734,8 +749,8 @@ export default function AlumnosPage() {
                       <TableHead className="w-[250px]">Estudiante</TableHead>
                       <TableHead className="text-center">Matrícula</TableHead>
                       <TableHead className="text-center">Grupo</TableHead>
-                      <TableHead className="text-center">Ciclo Escolar</TableHead>
-                      <TableHead className="text-center hidden lg:table-cell">Tutor</TableHead>
+                      <TableHead className="text-center">Tutor</TableHead>
+                      <TableHead className="text-center hidden lg:table-cell">Ciclo Escolar</TableHead>
                       <TableHead className="text-center">Estado</TableHead>
                       <TableHead className="text-center hidden xl:table-cell">Fecha de Ingreso</TableHead>
                       <TableHead className="text-center">Acciones</TableHead>
@@ -1067,7 +1082,7 @@ export default function AlumnosPage() {
                     <FormMessage />
                     {currentOperation === "create" && (
                       <p className="text-xs text-muted-foreground">
-                        La matrícula se genera automáticamente con el formato: AÑO + número consecutivo
+                        Generada automáticamente con formato: AÑO + número consecutivo
                       </p>
                     )}
                   </FormItem>

@@ -335,7 +335,7 @@ export const deleteStudentClass = mutation({
             throw new Error("Matrícula no encontrada o no pertenece al colegio.");
         }
 
-        await ctx.db.patch(args.id, { status: "inactive" });
+        await ctx.db.delete(args.id);
     },
 });
 
