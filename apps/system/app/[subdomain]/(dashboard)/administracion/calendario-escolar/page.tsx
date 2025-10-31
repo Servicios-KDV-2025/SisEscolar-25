@@ -443,7 +443,7 @@ export default function CalendarioEscolar() {
                       </div>
                       <div>
                         <CardTitle className="text-2xl font-bold text-slate-800">
-                          Eventos/Categoria
+                          Eventos / Categoria
                         </CardTitle>
                         <p className="text-slate-600 text-sm">
                           Personaliza tus tipos de eventos
