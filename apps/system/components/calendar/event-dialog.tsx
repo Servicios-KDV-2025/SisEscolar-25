@@ -224,11 +224,15 @@ export function EventDialog({
             <Input
               id="title"
               value={title}
+              maxLength={50}
               disabled={!canUpdateCalendar}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setTitle(e.target.value)
               }
             />
+            <label className="text-sm text-muted-foreground float-right justify-end">
+            {title.length}/50
+            </label>
           </div>
 
           <div className="*:not-first:mt-1.5">
@@ -236,12 +240,16 @@ export function EventDialog({
             <Textarea
               id="description"
               disabled={!canUpdateCalendar}
+              maxLength={200}
               value={description}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                 setDescription(e.target.value)
               }
               rows={3}
             />
+            <label className="text-sm text-muted-foreground float-right justify-end">
+            {description.length}/200
+            </label>
           </div>
 
           <div className="flex gap-4">
@@ -398,10 +406,14 @@ export function EventDialog({
               id="location"
               disabled={!canUpdateCalendar}
               value={location}
+              maxLength={100}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setLocation(e.target.value)
               }
             />
+            <label className="text-sm text-muted-foreground float-right justify-end">
+            {location.length}/100
+            </label>
           </div>
 
           {/* --- SECCIÓN REEMPLAZADA --- */}
