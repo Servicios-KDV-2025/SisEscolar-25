@@ -7,7 +7,9 @@ import { SchoolCycleType } from '@/types/temporalSchema';
 import { Student } from "@/types/student";
 import { GenericMultiSelect } from "./GenericMultiSelect";
 import { PAYMENT_TYPES, RECURRENCE_TYPES, SCOPE_TYPES, STATUS_TYPES } from "lib/billing/constants";
-import { BillingRule } from "@/types/billingRule";
+import { BILLING_RULE_SCOPES, BILLING_RULE_TYPES, BillingRule } from "@/types/billingRule";
+import { formatCurrency, formatDate } from "lib/utils";
+import { Info } from "@repo/ui/icons";
 
 interface BillingConfigProps {
     form: UseFormReturn<Record<string, unknown>>;
@@ -36,7 +38,7 @@ export function BillingConfigForm({
 
     return (
         <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
                     name="schoolCycleId"
@@ -96,7 +98,7 @@ export function BillingConfigForm({
                 />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
                     name="recurrence_type"
@@ -143,7 +145,7 @@ export function BillingConfigForm({
                                         type="number"
                                         placeholder="0.00"
                                         min="0"
-                                        step="0.1"
+                                        step="1"
                                         value={inputValue}
                                         onChange={(e) => {
                                             const value = e.target.value
@@ -159,7 +161,7 @@ export function BillingConfigForm({
                 />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
                     name="startDate"
@@ -198,7 +200,7 @@ export function BillingConfigForm({
                                     value={
                                         field.value
                                             ? (typeof field.value === 'number'
-                                                ? new Date(field.value).toISOString().split("T")[0]
+                                                ? new Date(field.value).toISOString().split("T")[0] 
                                                 : new Date(field.value as string).toISOString().split("T")[0])
                                             : ''
                                     }
@@ -211,7 +213,7 @@ export function BillingConfigForm({
                 />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
                     name="status"
@@ -350,8 +352,8 @@ export function BillingConfigForm({
                     control={form.control}
                     name="ruleIds"
                     render={({ field }) => (
-                        <FormItem className="w-full">
-                            <FormLabel>Reglas de Negocio</FormLabel>
+                        <FormItem className="w-full pt-1">
+                            <FormLabel>Políticas de Cobros</FormLabel>
                             <GenericMultiSelect
                                 items={billingRules ?? []}
                                 value={(field.value as string[]) ?? []}
@@ -359,19 +361,43 @@ export function BillingConfigForm({
                                 getKey={(rule) => rule._id}
                                 getLabel={(rule) => (
                                     <div className="flex flex-col overflow-hidden">
-                                        <span className="font-medium truncate">{rule.name}</span>
+                                        <span className="hidden sm:flex font-medium text-sm truncate">{rule.name}</span>
+                                        <span className="sm:hidden font-medium text-sm truncate">{BILLING_RULE_TYPES[rule.type]}</span>
                                         {rule.description && (
-                                            <span className="text-sm text-muted-foreground truncate">
+                                            <span className=" hidden sm:flex text-xs text-muted-foreground truncate mt-1">
                                                 {rule.description.length > 75
                                                     ? rule.description.substring(0, 75) + "..."
                                                     : rule.description}
                                             </span>
                                         )}
+                                        {(rule.type === 'late_fee' || rule.type === 'early_discount') && rule.lateFeeValue && (
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-xs font-medium text-gray-500">{rule.type === "late_fee" ? "Recargo:" : "Descuento:"}   </span>
+                                                <span className="text-xs font-semibold text-gray-600 bg-gray-50 py-0.5 rounded">
+                                                    {rule.lateFeeType === 'percentage' ? `${rule.lateFeeValue}%` : `$${formatCurrency(rule.lateFeeValue || 0)} MXN`}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {rule.type === 'cutoff' && rule.cutoffAfterDays && (
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-xs font-medium text-gray-500">Días de tolerancia:</span>
+                                                <span className="text-xs font-semibold text-gray-600 bg-gray-50 py-0.5 rounded">
+                                                    {rule.cutoffAfterDays} día{rule.cutoffAfterDays !== 1 ? 's' : ''}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-xs font-medium text-gray-500">Aplica: </span>
+                                            <span className="text-xs font-semibold text-gray-600 bg-gray-50 rounded">
+                                                {BILLING_RULE_SCOPES[rule.scope]}
+                                            </span>
+                                        </div>
                                     </div>
+
                                 )}
                                 getSearchText={(rule) => `${rule.name} ${rule.description || ''}`}
-                                placeholder="Selecciona reglas de negocio..."
-                                emptyMessage="No se encontraron reglas de negocio"
+                                placeholder="Selecciona política de cobros..."
+                                emptyMessage="No se encontraron políticas de cobros"
                                 disabled={operation === "view"}
                                 searchable
                             />
@@ -379,6 +405,13 @@ export function BillingConfigForm({
                         </FormItem>
                     )}
                 />
+
+            </div>
+            <div className="flex flex-row text-xs text-muted-foreground gap-2">
+                <Info className="h-4.5 w-4.5 items-center" />
+                <p className="">
+                    En caso de que el monto del descuento sea inferior al mínimo requerido, dicho descuento no será aplicado.
+                </p>
             </div>
         </div>
     );

@@ -9,7 +9,7 @@ import { Button } from "@repo/ui/components/shadcn/button"
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog"
 import { useQuery } from "convex/react"
 import { api } from "@repo/convex/convex/_generated/api"
-import { toast } from "sonner"
+import { toast } from "@repo/ui/sonner"
 import { useUser } from "@clerk/nextjs"
 import { useUserWithConvex } from "stores/userStore"
 import { useCurrentSchool } from "stores/userSchoolsStore"
@@ -24,6 +24,8 @@ import { useBillingConfig } from "stores/billingConfigStore"
 import { BillingResultsDialog } from "./BillingResultsDialog"
 import { ResultData } from "@/types/billingConfig"
 import { Badge } from "@repo/ui/components/shadcn/badge"
+import { useBillingRule } from "stores/billingRuleStore"
+import { parseLocalDateString } from "lib/utils"
 
 export default function BillingConfigPage() {
   const { user: clerkUser } = useUser()
@@ -52,10 +54,7 @@ export default function BillingConfigPage() {
     deleteBillingConfig,
   } = useBillingConfig(currentSchool?.school._id)
 
-  const billingRules = useQuery(
-    api.functions.billingRule.getAllBillingRulesBySchool,
-    currentSchool ? { schoolId: currentSchool.school._id as Id<'school'> } : 'skip'
-  )
+  const { billingRules } = useBillingRule(currentSchool?.school._id)
 
   const [searchTerm, setSearchTerm] = useState("")
   const [typeFilter, setTypeFilter] = useState<string>("all")
@@ -108,21 +107,21 @@ export default function BillingConfigPage() {
     const configs = filteredConfigs ?? []
     return [
       {
-        title: "Cong. Obligatorias",
+        title: "Obligatorias",
         value: configs.filter(c => c.status === "required").length.toString(),
         icon: Settings,
         trend: "Activas en el sistema",
         variant: "default" as const
       },
       {
-        title: "Cong. Opcionales",
+        title: "Opcionales",
         value: configs.filter(c => c.status === "optional").length.toString(),
         icon: CheckCircle,
         trend: "Disponibles",
         variant: "secondary" as const
       },
       {
-        title: "Cong. Inactivas",
+        title: "Inactivas",
         value: configs.filter(c => c.status === "inactive").length.toString(),
         icon: XCircle,
         trend: "Deshabilitadas",
@@ -143,10 +142,12 @@ export default function BillingConfigPage() {
 
   const [showResultModal, setShowResultModal] = useState(false);
   const [resultData, setResultData] = useState<ResultData | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     const validatedValues = values as BillingConfigDto
 
+    setIsTransitioning(true)
     try {
       if (operation === "create") {
         const result = await createBillingConfig({
@@ -160,14 +161,13 @@ export default function BillingConfigPage() {
           type: validatedValues.type,
           amount: validatedValues.amount,
           ruleIds: validatedValues.ruleIds as Id<"billingRule">[],
-          startDate: new Date(validatedValues.startDate).getTime(),
-          endDate: new Date(validatedValues.endDate).getTime(),
+          startDate: parseLocalDateString(validatedValues.startDate),
+          endDate: parseLocalDateString(validatedValues.endDate),
           status: validatedValues.status,
           createdBy: currentUser?._id as Id<'user'>,
           updatedBy: currentUser?._id as Id<'user'>,
         })
         if (result !== undefined) {
-          console.log("Create")
           setResultData(result as ResultData);
           setShowResultModal(true);
         } else {
@@ -187,18 +187,14 @@ export default function BillingConfigPage() {
           type: validatedValues.type,
           amount: validatedValues.amount,
           ruleIds: validatedValues.ruleIds as Id<"billingRule">[],
-          startDate: new Date(validatedValues.startDate).getTime(),
-          endDate: new Date(validatedValues.endDate).getTime(),
+          startDate: parseLocalDateString(validatedValues.startDate),
+          endDate: parseLocalDateString(validatedValues.endDate),
           status: validatedValues.status,
           updatedBy: currentUser?._id as Id<"user">
         })
-        console.log(result)
-        if (result !== undefined ) {
-              console.log("Handle")
+        if (result !== undefined) {
           setResultData(result as ResultData);
           setShowResultModal(true);
-          console.log("Result", result)
-          console.log(showResultModal)
         } else {
           setResultData(null);
         }
@@ -208,6 +204,8 @@ export default function BillingConfigPage() {
     } catch (err) {
       console.error(err)
       toast.error("Error al guardar la configuración")
+    } finally {
+      setIsTransitioning(false)
     }
   }
 
@@ -227,179 +225,202 @@ export default function BillingConfigPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        {stats.map((stat, index) => (
-          <Card
-            key={index}
-            className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 lg:pb-3">
-              <CardTitle className="text-xs lg:text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </CardTitle>
-              <div className="p-1.5 lg:p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                <stat.icon className="h-3 w-3 lg:h-4 lg:w-4 text-primary" />
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-1 lg:space-y-2">
-              <div className="text-xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">{stat.trend}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filtros y Búsqueda
-          </CardTitle>
-          <CardDescription>
-            Filtra las configuraciones por diferentes criterios
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col xl:flex-row space-y-4 gap-2">
-            <div className="flex-2 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por tipo de pago..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+    <>
+      {isTransitioning && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          role="status"
+          aria-live="polite"
+          aria-label="Procesando configuración de cobro"
+        >
+          <div className="flex flex-col items-center space-y-4 rounded-lg bg-white p-8 shadow-lg">
+            <div className="relative">
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+              <div className="absolute inset-0 h-12 w-12 animate-ping rounded-full border-2 border-primary/30"></div>
             </div>
-            <div className="flex flex-1 flex-col md:flex-row gap-3 justify-center">
-              <div className="flex flex-2 flex-col sm:flex-row gap-3 justify-center">
-                <Select value={schoolCycleFilter} onValueChange={setSchoolCycleFilter}>
-                  <SelectTrigger className="w-full">
-                    <School className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Ciclo escolar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {schoolCycles?.map((cycle) => (
-                      <SelectItem key={cycle._id} value={cycle._id}>
-                        {cycle.name} {cycle.status && "(Activo)"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={scopeFilter} onValueChange={setScopeFilter}>
-                  <SelectTrigger className="w-full md:w-40">
-                    <SelectValue placeholder="Alcance" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los Alcances</SelectItem>
-                    {Object.entries(SCOPE_TYPES).map(([key, label]) => (
-                      <SelectItem key={key} value={key}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-
-              </div>
-              <div className="flex flex-1 flex-col sm:flex-row gap-3 justify-center">
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="w-full md:w-35">
-                    <SelectValue placeholder="Tipo de pago" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los Tipos</SelectItem>
-                    {Object.entries(PAYMENT_TYPES).map(([key, label]) => (
-                      <SelectItem key={key} value={key}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full md:w-35">
-                    <SelectValue placeholder="Estado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los Estados</SelectItem>
-                    {Object.entries(STATUS_TYPES).map(([key, label]) => (
-                      <SelectItem key={key} value={key}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between flex-col gap-3 sm:flex-row">
-            <CardTitle>Lista de Configuraciones de Cobros</CardTitle>
-            <Button onClick={openCreate}
-              className="w-full mt-1 sm:w-auto sm:mt-0">
-              <Plus className="h-4 w-4 mr-2" />
-              Agregar Configuración
-            </Button>
-          </div>
-
-        </CardHeader>
-        <CardContent>
-          <CardDescription className="flex justify-start mb-3 mr-3">
-            <Badge variant="outline">
-              {filteredConfigs.length} registro{filteredConfigs.length > 1 ? "s" : ""}
-            </Badge>
-          </CardDescription>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-muted-foreground">
-                  Cargando configuraciones...
-                </p>
-              </div>
-            </div>
-          ) : filteredConfigs.length === 0 ? (
-            <div className="text-center py-12">
-              <BanknoteArrowUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">
-                No se encontraron configuraciones
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Procesando configuración
               </h3>
-              <p className="text-muted-foreground mb-4">
-                Intenta ajustar los filtros o no hay configuraciones registradas.
+              <p className="text-sm text-gray-600 mt-1">
+                Generando pagos para el alumnado objetivo...
               </p>
-              <Button onClick={openCreate}>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          {stats.map((stat, index) => (
+            <Card
+              key={index}
+              className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 lg:pb-3">
+                <CardTitle className="text-xs lg:text-sm font-medium text-muted-foreground">
+                  {stat.title}
+                </CardTitle>
+                <div className="p-1.5 lg:p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                  <stat.icon className="h-3 w-3 lg:h-4 lg:w-4 text-primary" />
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-1 lg:space-y-2">
+                <div className="text-3xl font-bold">{stat.value}</div>
+                <p className="text-xs text-muted-foreground">{stat.trend}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filtros y Búsqueda
+            </CardTitle>
+            <CardDescription>
+              Filtra las configuraciones por diferentes criterios
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col xl:flex-row space-y-4 gap-2">
+              <div className="flex-2 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por el tipo de configuración de cobro..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex flex-1 flex-col md:flex-row gap-3 justify-center">
+                <div className="flex flex-2 flex-col sm:flex-row gap-3 justify-center">
+                  <Select value={schoolCycleFilter} onValueChange={setSchoolCycleFilter}>
+                    <SelectTrigger className="w-full">
+                      <School className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="Ciclo escolar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {schoolCycles?.map((cycle) => (
+                        <SelectItem key={cycle._id} value={cycle._id}>
+                          {cycle.name} {cycle.status && "(Activo)"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={scopeFilter} onValueChange={setScopeFilter}>
+                    <SelectTrigger className="w-full md:w-40">
+                      <SelectValue placeholder="Alcance" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los Alcances</SelectItem>
+                      {Object.entries(SCOPE_TYPES).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-1 flex-col sm:flex-row gap-3 justify-center">
+                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <SelectTrigger className="w-full md:w-35">
+                      <SelectValue placeholder="Tipo de pago" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los Tipos</SelectItem>
+                      {Object.entries(PAYMENT_TYPES).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full md:w-35">
+                      <SelectValue placeholder="Estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los Estados</SelectItem>
+                      {Object.entries(STATUS_TYPES).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between flex-col gap-3 sm:flex-row">
+              <CardTitle>Lista de Configuraciones de Cobros</CardTitle>
+              <Button onClick={openCreate}
+                className="w-full mt-1 sm:w-auto sm:mt-0">
                 <Plus className="h-4 w-4 mr-2" />
                 Agregar Configuración
               </Button>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-9">
-              {filteredConfigs.map((config) => (
-                <BillingConfigCard
-                  key={config._id}
-                  billingConfig={config}
-                  openEdit={openEdit}
-                  openView={openView}
-                  openDelete={openDelete}
-                  isUpdatingBillingConfig={isCreatingBillingConfig || isUpdatingBillingConfig}
-                  isDeletingBillingConfig={isDeletingBillingConfig}
-                  canUpdateBillingConfig={true}
-                  canDeleteBillingConfig={true}
-                  schoolCycles={schoolCycles}
-                  billingRules={billingRules}
-                />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
+          </CardHeader>
+          <CardContent>
+            <CardDescription className="flex justify-start mb-3 mr-3">
+              <Badge variant="outline">
+                {filteredConfigs.length} registro{filteredConfigs.length > 1 ? "s" : ""}
+              </Badge>
+            </CardDescription>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">
+                    Cargando configuraciones...
+                  </p>
+                </div>
+              </div>
+            ) : filteredConfigs.length === 0 ? (
+              <div className="text-center py-12">
+                <BanknoteArrowUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">
+                  No se encontraron configuraciones
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  Intenta ajustar los filtros o agregar una configuración.
+                </p>
+                <Button className="cursor-pointer" onClick={openCreate}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar Configuración
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-9">
+                {filteredConfigs.map((config) => (
+                  <BillingConfigCard
+                    key={config._id}
+                    billingConfig={config}
+                    openEdit={openEdit}
+                    openView={openView}
+                    openDelete={openDelete}
+                    isUpdatingBillingConfig={isCreatingBillingConfig || isUpdatingBillingConfig}
+                    isDeletingBillingConfig={isDeletingBillingConfig}
+                    canUpdateBillingConfig={true}
+                    canDeleteBillingConfig={true}
+                    schoolCycles={schoolCycles}
+                    billingRules={billingRules}
+                  />
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+      </div>
       <CrudDialog
         isOpen={isOpen}
         operation={operation}
@@ -460,9 +481,9 @@ export default function BillingConfigPage() {
           isOpen={showResultModal}
           onClose={() => setShowResultModal(false)}
           data={resultData}
+          billingRules={billingRules}
         />
       )}
-
-    </div>
+    </>
   )
 }

@@ -9,6 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@repo/ui/c
 import { DollarSign, Edit, Eye, Settings, Trash2, Calendar, Users, Repeat, Scale, Clock2, User } from "@repo/ui/icons"
 import { useQuery } from "convex/react"
 import { PAYMENT_TYPES, RECURRENCE_TYPES, STATUS_TYPES } from "lib/billing/constants"
+import { formatCurrency, formatDate, formatFecha } from "lib/utils"
 
 interface BillingConfigCardProps {
     billingConfig: BillingConfigType;
@@ -42,13 +43,6 @@ export function BillingConfigCard({
             ? { userId: billingConfig.updatedBy as Id<"user"> }
             : 'skip'
     );
-    const formatDate = (timestamp: number) => {
-        return new Date(timestamp).toLocaleDateString("es-MX", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-        });
-    }
 
     const getSchoolCycleName = (cycleId: string) => {
         return schoolCycles?.find(c => c._id === cycleId)?.name ?? "N/A"
@@ -82,23 +76,20 @@ export function BillingConfigCard({
         )
     }
 
-    const [dayStart, monthStart] = [new Date(billingConfig.startDate).getDate(), new Date(billingConfig.startDate).getMonth() + 1];
-    const [dayEnd, monthEnd] = [new Date(billingConfig.endDate).getDate(), new Date(billingConfig.endDate).getMonth() + 1];
-    
     return (
         <Card className="w-full hover:shadow-lg transition-shadow duration-200 flex flex-col h-full">
             <CardHeader>
-                <CardTitle className="text-lg font-semibold leading-tight line-clamp-2 break-words flex justify-between items-start">
-                    <span>{PAYMENT_TYPES[billingConfig.type as keyof typeof PAYMENT_TYPES]} {dayStart}/{monthStart} - {dayEnd}/{monthEnd}</span>
+                <CardTitle className="text-xl font-semibold leading-tight text-center sm:text-start line-clamp-2 break-words items-center flex flex-col sm:flex-row gap-4 sm:justify-between sm:items-start ">
+                    <span>{PAYMENT_TYPES[billingConfig.type as keyof typeof PAYMENT_TYPES]} {formatFecha(billingConfig.startDate)} - {formatFecha(billingConfig.endDate)}</span>
                     {getStatusBadge(billingConfig.status)}
                 </CardTitle>
             </CardHeader>
 
-            <CardContent className="space-y-4 flex-1">
+            <CardContent className="space-y-4 md:flex-1">
                 <div className="flex items-center gap-2">
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                     <span className="text-lg font-bold text-green-600">
-                        ${billingConfig.amount.toLocaleString('es-MX')}
+                        ${formatCurrency(billingConfig.amount)}
                     </span>
                 </div>
 
@@ -124,13 +115,13 @@ export function BillingConfigCard({
                 </div>
 
                 {billingConfig.ruleIds && billingConfig.ruleIds.length > 0 && (
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-1">
                         <Scale className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap gap-2 flex-1">
                             {billingConfig.ruleIds.map((ruleId) => {
                                 const rule = billingRules?.find(r => r._id === ruleId);
                                 return rule ? (
-                                    <Badge key={ruleId} variant="outline" className="text-xs">
+                                    <Badge key={ruleId} variant="outline" className="text-xs whitespace-normal h-auto">
                                         {rule.name}
                                     </Badge>
                                 ) : null;
@@ -142,10 +133,6 @@ export function BillingConfigCard({
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Calendar className="h-3 w-3" />
                     <span>{formatDate(billingConfig.startDate)} - {formatDate(billingConfig.endDate)}</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Clock2 className="h-3 w-3" />
-                    <span>Creado {formatDate(billingConfig._creationTime)}</span>
                 </div>
 
                 {billingConfig.updatedAt && (

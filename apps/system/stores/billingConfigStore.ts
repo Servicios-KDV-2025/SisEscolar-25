@@ -181,7 +181,7 @@ export const useBillingConfig = (schoolId?: string) => {
             });
             return result;
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Error al crear configuración de facturación';
+            const errorMessage = error instanceof Error ? error.message : 'Error al crear configuración de políticas';
             const errMess = errorMessage?.split(': ').at(-1);
             setCreateError(errMess!);
             throw new Error(errMess!);
@@ -233,7 +233,7 @@ export const useBillingConfig = (schoolId?: string) => {
             });
             return result;
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Error al actualizar configuración de facturación';
+            const errorMessage = error instanceof Error ? error.message : 'Error al actualizar configuración de políticas';
             const errMess = errorMessage?.split(': ').at(-1);
             setUpdateError(errMess!);
             throw new Error(errMess!);
@@ -251,7 +251,7 @@ export const useBillingConfig = (schoolId?: string) => {
                 schoolId: schoolId as Id<"school">,
             });
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Error al eliminar configuración de facturación';
+            const errorMessage = error instanceof Error ? error.message : 'Error al eliminar configuración de políticas';
             const errMess = errorMessage?.split(': ').at(-1);
             setDeleteError(errMess!);
             throw new Error(errMess!);

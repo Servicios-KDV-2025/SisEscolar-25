@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@repo/ui/components/shadcn/card"
-import { AlertCircle, ShieldAlert, ShieldCheck, X, Loader2, TriangleAlert, CircleAlert as ClockAlert, Minus, Banknote, Search, CreditCard, DollarSign, CheckCircle, AlertTriangle, Clock, Filter, Backpack, School } from "@repo/ui/icons"
+import { AlertCircle, ShieldAlert, ShieldCheck, X, Loader2, TriangleAlert, CircleAlert as ClockAlert, Minus, Banknote, Search, CreditCard, DollarSign, CheckCircle, AlertTriangle, Clock, Filter, Backpack, School, Building2, Store, Plus } from "@repo/ui/icons"
 import { Badge } from "@repo/ui/components/shadcn/badge"
 import { Input } from "@repo/ui/components/shadcn/input"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@repo/ui/components/shadcn/select"
@@ -14,7 +14,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@repo/ui/components/shadcn/dialog"
-import { toast } from "sonner"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@repo/convex/convex/_generated/api"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
@@ -25,6 +24,13 @@ import { useUserWithConvex } from "stores/userStore"
 import { useCurrentSchool } from "stores/userSchoolsStore"
 import { BillingAccordion } from "./BillingAccordion"
 import { BillingRecord, Estudiante, Group } from "@/types/billing"
+import { toast } from "@repo/ui/sonner"
+import { useBillingRule } from "stores/billingRuleStore"
+import { OXXOPaymentForm } from "components/stripe/OXXOPaymentForm"
+import { SPEIPaymentForm } from "components/stripe/SPEIPaymentForm"
+import { StripeCheckoutButton } from "components/stripe/StripeCheckoutButton"
+import Link from "next/link"
+import { formatCurrency } from "lib/utils"
 
 interface PagosProps {
     selectedSchoolCycle: string
@@ -42,6 +48,7 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
     const [paymentMethod, setBillingMethod] = useState<"cash" | "bank_transfer" | "card" | "other">("cash")
     const [paymentAmount, setBillingAmount] = useState<string>("")
     const [isProcessingBilling, setIsProcessingBilling] = useState(false)
+    const [paymentMethodType, setBillingMethodType] = useState<"manual" | "stripe" | "spei" | "oxxo">("manual")
 
     const { user: clerkUser } = useUser()
     const { currentUser } = useUserWithConvex(clerkUser?.id)
@@ -60,17 +67,17 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
         } : "skip"
     )
 
-    const uniqueGrades = useQuery(
-        api.functions.group.getUniqueGrades,
-        currentSchool?.school._id ? { schoolId: currentSchool.school._id } : "skip"
-    )
-
     const groupeByGrade = useQuery(
         api.functions.group.getAllGroupsBySchool,
         currentSchool?.school._id ? { schoolId: currentSchool.school._id } : "skip"
     )
 
+    const uniqueGrades = [...new Set(groupeByGrade?.map(g => g.grade) ?? [])].map(grade => ({ grade }));
+    const uniqueGroup = [...new Set(groupeByGrade?.map(g => g.name) ?? [])].map(name => ({ name }));
+
     const processBilling = useMutation(api.functions.billing.processPayment)
+
+    const { billingRules } = useBillingRule(currentSchool?.school._id)
 
     useEffect(() => {
         if (schoolCycles && schoolCycles.length > 0 && !selectedSchoolCycle) {
@@ -169,10 +176,6 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
     }
 
     const handleRealizarPagos = () => {
-        console.log("Hola")
-        toast.error("Este pago ya ha sido realizado", {
-                description: "No puedes seleccionar un pago que ya está pagado.",
-            })
         setShowBillingModal(true)
     }
 
@@ -434,6 +437,14 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
         return configs[estado as keyof typeof configs];
     };
 
+    const getSelectedBillingsData = () => {
+        if (selectedBillings.length > 0) {
+            return paymentRecords.filter((payment) => selectedBillings.includes(payment.id))
+        } else if (selectedBillingInModal) {
+            return paymentRecords.filter((payment) => payment.id === selectedBillingInModal)
+        }
+        return []
+    }
     return (
         <div className="space-y-6 pb-48 lg:pb-8">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
@@ -451,7 +462,7 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-1 lg:space-y-2">
-                            <div className="text-xl font-bold">{stat.value}</div>
+                            <div className="text-3xl font-bold">{stat.value}</div>
                             <p className="text-xs text-muted-foreground">{stat.trend}</p>
                         </CardContent>
                     </Card>
@@ -502,9 +513,9 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Todos los grados</SelectItem>
-                                        {uniqueGrades?.map((grade) => (
-                                            <SelectItem key={grade} value={grade}>
-                                                {grade}
+                                        {uniqueGrades?.map((g, index) => (
+                                            <SelectItem key={index} value={g.grade}>
+                                                {g.grade}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -515,14 +526,9 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Todos los grupos</SelectItem>
-                                        {gradeFilter && groupeByGrade?.filter((group: Group) => group.grade === gradeFilter).map((group: Group) => (
-                                            <SelectItem key={group._id} value={group.name}>
-                                                {group.grade}{group.name}
-                                            </SelectItem>
-                                        ))}
-                                        {!gradeFilter && groupeByGrade?.map((group: Group) => (
-                                            <SelectItem key={group._id} value={group.name}>
-                                                {group.grade}{group.name}
+                                        {uniqueGroup?.map((g, index) => (
+                                            <SelectItem key={index} value={g.name}>
+                                                {g.name}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -552,8 +558,8 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
                     {selectedBillings.length > 0 && (
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t border-gray-200 bg-gray-50/50 -mx-6 px-6 py-4 mt-4 rounded-lg">
                             <div className="flex items-center gap-3 flex-wrap">
-                                <Button
-                                    variant="outline"
+
+                                <Button variant="outline"
                                     size="sm"
                                     className="border-gray-300 text-gray-600 hover:bg-gray-50 bg-white"
                                     onClick={() => {
@@ -595,36 +601,94 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
                 </CardHeader>
                 <CardContent>
                     {paymentsData === undefined ? (
-                        <div className="flex items-center justify-center py-8">
-                            <div className="flex items-center gap-2">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <span className="text-sm text-muted-foreground">Cargando datos de cobros...</span>
-                            </div>
+                        <div className="space-y-4">
+                            {[...Array(3)].map((_, i) => (
+                                <div key={i} className="border rounded-xl transition-all duration-300 shadow-sm border-gray-200 bg-gray-50/30 hover:shadow-md">
+                                    <div className="px-4 py-4 hover:no-underline rounded-xl transition-colors cursor-pointer hover:bg-gray-50">
+                                        <div className="flex flex-col sm:flex-row w-full">
+                                            <div className="hidden sm:flex w-1 h-16 lg:h-20 mr-3 bg-emerald-500 rounded-full flex-shrink-0 transition-colors duration-300"></div>
+                                            <div className="sm:hidden w-25 h-1 mt-1 mb-3 bg-emerald-500 rounded-full flex-shrink-0 transition-colors duration-300"></div>
+                                            <div className="flex-1">
+                                                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-1">
+                                                    <div className="flex flex-col">
+                                                        <div className="flex min-w-0 flex-col sm:flex-row sm:gap-1">
+                                                            <h3 className="text-lg lg:text-xl font-semibold leading-tight line-clamp-3 break-words text-gray-900 mb-2">
+                                                                <div className="h-7 bg-muted animate-pulse rounded w-48"></div>
+                                                            </h3>
+                                                            <div className="flex items-center gap-2 ml-0 sm:ml-3 mb-3 mt-1">
+                                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border bg-emerald-50 text-emerald-700 border-emerald-200">
+                                                                    <div className="w-3.5 h-3.5 bg-muted animate-pulse rounded"></div>
+                                                                    <div className="h-3 bg-muted animate-pulse rounded w-12"></div>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-wrap items-center gap-4 text-sm mt-2 text-gray-600">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-4 h-4 bg-muted animate-pulse rounded"></div>
+                                                                <div className="h-4 bg-muted animate-pulse rounded w-16"></div>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-4 h-4 bg-muted animate-pulse rounded"></div>
+                                                                <div className="h-4 bg-muted animate-pulse rounded w-24"></div>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-3.5 h-3.5 bg-muted animate-pulse rounded"></div>
+                                                                <div className="h-4 bg-muted animate-pulse rounded w-20"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex-shrink-0 text-left md:text-right mr-5">
+                                                        <div className="text-sm text-gray-500 mb-1">
+                                                            <div className="h-4 bg-muted animate-pulse rounded w-20"></div>
+                                                        </div>
+                                                        <div className="text-2xl md:text-3xl font-bold text-gray-900">
+                                                            <div className="h-9 bg-muted animate-pulse rounded w-24"></div>
+                                                        </div>
+                                                        <div className="text-xs text-gray-500 font-medium">
+                                                            <div className="h-3 bg-muted animate-pulse rounded w-8"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     ) : filteredEstudiantes.length === 0 ? (
-                        <div className="text-center py-8">
-                            <div className="text-sm text-muted-foreground">
+                        <div className="text-center py-12">
+                            <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                            <h3 className="text-lg font-medium mb-2">
                                 No hay estudiantes con cobros en este ciclo escolar
-                            </div>
+                            </h3>
+                            <p className="text-muted-foreground mb-4">
+                                Intenta ajustar los filtros o agrega alumnos al ciclo escolar seleccionado.
+                            </p>
+                            <Link href={"/usuarios/alumnos"}>
+                                <Button className="cursor-pointer">
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Agregar Alumnos
+                                </Button>
+                            </Link>
+
                         </div>
                     ) : (
                         <BillingAccordion
                             filteredEstudiantes={filteredEstudiantes}
                             selectedBillings={selectedBillings}
+                            billingRules={billingRules}
                             handleBillingSelection={handleBillingSelection}
                             handleRealizarPagos={handleRealizarPagos}
                             getEstadoConfig={getEstadoConfig}
                             getEstadoBillingConfig={getEstadoBillingConfig}
                             getBillingStatusConfig={getBillingStatusConfig}
                             onClear={() => setSelectedBillings([])}
-
                         />
-
                     )}
                 </CardContent>
             </Card>
 
-            <Dialog open={showBillingModal} onOpenChange={setShowBillingModal}>
+            {/* <Dialog open={showBillingModal} onOpenChange={setShowBillingModal}>
                 <DialogContent className="max-w-4xl max-h-[90vh] sm:max-h-[80vh] overflow-y-auto mx-2 sm:mx-4">
                     <DialogHeader className="pb-3 sm:pb-4">
                         <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
@@ -665,7 +729,7 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
                                                                     Vence: {paymentRecord.dueDate}
                                                                 </span>
                                                             </div>
-                                                            <span className="text-sm sm:text-base font-semibold text-right">${paymentRecord.amount.toLocaleString()}</span>
+                                                            <span className="text-sm sm:text-base font-semibold text-right">${paymentRecord.amount}</span>
                                                         </div>
                                                     </SelectItem>
                                                 ))}
@@ -744,7 +808,7 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
                                             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
                                                 <span className="text-base sm:text-lg font-semibold">{paymentRecord.status === "Pagado" ? "Pagado:" : "Total a pagar:"}:</span>
                                                 <span className="text-xl sm:text-2xl font-bold text-primary">
-                                                    ${paymentRecord.amount.toLocaleString()}
+                                                    ${paymentRecord.amount}
                                                 </span>
                                             </div>
                                         </div>
@@ -778,7 +842,7 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
                                                     $
                                                     {selectedBillingsData
                                                         .reduce((total, payment) => total + payment.amount, 0)
-                                                        .toLocaleString()}
+                                                        }
                                                 </div>
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     <Badge variant="secondary" className="bg-slate-100 text-slate-700 text-xs">
@@ -836,7 +900,7 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
                                                 <p className="font-medium">{payment.studentName}</p>
                                                 <p className="text-xs text-muted-foreground">{payment.paymentType}</p>
                                             </div>
-                                            <p className="font-semibold">${payment.amount.toLocaleString()}</p>
+                                            <p className="font-semibold">${payment.amount}</p>
                                         </div>
                                     ))}
                                     <div className="flex justify-between items-center pt-2 font-bold">
@@ -844,14 +908,13 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
                                         <p className="text-lg">
                                             ${selectedBillingsData
                                                 .reduce((sum, payment) => sum + payment.amount, 0)
-                                                .toLocaleString()}
+                                                }
                                         </p>
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
 
-                        {/* Método de Pago */}
                         <div className="space-y-3">
                             <Label className="text-base font-semibold">Método de Pago</Label>
                             <RadioGroup value={paymentMethod} onValueChange={(value) => setBillingMethod(value as "cash" | "bank_transfer" | "card" | "other")}>
@@ -936,6 +999,572 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
                             )}
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog> */}
+
+            <Dialog open={showBillingModal} onOpenChange={setShowBillingModal}>
+                <DialogContent className="max-w-4xl max-h-[90vh] sm:max-h-[80vh] overflow-y-auto mx-2 sm:mx-4">
+                    <DialogHeader className="pb-3 sm:pb-4">
+                        <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                            <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />
+                            Realizar Pago{selectedBillings.length > 1 ? "s" : ""}
+                        </DialogTitle>
+                        <DialogDescription className="text-sm sm:text-base">
+                            {selectedBillings.length > 0
+                                ? `Información de cobro para ${selectedBillings.length} cobro${selectedBillings.length > 1 ? "s" : ""}`
+                                : "Selecciona un cobro para procesar"}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 sm:space-y-6">
+                        {selectedBillings.length === 0 && !selectedBillingInModal && (
+                            <Card className="border-2 border-dashed">
+                                <CardHeader className="pb-3 sm:pb-4">
+                                    <CardTitle className="text-base sm:text-lg">Seleccionar Cobro</CardTitle>
+                                    <CardDescription className="text-sm">Elige un cobro pendiente del ciclo escolar activo para procesar</CardDescription>
+                                </CardHeader>
+                                <CardContent className="pt-0">
+                                    <Select onValueChange={handleBillingSelectionInModal}>
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="Seleccionar cobro..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {unpaidBillingRecords
+                                                .filter((record) => filteredEstudiantesByCycle.some((e) => e.id === record.studentId))
+                                                .map((paymentRecord) => (
+                                                    <SelectItem key={paymentRecord.id} value={paymentRecord.id}>
+                                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-1 sm:gap-2">
+                                                            <div className="min-w-0 flex-1">
+                                                                <span className="font-medium text-sm sm:text-base block truncate">{paymentRecord.studentName}</span>
+                                                                <span className="text-xs sm:text-sm text-muted-foreground block">
+                                                                    {paymentRecord.paymentType} - {paymentRecord.studentMatricula}
+                                                                </span>
+                                                                <span className="text-xs text-muted-foreground block">
+                                                                    Vence: {paymentRecord.dueDate}
+                                                                </span>
+                                                            </div>
+                                                            <span className="text-sm sm:text-base font-semibold text-right">${paymentRecord.amount}</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                ))}
+                                        </SelectContent>
+                                    </Select>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {getSelectedBillingsData().map((paymentRecord) => {
+                            const estudiante = filteredEstudiantesByCycle.find((e) => e.id === paymentRecord.studentId)
+                            if (!estudiante) return null
+
+                            return (
+                                <Card key={paymentRecord.id} className="border-2">
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="text-base sm:text-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+                                            <span className="truncate">{paymentRecord.studentName}</span>
+                                            <Badge
+                                                className={`text-xs px-2 py-1 ${paymentRecord.status === "Pendiente"
+                                                    ? "bg-transparent text-yellow-800"
+                                                    : paymentRecord.status === "Vencido"
+                                                        ? "bg-transparent text-red-500"
+                                                        : "bg-transparent text-green-800"
+                                                    }`}
+                                            >
+                                                {paymentRecord.status === "Pendiente" && <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />}
+                                                {paymentRecord.status === "Vencido" && <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />}
+                                                {paymentRecord.status === "Pagado" && <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />}
+                                                {paymentRecord.status}
+                                            </Badge>
+                                        </CardTitle>
+                                        <CardDescription className="text-sm">
+                                            {paymentRecord.studentGrade} - Grupo {paymentRecord.studentGroup} |{" "}
+                                            {paymentRecord.studentMatricula}
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3 sm:space-y-4">
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+                                            <div className="space-y-2">
+                                                <h4 className="font-semibold text-xs sm:text-sm text-muted-foreground">INFORMACIÓN DEL ESTUDIANTE</h4>
+                                                <div className="space-y-1 text-xs sm:text-sm">
+                                                    <p className="break-words">
+                                                        <span className="font-medium">Estudiante:</span> {paymentRecord.studentName}
+                                                    </p>
+                                                    <p className="break-words">
+                                                        <span className="font-medium">Grado:</span> {paymentRecord.studentGrade} - Grupo{" "}
+                                                        {paymentRecord.studentGroup}
+                                                    </p>
+                                                    <p className="break-words">
+                                                        <span className="font-medium">Matrícula:</span> {paymentRecord.studentMatricula}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <h4 className="font-semibold text-xs sm:text-sm text-muted-foreground">DETALLES DEL COBRO</h4>
+                                                <div className="space-y-1 text-xs sm:text-sm">
+                                                    <p className="break-words">
+                                                        <span className="font-medium">Tipo de cobro:</span> {paymentRecord.paymentType}
+                                                    </p>
+                                                    <p className="break-words">
+                                                        <span className="font-medium">Fecha de vencimiento:</span> {paymentRecord.dueDate}
+                                                    </p>
+                                                    <p className="break-words">
+                                                        <span className="font-medium">Estado:</span> {paymentRecord.status}
+                                                    </p>
+                                                    {paymentRecord.daysLate > 0 && (
+                                                        <p className="break-words">
+                                                            <span className="font-medium">Días de retraso:</span> {paymentRecord.daysLate}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="border-t pt-3 sm:pt-4">
+                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
+                                                <span className="text-base sm:text-lg font-semibold">Total a pagar:</span>
+                                                <span className="text-xl sm:text-2xl font-bold text-primary">
+                                                    ${formatCurrency(paymentRecord.amount)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )
+                        })}
+
+                        {getSelectedBillingsData().length > 0 && (
+                            <div className="relative overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-r from-slate-50 to-slate-100 opacity-50" />
+                                <Card className="relative border-2 border-slate-200 shadow-lg">
+                                    <CardContent className="pt-4 sm:pt-8 pb-4 sm:pb-6">
+                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0">
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-2 sm:gap-3">
+                                                    <div className="p-2 bg-slate-100 rounded-lg">
+                                                        <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-slate-600" />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-lg sm:text-xl font-bold text-slate-900">Costo Total</h3>
+                                                        <p className="text-xs sm:text-sm text-slate-600">
+                                                            {getSelectedBillingsData().length} cobro{getSelectedBillingsData().length > 1 ? "s" : ""}{" "}
+                                                            seleccionado{getSelectedBillingsData().length > 1 ? "s" : ""}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="text-left sm:text-right">
+                                                <div className="text-2xl sm:text-4xl font-bold text-slate-900 mb-1">
+                                                    $
+                                                    {getSelectedBillingsData()
+                                                        .reduce((total, payment) => total + payment.amount, 0)
+                                                        }
+                                                </div>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <Badge variant="secondary" className="bg-slate-100 text-slate-700 text-xs">
+                                                        MXN
+                                                    </Badge>
+                                                    <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                                                        Listo para procesar
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
+                    </div>
+
+                    <DialogFooter className="gap-2 flex-col sm:flex-row">
+                        <Button variant="outline" onClick={closeBillingModal} className="w-full sm:w-auto order-2 sm:order-1">
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handleOpenBillingForm}
+                            disabled={selectedBillings.length === 0 && !selectedBillingInModal}
+                            className="w-full sm:w-auto order-1 sm:order-2"
+                        >
+                            Continuar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal de Formulario de Pago */}
+            <Dialog open={showBillingFormModal} onOpenChange={setShowBillingFormModal}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-2 sm:mx-4">
+                    <DialogHeader className="pb-4">
+                        <DialogTitle className="flex items-center gap-2 text-xl">
+                            <DollarSign className="h-5 w-5" />
+                            Procesar Pago
+                        </DialogTitle>
+                        <DialogDescription>
+                            {paymentMethodType === "manual"
+                                ? "Completa la información del pago a procesar"
+                                : paymentMethodType === "stripe"
+                                    ? "Procesa el pago con tarjeta de crédito o débito"
+                                    : paymentMethodType === "spei"
+                                        ? "Genera los datos para realizar la transferencia bancaria"
+                                        : "Genera tu ficha para pagar en cualquier tienda OXXO"
+                            }
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-6">
+                        {/* Resumen de pagos seleccionados */}
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-base">Resumen de Cobros</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-2">
+                                    {getSelectedBillingsData().map((payment) => (
+                                        <div key={payment.id} className="flex justify-between items-center text-sm border-b pb-2">
+                                            <div>
+                                                <p className="font-medium">{payment.studentName}</p>
+                                                <p className="text-xs text-muted-foreground">{payment.paymentType}</p>
+                                            </div>
+                                            <p className="font-semibold">${formatCurrency(payment.amount)}</p>
+                                        </div>
+                                    ))}
+                                    <div className="flex justify-between items-center pt-2 font-bold">
+                                        <p>Total:</p>
+                                        <p className="text-lg">
+                                            ${getSelectedBillingsData()
+                                                .reduce((sum, payment) => sum + payment.amount, 0)
+                                                }
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Selección de tipo de pago */}
+                        <div className="space-y-3">
+                            <Label className="text-base font-semibold">Método de Pago</Label>
+                            <RadioGroup value={paymentMethodType} onValueChange={(value) => setBillingMethodType(value as "manual" | "stripe" | "spei" | "oxxo")}>
+                                <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
+                                    <RadioGroupItem value="manual" id="manual" />
+                                    <Label htmlFor="manual" className="flex items-center gap-2 cursor-pointer flex-1">
+                                        <Banknote className="h-4 w-4" />
+                                        <div>
+                                            <p className="font-medium">Registro Manual</p>
+                                            <p className="text-xs text-muted-foreground">Efectivo u otro método - Confirmacion en minutos</p>
+                                        </div>
+                                    </Label>
+                                </div>
+                                <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
+                                    <RadioGroupItem value="oxxo" id="oxxo" />
+                                    <Label htmlFor="oxxo" className="flex items-center gap-2 cursor-pointer flex-1">
+                                        <Store className="h-4 w-4" />
+                                        <div>
+                                            <p className="font-medium">Pago en OXXO</p>
+                                            <p className="text-xs text-muted-foreground">Paga en OXXO - Confirmacion en minutos</p>
+                                        </div>
+                                    </Label>
+                                </div>
+                                <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
+                                    <RadioGroupItem value="stripe" id="stripe" />
+                                    <Label htmlFor="stripe" className="flex items-center gap-2 cursor-pointer flex-1">
+                                        <CreditCard className="h-4 w-4" />
+                                        <div>
+                                            <p className="font-medium">Pago con Tarjeta (Stripe)</p>
+                                            <p className="text-xs text-muted-foreground">Tarjeta de crédito o débito - Procesamiento inmediato</p>
+                                        </div>
+                                    </Label>
+                                </div>
+                                <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
+                                    <RadioGroupItem value="spei" id="spei" />
+                                    <Label htmlFor="spei" className="flex items-center gap-2 cursor-pointer flex-1">
+                                        <Building2 className="h-4 w-4" />
+                                        <div>
+                                            <p className="font-medium">Transferencia Bancaria (SPEI)</p>
+                                            <p className="text-xs text-muted-foreground">Genera datos para transferencia - Confirmación en 1-2 días</p>
+                                        </div>
+                                    </Label>
+                                </div>
+                            </RadioGroup>
+                        </div>
+
+                        {/* Contenido condicional basado en el tipo de pago */}
+                        {paymentMethodType === "stripe" ? (
+                            // Formulario de Stripe para tarjetas
+                            <>
+                                {(() => {
+                                    const selectedBillingsData = getSelectedBillingsData()
+                                    const firstBilling = selectedBillingsData[0]
+
+                                    if (selectedBillingsData.length === 1 && firstBilling && currentSchool?.school._id && currentUser?._id) {
+                                        return (
+                                            <StripeCheckoutButton
+                                                billingId={firstBilling.id as Id<"billing">}
+                                                amount={firstBilling.amount}
+                                                schoolId={currentSchool.school._id}
+                                                studentId={firstBilling.studentId as Id<"student">}
+                                                tutorId={currentUser._id}
+                                                studentName={firstBilling.studentName}
+                                                paymentType={firstBilling.paymentType}
+                                                onCancel={closeBillingFormModal}
+                                            />
+                                        )
+                                    }
+
+                                    if (selectedBillingsData.length > 1) {
+                                        return (
+                                            <div className="p-4 border rounded-lg bg-yellow-50 border-yellow-200">
+                                                <div className="flex items-start gap-2">
+                                                    <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                                                    <div>
+                                                        <p className="text-sm font-medium text-yellow-900">
+                                                            Pagos múltiples con tarjeta
+                                                        </p>
+                                                        <p className="text-xs text-yellow-700 mt-1">
+                                                            Por el momento, solo puedes procesar un pago a la vez con tarjeta.
+                                                            Por favor, selecciona un solo cobro o usa el registro manual para múltiples pagos.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )
+                                    }
+
+                                    return (
+                                        <div className="p-4 border rounded-lg bg-red-50 border-red-200">
+                                            <div className="flex items-start gap-2">
+                                                <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                                                <div>
+                                                    <p className="text-sm font-medium text-red-900">
+                                                        Error de configuración
+                                                    </p>
+                                                    <p className="text-xs text-red-700 mt-1">
+                                                        No se pudo cargar la información necesaria. Por favor, recarga la página e intenta nuevamente.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })()}
+                            </>
+                        ) : paymentMethodType === "spei" ? (
+                            // Formulario de SPEI (transferencia bancaria)
+                            <>
+                                {(() => {
+                                    const selectedBillingsData = getSelectedBillingsData()
+                                    const firstBilling = selectedBillingsData[0]
+
+                                    if (selectedBillingsData.length === 1 && firstBilling && currentSchool?.school._id && currentUser?._id) {
+                                        // Obtener información del estudiante y tutor
+                                        const estudiante = filteredEstudiantesByCycle.find((e) => e.id === firstBilling.studentId)
+
+                                        // Usar el email del usuario actual (quien está haciendo el pago) o un email genérico
+                                        const customerEmail = clerkUser?.primaryEmailAddress?.emailAddress || `tutor-${firstBilling.studentId}@school.com`
+                                        const customerName = estudiante?.padre || firstBilling.studentName
+
+                                        return (
+                                            <SPEIPaymentForm
+                                                billingId={firstBilling.id as Id<"billing">}
+                                                amount={firstBilling.amount}
+                                                schoolId={currentSchool.school._id}
+                                                studentId={firstBilling.studentId as Id<"student">}
+                                                tutorId={currentUser._id}
+                                                studentName={firstBilling.studentName}
+                                                paymentType={firstBilling.paymentType}
+                                                customerEmail={customerEmail}
+                                                customerName={customerName}
+                                                onSuccess={() => {
+                                                    closeBillingFormModal()
+                                                    closeBillingModal()
+                                                }}
+                                                onCancel={closeBillingFormModal}
+                                            />
+                                        )
+                                    }
+
+                                    if (selectedBillingsData.length > 1) {
+                                        return (
+                                            <div className="p-4 border rounded-lg bg-yellow-50 border-yellow-200">
+                                                <div className="flex items-start gap-2">
+                                                    <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                                                    <div>
+                                                        <p className="text-sm font-medium text-yellow-900">
+                                                            Pagos múltiples con SPEI
+                                                        </p>
+                                                        <p className="text-xs text-yellow-700 mt-1">
+                                                            Por el momento, solo puedes procesar un pago a la vez con SPEI.
+                                                            Por favor, selecciona un solo cobro o usa el registro manual para múltiples pagos.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )
+                                    }
+
+                                    return (
+                                        <div className="p-4 border rounded-lg bg-red-50 border-red-200">
+                                            <div className="flex items-start gap-2">
+                                                <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                                                <div>
+                                                    <p className="text-sm font-medium text-red-900">
+                                                        Error de configuración
+                                                    </p>
+                                                    <p className="text-xs text-red-700 mt-1">
+                                                        No se pudo cargar la información necesaria. Por favor, recarga la página e intenta nuevamente.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })()}
+                            </>
+                        ) : paymentMethodType === "oxxo" ? (
+                            // Formulario de OXXO
+                            <>
+                                {(() => {
+                                    const selectedBillingsData = getSelectedBillingsData()
+                                    const firstBilling = selectedBillingsData[0]
+
+                                    if (selectedBillingsData.length === 1 && firstBilling && currentSchool?.school._id && currentUser?._id) {
+                                        // Obtener información del estudiante y tutor
+                                        const estudiante = filteredEstudiantesByCycle.find((e) => e.id === firstBilling.studentId)
+
+                                        // Usar el email del usuario actual (quien está haciendo el pago) o un email genérico
+                                        const customerEmail = clerkUser?.primaryEmailAddress?.emailAddress || `tutor-${firstBilling.studentId}@school.com`
+                                        const customerName = estudiante?.padre || firstBilling.studentName
+
+                                        return (
+                                            <OXXOPaymentForm
+                                                billingId={firstBilling.id as Id<"billing">}
+                                                amount={firstBilling.amount}
+                                                schoolId={currentSchool.school._id}
+                                                studentId={firstBilling.studentId as Id<"student">}
+                                                tutorId={currentUser._id}
+                                                studentName={firstBilling.studentName}
+                                                paymentType={firstBilling.paymentType}
+                                                customerEmail={customerEmail}
+                                                customerName={customerName}
+                                                onSuccess={() => {
+                                                    closeBillingFormModal()
+                                                    closeBillingModal()
+                                                }}
+                                                onCancel={closeBillingFormModal}
+                                            />
+                                        )
+                                    }
+
+                                    if (selectedBillingsData.length > 1) {
+                                        return (
+                                            <div className="p-4 border rounded-lg bg-yellow-50 border-yellow-200">
+                                                <div className="flex items-start gap-2">
+                                                    <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                                                    <div>
+                                                        <p className="text-sm font-medium text-yellow-900">
+                                                            Pagos múltiples con OXXO
+                                                        </p>
+                                                        <p className="text-xs text-yellow-700 mt-1">
+                                                            Por el momento, solo puedes procesar un pago a la vez con OXXO.
+                                                            Por favor, selecciona un solo cobro o usa el registro manual para múltiples pagos.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )
+                                    }
+
+                                    return (
+                                        <div className="p-4 border rounded-lg bg-red-50 border-red-200">
+                                            <div className="flex items-start gap-2">
+                                                <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                                                <div>
+                                                    <p className="text-sm font-medium text-red-900">
+                                                        Error de configuración
+                                                    </p>
+                                                    <p className="text-xs text-red-700 mt-1">
+                                                        No se pudo cargar la información necesaria. Por favor, recarga la página e intenta nuevamente.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })()}
+                            </>
+                        ) :
+                            (
+                                // Formulario manual (el original)
+                                <>
+                                    {/* Método de Pago */}
+                                    <div className="space-y-3">
+                                        <Label className="text-base font-semibold">Tipo de Pago</Label>
+                                        <RadioGroup value={paymentMethod} onValueChange={(value) => setBillingMethod(value as "cash" | "bank_transfer" | "card" | "other")}>
+                                            <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
+                                                <RadioGroupItem value="cash" id="cash" />
+                                                <Label htmlFor="cash" className="flex items-center gap-2 cursor-pointer flex-1">
+                                                    <Banknote className="h-4 w-4" />
+                                                    Efectivo
+                                                </Label>
+                                            </div>
+
+                                            <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
+                                                <RadioGroupItem value="other" id="other" />
+                                                <Label htmlFor="other" className="flex items-center gap-2 cursor-pointer flex-1">
+                                                    <DollarSign className="h-4 w-4" />
+                                                    Otro método
+                                                </Label>
+                                            </div>
+                                        </RadioGroup>
+                                    </div>
+
+                                    {/* Monto a Pagar */}
+                                    <div className="space-y-3">
+                                        <Label htmlFor="paymentAmount" className="text-base font-semibold">
+                                            Monto a Pagar
+                                        </Label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+                                            <Input
+                                                id="paymentAmount"
+                                                type="number"
+                                                placeholder="0.00"
+                                                value={paymentAmount}
+                                                onChange={(e) => setBillingAmount(e.target.value)}
+                                                className="pl-8 text-lg"
+                                                min="0"
+                                                step="0.01"
+                                            />
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Puedes pagar el monto completo o realizar un abono parcial
+                                        </p>
+                                    </div>
+
+                                    <DialogFooter className="gap-2 flex-col sm:flex-row pt-4">
+                                        <Button
+                                            variant="outline"
+                                            onClick={closeBillingFormModal}
+                                            disabled={isProcessingBilling}
+                                            className="w-full sm:w-auto order-2 sm:order-1"
+                                        >
+                                            Cancelar
+                                        </Button>
+                                        <Button
+                                            onClick={handleConfirmBilling}
+                                            disabled={isProcessingBilling || !paymentAmount || parseFloat(paymentAmount) <= 0}
+                                            className="w-full sm:w-auto order-1 sm:order-2"
+                                        >
+                                            {isProcessingBilling ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Procesando...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                                    Confirmar Pago
+                                                </>
+                                            )}
+                                        </Button>
+                                    </DialogFooter>
+                                </>
+                            )}
+                    </div>
                 </DialogContent>
             </Dialog>
 

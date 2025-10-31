@@ -5,8 +5,8 @@ const crons = cronJobs();
 
 crons.daily(
   "process-billing-rules",
-  { hourUTC: 15, minuteUTC: 28 },
-  internal.functions.billingRule.applyBillingPolicies
+  { hourUTC: 6, minuteUTC: 0 },
+  internal.functions.billingRule.applyBillingPolicies, {}
 );
 
 export default crons;

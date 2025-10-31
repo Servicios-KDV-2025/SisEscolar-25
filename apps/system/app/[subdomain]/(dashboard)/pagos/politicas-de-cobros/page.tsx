@@ -37,9 +37,9 @@ import {
   CardTitle,
 } from "@repo/ui/components/shadcn/card";
 import { Search } from "lucide-react";
-import { toast } from "sonner";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { BillingRulesForm } from "components/billingRules/BillingRulesForm";
+import { toast } from "@repo/ui/sonner";
 
 export default function BillingRulePage() {
   const { user: clerkUser, isLoaded } = useUser();
@@ -81,8 +81,6 @@ export default function BillingRulePage() {
     type: "",
     scope: "",
     status: "",
-    lateFeeType: "",
-    lateFeeValue: "",
     startDay: "",
     endDay: "",
     maxUses: "",
@@ -126,6 +124,7 @@ export default function BillingRulePage() {
         createdBy: currentUser._id,
         updatedBy: currentUser._id,
       });
+      toast.success("Política de cobro creada exitosamente")
     } else if (operation === "edit" && data?._id) {
       await updateBillingRule({
         ...baseData,
@@ -133,22 +132,21 @@ export default function BillingRulePage() {
         updatedAt: new Date().getTime(),
         updatedBy: currentUser._id,
       });
+      toast.success("Política de cobro actualizada exitosamente")
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await deleteBillingRule(id);
-      toast.success("Eliminado correctamente");
+      toast.success("Política de cobro eliminada correctamente");
     } catch (error) {
-      toast.error("Error al eliminar regla de facturación", {
+      toast.error("Error al eliminar la política de cobro ", {
         description: (error as Error).message,
       });
       throw error;
     }
   };
-
-
 
   return (
     <div className="space-y-8 p-6">
@@ -232,21 +230,17 @@ export default function BillingRulePage() {
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Filter className="h-5 w-5" />
-                Filtros y Búsqueda
-              </CardTitle>
-              <CardDescription>
-                Encuentra las políticas por nombre, tipo o estado
-              </CardDescription>
-            </div>
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            Filtros y Búsqueda
+          </CardTitle>
+          <CardDescription>
+            Encuentra las políticas por nombre, tipo o estado
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
+            <div className="flex-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -257,14 +251,14 @@ export default function BillingRulePage() {
                 />
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Select
                 onValueChange={(v) =>
                   setTypeFilter(v === "all" ? null : v)
                 }
                 value={typeFilter || ""}
               >
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Todos los Tipos" />
                 </SelectTrigger>
                 <SelectContent>
@@ -280,7 +274,7 @@ export default function BillingRulePage() {
                 }
                 value={statusFilter || ""}
               >
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Todos los Estados" />
                 </SelectTrigger>
                 <SelectContent>
@@ -361,10 +355,10 @@ export default function BillingRulePage() {
         }
         description={
           operation === "create"
-            ? "Completa la información de la nueva regla"
+            ? "Completa la información de la nueva política"
             : operation === "edit"
-              ? "Modifica la información de la regla"
-              : "Información de la regla"
+              ? "Modifica la información de la política"
+              : "Información de la política"
         }
         schema={billingRuleSchema}
         defaultValues={{

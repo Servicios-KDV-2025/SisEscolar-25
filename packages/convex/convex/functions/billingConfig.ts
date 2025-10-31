@@ -123,9 +123,8 @@ export const createBillingConfig = mutation({
       updatedAt: now,
     });
 
-    const billings: unknown = await ctx.runMutation(internal.functions.billing.generatePaymentsForConfig, { billingConfigId: configId })
-    await ctx.runMutation(internal.functions.billingRule.applyBillingPolicies);
-        console.log("Generated billings:", billings);
+    const billings: unknown = await ctx.runMutation(internal.functions.billing.generateBillingsForConfig, { billingConfigId: configId })
+    await ctx.runMutation(internal.functions.billingRule.applyBillingPolicies, {});
     return billings;
   },
 });
@@ -195,7 +194,6 @@ export const updateBillingConfig = mutation({
     if (newStartDate > newEndDate) {
       throw new Error("La fecha de inicio debe ser anterior a la fecha de fin");
     }
-
     const updateData: Partial<typeof existing> = {
       updatedAt: Date.now(),
       updatedBy: args.updatedBy,
@@ -236,9 +234,8 @@ export const updateBillingConfig = mutation({
 
     await ctx.db.patch(args.id, updateData);
 
-    const billings: unknown = await ctx.runMutation(internal.functions.billing.updatePaymentsForConfig, { billingConfigId: args.id });
-    console.log("Updated billings:", billings);
-    await ctx.runMutation(internal.functions.billingRule.applyBillingPolicies);
+    const billings: unknown = await ctx.runMutation(internal.functions.billing.generateBillingsForConfig, { billingConfigId: args.id });
+    await ctx.runMutation(internal.functions.billingRule.applyBillingPolicies, {});
 
     return billings;
   },

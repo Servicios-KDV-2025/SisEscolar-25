@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@repo/ui/components/shadcn/button"
-import { cn } from "lib/utils"
+import { cn, formatCurrency } from "lib/utils"
 import { CreditCard, X, Minus, Plus, Banknote } from "@repo/ui/icons"
 
 interface FloatingBillingProps {
@@ -28,13 +28,6 @@ export function FloatingBilling({
   className,
 }: FloatingBillingProps) {
   if (selectedCount === 0) return null
-
-  const formatCurrency = (amount: number) => {
-    return amount.toLocaleString("es-MX", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
-  }
 
   return (
     <div
@@ -150,9 +143,9 @@ export function FloatingBilling({
           <div className="flex items-center gap-8">
 
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center ring-2 ring-primary/20">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-2 ring-primary/20">
                 <span className="text-base font-bold text-primary tabular-nums">
-                  {selectedCount}
+                  <Banknote/>
                 </span>
               </div>
               <div>

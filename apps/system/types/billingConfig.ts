@@ -1,5 +1,7 @@
 import { Id } from "@repo/convex/convex/_generated/dataModel"
 import { PAYMENT_TYPES, RECURRENCE_TYPES, SCOPE_TYPES, STATUS_TYPES } from "lib/billing/constants";
+import { Billing } from "./billing";
+import { Student } from "./student";
 
 
 export interface PaymentData {
@@ -17,6 +19,7 @@ export interface PaymentConfig {
   scope: keyof typeof SCOPE_TYPES;
   recurrence_type: keyof typeof RECURRENCE_TYPES;
   status: keyof typeof STATUS_TYPES;
+  ruleIds: Id<"billingRule">[]
   endDate: number
   startDate: number
   amount: number;
@@ -24,10 +27,16 @@ export interface PaymentConfig {
   cicloStatus: string;
 }
 
+export interface CompletedBillings {
+  student: Student
+  billing: Billing
+}
+
 export interface ResultData {
   affectedStudents: PaymentData[];
   message: string;
   paymentConfig: PaymentConfig;
+  completedBillings?: CompletedBillings[]
 }
 
 export interface BillingConfigType extends Record<string, unknown> {

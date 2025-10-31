@@ -94,11 +94,7 @@ const applicationTable = defineSchema({
     birthDate: v.optional(v.number()),
     admissionDate: v.optional(v.number()),
     imgUrl: v.optional(v.string()),
-    scholarshipType: v.optional(v.union(
-      v.literal("none"),
-      v.literal("partial"),
-      v.literal("full")
-    )),
+    scholarshipType: v.union(v.literal("inactive"), v.literal("active")),
     scholarshipPercentage: v.optional(v.number()),
     status: v.union(v.literal("active"), v.literal("inactive")),
     createdAt: v.number(),

@@ -72,12 +72,12 @@ const defaultNavData = {
       url: "#",
       items: [
         {
-          title: "Pagos",
-          url: `/pagos`,
-        },
-        {
           title: "Políticas de Cobros",
           url: `/pagos/politicas-de-cobros`,
+        },
+        {
+          title: "Pagos",
+          url: `/pagos`,
         },
       ],
     },

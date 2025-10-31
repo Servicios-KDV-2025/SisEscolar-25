@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "../_generated/server";
-import { Doc } from "../_generated/dataModel";
+import { Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 
 export const getAllBillingRulesBySchool = query({
@@ -18,21 +18,6 @@ export const getAllBillingRulesBySchool = query({
             .withIndex("by_school", q => q.eq("schoolId", args.schoolId))
             .collect();
     },
-});
-
-export const getBillingRuleByIdAndSchool = query({
-    args: {
-        _id: v.id('billingRule'),
-        schoolId: v.id('school')
-    },
-    handler: async (ctx, args) => {
-        const billingRule = await ctx.db.get(args._id);
-        const school = await ctx.db.get(args.schoolId);
-        if (!billingRule || !school) {
-            throw new Error("La política no se encuentra o no pertenece a esta escuela.");
-        }
-        return billingRule;
-    }
 });
 
 export const createBillingRuleWithSchoolId = mutation({
@@ -67,18 +52,6 @@ export const createBillingRuleWithSchoolId = mutation({
             throw new Error(
                 "No se pudo crear la política."
             );
-        }
-
-        const existingBillingRule = await ctx.db
-            .query("billingRule")
-            .withIndex("by_school", q =>
-                q.eq("schoolId", args.schoolId)
-            )
-            .filter(q => q.eq(q.field("name"), args.name))
-            .first();
-
-        if (existingBillingRule) {
-            throw new Error("Ya existe una política con el mismo nombre en esta escuela");
         }
 
         switch (args.type) {
@@ -153,7 +126,7 @@ export const updateBillingRuleWithSchoolId = mutation({
         }
 
         await ctx.db.patch(_id, data);
-        await ctx.runMutation(internal.functions.billingRule.applyBillingPolicies);
+        await ctx.runMutation(internal.functions.billingRule.applyBillingPolicies, {});
         return await ctx.db.get(_id);
     }
 });
@@ -173,7 +146,7 @@ export const deleteBillingRuleWithSchoolId = mutation({
             );
         }
         await ctx.db.delete(args._id);
-        await ctx.runMutation(internal.functions.billingRule.applyBillingPolicies);
+        await ctx.runMutation(internal.functions.billingRule.applyBillingPolicies, {});
         return {
             deleted: true,
             message: 'BillingRule borrado correctamente'
@@ -182,17 +155,26 @@ export const deleteBillingRuleWithSchoolId = mutation({
 });
 
 export const applyBillingPolicies = internalMutation({
-    args: {},
-    handler: async (ctx) => {
+    args: {
+        studentId: v.optional(v.id("student")),
+        billingConfigIds: v.optional(v.array(v.any())),
+    },
+    handler: async (ctx, args) => {
         const now = Date.now();
-        const billingConfigs = await ctx.db
-            .query("billingConfig")
-            .collect();
 
-        console.log(`Procesando ${billingConfigs.length} configuraciones de cobro`);
+        let billingConfigs;
+
+        if (!args.billingConfigIds) {
+            billingConfigs = await ctx.db
+                .query("billingConfig")
+                .collect();
+        } else {
+            billingConfigs = args.billingConfigIds as Doc<"billingConfig">[]
+        }
+
 
         for (const config of billingConfigs) {
-            await processConfigBillings(ctx, config, now);
+            await processConfigBillings(ctx, config, now, args.studentId as Id<"student">);
         }
     },
 });
@@ -200,21 +182,34 @@ export const applyBillingPolicies = internalMutation({
 async function processConfigBillings(
     ctx: any,
     config: Doc<"billingConfig">,
-    now: number
+    now: number,
+    studentId: Id<"student">
 ) {
     const rules = config.ruleIds
         ? await Promise.all(config.ruleIds.map((id) => ctx.db.get(id)))
-        : []; 
+        : [];
 
     const activeRules = rules.filter((rule) => rule && rule.status === "active");
+    let billings
+    if (studentId) {
+        billings = await ctx.db
+            .query("billing")
+            .withIndex("by_student_and_config", (q: any) =>
+                q.eq("studentId", studentId).eq("billingConfigId", config._id)
+            )
+            .filter((q: any) => q.neq(q.field("status"), "Pago cumplido"))
+            .filter((q: any) => q.neq(q.field("status"), "Pago vencido"))
+            .collect();
+        
+    } else {
+        billings = await ctx.db
+            .query("billing")
+            .withIndex("by_billingConfig", (q: any) => q.eq("billingConfigId", config._id))
+            .filter((q: any) => q.neq(q.field("status"), "Pago cumplido"))
+            .filter((q: any) => q.neq(q.field("status"), "Pago vencido"))
+            .collect();
+    }
 
-    const billings = await ctx.db
-        .query("billing")
-        .withIndex("by_billingConfig", (q: any) => q.eq("billingConfigId", config._id))
-        .filter((q: any) => q.neq(q.field("status"), "Pago cumplido"))
-        .collect();
-
-    console.log(`Procesando ${billings.length} cobros para config ${config._id}`);
 
     for (const billing of billings) {
         await applyPoliciesToBilling(ctx, billing, config, activeRules, now);
@@ -232,7 +227,7 @@ async function applyPoliciesToBilling(
     if (!student) return;
 
     const appliedDiscounts: Array<{
-        ruleId?: any;
+        ruleId?: Id<"billingRule">;
         reason: string;
         amount: number;
         percentage?: number;
@@ -243,7 +238,7 @@ async function applyPoliciesToBilling(
     let lateFee = 0;
     let lateFeeRuleId = undefined;
 
-    const scholarshipDiscount = calculateScholarshipDiscount(student, billing.amount);
+    const scholarshipDiscount = calculateScholarshipDiscount(student, billing.amount, config.status, config.type);
     if (scholarshipDiscount.amount > 0) {
         appliedDiscounts.push(scholarshipDiscount);
         totalDiscount += scholarshipDiscount.amount;
@@ -270,7 +265,6 @@ async function applyPoliciesToBilling(
     }
 
     const totalAmount = Math.max(0, billing.amount - totalDiscount + lateFee);
-
     const newStatus = determineStatus(billing, now, totalAmount, config.endDate);
 
     await ctx.db.patch(billing._id, {
@@ -282,30 +276,19 @@ async function applyPoliciesToBilling(
         status: newStatus,
         updatedAt: now,
     });
-
-    console.log(
-        `Billing ${billing._id}: $${billing.amount} - $${totalDiscount} + $${lateFee} = $${totalAmount}`
-    );
 }
 
 function calculateScholarshipDiscount(
     student: Doc<"student">,
-    amount: number
+    amount: number,
+    status: string,
+    type: string
 ) {
-    if (!student.scholarshipType || student.scholarshipType === "none") {
+    if (!student.scholarshipType || student.scholarshipType === "inactive" || student.status === "inactive" || status != "required" || (type != "inscripción" && type != "colegiatura")) {
         return { amount: 0, reason: "", type: "scholarship" as const };
     }
 
-    if (student.scholarshipType === "full") {
-        return {
-            reason: "Beca 100%",
-            amount: amount,
-            percentage: 100,
-            type: "scholarship" as const,
-        };
-    }
-
-    if (student.scholarshipType === "partial" && student.scholarshipPercentage) {
+    if (student.scholarshipType === "active" && student.scholarshipPercentage) {
         return {
             reason: `Beca ${student.scholarshipPercentage}%`,
             amount: amount * (student.scholarshipPercentage / 100),
@@ -324,11 +307,11 @@ function ruleAppliesToStudent(
     if (rule.scope === "all_students") return true;
 
     if (rule.scope === "becarios") {
-        return student.scholarshipType !== "none" && !!student.scholarshipType;
+        return student.scholarshipType === "active";
     }
 
     if (rule.scope === "estandar") {
-        return !student.scholarshipType || student.scholarshipType === "none";
+        return !student.scholarshipType || student.scholarshipType === "inactive";
     }
 
     return false;

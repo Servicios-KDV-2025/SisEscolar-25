@@ -48,7 +48,7 @@ const shouldStudentHavePayment = async (ctx: any, student: any, billingConfig: a
   }
 };
 
-export const updatePaymentsForConfig = internalMutation({
+export const generateBillingsForConfig = internalMutation({
   args: {
     billingConfigId: v.id("billingConfig"),
   },
@@ -72,16 +72,9 @@ export const updatePaymentsForConfig = internalMutation({
       };
     }
 
-    // const existingPayments = await ctx.db
-    //   .query("billing")
-    //   .withIndex("by_billingConfig", (q) => q.eq("billingConfigId", args.billingConfigId))
-    //   .filter((q) => q.neq(q.field("status"), "Pago cumplido"))
-    //   .collect();
-
     let students: any[] = [];
 
     if (billingConfig.scope === "all_students") {
-      // Todos los estudiantes del ciclo escolar
       students = await ctx.db
         .query("student")
         .withIndex("by_schoolId", (q) => q.eq("schoolId", billingConfig.schoolId))
@@ -89,7 +82,6 @@ export const updatePaymentsForConfig = internalMutation({
         .filter((q) => q.eq(q.field("schoolCycleId"), billingConfig.schoolCycleId))
         .collect();
     } else if (billingConfig.scope === "specific_groups" && billingConfig.targetGroup) {
-      // Estudiantes de grupos específicos
       const studentsPromises = billingConfig.targetGroup.map(async (groupId) => {
         return await ctx.db
           .query("student")
@@ -101,7 +93,6 @@ export const updatePaymentsForConfig = internalMutation({
       const studentsArrays = await Promise.all(studentsPromises);
       students = studentsArrays.flat();
     } else if (billingConfig.scope === "specific_grades" && billingConfig.targetGrade) {
-      // Estudiantes de grados específicos
       const allStudents = await ctx.db
         .query("student")
         .withIndex("by_schoolId", (q) => q.eq("schoolId", billingConfig.schoolId))
@@ -109,7 +100,6 @@ export const updatePaymentsForConfig = internalMutation({
         .filter((q) => q.eq(q.field("schoolCycleId"), billingConfig.schoolCycleId))
         .collect();
 
-      // Filtrar por grado
       const studentsWithGroups = await Promise.all(
         allStudents.map(async (student) => {
           const group = await ctx.db.get(student.groupId);
@@ -121,7 +111,6 @@ export const updatePaymentsForConfig = internalMutation({
         .filter(({ group }) => group && billingConfig.targetGrade && billingConfig.targetGrade.includes(group.grade))
         .map(({ student }) => student);
     } else if (billingConfig.scope === "specific_students" && billingConfig.targetStudent) {
-      // Estudiantes específicos
       const studentsPromises = billingConfig.targetStudent.map(async (studentId) => {
         return await ctx.db.get(studentId);
       });
@@ -134,162 +123,72 @@ export const updatePaymentsForConfig = internalMutation({
       );
     }
 
+    const billings = await ctx.db
+      .query("billing")
+      .withIndex("by_billingConfig", (q) =>
+        q.eq("billingConfigId", args.billingConfigId)
+      )
+      .collect();
+    const billingWithStudent = await Promise.all(
+      billings.map(async (billing) => {
+        const student = await ctx.db.get(billing.studentId);
+        return {
+          billing: billing,
+          student: student,
+        };
+      })
+    );
+    const validStudentIds = students.map((s) => s._id);
+
+    const paymentsToRemove = billings.filter(
+      (b) => !validStudentIds.includes(b.studentId) && b.status !== "Pago cumplido"
+    );
+
+    const completedBillings = billingWithStudent.filter(
+      (b) => b.billing.status === "Pago cumplido"
+    );
+
+    for (const payment of paymentsToRemove) {
+      await ctx.db.delete(payment._id);
+    }
+
     const now = Date.now();
     const affectedStudents: any[] = [];
 
     for (const student of students) {
-
       const existingPayments = await ctx.db
         .query("billing")
         .withIndex("by_student_and_config", (q) =>
           q.eq("studentId", student._id).eq("billingConfigId", args.billingConfigId)
         )
-        .filter((q) => q.neq(q.field("status"), "Pago cumplido"))
         .collect();
 
-      for (const payment of existingPayments) {
-        await ctx.db.patch(payment._id, {
+      const completed = existingPayments.find((p) => p.status === "Pago cumplido");
+      const activePayment = existingPayments.find(
+        (p) => p.status !== "Pago cumplido"
+      );
+
+      if (activePayment) {
+        await ctx.db.patch(activePayment._id, {
           amount: billingConfig.amount,
           totalAmount: billingConfig.amount,
           updatedAt: now,
         });
 
         const group = await ctx.db.get(student.groupId as Id<"group">);
-
         affectedStudents.push({
           studentId: student._id,
           studentName: `${student.name} ${student.lastName || ""}`,
           enrollment: student.enrollment,
           groupId: student.groupId,
           group: `${group?.grade} ${group?.name}` || "No asignado",
-          paymentId: payment._id,
+          paymentId: activePayment._id,
+          action: "updated",
         });
       }
-    }
 
-    const schoolCycle = await ctx.db.get(billingConfig.schoolCycleId as Id<"schoolCycle">)
-
-    return {
-      message: `Se actualizaron ${affectedStudents.length} pagos`,
-      paymentConfig: {
-        id: billingConfig._id,
-        type: billingConfig.type,
-        endDate: billingConfig.endDate != null && billingConfig.endDate
-            ? new Date(billingConfig.endDate).toISOString().split('T')[0]
-            : new Date().toISOString().split('T')[0],
-        startDate: billingConfig.startDate != null && billingConfig.startDate
-            ? new Date(billingConfig.startDate).toISOString().split('T')[0]
-            : new Date().toISOString().split('T')[0],
-        recurrence_type: billingConfig.recurrence_type,
-        scope: billingConfig.scope,
-        status: billingConfig.status,
-        amount: billingConfig.amount,
-        ciclo: schoolCycle?.name,
-        cicloStatus: schoolCycle?.status
-      },
-      affectedStudents,
-    };
-  },
-});
-
-// Generar pagos para una configuración específica
-export const generatePaymentsForConfig = internalMutation({
-  args: {
-    billingConfigId: v.id("billingConfig"),
-  },
-  handler: async (ctx, args) => {
-    // Obtener la configuración de pago
-    const billingConfig = await ctx.db.get(args.billingConfigId);
-    if (!billingConfig) {
-      throw new Error("Configuración de pago no encontrada");
-    }
-
-    // Solo procesar si el status no es "inactive"
-    if (billingConfig.status === "inactive") {
-      return {
-        message: "La configuración de pago está inactiva",
-        billingConfig: {
-          id: billingConfig._id,
-          type: billingConfig.type,
-          recurrence_type: billingConfig.recurrence_type,
-          scope: billingConfig.scope,
-          status: billingConfig.status,
-        },
-        affectedStudents: [],
-      };
-    }
-
-    // Obtener estudiantes según el alcance
-    let students: any[] = [];
-
-    if (billingConfig.scope === "all_students") {
-      // Todos los estudiantes del ciclo escolar
-      students = await ctx.db
-        .query("student")
-        .withIndex("by_schoolId", (q) => q.eq("schoolId", billingConfig.schoolId))
-        .filter((q) => q.eq(q.field("status"), "active"))
-        .filter((q) => q.eq(q.field("schoolCycleId"), billingConfig.schoolCycleId))
-        .collect();
-    } else if (billingConfig.scope === "specific_groups" && billingConfig.targetGroup) {
-      // Estudiantes de grupos específicos
-      const studentsPromises = billingConfig.targetGroup.map(async (groupId) => {
-        return await ctx.db
-          .query("student")
-          .withIndex("by_groupId", (q) => q.eq("groupId", groupId))
-          .filter((q) => q.eq(q.field("status"), "active"))
-          .filter((q) => q.eq(q.field("schoolCycleId"), billingConfig.schoolCycleId))
-          .collect();
-      });
-      const studentsArrays = await Promise.all(studentsPromises);
-      students = studentsArrays.flat();
-    } else if (billingConfig.scope === "specific_grades" && billingConfig.targetGrade) {
-      // Estudiantes de grados específicos
-      const allStudents = await ctx.db
-        .query("student")
-        .withIndex("by_schoolId", (q) => q.eq("schoolId", billingConfig.schoolId))
-        .filter((q) => q.eq(q.field("status"), "active"))
-        .filter((q) => q.eq(q.field("schoolCycleId"), billingConfig.schoolCycleId))
-        .collect();
-
-      // Filtrar por grado
-      const studentsWithGroups = await Promise.all(
-        allStudents.map(async (student) => {
-          const group = await ctx.db.get(student.groupId);
-          return { student, group };
-        })
-      );
-
-      students = studentsWithGroups
-        .filter(({ group }) => group && billingConfig.targetGrade && billingConfig.targetGrade.includes(group.grade))
-        .map(({ student }) => student);
-    } else if (billingConfig.scope === "specific_students" && billingConfig.targetStudent) {
-      // Estudiantes específicos
-      const studentsPromises = billingConfig.targetStudent.map(async (studentId) => {
-        return await ctx.db.get(studentId);
-      });
-      const studentsArray = await Promise.all(studentsPromises);
-      students = studentsArray.filter(student =>
-        student &&
-        student.schoolId === billingConfig.schoolId &&
-        student.schoolCycleId === billingConfig.schoolCycleId &&
-        student.status === "active"
-      );
-    }
-    const now = Date.now();
-    const affectedStudents: any[] = [];
-
-    // Crear pagos para cada estudiante
-    for (const student of students) {
-      // Verificar si ya existe un pago para este estudiante y configuración
-      const existingPayment = await ctx.db
-        .query("billing")
-        .withIndex("by_student_and_config", (q) =>
-          q.eq("studentId", student._id).eq("billingConfigId", args.billingConfigId)
-        )
-        .first();
-
-      if (!existingPayment) {
-        const paymentId = await ctx.db.insert("billing", {
+      if (!activePayment && !completed) {
+        const newPaymentId = await ctx.db.insert("billing", {
           studentId: student._id,
           billingConfigId: args.billingConfigId,
           status: "Pago pendiente",
@@ -299,13 +198,15 @@ export const generatePaymentsForConfig = internalMutation({
           updatedAt: now,
         });
 
+        const group = await ctx.db.get(student.groupId as Id<"group">);
         affectedStudents.push({
           studentId: student._id,
           studentName: `${student.name} ${student.lastName || ""}`,
           enrollment: student.enrollment,
           groupId: student.groupId,
-          group: `${student?.grade} ${student?.name}` || "No asignado",
-          paymentId,
+          group: `${group?.grade} ${group?.name}` || "No asignado",
+          paymentId: newPaymentId,
+          action: "created",
         });
       }
     }
@@ -313,20 +214,26 @@ export const generatePaymentsForConfig = internalMutation({
     const schoolCycle = await ctx.db.get(billingConfig.schoolCycleId as Id<"schoolCycle">)
 
     return {
-      message: `Se generaron ${affectedStudents.length} pagos`,
+      message: `${affectedStudents.length > 0 ? `Se generaron/actualizaron ${affectedStudents.length} cobros para estudiantes. ` : ''}${completedBillings.length > 0 ? `Se mantuvieron ${completedBillings.length} cobros ya pagados. ` : ''}`.trim(),
       paymentConfig: {
         id: billingConfig._id,
         type: billingConfig.type,
-        endDate: billingConfig.endDate,
-        startDate: billingConfig.startDate,
+        endDate: billingConfig.endDate != null && billingConfig.endDate
+          ? new Date(billingConfig.endDate).toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0],
+        startDate: billingConfig.startDate != null && billingConfig.startDate
+          ? new Date(billingConfig.startDate).toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0],
         recurrence_type: billingConfig.recurrence_type,
         scope: billingConfig.scope,
         status: billingConfig.status,
+        ruleIds: billingConfig.ruleIds,
         amount: billingConfig.amount,
         ciclo: schoolCycle?.name,
         cicloStatus: schoolCycle?.status
       },
       affectedStudents,
+      completedBillings
     };
   },
 });
@@ -613,14 +520,21 @@ export const getPaymentsPageData = query({
           .query("billing")
           .withIndex("by_student", (q) => q.eq("studentId", student._id))
           .collect();
-
+        
         // Obtener información de configuración de pago para cada pago
         const paymentsWithConfig = await Promise.all(
           payments.map(async (payment) => {
             const config = await ctx.db.get(payment.billingConfigId);
+            const payments = await ctx.db
+              .query("payments")
+              .withIndex("by_billing", (q) =>
+                q.eq("billingId", payment?._id as Id<"billing">)
+              )
+              .collect();
             return {
               ...payment,
               config: config,
+              payments: payments
             };
           })
         );
@@ -640,8 +554,10 @@ export const getPaymentsPageData = query({
             // Si no hay fechas válidas en la configuración, usar createdAt del pago + 30 días
             dueDate = payment.createdAt + (30 * 24 * 60 * 60 * 1000);
           }
-
-          const daysLate = Math.max(0, Math.floor((now - dueDate) / (1000 * 60 * 60 * 24)));
+          const baseDate = payment.status === "Pago cumplido" && payment.paidAt
+            ? payment.paidAt
+            : now;
+          const daysLate = Math.max(0, Math.floor((baseDate - dueDate) / (1000 * 60 * 60 * 24)));
           return {
             ...payment,
             daysLate,
@@ -687,19 +603,18 @@ export const getPaymentsPageData = query({
             ? paymentsWithLateDays[0].config?.type || "Colegiatura"
             : "Colegiatura") as "Inscripciones" | "Colegiatura",
           credit: student.credit || 0,
-
+          scholarshipType: student.scholarshipType,
+          scholarshipPercentage: student.scholarshipPercentage,
           pagos: paymentsWithLateDays.map(payment => {
-            // totalAmount ES el monto restante por pagar
-            const montoPendiente = payment.totalAmount || payment.amount;
-            const montoPagado = payment.amount - montoPendiente; // Lo pagado = total - restante
             return {
               id: payment._id,
+              ruleIds: payment.config?.ruleIds,
               tipo: payment.config?.type || "Pago",
               statusBilling: payment.config?.status,
               amount: payment.amount,
               totalAmount: payment.totalAmount,
-              endDate: new Date(payment.config?.endDate ?? 0).toISOString().split("T")[0],
-              startDate: new Date(payment.config?.startDate ?? 0).toISOString().split("T")[0],
+              endDate: payment.config?.endDate,
+              startDate: payment.config?.startDate,
               totalDiscount: payment.totalDiscount || 0,
               lateFeeRuleId: payment.lateFeeRuleId,
               lateFee: payment.lateFee || 0,
@@ -711,6 +626,8 @@ export const getPaymentsPageData = query({
                   payment.status === "Pago retrasado" ? "Retrasado" :
                     payment.status === "Pago parcial" ? "Parcial" : "Vencido") as "Pendiente" | "Vencido" | "Pagado",
               diasRetraso: payment.daysLate,
+              amountOutstanding: payment.amount + (payment.lateFee || 0) - (payment.totalDiscount || 0),
+              payments: payment.payments,
 
             };
           }),

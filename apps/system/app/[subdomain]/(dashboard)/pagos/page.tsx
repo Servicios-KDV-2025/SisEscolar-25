@@ -1,15 +1,23 @@
-"use client"
-import { useState, useEffect } from "react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/shadcn/tabs"
-import { Backpack, Settings, History } from "lucide-react"
-import { useQuery } from "convex/react"
-import { api } from "@repo/convex/convex/_generated/api"
-import { useUser } from "@clerk/nextjs"
-import { useUserWithConvex } from "../../../../stores/userStore"
-import { useCurrentSchool } from "../../../../stores/userSchoolsStore"
-import PaymentHistoryComponent from "./payment-history"
-import BillingConfigPage from "components/billingConfigs/BillingConfigPage"
-import BillingPage from "components/billing/BillingPage"
+"use client";
+import { useState, useEffect } from "react";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@repo/ui/components/shadcn/tabs";
+import { Backpack, Settings, History } from "lucide-react";
+import { useQuery } from "convex/react";
+import { api } from "@repo/convex/convex/_generated/api";
+import { useUser } from "@clerk/nextjs";
+import { useUserWithConvex } from "../../../../stores/userStore";
+import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
+import Pagos from "./pagos";
+import PaymentHistoryComponent from "./payment-history";
+import StripeConfigPage from "./escuela";
+import { Button } from "@repo/ui/components/shadcn/button";
+import BillingConfigPage from "components/billingConfigs/BillingConfigPage";
+import BillingPage from "components/billing/BillingPage";
 
 export default function Colegiaturas() {
   const [selectedSchoolCycle, setSelectedSchoolCycle] = useState<string>("");
@@ -34,9 +42,9 @@ export default function Colegiaturas() {
     if (schoolCycles && schoolCycles.length > 0 && !selectedSchoolCycle) {
       const activeCycle = schoolCycles.find((cycle) => cycle.isActive);
       if (activeCycle) {
-        setSelectedSchoolCycle(activeCycle.id)
-      } else if (schoolCycles[0]) {BillingConfigPage
-        setSelectedSchoolCycle(schoolCycles[0]!.id)
+        setSelectedSchoolCycle(activeCycle.id);
+      } else if (schoolCycles[0]) {
+        setSelectedSchoolCycle(schoolCycles[0]!.id);
       }
     }
   }, [schoolCycles, selectedSchoolCycle]);
@@ -85,7 +93,7 @@ export default function Colegiaturas() {
                     Sistema de Pagos
                   </h1>
                   <p className="text-lg text-muted-foreground">
-                    Administra configuraciones, pagos e historial de pagos.
+                    Administra las configuraciones de cobros, cobros y el historial de pagos.
                   </p>
                 </div>
               </div>

@@ -23,22 +23,22 @@ const generateDescription = (values: BillingRuleValues) => {
     if (type === "late_fee") {
         if (lateFeeType && lateFeeValue !== undefined && startDay !== undefined && endDay !== undefined) {
             const valueText = lateFeeType === "percentage" ? `${lateFeeValue}%` : `$${lateFeeValue}`;
-            description = `Recargo por pago tardío desde el día ${startDay} después del vencimiento hasta el día ${endDay}, aplicando un ${lateFeeType === "percentage" ? "porcentaje" : "monto fijo"} de ${valueText}. Ejemplo: Si un estudiante no paga a tiempo, se le aplicará un recargo de ${valueText} por cada día de retraso entre el día ${startDay} y el día ${endDay}, o hasta que realice el pago.`;
+            description = `Se aplicará un recargo por pago tardío desde el día ${startDay} hasta el día ${endDay} después del vencimiento, con un ${lateFeeType === "percentage" ? "porcentaje" : "monto fijo"} de ${valueText}. Ejemplo: si un estudiante no realiza el pago a tiempo, se le cobrará un recargo de ${valueText} por cada día de retraso dentro de este periodo.`;
         } else {
             description = `Recargo por pago tardío`;
         }
     } else if (type === "early_discount") {
         if (lateFeeType && lateFeeValue !== undefined && startDay !== undefined && endDay !== undefined) {
             const valueText = lateFeeType === "percentage" ? `${lateFeeValue}%` : `$${lateFeeValue} pesos`;
-            description = `Descuento por pago anticipado desde el día ${startDay} hasta el día ${endDay}, con un ${lateFeeType === "percentage" ? "porcentaje" : "monto fijo"} de ${valueText}. Ejemplo: Si un estudiante paga temprano, recibe un descuento de ${valueText} entre los días ${startDay} y ${endDay}.`;
+            description = `Se aplicará un descuento por pago anticipado desde el días ${startDay} hasta el día ${endDay}, con un ${lateFeeType === "percentage" ? "porcentaje" : "monto fijo"} de ${valueText}. Ejemplo: si un estudiante paga dentro de este periodo, recibirá un descuento de ${valueText}.`;
         } else {
-            description = `Descuento por pronto pago`;
+            description = `Descuento disponible por pronto pago.`;
         }
     } else if (type === "cutoff") {
         if (cutoffAfterDays !== undefined) {
-            description = `Corte de servicios o acceso después de ${cutoffAfterDays} días de mora. Ejemplo: Si un estudiante tiene pagos pendientes por más de ${cutoffAfterDays} días, se le cortará el acceso a servicios escolares.`;
+            description = `Suspensión de servicios o acceso después de ${cutoffAfterDays} días de mora. Ejemplo: si un estudiante mantiene un adeudo por más de ${cutoffAfterDays} días, se restringirá su acceso a los servicios escolares.`;
         } else {
-            description = `Suspensión por impago`;
+            description = `Suspensión de servicios por falta de pago.`;
         }
     }
 
@@ -93,13 +93,13 @@ export function BillingRulesForm({
                             <div className="relative">
                                 <Input
                                     {...field}
-                                    placeholder="Nombre de la regla"
+                                    placeholder="Nombre de la política"
                                     value={field.value as string}
                                     disabled={operation === "view"}
-                                    maxLength={50}
+                                    maxLength={80}
                                 />
                                 <div className="absolute right-2 top-2 text-xs text-muted-foreground">
-                                    {nameValue.length}/50
+                                    {nameValue.length}/80
                                 </div>
                             </div>
                         </FormControl>
@@ -189,9 +189,6 @@ export function BillingRulesForm({
                 />
             </div>
 
-
-
-
             {(currentType === "late_fee" || currentType === "early_discount") && (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -226,18 +223,23 @@ export function BillingRulesForm({
                             name="lateFeeValue"
                             render={({ field }) => (
                                 <FormItem className="w-full">
-                                    <FormLabel>Valor del {form.watch("type") === "late_fee" ? "Recargo" : "Descuento"}</FormLabel>
+                                    <FormLabel>{form.watch("lateFeeType") === "percentage" ? "Porcentaje" : "Monto"} del {form.watch("type") === "late_fee" ? "Recargo" : "Descuento"}</FormLabel>
                                     <FormControl>
                                         <Input
                                             {...field}
                                             type="number"
-                                            placeholder="0.00"
+                                            placeholder="0"
                                             value={typeof field.value === "number" || typeof field.value === "string" ? field.value : ""}
                                             onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                                             disabled={operation === "view"}
                                         />
                                     </FormControl>
                                     <FormMessage />
+                                    {form.watch("lateFeeType") === "percentage" && (
+                                        <p className="text-xs text-muted-foreground">
+                                            Ingresa el porcentaje de descuento (1-100%)
+                                        </p>
+                                    )}
                                 </FormItem>
                             )}
                         />
@@ -285,8 +287,6 @@ export function BillingRulesForm({
                             )}
                         />
                     </div>
-
-
                 </>
             )}
 
