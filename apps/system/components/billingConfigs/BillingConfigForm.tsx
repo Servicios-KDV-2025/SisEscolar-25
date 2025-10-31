@@ -8,7 +8,7 @@ import { Student } from "@/types/student";
 import { GenericMultiSelect } from "./GenericMultiSelect";
 import { PAYMENT_TYPES, RECURRENCE_TYPES, SCOPE_TYPES, STATUS_TYPES } from "lib/billing/constants";
 import { BILLING_RULE_SCOPES, BILLING_RULE_TYPES, BillingRule } from "@/types/billingRule";
-import { formatCurrency, formatDate } from "lib/utils";
+import { formatCurrency } from "lib/utils";
 import { Info } from "@repo/ui/icons";
 
 interface BillingConfigProps {

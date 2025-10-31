@@ -12,7 +12,6 @@ import { api } from "@repo/convex/convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
 import { useUserWithConvex } from "../../../../stores/userStore";
 import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
-import Pagos from "./pagos";
 import PaymentHistoryComponent from "./payment-history";
 import StripeConfigPage from "./escuela";
 import { Button } from "@repo/ui/components/shadcn/button";
