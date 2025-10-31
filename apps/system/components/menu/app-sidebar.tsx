@@ -143,10 +143,6 @@ const defaultNavData = {
           title: "Asignación de Clases",
           url: `/administracion/asignacion-de-clases`,
         },
-        {
-          title: "Asignación de Horarios",
-          url: `/administracion/asignacion-de-horarios`,
-        },
       ],
     },
     {
