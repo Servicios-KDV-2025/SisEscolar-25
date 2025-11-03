@@ -40,7 +40,7 @@ import {
 import { Textarea } from "@repo/ui/components/shadcn/textarea";
 import { Label } from "@repo/ui/components/shadcn/label";
 import { Input } from "@repo/ui/components/shadcn/input";
-import {es} from 'date-fns/locale';
+import { es } from "date-fns/locale";
 
 interface EventDialogProps {
   event: CalendarEvent | null;
@@ -71,8 +71,11 @@ export function EventDialog({
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date());
-  const [startTime, setStartTime] = useState(`${DefaultStartHour}:00`);
-  const [endTime, setEndTime] = useState(`${DefaultEndHour}:00`);
+  const formattedDefaultStart = String(DefaultStartHour).padStart(2, "0");
+  const formattedDefaultEnd = String(DefaultEndHour).padStart(2, "0");
+
+  const [startTime, setStartTime] = useState(`${formattedDefaultStart}:00`);
+  const [endTime, setEndTime] = useState(`${formattedDefaultEnd}:00`);
   const [allDay, setAllDay] = useState(false);
   const [location, setLocation] = useState("");
   const [eventTypeId, setEventTypeId] = useState<string | undefined>(); // <-- Estado principal
@@ -124,6 +127,9 @@ export function EventDialog({
     const options = [];
     for (let hour = StartHour; hour <= EndHour; hour++) {
       for (let minute = 0; minute < 60; minute += 15) {
+        if (hour === EndHour && minute > 0) {
+          break; // Detiene el bucle de minutos para esta hora
+        }
         const formattedHour = hour.toString().padStart(2, "0");
         const formattedMinute = minute.toString().padStart(2, "0");
         const value = `${formattedHour}:${formattedMinute}`;
@@ -206,7 +212,9 @@ export function EventDialog({
     <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{event?.id ? "Editar Evento" : "Crear Evento"}</DialogTitle>
+          <DialogTitle>
+            {event?.id ? "Editar Evento" : "Crear Evento"}
+          </DialogTitle>
           <DialogDescription className="sr-only">
             {event?.id
               ? "Edit the details of this event"
@@ -231,7 +239,7 @@ export function EventDialog({
               }
             />
             <label className="text-sm text-muted-foreground float-right justify-end">
-            {title.length}/50
+              {title.length}/50
             </label>
           </div>
 
@@ -248,7 +256,7 @@ export function EventDialog({
               rows={3}
             />
             <label className="text-sm text-muted-foreground float-right justify-end">
-            {description.length}/200
+              {description.length}/200
             </label>
           </div>
 
@@ -272,7 +280,9 @@ export function EventDialog({
                         !startDate && "text-muted-foreground"
                       )}
                     >
-                      {startDate ? format(startDate, "PPP", {locale: es} ) : "Pick a date"}
+                      {startDate
+                        ? format(startDate, "PPP", { locale: es })
+                        : "Pick a date"}
                     </span>
                     <RiCalendarLine
                       size={16}
@@ -305,7 +315,11 @@ export function EventDialog({
             {!allDay && (
               <div className="min-w-28 *:not-first:mt-1.5">
                 <Label htmlFor="start-time">Hora Inicio</Label>
-                <Select value={startTime} onValueChange={setStartTime} disabled={!canUpdateCalendar}>
+                <Select
+                  value={startTime}
+                  onValueChange={setStartTime}
+                  disabled={!canUpdateCalendar}
+                >
                   <SelectTrigger id="start-time">
                     <SelectValue placeholder="Select time" />
                   </SelectTrigger>
@@ -341,7 +355,9 @@ export function EventDialog({
                         !endDate && "text-muted-foreground"
                       )}
                     >
-                      {endDate ? format(endDate, "PPP",{locale: es}) : "Pick a date"}
+                      {endDate
+                        ? format(endDate, "PPP", { locale: es })
+                        : "Pick a date"}
                     </span>
                     <RiCalendarLine
                       size={16}
@@ -372,7 +388,11 @@ export function EventDialog({
             {!allDay && (
               <div className="min-w-28 *:not-first:mt-1.5">
                 <Label htmlFor="end-time">Hora Fin</Label>
-                <Select value={endTime} onValueChange={setEndTime} disabled={!canUpdateCalendar}>
+                <Select
+                  value={endTime}
+                  onValueChange={setEndTime}
+                  disabled={!canUpdateCalendar}
+                >
                   <SelectTrigger id="end-time">
                     <SelectValue placeholder="Select time" />
                   </SelectTrigger>
@@ -412,7 +432,7 @@ export function EventDialog({
               }
             />
             <label className="text-sm text-muted-foreground float-right justify-end">
-            {location.length}/100
+              {location.length}/100
             </label>
           </div>
 
@@ -420,7 +440,11 @@ export function EventDialog({
           <div className="space-y-1.5">
             <Label htmlFor="event-type">Tipo de Evento</Label>
             <div className="flex gap-2">
-              <Select value={eventTypeId} onValueChange={setEventTypeId} disabled={!canUpdateCalendar}>
+              <Select
+                value={eventTypeId}
+                onValueChange={setEventTypeId}
+                disabled={!canUpdateCalendar}
+              >
                 <SelectTrigger id="event-type" className="flex-1">
                   <SelectValue placeholder="Selecciona un tipo" />
                 </SelectTrigger>
@@ -440,15 +464,17 @@ export function EventDialog({
               </Select>
 
               {/* --- BOTÓN DE ATAJO --- */}
-              {canCreateCalendar &&  (<Button
-                type="button" // Evita que envíe el formulario
-                variant="outline"
-                size="icon"
-                onClick={onAddNewEventType}
-                aria-label="Crear nuevo tipo de evento"
-              >
-                +
-              </Button>)}
+              {canCreateCalendar && (
+                <Button
+                  type="button" // Evita que envíe el formulario
+                  variant="outline"
+                  size="icon"
+                  onClick={onAddNewEventType}
+                  aria-label="Crear nuevo tipo de evento"
+                >
+                  +
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -471,7 +497,7 @@ export function EventDialog({
                 </Button>
                 <Button onClick={handleSave}>Guardar</Button>
               </>
-            ): (
+            ) : (
               <Button onClick={onClose}>Cerrar</Button>
             )}
           </div>

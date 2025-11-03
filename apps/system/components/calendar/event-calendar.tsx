@@ -150,7 +150,6 @@ export function EventCalendar({
   };
 
   const handleEventSelect = (event: CalendarEvent) => {
-    console.log("Event selected:", event); // Debug log
     setSelectedEvent(event);
     setIsEventDialogOpen(true);
   };
@@ -194,38 +193,38 @@ export function EventCalendar({
     if (event.id) {
       onEventUpdate?.(event);
       // Show toast notification when an event is updated
-      toast(`Event "${event.title}" updated`, {
-        description: format(new Date(event.start), "MMM d, yyyy", { locale: es }),
-        position: "bottom-left",
-      });
+      // toast(`Event "${event.title}" updated`, {
+      //   description: format(new Date(event.start), "MMM d, yyyy", { locale: es }),
+      //   position: "bottom-left",
+      // });
     } else {
       onEventAdd?.({
         ...event,
         id: Math.random().toString(36).substring(2, 11),
       });
       // Show toast notification when an event is added
-      toast(`Event "${event.title}" added`, {
-        description: format(new Date(event.start), "MMM d, yyyy", { locale: es }),
-        position: "bottom-left",
-      });
+      // toast(`Event "${event.title}" added`, {
+      //   description: format(new Date(event.start), "MMM d, yyyy", { locale: es }),
+      //   position: "bottom-left",
+      // });
     }
     setIsEventDialogOpen(false);
     setSelectedEvent(null);
   };
 
   const handleEventDelete = (eventId: string) => {
-    const deletedEvent = events.find((e) => e.id === eventId);
+    // const deletedEvent = events.find((e) => e.id === eventId);
     onEventDelete?.(eventId);
     setIsEventDialogOpen(false);
     setSelectedEvent(null);
 
     // Show toast notification when an event is deleted
-    if (deletedEvent) {
-      toast(`Event "${deletedEvent.title}" deleted`, {
-        description: format(new Date(deletedEvent.start), "MMM d, yyyy"),
-        position: "bottom-left",
-      });
-    }
+    // if (deletedEvent) {
+    //   toast(`Event "${deletedEvent.title}" deleted`, {
+    //     description: format(new Date(deletedEvent.start), "MMM d, yyyy"),
+    //     position: "bottom-left",
+    //   });
+    // }
   };
 
   const handleEventUpdate = (updatedEvent: CalendarEvent) => {
