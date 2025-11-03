@@ -79,7 +79,6 @@ export default function GroupPage() {
 
   const isLoading = !isLoaded || userLoading || schoolLoading || isLoadingGroup;
 
-  console.log(isLoading);
   const {
     isOpen,
     operation,

@@ -14,28 +14,14 @@ import {
   CardTitle,
 } from "@repo/ui/components/shadcn/card";
 import { Button } from "@repo/ui/components/shadcn/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@repo/ui/components/shadcn/alert-dialog";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@repo/ui/components/shadcn/dialog";
 import { Input } from "@repo/ui/components/shadcn/input";
-import { Label } from "@repo/ui/components/shadcn/label";
-import { Textarea } from "@repo/ui/components/shadcn/textarea";
 import {
   Select,
   SelectContent,
@@ -54,17 +40,20 @@ import {
   Filter,
   Search,
   BookText,
-  X
+  X,
+  Plus
 } from "@repo/ui/icons";
 import {
-  validateTaskForm,
-  getValidationErrors,
+  taskFormSchema,
+  TaskFormData,
 } from "../../../../../types/form/taskSchema";
 import { useTask } from "../../../../../stores/taskStore";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
-import { TaskCreateForm } from "../../../../../components/TaskCreateForm";
 import { useUserWithConvex } from "stores/userStore";
 import ListStudents from "components/asignaciones/ListStudents";
+import { CrudDialog, useCrudDialog } from '@repo/ui/components/dialog/crud-dialog';
+import { TaskForm } from 'components/tasks/TaskForm';
+import { UseFormReturn } from 'react-hook-form';
 
 // Componente principal de contenido (solo se ejecuta cuando está autenticado)
 export default function TaskManagement() {
@@ -72,13 +61,6 @@ export default function TaskManagement() {
   const { currentUser } = useUserWithConvex(clerkUser?.id);
   const { currentSchool } = useCurrentSchool(currentUser?._id);
   const {
-    // Estado del store
-    selectedTask,
-    formData,
-    validationErrors,
-    isEditDialogOpen,
-    isUpdating,
-
     // Datos
     allAssignmentsForFilters,
     allClassesForFilters,
@@ -89,11 +71,7 @@ export default function TaskManagement() {
     assignmentsProgress,
 
     // Acciones
-    openEditModal,
-    closeEditModal,
-    setFormData,
-    clearFieldError,
-    setValidationErrors,
+    createTask,
     updateTask,
     deleteTask,
     getTaskProgressFromQuery,
@@ -126,6 +104,25 @@ export default function TaskManagement() {
       : "skip"
   );
 
+  const {
+    isOpen,
+    operation,
+    data,
+    openCreate,
+    openEdit,
+    openDelete,
+    close,
+  } = useCrudDialog(taskFormSchema, {
+    name: '',
+    description: '',
+    dueDate: '',
+    dueTime: '23:59',
+    maxScore: '',
+    classCatalogId: '',
+    termId: '',
+    gradeRubricId: '',
+  })
+
   // Función para abrir el dialog de detalles
   const handleViewDetails = (taskId: string) => {
     setSelectedTaskForDetails(taskId);
@@ -137,94 +134,70 @@ export default function TaskManagement() {
     setListStudentDialogOpen(true)
   }
 
-  const handleUpdateTask = async () => {
+  const handleSubmit = async (values: Record<string, unknown>) => {
+    if (!currentSchool?.school._id || !currentUser?._id) {
+      console.error('Missing required IDs');
+      return;
+    }
+
     try {
-      if (!selectedTask) {
-        alert("No hay asignación seleccionada para actualizar");
+      // Validar que dueDate y dueTime estén presentes
+      if (!values.dueDate || !values.dueTime) {
+        console.error('Fecha u hora faltantes');
         return;
       }
-
-      // Validar datos con Zod
-      const validation = validateTaskForm(formData);
-
-      if (!validation.success) {
-        // Mostrar errores de validación
-        const errors = getValidationErrors(formData);
-        setValidationErrors(errors || {});
-        return;
-      }
-
-      // Limpiar errores si la validación es exitosa
-      setValidationErrors({});
 
       // Combinar fecha y hora para crear el timestamp
-      const dueDateTime = new Date(`${formData.dueDate}T${formData.dueTime}`);
+      const dueDateTime = new Date(`${values.dueDate}T${values.dueTime}`);
+
+      // Validar que la fecha sea válida
+      if (isNaN(dueDateTime.getTime())) {
+        console.error('Fecha u hora inválidas');
+        return;
+      }
+
       const dueTimestamp = dueDateTime.getTime();
 
-      await updateTask({
-        id: selectedTask._id,
-        patch: {
-          classCatalogId: formData.classCatalogId,
-          termId: formData.termId,
-          gradeRubricId: formData.gradeRubricId,
-          name: formData.name,
-          description: formData.description || undefined,
+      if (operation === "create") {
+        await createTask({
+          classCatalogId: values.classCatalogId as Id<"classCatalog">,
+          termId: values.termId as Id<"term">,
+          gradeRubricId: values.gradeRubricId as Id<"gradeRubric">,
+          name: values.name as string,
+          description: values.description as string,
           dueDate: dueTimestamp,
-          maxScore: parseInt(formData.maxScore),
-        },
-      });
+          maxScore: parseInt(values.maxScore as string),
+        });
+      } else if (operation === "edit" && data?._id) {
+        await updateTask({
+          id: data._id as Id<"assignment">,
+          patch: {
+            classCatalogId: values.classCatalogId as Id<"classCatalog">,
+            termId: values.termId as Id<"term">,
+            gradeRubricId: values.gradeRubricId as Id<"gradeRubric">,
+            name: values.name as string,
+            description: values.description as string,
+            dueDate: dueTimestamp,
+            maxScore: parseInt(values.maxScore as string),
+          },
+        });
+      }
 
-      // Limpiar formulario y cerrar diálogo
-      setFormData({
-        name: "",
-        description: "",
-        dueDate: "",
-        dueTime: "23:59",
-        maxScore: "",
-        classCatalogId: "",
-        termId: "",
-        gradeRubricId: "",
-      });
-      setValidationErrors({});
-      closeEditModal();
+      // Cerrar el diálogo después de éxito
+      close();
+
     } catch (error) {
-      console.error("Error al actualizar la asignación:", error);
-      alert("Error al actualizar la asignación");
+      console.error('Error al procesar la tarea:', error);
     }
-  };
+  }
 
-  const handleDeleteTask = async (taskId: string) => {
+  const handleDelete = async (taskId: string) => {
     try {
       await deleteTask(taskId);
     } catch (error) {
       console.error("Error al eliminar la asignación:", error);
       alert("Error al eliminar la asignación");
     }
-  };
-
-  // Componente para contador de caracteres
-  const CharacterCounter = ({
-    current,
-    max,
-  }: {
-    current: number;
-    max: number;
-    fieldName: string;
-  }) => {
-    const remaining = max - current;
-    const isNearLimit = remaining <= 10;
-    const isOverLimit = remaining < 0;
-
-    return (
-      <div
-        className={`text-xs mt-1 ${isOverLimit ? "text-red-600" : isNearLimit ? "text-amber-600" : "text-gray-500"}`}
-      >
-        {current}/{max} caracteres{" "}
-        {remaining >= 0
-          ? `(${remaining} restantes)`
-          : `(${Math.abs(remaining)} de más)`}
-      </div>
-    );
   };
 
   const uniqueRubrics =
@@ -332,246 +305,19 @@ export default function TaskManagement() {
                 </div>
               </div>
             </div>
-            {canCreateTask && <TaskCreateForm />}
+            {canCreateTask &&
+              <Button
+                className="cursor-pointer w-full sm:w-auto"
+                onClick={openCreate}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Agregar Asignación</span>
+                <span className="sm:hidden">Agregar Asignación</span>
+              </Button>
+            }
           </div>
         </div>
       </div>
-
-      {/* Edit Task Dialog - simplificado usando el store */}
-      <Dialog open={isEditDialogOpen} onOpenChange={closeEditModal}>
-        <DialogContent className="w-[95vw] max-w-[500px] sm:w-full sm:max-w-[600px] lg:max-w-[700px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Editar Asignación</DialogTitle>
-            <DialogDescription>
-              Modifica los datos de la asignación
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-4 py-4">
-            {/* Selección de Clase */}
-            <div className="grid gap-2">
-              <Label htmlFor="editClassCatalogId">Clase *</Label>
-              <Select
-                value={formData.classCatalogId}
-                onValueChange={(value) => {
-                  setFormData({ classCatalogId: value });
-                  clearFieldError("classCatalogId");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona una clase" />
-                </SelectTrigger>
-                <SelectContent>
-                  {teacherClasses?.map((clase) => (
-                    <SelectItem key={clase._id} value={clase._id}>
-                      {clase.name} - {clase.subject} ({clase.group})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {validationErrors.classCatalogId && (
-                <p className="text-sm text-red-600">
-                  {validationErrors.classCatalogId[0]}
-                </p>
-              )}
-            </div>
-
-            {/* Selección de Término */}
-            <div className="grid gap-2">
-              <Label htmlFor="editTermId">Periodo *</Label>
-              <Select
-                value={formData.termId}
-                onValueChange={(value) => {
-                  setFormData({ termId: value });
-                  clearFieldError("termId");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un periodo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {allTerms?.map((term) => (
-                    <SelectItem key={term._id} value={term._id}>
-                      {term.name} ({term.key})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {validationErrors.termId && (
-                <p className="text-sm text-red-600">
-                  {validationErrors.termId[0]}
-                </p>
-              )}
-            </div>
-
-            {/* Selección de Rúbrica de Calificación */}
-            <div className="grid gap-2">
-              <Label htmlFor="editGradeRubricId">
-                Rúbrica de Calificación *
-              </Label>
-              <Select
-                value={formData.gradeRubricId}
-                onValueChange={(value) => {
-                  setFormData({ gradeRubricId: value });
-                  clearFieldError("gradeRubricId");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona una rúbrica" />
-                </SelectTrigger>
-                <SelectContent>
-                  {gradeRubrics?.map((rubric) => (
-                    <SelectItem key={rubric._id} value={rubric._id}>
-                      {rubric.name} (Max: {rubric.maxScore} pts)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {validationErrors.gradeRubricId && (
-                <p className="text-sm text-red-600">
-                  {validationErrors.gradeRubricId[0]}
-                </p>
-              )}
-              {gradeRubrics && gradeRubrics.length === 0 && (
-                <p className="text-sm text-amber-600">
-                  No hay rúbricas de calificación para esta clase y término.
-                  Primero debes crear una rúbrica en la sección de
-                  Calificaciones.
-                </p>
-              )}
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="editTaskTitle">Título de la Asignación *</Label>
-              <Input
-                id="editTaskTitle"
-                placeholder="Ej: Ejercicios de Álgebra"
-                value={formData.name}
-                onChange={(e) => {
-                  setFormData({ name: e.target.value });
-                  clearFieldError("name");
-                }}
-              />
-              <CharacterCounter
-                current={formData.name.length}
-                max={100}
-                fieldName="name"
-              />
-              {validationErrors.name && (
-                <p className="text-sm text-red-600">
-                  {validationErrors.name[0]}
-                </p>
-              )}
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="editTaskDescription">Descripción</Label>
-              <Textarea
-                id="editTaskDescription"
-                placeholder="Describe las instrucciones de la asignación..."
-                rows={3}
-                value={formData.description}
-                onChange={(e) => {
-                  setFormData({ description: e.target.value });
-                  clearFieldError("description");
-                }}
-              />
-              <CharacterCounter
-                current={formData.description.length}
-                max={500}
-                fieldName="description"
-              />
-              {validationErrors.description && (
-                <p className="text-sm text-red-600">
-                  {validationErrors.description[0]}
-                </p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="editDueDate">Fecha de Entrega *</Label>
-                <Input
-                  id="editDueDate"
-                  type="date"
-                  value={formData.dueDate}
-                  onChange={(e) => {
-                    setFormData({ dueDate: e.target.value });
-                    clearFieldError("dueDate");
-                  }}
-                  className="w-full"
-                />
-                {validationErrors.dueDate && (
-                  <p className="text-sm text-red-600">
-                    {validationErrors.dueDate[0]}
-                  </p>
-                )}
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="editDueTime">Hora Límite *</Label>
-                <Input
-                  id="editDueTime"
-                  type="time"
-                  value={formData.dueTime}
-                  onChange={(e) => {
-                    setFormData({ dueTime: e.target.value });
-                    clearFieldError("dueTime");
-                  }}
-                  className="w-full"
-                />
-                {validationErrors.dueTime && (
-                  <p className="text-sm text-red-600">
-                    {validationErrors.dueTime[0]}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="editMaxScore">Puntuación Máxima *</Label>
-              <Input
-                id="editMaxScore"
-                type="number"
-                placeholder="100"
-                value={formData.maxScore}
-                onChange={(e) => {
-                  setFormData({ maxScore: e.target.value });
-                  clearFieldError("maxScore");
-                }}
-              />
-              {validationErrors.maxScore && (
-                <p className="text-sm text-red-600">
-                  {validationErrors.maxScore[0]}
-                </p>
-              )}
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setValidationErrors({});
-                closeEditModal();
-              }}
-              className="cursor-pointer w-full sm:w-auto order-2 sm:order-1"
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleUpdateTask}
-              disabled={
-                isUpdating ||
-                !formData.classCatalogId ||
-                !formData.termId ||
-                !formData.gradeRubricId
-              }
-              className="cursor-pointer w-full sm:w-auto order-1 sm:order-2"
-            >
-              {isUpdating ? "Actualizando..." : "Actualizar asignación"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <Card>
         <CardHeader>
@@ -709,7 +455,7 @@ export default function TaskManagement() {
                     className="border rounded-lg p-4 hover:shadow-md transition-shadow"
                   >
                     <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3 mb-3">
-                      <div 
+                      <div
                         className="flex-1 cursor-pointer"
                         onClick={() => handleListStudent(task._id)}
                       >
@@ -749,7 +495,7 @@ export default function TaskManagement() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => openEditModal(task)}
+                            onClick={() => openEdit(task)}
                             className="cursor-pointer"
                           >
                             <Edit className="w-4 h-4 mr-1" />
@@ -758,39 +504,15 @@ export default function TaskManagement() {
                         )}
 
                         {canDeleteTask && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-red-600 hover:text-red-700 cursor-pointer"
-                              >
-                                <Trash2 className="w-4 h-4 mr-1" />
-                                Eliminar
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Esta acción no se puede deshacer. Esto eliminará
-                                  permanentemente la asignación y afectara los datos
-                                  relacionados a ella.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel className="cursor-pointer">
-                                  Cancelar
-                                </AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDeleteTask(task._id)}
-                                  className=" bg-white text-red-600 border-2 border-red-600 hover:bg-red-600 hover:text-white cursor-pointer"
-                                >
-                                  Eliminar
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 cursor-pointer"
+                            onClick={() => openDelete(task)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Eliminar
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -861,7 +583,16 @@ export default function TaskManagement() {
                       )
                       }
                     </div>
-                    {canCreateTask && <TaskCreateForm />}
+                    {canCreateTask &&
+                      <Button
+                        className="cursor-pointer w-full sm:w-auto"
+                        onClick={openCreate}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        <span className="hidden sm:inline">Agregar Asignación</span>
+                        <span className="sm:hidden">Agregar Asignación</span>
+                      </Button>
+                    }
                   </div>
                 </div>
               )}
@@ -1022,6 +753,66 @@ export default function TaskManagement() {
           )}
         </DialogContent>
       </Dialog>
+
+      <CrudDialog
+        operation={operation}
+        title={
+          operation === "create"
+            ? "Crear Nueva Asignación"
+            : operation === "edit"
+              ? "Editar Asignación"
+              : "Ver Asignación"
+        }
+        description={
+          operation === "create"
+            ? "Define una nueva Asignación para tus estudiantes"
+            : operation === "edit"
+              ? "Modifica los datos de la asignación"
+              : "Información de la asignación"
+        }
+        schema={taskFormSchema}
+        defaultValues={{
+          name: '',
+          description: '',
+          dueDate: '',
+          dueTime: '23:59',
+          maxScore: '',
+          classCatalogId: '',
+          termId: '',
+          gradeRubricId: '',
+        }}
+        data={
+          operation === "edit" && data
+            ? {
+              ...data,
+              // Transformar el timestamp de dueDate a string en formato YYYY-MM-DD
+              dueDate: data.dueDate
+                ? new Date(data.dueDate as number).toISOString().split('T')[0]
+                : '',
+              // Extraer la hora del timestamp
+              dueTime: data.dueDate
+                ? new Date(data.dueDate as number).toTimeString().slice(0, 5)
+                : '23:59',
+              // Convertir maxScore de número a string
+              maxScore: data.maxScore ? data.maxScore.toString() : '',
+            }
+            : data
+        }
+        isOpen={isOpen}
+        onOpenChange={close}
+        onSubmit={handleSubmit}
+        onDelete={handleDelete}
+      >
+        {(form, operation) => (
+          <TaskForm
+            form={form as unknown as UseFormReturn<TaskFormData>}
+            operation={operation}
+            teacherClasses={teacherClasses}
+            allTerms={allTerms}
+            gradeRubrics={gradeRubrics} // Esto ahora funcionará porque el store se actualiza
+          />
+        )}
+      </CrudDialog>
 
       <ListStudents
         open={listStudentDialogOpen}

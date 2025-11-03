@@ -5,20 +5,29 @@ import { mutation, query } from "../_generated/server";
 export const createCalendarEvent = mutation({
   args: {
     schoolCycleId: v.id("schoolCycle"),
-    date: v.number(),
+    startDate: v.number(),
+    endDate: v.number(),
     eventTypeId: v.id("eventType"),
     description: v.optional(v.string()),
     schoolId: v.id("school"),
+    title: v.string(),
+    allDay: v.boolean(),
+    location: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("calendar", {
-      schoolCycleId: args.schoolCycleId,
-      schoolId: args.schoolId,
-      date: args.date,
+      title: args.title,
+      allDay: args.allDay,
+      location: args.location,
+      startDate: args.startDate,
+      endDate: args.endDate,
       eventTypeId: args.eventTypeId,
       description: args.description,
+      schoolId: args.schoolId,
+      schoolCycleId: args.schoolCycleId,
       status: "active",
       createdAt: Date.now(),
+      
     });
   },
 });
@@ -64,11 +73,11 @@ export const getUpcomingEvents = query({
       .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
       .filter((q) => q.eq(q.field("schoolCycleId"), args.schoolCycleId))
       .filter((q) => q.eq(q.field("status"), "active"))
-      .filter((q) => q.gte(q.field("date"), startOfToday))
+      .filter((q) => q.gte(q.field("startDate"), startOfToday))
       .collect();
 
     // Ordenar por fecha ascendente
-    const sortedEvents = events.sort((a, b) => a.date - b.date);
+    const sortedEvents = events.sort((a, b) => a.startDate - b.startDate);
 
     // Limitar cantidad si se especifica
     const limitedEvents = args.limit ? sortedEvents.slice(0, args.limit) : sortedEvents;
@@ -114,7 +123,8 @@ export const updateCalendarEvent = mutation({
   args: {
     eventId: v.id("calendar"),
     schoolId: v.id("school"),
-    date: v.number(),
+    startDate: v.number(),
+    endDate: v.number(),
     eventTypeId: v.id("eventType"),
     description: v.optional(v.string()),
     schoolCycleId: v.id("schoolCycle"),
@@ -122,12 +132,19 @@ export const updateCalendarEvent = mutation({
         v.literal('active'),
         v.literal('inactive')
     )),
+    title: v.string(),
+    allDay: v.boolean(),
+    location: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const event = await ctx.db.get(args.eventId);
     if (!event || event.schoolId !== args.schoolId) throw new Error("Not authorized or not found");
     return await ctx.db.patch(args.eventId, {
-      date: args.date,
+      title: args.title,
+      allDay: args.allDay,
+      location: args.location, 
+      startDate: args.startDate,
+      endDate: args.endDate,
       eventTypeId: args.eventTypeId,
       description: args.description,
       schoolCycleId: args.schoolCycleId,
