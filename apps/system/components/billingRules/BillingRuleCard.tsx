@@ -53,7 +53,7 @@ export function BillingRuleCard({ billingRule, openEdit, openView, openDelete, i
     return (
         <Card className="w-full hover:shadow-lg transition-shadow duration-200 flex flex-col h-full">
             <CardHeader>
-                <CardTitle className="text-lg font-semibold leading-tight line-clamp-2 break-words flex flex-row justify-between">
+                <CardTitle className="text-lg font-semibold leading-tight line-clamp-2 break-words flex flex-col sm:flex-row gap-3 items-center text-center sm:text-start justify-between">
                     <span>{billingRule.name}</span>
                     <div>
                         <Badge

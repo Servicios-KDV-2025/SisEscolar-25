@@ -1,6 +1,8 @@
 // convex/student.ts
 import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
+import { internal } from "../_generated/api";
+import { Id } from "../_generated/dataModel";
 
 // Función para generar la siguiente matrícula disponible
 export const generateNextEnrollment = query({
@@ -10,7 +12,7 @@ export const generateNextEnrollment = query({
   handler: async (ctx, args) => {
     const currentYear = new Date().getFullYear();
     const yearSuffix = currentYear.toString().slice(-2); // Obtener los últimos 2 dígitos del año
-    
+
     // Obtener todas las matrículas de la escuela que empiecen con el año actual
     const students = await ctx.db
       .query("student")
@@ -37,7 +39,7 @@ export const generateNextEnrollment = query({
 
     // Formatear el número con ceros a la izquierda (8 dígitos)
     const formattedNumber = nextNumber.toString().padStart(8, '0');
-    
+
     return `${yearSuffix}${formattedNumber}`;
   },
 });
@@ -56,6 +58,8 @@ export const createStudent = mutation({
     admissionDate: v.optional(v.number()),
     imgUrl: v.optional(v.string()),
     status: v.optional(v.union(v.literal("active"), v.literal("inactive"))),
+    scholarshipType: v.optional(v.union(v.literal("active"), v.literal("inactive"))),
+    scholarshipPercentage: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     // Validar matrícula única por escuela
@@ -77,6 +81,7 @@ export const createStudent = mutation({
     const studentId = await ctx.db.insert("student", {
       ...args,
       status: args.status || "active",
+      scholarshipType: args.scholarshipType || "inactive",
       createdAt: now,
       updatedAt: now,
     });
@@ -94,6 +99,7 @@ export const createStudent = mutation({
           .collect();
 
         let totalDebt = 0;
+        const billingConfig = []
 
         // Crear pagos para cada configuración que aplique al estudiante
         for (const config of paymentConfigs) {
@@ -114,10 +120,11 @@ export const createStudent = mutation({
           }
 
           if (shouldCreatePayment) {
+            billingConfig.push(config)
             // Verificar si ya existe un pago para este estudiante y configuración
             const existingPayment = await ctx.db
               .query("billing")
-              .withIndex("by_student_and_config", (q) => 
+              .withIndex("by_student_and_config", (q) =>
                 q.eq("studentId", studentId).eq("billingConfigId", config._id)
               )
               .first();
@@ -142,13 +149,13 @@ export const createStudent = mutation({
             }
           }
         }
+await ctx.runMutation(internal.functions.billingRule.applyBillingPolicies, {billingConfigIds: billingConfig, studentId: studentId });
 
-        
       } catch (error) {
         console.error("Error creando pagos para el estudiante:", error);
       }
     }
-
+    
     return {
       studentId,
       student: {
@@ -236,6 +243,8 @@ export const updateStudent = mutation({
       imgUrl: v.optional(v.string()),
       status: v.optional(v.union(v.literal("active"), v.literal("inactive"))),
       schoolCycleId: v.optional(v.id("schoolCycle")),
+      scholarshipType: v.optional(v.union(v.literal("active"), v.literal("inactive"))),
+      scholarshipPercentage: v.optional(v.number()),
     }),
   },
   handler: async (ctx, args) => {
@@ -269,7 +278,7 @@ export const updateStudent = mutation({
       ...patch,
       updatedAt: Date.now(), // Registra la fecha de actualización
     });
-
+    await ctx.runMutation(internal.functions.billingRule.applyBillingPolicies, { studentId: studentId });
     return studentId;
   },
 });
@@ -439,7 +448,7 @@ export const deleteStudent = mutation({
 
 // Obtener estudiantes con informacion de clases
 export const getStudentWithClasses = query({
-  args: { 
+  args: {
     classCatalogId: v.id('classCatalog'),
     canViewAll: v.boolean(),
     tutorId: v.optional(v.id("user")),
@@ -460,14 +469,14 @@ export const getStudentWithClasses = query({
           .collect();
 
         const tutorStudentIds = tutorStudents.map(s => s._id);
-        
+
         // Filtrar studentClass SOLO por los estudiantes del tutor
         const studentClasses = await ctx.db
           .query('studentClass')
           .withIndex('by_class_catalog', (q) => q.eq('classCatalogId', args.classCatalogId))
           .filter((q) => q.and(
             q.eq(q.field("status"), "active"),
-            q.or(...tutorStudentIds.map(studentId => 
+            q.or(...tutorStudentIds.map(studentId =>
               q.eq(q.field("studentId"), studentId)
             ))
           ))

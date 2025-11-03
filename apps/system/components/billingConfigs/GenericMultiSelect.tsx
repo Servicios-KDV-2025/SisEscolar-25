@@ -90,7 +90,7 @@ export function GenericMultiSelect<T>({
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+        <PopoverContent className=" w-[var(--radix-popover-trigger-width)] p-0 max-h-800 border-gray-200" align="start">
           <Command shouldFilter={false}>
             {searchable && (
               <CommandInput
@@ -99,7 +99,7 @@ export function GenericMultiSelect<T>({
                 onValueChange={setSearchTerm}
               />
             )}
-            <CommandList>
+            <CommandList className="max-h-[240px] overflow-y-auto inline-flex">
               <CommandEmpty>{emptyMessage}</CommandEmpty>
               <CommandGroup>
                 {filteredItems.map((item) => {
@@ -124,33 +124,37 @@ export function GenericMultiSelect<T>({
             </CommandList>
           </Command>
         </PopoverContent>
-      </Popover>
-
-      {selectedItems.length > 0 && (
-        <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-          {selectedItems.map((item) => {
-            const key = getKey(item);
-            return (
-              <Badge
-                key={key}
-                variant="secondary"
-                className="pl-2 pr-1 py-1 gap-1"
-              >
-                <span className="truncate max-w-[200px]">{getLabel(item)}</span>
-                {!disabled && (
-                  <button
-                    type="button"
-                    onClick={() => removeItem(key)}
-                    className="ml-1 rounded-full hover:bg-secondary-foreground/20"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
-              </Badge>
-            );
-          })}
+        {selectedItems.length > 0 && (
+        <div className="relative max-h-32 overflow-y-auto rounded-md p-1 bg-background">
+          <div className="flex flex-wrap gap-2">
+            {selectedItems.map((item) => {
+              const key = getKey(item);
+              return (
+                <Badge
+                  key={key}
+                  variant="secondary"
+                  className="pl-2 pr-1 py-1 gap-1 flex items-start"
+                >
+                  <div className="max-w-[214px]">{getLabel(item)}</div>
+                  {!disabled && (
+                    <button
+                      type="button"
+                      aria-label="Quitar selección"
+                      onClick={() => removeItem(key)}
+                      className="ml-1 rounded-full hover:bg-secondary-foreground/20"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </Badge>
+              );
+            })}
+          </div>
         </div>
       )}
+      </Popover>
+
+      
     </div>
   );
 }

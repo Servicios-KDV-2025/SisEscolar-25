@@ -4,6 +4,8 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Textarea } from "@repo/ui/components/shadcn/textarea";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@repo/ui/components/shadcn/tooltip";
+import { Info } from "lucide-react";
 
 interface BillingRuleValues {
     type?: "late_fee" | "early_discount" | "cutoff";
@@ -23,22 +25,22 @@ const generateDescription = (values: BillingRuleValues) => {
     if (type === "late_fee") {
         if (lateFeeType && lateFeeValue !== undefined && startDay !== undefined && endDay !== undefined) {
             const valueText = lateFeeType === "percentage" ? `${lateFeeValue}%` : `$${lateFeeValue}`;
-            description = `Recargo por pago tardío desde el día ${startDay} después del vencimiento hasta el día ${endDay}, aplicando un ${lateFeeType === "percentage" ? "porcentaje" : "monto fijo"} de ${valueText}. Ejemplo: Si un estudiante no paga a tiempo, se le aplicará un recargo de ${valueText} por cada día de retraso entre el día ${startDay} y el día ${endDay}, o hasta que realice el pago.`;
+            description = `Se aplicará un recargo por pago tardío desde el día ${startDay} hasta el día ${endDay} después del vencimiento, con un ${lateFeeType === "percentage" ? "porcentaje" : "monto fijo"} de ${valueText}. Ejemplo: si un estudiante no realiza el pago a tiempo, se le cobrará un recargo de ${valueText} por cada día de retraso dentro de este periodo.`;
         } else {
             description = `Recargo por pago tardío`;
         }
     } else if (type === "early_discount") {
         if (lateFeeType && lateFeeValue !== undefined && startDay !== undefined && endDay !== undefined) {
             const valueText = lateFeeType === "percentage" ? `${lateFeeValue}%` : `$${lateFeeValue} pesos`;
-            description = `Descuento por pago anticipado desde el día ${startDay} hasta el día ${endDay}, con un ${lateFeeType === "percentage" ? "porcentaje" : "monto fijo"} de ${valueText}. Ejemplo: Si un estudiante paga temprano, recibe un descuento de ${valueText} entre los días ${startDay} y ${endDay}.`;
+            description = `Se aplicará un descuento por pago anticipado desde el días ${startDay} hasta el día ${endDay}, con un ${lateFeeType === "percentage" ? "porcentaje" : "monto fijo"} de ${valueText}. Ejemplo: si un estudiante paga dentro de este periodo, recibirá un descuento de ${valueText}.`;
         } else {
-            description = `Descuento por pronto pago`;
+            description = `Descuento disponible por pronto pago.`;
         }
     } else if (type === "cutoff") {
         if (cutoffAfterDays !== undefined) {
-            description = `Corte de servicios o acceso después de ${cutoffAfterDays} días de mora. Ejemplo: Si un estudiante tiene pagos pendientes por más de ${cutoffAfterDays} días, se le cortará el acceso a servicios escolares.`;
+            description = `Suspensión de servicios o acceso después de ${cutoffAfterDays} días de mora. Ejemplo: si un estudiante mantiene un adeudo por más de ${cutoffAfterDays} días, se restringirá su acceso a los servicios escolares.`;
         } else {
-            description = `Suspensión por impago`;
+            description = `Suspensión de servicios por falta de pago.`;
         }
     }
 
@@ -82,8 +84,9 @@ export function BillingRulesForm({
     }, [form, operation]);
 
     return (
-        <div className="space-y-4">
-            <FormField
+        <TooltipProvider>
+            <div className="space-y-4">
+                <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
@@ -93,13 +96,13 @@ export function BillingRulesForm({
                             <div className="relative">
                                 <Input
                                     {...field}
-                                    placeholder="Nombre de la regla"
+                                    placeholder="Nombre de la política"
                                     value={field.value as string}
                                     disabled={operation === "view"}
-                                    maxLength={50}
+                                    maxLength={80}
                                 />
                                 <div className="absolute right-2 top-2 text-xs text-muted-foreground">
-                                    {nameValue.length}/50
+                                    {nameValue.length}/80
                                 </div>
                             </div>
                         </FormControl>
@@ -189,9 +192,6 @@ export function BillingRulesForm({
                 />
             </div>
 
-
-
-
             {(currentType === "late_fee" || currentType === "early_discount") && (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -226,18 +226,29 @@ export function BillingRulesForm({
                             name="lateFeeValue"
                             render={({ field }) => (
                                 <FormItem className="w-full">
-                                    <FormLabel>Valor del {form.watch("type") === "late_fee" ? "Recargo" : "Descuento"}</FormLabel>
+                                    <FormLabel>{form.watch("lateFeeType") === "percentage" ? "Porcentaje" : "Monto"} del {form.watch("type") === "late_fee" ? "Recargo" : "Descuento"}</FormLabel>
                                     <FormControl>
-                                        <Input
-                                            {...field}
-                                            type="number"
-                                            placeholder="0.00"
-                                            value={typeof field.value === "number" || typeof field.value === "string" ? field.value : ""}
-                                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                                            disabled={operation === "view"}
-                                        />
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-sm">
+                                                {form.watch("lateFeeType") === "percentage" ? "%" : form.watch("lateFeeType") === "fixed" ? "$" : ""}
+                                            </span>
+                                            <Input
+                                                {...field}
+                                                type="number"
+                                                placeholder="0"
+                                                value={typeof field.value === "number" || typeof field.value === "string" ? field.value : ""}
+                                                onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                                                disabled={operation === "view"}
+                                                className="pl-7 "
+                                            />
+                                        </div>
                                     </FormControl>
                                     <FormMessage />
+                                    {form.watch("lateFeeType") === "percentage" && (
+                                        <p className="text-xs text-muted-foreground">
+                                            Ingresa el porcentaje de descuento (1-100%)
+                                        </p>
+                                    )}
                                 </FormItem>
                             )}
                         />
@@ -248,7 +259,27 @@ export function BillingRulesForm({
                             name="startDay"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Día de Inicio</FormLabel>
+                                    <div className="flex items-center gap-1.5">
+                                        <FormLabel>Día de Inicio</FormLabel>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Info className="h-3.5 w-3.5 hover:text-black text-blue-600 transition-colors cursor-help" />
+                                            </TooltipTrigger>
+                                            <TooltipContent className="max-w-xs bg-white border shadow-md rounded-md">
+                                                <div className="space-y-2 p-1">
+                                                    <p className="font-medium text-sm text-gray-900">
+                                                        {currentType === "late_fee" ? "Recargo por pago tardío" : "Descuento anticipado"}
+                                                    </p>
+                                                    <p className="text-xs text-gray-600 leading-relaxed">
+                                                        {currentType === "late_fee"
+                                                            ? "Especifica desde qué día después del vencimiento se aplicará el recargo. Ejemplo: con 5 días, el recargo comenzará a aplicarse el día 5 posterior al vencimiento."
+                                                            : "Especifica desde qué día se podrá aplicar el descuento. Ejemplo: si se coloca “1”, el descuento estará disponible desde el primer día del cobro."
+                                                        }
+                                                    </p>
+                                                </div>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
                                     <FormControl>
                                         <Input
                                             {...field}
@@ -269,7 +300,27 @@ export function BillingRulesForm({
                             name="endDay"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Día de Fin</FormLabel>
+                                    <div className="flex items-center gap-1.5">
+                                        <FormLabel>Día de Fin</FormLabel>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Info className="h-3.5 w-3.5 hover:text-black text-blue-600 transition-colors cursor-help" />
+                                            </TooltipTrigger>
+                                            <TooltipContent className="max-w-xs bg-white border text-white shadow-md rounded-md">
+                                                <div className="space-y-2 p-1">
+                                                    <p className="font-medium text-sm text-gray-900">
+                                                        {currentType === "late_fee" ? "Recargo por pago tardío" : "Descuento anticipado"}
+                                                    </p>
+                                                    <p className="text-xs text-gray-600 leading-relaxed">
+                                                        {currentType === "late_fee"
+                                                            ? "Especifica hasta qué día después del vencimiento se aplicará el recargo. Ejemplo: con 10 días, el recargo dejará de aplicarse después de 10 días después de aplicar la política."
+                                                            : "Especifica hasta qué día se podrá aplicar el descuento. Ejemplo: si se coloca “10”, el descuento estará disponible 10 días después de aplicar la política."
+                                                        }
+                                                    </p>
+                                                </div>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
                                     <FormControl>
                                         <Input
                                             {...field}
@@ -285,8 +336,6 @@ export function BillingRulesForm({
                             )}
                         />
                     </div>
-
-
                 </>
             )}
 
@@ -312,6 +361,7 @@ export function BillingRulesForm({
                     )}
                 />
             )}
-        </div>
+            </div>
+        </TooltipProvider>
     );
 }

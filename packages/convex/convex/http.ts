@@ -105,7 +105,6 @@ async function validateRequest(req: Request): Promise<WebhookEvent | null> {
 
 // Stripe 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  // apiVersion: "2025-07-30.basil",
   apiVersion: "2025-09-30.clover",
 });
  
@@ -427,13 +426,13 @@ async function handlePaymentIntentSucceeded(ctx: ActionCtx, paymentIntent: Strip
 
   const metadata = paymentIntent.metadata;
   
-  if (!metadata.billingId || !metadata.studentId || !metadata.tutorId) {
+  if (!metadata?.billingId || !metadata?.studentId || !metadata?.tutorId) {
     console.error("❌ Metadata incompleta en Payment Intent");
     console.error("   billingId:", metadata?.billingId);
     console.error("   studentId:", metadata?.studentId);
     console.error("   tutorId:", metadata?.tutorId);
     console.error("   schoolId:", metadata?.schoolId);
-    
+
     // Lanzar error en lugar de return
     throw new Error(`Metadata incompleta en Payment Intent: billingId=${metadata?.billingId}, studentId=${metadata?.studentId}, tutorId=${metadata?.tutorId}`);
   }

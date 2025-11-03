@@ -154,7 +154,6 @@ export const useBillingRule = (schoolId?: string) => {
         }
     }, [createBillingRuleMutation, setCreating, setCreateError]);
 
-    // UPDATE
     const updateBillingRule = useCallback(async (data: UpdateBillingRuleData) => {
         setUpdating(true);
         setUpdateError(null);
@@ -200,7 +199,6 @@ export const useBillingRule = (schoolId?: string) => {
         }
     }, [updateBillingRuleMutation, setUpdating, setUpdateError]);
 
-    // DELETE
     const deleteBillingRule = useCallback(async (id: string) => {
         setDeleting(true);
         setDeleteError(null);
@@ -219,7 +217,6 @@ export const useBillingRule = (schoolId?: string) => {
         }
     }, [deleteBillingRuleMutation, setDeleting, setDeleteError, schoolId]);
 
-    // Refrescar reglas de facturación cuando cambie la query
     useEffect(() => {
         if (billingRulesQuery) {
             setBillingRule(

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo
 import { Badge } from "@repo/ui/components/shadcn/badge"
 import { useAction } from "convex/react"
 import { api } from "@repo/convex/convex/_generated/api"
-import { toast } from "sonner"
+import { toast } from "@repo/ui/sonner"
 import { CheckCircle, AlertCircle, Loader2, ExternalLink } from "lucide-react"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
 
