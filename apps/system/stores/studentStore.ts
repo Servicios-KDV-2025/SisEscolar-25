@@ -35,6 +35,8 @@ export interface Student {
   admissionDate?: number;
   imgUrl?: string;
   status: 'active' | 'inactive';
+  scholarshipType: 'active' | 'inactive';
+  scholarshipPercentage?: number;
   createdAt: number;
   updatedAt: number;
 }
@@ -52,6 +54,8 @@ export interface CreateStudentData {
   admissionDate?: number;
   imgUrl?: string;
   status?: 'active' | 'inactive';
+  scholarshipType?: 'active' | 'inactive';
+  scholarshipPercentage?: number;
 }
 
 // Tipos para actualizar estudiante
@@ -66,6 +70,8 @@ export interface UpdateStudentData {
   admissionDate?: number;
   imgUrl?: string;
   status?: 'active' | 'inactive';
+  scholarshipType?: 'active' | 'inactive';
+  scholarshipPercentage?: number;
 }
 
 // Filtros para búsqueda de estudiantes
@@ -374,6 +380,8 @@ export const useStudentWithConvex = (
           admissionDate: data.admissionDate,
           imgUrl: data.imgUrl,
           status: data.status || 'active',
+          scholarshipType: data.scholarshipType || 'inactive',
+          scholarshipPercentage: data.scholarshipPercentage,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };

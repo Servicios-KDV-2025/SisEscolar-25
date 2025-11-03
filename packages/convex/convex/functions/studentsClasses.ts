@@ -434,8 +434,8 @@ export const getEnrollmentStatistics = query({
 });
 
 /**
- * Actualiza únicamente el promedio de un estudiante en una clase específica.
- */
+* Actualiza únicamente el promedio de un estudiante en una clase específica.
+*/
 export const updateStudentClassAverage = mutation({
     args: {
         studentClassId: v.id("studentClass"),

@@ -39,9 +39,9 @@ export const billingConfigSchema = z
       ],
     ),
     amount: z
-      .number()
-      .positive("El monto debe ser mayor a 0")
-      .max(1000000, "El monto no puede exceder $1,000,000"),
+      .union([z.number(), z.undefined()])
+      .refine((val) => val !== undefined && val !== null, "El monto es requerido")
+      .pipe(z.number().min(1, "El monto debe ser mayor a 0").max(1000000, "El monto no puede exceder $1,000,000")),
     ruleIds: z.array(z.string()).optional(),
     status: z.enum(["required", "optional", "inactive"]),
     startDate: z

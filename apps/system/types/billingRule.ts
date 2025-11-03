@@ -85,3 +85,8 @@ export const LATE_FEE_TYPES = {
   percentage: "Porcentaje",
   fixed: "Fijo"
 } as const;
+
+export const SCHOOLAR_TYPES = {
+  inactive: "Estandar",
+  active: "Becado"
+} as const;
