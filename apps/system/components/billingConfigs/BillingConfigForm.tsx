@@ -10,6 +10,7 @@ import { PAYMENT_TYPES, RECURRENCE_TYPES, SCOPE_TYPES, STATUS_TYPES } from "lib/
 import { BILLING_RULE_SCOPES, BILLING_RULE_TYPES, BillingRule } from "@/types/billingRule";
 import { formatCurrency } from "lib/utils";
 import { Info } from "@repo/ui/icons";
+import { useMemo } from "react";
 
 interface BillingConfigProps {
     form: UseFormReturn<Record<string, unknown>>;
@@ -29,8 +30,13 @@ export function BillingConfigForm({
     billingRules
 }: BillingConfigProps) {
     const currentScope = form.watch("scope");
+    const selectedSchoolCycleId = form.watch("schoolCycleId");
     const uniqueGrades = [...new Set(groups?.map(g => g.grade) ?? [])].map(grade => ({ grade }));
-    const formattedStudents = (students ?? []).map(s => ({
+    const filteredStudents = useMemo(() => {
+        if (!selectedSchoolCycleId || !students) return [];
+        return students.filter(s => s.schoolCycleId === selectedSchoolCycleId);
+    }, [selectedSchoolCycleId, students]);
+    const formattedStudents = filteredStudents.map(s => ({
         _id: s._id,
         firstName: s.name ?? "",
         lastName: s.lastName ?? "",
@@ -172,6 +178,7 @@ export function BillingConfigForm({
                                 <Input
                                     type="date"
                                     disabled={operation === 'view'}
+                                    min={new Date().toISOString().split("T")[0]}
                                     value={
                                         field.value
                                             ? (typeof field.value === 'number'
@@ -197,6 +204,7 @@ export function BillingConfigForm({
                                 <Input
                                     type="date"
                                     disabled={operation === 'view'}
+                                    min={new Date().toISOString().split("T")[0]}
                                     value={
                                         field.value
                                             ? (typeof field.value === 'number'

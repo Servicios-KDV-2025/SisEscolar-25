@@ -9,7 +9,7 @@ import { formatCurrency, formatDate, formatFecha } from "lib/utils"
 import { PAYMENT_TYPES } from "lib/billing/constants"
 import { Button } from "@repo/ui/components/shadcn/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/shadcn/popover"
-import { BILLING_RULE_SCOPES, BILLING_RULE_TYPES, BillingRule, SCHOOLAR_TYPES } from "@/types/billingRule"
+import { BILLING_RULE_SCOPES, BillingRule, SCHOOLAR_TYPES } from "@/types/billingRule"
 import { Badge } from "@repo/ui/components/shadcn/badge"
 
 
@@ -337,8 +337,8 @@ export function BillingAccordion({
                                                                                                 <div className="flex items-start gap-3">
                                                                                                     <div className="flex-1 min-w-0">
                                                                                                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-2 mb-2">
-                                                                                                            <h5 className="font-semibold text-sm text-gray-900 leading-tight truncate">
-                                                                                                                {BILLING_RULE_TYPES[rule.type]}
+                                                                                                            <h5 className="font-semibold text-sm text-gray-900 leading-tight break-words">
+                                                                                                                {rule.name}
                                                                                                             </h5>
                                                                                                         </div>
 

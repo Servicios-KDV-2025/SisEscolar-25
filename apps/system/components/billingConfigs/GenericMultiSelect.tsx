@@ -90,8 +90,7 @@ export function GenericMultiSelect<T>({
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-
-        <PopoverContent className=" w-[var(--radix-popover-trigger-width)] p-0 max-h-20" align="start">
+        <PopoverContent className=" w-[var(--radix-popover-trigger-width)] p-0 max-h-800 border-gray-200" align="start">
           <Command shouldFilter={false}>
             {searchable && (
               <CommandInput
@@ -126,7 +125,7 @@ export function GenericMultiSelect<T>({
           </Command>
         </PopoverContent>
         {selectedItems.length > 0 && (
-        <div className="relative max-h-32 overflow-y-auto rounded-md p-1 bg-background ">
+        <div className="relative max-h-32 overflow-y-auto rounded-md p-1 bg-background">
           <div className="flex flex-wrap gap-2">
             {selectedItems.map((item) => {
               const key = getKey(item);
