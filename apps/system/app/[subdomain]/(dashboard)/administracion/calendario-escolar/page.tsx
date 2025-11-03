@@ -92,9 +92,9 @@ export default function CalendarioEscolar() {
     api.functions.calendar.getSchoolCycleCalendar,
     currentSchool?.school._id && filtroCicloEscolarId
       ? {
-          schoolId: currentSchool?.school._id as Id<"school">,
-          schoolCycleId: filtroCicloEscolarId as Id<"schoolCycle">,
-        }
+        schoolId: currentSchool?.school._id as Id<"school">,
+        schoolCycleId: filtroCicloEscolarId as Id<"schoolCycle">,
+      }
       : "skip"
   );
 

@@ -99,7 +99,7 @@ export const ActualizarCicloEscolar = mutation({
       throw new Error("Ciclo escolar no encontrado");
     }
 
-    // Si se está actualizando el nombre, verificar duplicados
+    // ... (Tu lógica de validación de nombre y fechas va aquí)
     if (args.nombre && args.nombre !== ciclo.name) {
       const existingCycle = await ctx.db
         .query("schoolCycle")
@@ -116,53 +116,54 @@ export const ActualizarCicloEscolar = mutation({
         throw new Error("Ya existe un ciclo escolar con el mismo nombre en esta escuela.");
       }
     }
-
-    // Validar que las fechas sean lógicas si se están actualizando
     const fechaInicio = args.fechaInicio || ciclo.startDate;
     const fechaFin = args.fechaFin || ciclo.endDate;
-    
     if (fechaInicio >= fechaFin) {
       throw new Error("La fecha de inicio debe ser anterior a la fecha de fin.");
     }
+    // ... (Fin de la lógica de validación)
 
-    // --- LÓGICA CORREGIDA ---
+
     // Si se cambia a estado activo (Estás activando el "Ciclo B")
     if (args.status === "active" && ciclo.status !== "active") {
+      
+      // --- ▼▼▼ NUEVO PASO AÑADIDO ▼▼▼ ---
+      // 1. Programar la ACTIVACIÓN de los horarios del NUEVO ciclo (Ciclo B)
+      await ctx.scheduler.runAfter(0, internal.functions.schoolCycles.internalActivateSchedules, {
+        schoolCycleId: args.cicloEscolarID // ID del ciclo que se activa
+      });
+      // --- ▲▲▲ FIN DEL NUEVO PASO ▲▲▲ ---
+
+      // 2. Buscar y desactivar los ciclos antiguos (Ciclo A)
       const activeCycles = await ctx.db
         .query("schoolCycle")
         .withIndex("by_school", (q) => q.eq("schoolId", args.escuelaID))
         .filter((q) => 
           q.and(
             q.eq(q.field("status"), "active"),
-            // Excluir el ciclo que estamos activando (Ciclo B)
             q.neq(q.field("_id"), args.cicloEscolarID) 
           )
         )
         .collect();
 
-      // Cambiar todos los otros ciclos (ej: "Ciclo A") a inactivos
+      // 3. Poner inactivos los ciclos antiguos (Ciclo A) y sus horarios
       for (const cycle of activeCycles) { // 'cycle' aquí es el "Ciclo A"
         await ctx.db.patch(cycle._id, {
           status: "inactive",
           updatedAt: Date.now()
         });
     
-        // ¡AQUÍ ESTÁ LA CORRECCIÓN!
-        // Programamos la desactivación de horarios para el "Ciclo A"
-        // que acabamos de inactivar.
+        // 4. Programar la DESACTIVACIÓN de horarios del "Ciclo A"
         await ctx.scheduler.runAfter(0, internal.functions.schoolCycles.internalDeactivateSchedules, { 
-          schoolCycleId: cycle._id // Usamos el ID del "Ciclo A"
+          schoolCycleId: cycle._id // Usa el ID del "Ciclo A"
         });
       }
     }
-    // --- FIN DE LA CORRECCIÓN ---
 
-
-    // 1. Determinar si el ciclo que estás editando (Ciclo B) 
-    //    se está guardando como inactivo o archivado
+    // Esta parte maneja si desactivas el ciclo manualmente
     const isNowInactive = args.status === "inactive" || args.status === "archived";
 
-    // Actualizar con patch (el ciclo B)
+    // Actualiza el ciclo que estabas editando (Ciclo B)
     await ctx.db.patch(args.cicloEscolarID, {
       schoolId: args.escuelaID,
       ...(args.nombre && { name: args.nombre }),
@@ -172,11 +173,11 @@ export const ActualizarCicloEscolar = mutation({
       updatedAt: Date.now(),
     });
 
-    // 2. Si guardaste el "Ciclo B" como inactivo, 
-    //    programar la desactivación para él mismo.
+    // Si estabas desactivando manualmente el "Ciclo B",
+    // también desactiva sus horarios.
     if (isNowInactive) {
-      await ctx.scheduler.runAfter(0, internal.functions.schoolCycles.internalDeactivateSchedules, { 
-        schoolCycleId: args.cicloEscolarID // Usamos el ID del "Ciclo B"
+      await ctx.scheduler.runAfter(0, internal.functions.schoolCycles.internalDeactivateSchedules, {
+        schoolCycleId: args.cicloEscolarID // Usa el ID del "Ciclo B"
       });
     }
 
@@ -246,17 +247,17 @@ export const internalDeactivateSchedules = internalMutation({
     const patchPromises: Promise<any>[] = [];
 
     for (const classId of classIds) {
-      // Usamos el índice "by_class_catalog" de la tabla classSchedule
+      // 1. Busca en la tabla "classSchedule"
       const schedules = await ctx.db
-        .query("classSchedule")
+        .query("classSchedule") // <--- AQUÍ
         .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", classId)) 
         .collect();
 
       for (const schedule of schedules) {
-        // Solo actualizar si no está ya inactivo
         if (schedule.status !== "inactive") {
+          // 2. Modifica el documento de "classSchedule"
           patchPromises.push(
-            ctx.db.patch(schedule._id, { status: "inactive" })
+            ctx.db.patch(schedule._id, { status: "inactive" }) // <--- AQUÍ
           );
         }
       }
@@ -265,5 +266,54 @@ export const internalDeactivateSchedules = internalMutation({
     // 3. Ejecutar todas las actualizaciones en paralelo
     await Promise.all(patchPromises);
     console.log(`Desactivados ${patchPromises.length} horarios.`);
+  },
+});
+
+/**
+ * Mutación interna para ACTIVAR todos los classSchedule asociados
+ * a un ciclo escolar específico.
+ */
+export const internalActivateSchedules = internalMutation({
+  args: { schoolCycleId: v.id("schoolCycle") },
+  handler: async (ctx, args) => {
+    console.log(`Iniciando ACTIVACIÓN de horarios para el ciclo: ${args.schoolCycleId}`);
+
+    // 1. Encontrar todas las clases (classCatalog) en este ciclo escolar
+    const classesInCycle = await ctx.db
+      .query("classCatalog")
+      .withIndex("by_cycle", (q) => q.eq("schoolCycleId", args.schoolCycleId))
+      .collect();
+
+    if (classesInCycle.length === 0) {
+      console.log("No se encontraron clases para activar horarios.");
+      return;
+    }
+
+    const classIds = classesInCycle.map(c => c._id);
+    console.log(`Encontradas ${classIds.length} clases para activación.`);
+
+    // 2. Para cada clase, encontrar sus classSchedule y ACTIVARLOS
+    const patchPromises: Promise<any>[] = [];
+
+    for (const classId of classIds) {
+      // 1. Busca en la tabla "classSchedule"
+      const schedules = await ctx.db
+        .query("classSchedule") // <--- AQUÍ
+        .withIndex("by_class_catalog", (q) => q.eq("classCatalogId", classId)) 
+        .collect();
+
+      for (const schedule of schedules) {
+        if (schedule.status !== "active") {
+          // 2. Modifica el documento de "classSchedule"
+          patchPromises.push(
+            ctx.db.patch(schedule._id, { status: "active" }) // <--- AQUÍ
+          );
+        }
+      }
+    }
+
+    // 3. Ejecutar todas las actualizaciones en paralelo
+    await Promise.all(patchPromises);
+    console.log(`Activados ${patchPromises.length} horarios.`);
   },
 });

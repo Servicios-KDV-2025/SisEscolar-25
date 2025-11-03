@@ -25,7 +25,7 @@ export function TeacherQuickActions() {
       description: "Ver mi horario de clases",
       icon: Calendar,
       color: "bg-purple-500",
-      href: "/administracion/asignacion-de-horarios",
+      href: "/administracion/clases",
     },
     {
       title: "Asistencia",

@@ -1,32 +1,42 @@
 import { Id } from "@repo/convex/convex/_generated/dataModel"
 import { PAYMENT_TYPES, RECURRENCE_TYPES, SCOPE_TYPES, STATUS_TYPES } from "lib/billing/constants";
+import { Billing } from "./billing";
+import { Student } from "./student";
 
 
 export interface PaymentData {
-  balanceUpdated: boolean;
-  enrollment: string;
-  group: string;
-  balance: number;
-  paymentId: string;
   studentId: string;
   studentName: string;
+  enrollment: string;
+  groupId: string;
+  group: string;
+  paymentId: string;
 }
 
 export interface PaymentConfig {
-  amount: number;
-  id: string;
-  recurrence_type: keyof typeof RECURRENCE_TYPES;
-  scope: keyof typeof SCOPE_TYPES;
-  status: keyof typeof STATUS_TYPES;
+  id: Id<"billingConfig">
   type: keyof typeof PAYMENT_TYPES;
+  scope: keyof typeof SCOPE_TYPES;
+  recurrence_type: keyof typeof RECURRENCE_TYPES;
+  status: keyof typeof STATUS_TYPES;
+  ruleIds: Id<"billingRule">[]
+  endDate: number
+  startDate: number
+  amount: number;
   ciclo: string;
   cicloStatus: string;
 }
 
+export interface CompletedBillings {
+  student: Student
+  billing: Billing
+}
+
 export interface ResultData {
-  createdPayments: PaymentData[];
+  affectedStudents: PaymentData[];
   message: string;
   paymentConfig: PaymentConfig;
+  completedBillings?: CompletedBillings[]
 }
 
 export interface BillingConfigType extends Record<string, unknown> {

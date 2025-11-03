@@ -72,12 +72,12 @@ const defaultNavData = {
       url: "#",
       items: [
         {
-          title: "Pagos",
-          url: `/pagos`,
-        },
-        {
           title: "Políticas de Cobros",
           url: `/pagos/politicas-de-cobros`,
+        },
+        {
+          title: "Pagos",
+          url: `/pagos`,
         },
       ],
     },
@@ -142,10 +142,6 @@ const defaultNavData = {
         {
           title: "Asignación de Clases",
           url: `/administracion/asignacion-de-clases`,
-        },
-        {
-          title: "Asignación de Horarios",
-          url: `/administracion/asignacion-de-horarios`,
         },
       ],
     },

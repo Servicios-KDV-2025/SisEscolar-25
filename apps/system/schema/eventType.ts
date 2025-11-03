@@ -14,7 +14,7 @@ export const EventTypeSchema = z.object({
     ),
   key: z.string()
     .min(2, "La clave debe tener al menos 2 caracteres")
-    .max(10, "La clave no puede exceder 10 caracteres")
+    .max(20, "La clave no puede exceder 10 caracteres")
     .regex(/^[A-Z0-9_]+$/, "La clave debe contener solo mayúsculas, números y guiones bajos")
     .refine(
       (value) => !value.startsWith("_") && !value.endsWith("_"),

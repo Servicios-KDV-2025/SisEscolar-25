@@ -109,7 +109,6 @@ export function SiteHeader() {
     'periodos': 'Periodos',
     'clases': 'Clases',
     'asignacion-de-clases' : 'Asignación de Clases',
-    'asignacion-de-horarios': 'Asignación de Horarios',
 
     'asistencias': 'Asistencias',
     'rubricas': 'Rúbricas',

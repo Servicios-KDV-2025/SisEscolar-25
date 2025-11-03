@@ -8,6 +8,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@repo/ui/components/shadcn/dialog";
@@ -133,7 +134,7 @@ export default function EventTypeDialog({
         icon: tipoEventoEditar.icon || "calendar",
         status:
           tipoEventoEditar.status === "active" ||
-          tipoEventoEditar.status === "inactive"
+            tipoEventoEditar.status === "inactive"
             ? tipoEventoEditar.status
             : "active",
       });
@@ -159,6 +160,7 @@ export default function EventTypeDialog({
       toast.success("Evento eliminado");
       onOpenChange(false);
     } catch (error) {
+      toast.error("Error al eliminar" + error);
       toast.error("Error al eliminar" + error);
     }
   };
