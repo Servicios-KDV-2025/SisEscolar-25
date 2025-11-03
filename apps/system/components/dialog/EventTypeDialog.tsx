@@ -8,7 +8,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@repo/ui/components/shadcn/dialog";
@@ -67,14 +66,29 @@ const iconOptions = [
 ];
 
 const colorOptions = [
-  { value: "#3B82F6", label: "Azul", preview: "bg-blue-500" },
-  { value: "#10B981", label: "Verde", preview: "bg-green-500" },
-  { value: "#F59E0B", label: "Amarillo", preview: "bg-yellow-500" },
-  { value: "#EF4444", label: "Rojo", preview: "bg-red-500" },
-  { value: "#8B5CF6", label: "Púrpura", preview: "bg-purple-500" },
-  { value: "#06B6D4", label: "Cian", preview: "bg-cyan-500" },
-  { value: "#F97316", label: "Naranja", preview: "bg-orange-500" },
-  { value: "#EC4899", label: "Rosa", preview: "bg-pink-500" },
+  { value: "blue", label: "Azul", preview: "bg-blue-500", name: "blue" },
+  { value: "green", label: "Verde", preview: "bg-green-500", name: "green" },
+  {
+    value: "yellow",
+    label: "Amarillo",
+    preview: "bg-yellow-500",
+    name: "yellow",
+  },
+  { value: "red", label: "Rojo", preview: "bg-red-500", name: "red" },
+  {
+    value: "purple",
+    label: "Púrpura",
+    preview: "bg-purple-500",
+    name: "purple",
+  },
+  { value: "cyan", label: "Cian", preview: "bg-cyan-500", name: "cyan" },
+  {
+    value: "orange",
+    label: "Naranja",
+    preview: "bg-orange-500",
+    name: "orange",
+  },
+  { value: "pink", label: "Rosa", preview: "bg-pink-500", name: "pink" },
 ];
 
 export default function EventTypeDialog({
@@ -99,7 +113,7 @@ export default function EventTypeDialog({
       name: "",
       key: "",
       description: "",
-      color: "#3B82F6",
+      color: "blue",
       icon: "calendar",
       status: "active",
     },
@@ -115,7 +129,7 @@ export default function EventTypeDialog({
         name: tipoEventoEditar.name,
         key: tipoEventoEditar.key,
         description: tipoEventoEditar.description || "",
-        color: tipoEventoEditar.color || "#3B82F6",
+        color: (tipoEventoEditar.color || "blue") as EventTypeFormData['color'],
         icon: tipoEventoEditar.icon || "calendar",
         status:
           tipoEventoEditar.status === "active" ||
@@ -128,7 +142,7 @@ export default function EventTypeDialog({
         name: "",
         key: "",
         description: "",
-        color: "#3B82F6",
+        color: "blue",
         icon: "calendar",
         status: "active",
       });
@@ -145,6 +159,7 @@ export default function EventTypeDialog({
       toast.success("Evento eliminado");
       onOpenChange(false);
     } catch (error) {
+      toast.error("Error al eliminar" + error);
       toast.error("Error al eliminar" + error);
     }
   };
@@ -179,7 +194,6 @@ export default function EventTypeDialog({
       form.reset();
       onOpenChange(false);
     } catch (error) {
-
       toast.error("Error al crear el tipo de evento" + error);
     } finally {
       setIsLoading(false);
@@ -197,272 +211,38 @@ export default function EventTypeDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      {!confirmingDelete
-        ? (
-          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold text-gray-900">
-                {!canUpdateCalendar ? "Detalle del Tipo de Evento"
-                  : tipoEventoEditar ? "Editar Tipo de Evento"
-                    : "Crear Nuevo Tipo de Evento"}
-              </DialogTitle>
-              <DialogDescription className="text-gray-600">
-                {tipoEventoEditar ? "Modifica la información del tipo de evento."
-                  : !canUpdateCalendar ? "Información detallada del tipo de evento."
-                    : "Define un nuevo tipo de evento para tus actividades."}
-              </DialogDescription>
-            </DialogHeader>
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold text-gray-900">
+            {confirmingDelete
+              ? "Confirmar Eliminación"
+              : !canUpdateCalendar
+                ? "Detalle del Tipo de Evento"
+                : tipoEventoEditar
+                  ? "Editar Tipo de Evento"
+                  : "Crear Nuevo Tipo de Evento"}
+          </DialogTitle>
+          <DialogDescription className="text-gray-600">
+            {confirmingDelete
+              ? "¿Estás seguro? Esta acción no se puede deshacer."
+              : tipoEventoEditar
+                ? "Modifica la información del tipo de evento."
+                : !canUpdateCalendar
+                  ? "Información detallada del tipo de evento."
+                  : "Define un nuevo tipo de evento para tus actividades."}
+          </DialogDescription>
+        </DialogHeader>
 
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-gray-700">
-                        Nombre del Tipo de Evento
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          disabled={!canUpdateCalendar}
-                          {...field}
-                          placeholder="Ej: Reunión de Padres"
-                          className="h-11"
-                          onChange={(e) => {
-                            field.onChange(e);
-                            handleNameChange(e.target.value);
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="key"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-gray-700">
-                        Clave de Identificación
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          disabled={!canUpdateCalendar}
-                          {...field}
-                          placeholder="REUNION_PADRES"
-                          className="h-11 font-mono"
-                          style={{ textTransform: "uppercase" }}
-                        />
-                      </FormControl>
-                      <FormDescription className="text-xs text-gray-500">
-                        Solo mayúsculas, números y guiones bajos. Máximo 10
-                        caracteres.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-gray-700">
-                        Descripción (Opcional)
-                      </FormLabel>
-                      <FormControl>
-                        <Textarea
-                          disabled={!canUpdateCalendar}
-                          {...field}
-                          placeholder="Descripción breve del tipo de evento..."
-                          className="min-h-[80px] resize-none"
-                          maxLength={200}
-                        />
-                      </FormControl>
-                      <FormDescription className="text-xs text-gray-500">
-                        {field.value?.length || 0}/200 caracteres
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="color"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-gray-700">
-                        Color
-                      </FormLabel>
-                      <FormControl>
-                        <Select
-                          disabled={!canUpdateCalendar}
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <SelectTrigger className="h-11">
-                            <SelectValue>
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-4 h-4 rounded-full border border-gray-300"
-                                  style={{ backgroundColor: selectedColor }}
-                                />
-                                {
-                                  colorOptions.find(
-                                    (c) => c.value === selectedColor
-                                  )?.label
-                                }
-                              </div>
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {colorOptions.map((color) => (
-                              <SelectItem key={color.value} value={color.value}>
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className="w-4 h-4 rounded-full border border-gray-300"
-                                    style={{ backgroundColor: color.value }}
-                                  />
-                                  {color.label}
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="icon"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-gray-700">
-                        Icono
-                      </FormLabel>
-                      <FormControl>
-                        <Select
-                          disabled={!canUpdateCalendar}
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <SelectTrigger className="h-11">
-                            <SelectValue>
-                              <div className="flex items-center gap-2">
-                                {(() => {
-                                  const IconComponent = iconOptions.find(
-                                    (i) => i.value === selectedIcon
-                                  )?.icon;
-                                  return IconComponent ? (
-                                    <IconComponent className="w-4 h-4" />
-                                  ) : null;
-                                })()}
-                                {
-                                  iconOptions.find((i) => i.value === selectedIcon)
-                                    ?.label
-                                }
-                              </div>
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {iconOptions.map((icon) => (
-                              <SelectItem key={icon.value} value={icon.value}>
-                                <div className="flex items-center gap-2">
-                                  <icon.icon className="w-4 h-4" />
-                                  {icon.label}
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {tipoEventoEditar ? (
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Estado</FormLabel>
-                        <FormControl>
-                          <Select
-                            disabled={!canUpdateCalendar}
-                            onValueChange={(value) => field.onChange(value)}
-                            value={field.value || "active"}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona el estado" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="active">Activo</SelectItem>
-                              <SelectItem value="inactive">Inactivo</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                ) : (
-                  ""
-                )}
-
-                <div className="flex gap-3 pt-4 border-t justify-between">
-                  {(canDeleteCalendar && !!tipoEventoEditar) && (
-                    <Button type="button" variant="destructive" onClick={() => setConfirmingDelete(true)} disabled={isLoading}>
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Eliminar
-                    </Button>
-                  )}
-                  <div className="flex gap-3 ml-auto">
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
-                      <X className="w-4 h-4 mr-2" />
-                      Cerrar
-                    </Button>
-                    {canUpdateCalendar && (
-                      <Button type="submit" disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
-                        {isLoading ? ("Guardando...") : (
-                          <div className="flex items-center gap-2">
-                            <Save className="w-4 h-4" />
-                            <span>{tipoEventoEditar ? "Guardar" : "Crear"}</span>
-                          </div>
-                        )}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-              </form>
-            </Form>
-          </DialogContent>
-        )
-        : (
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                ¿Estás seguro?
-              </DialogTitle>
-              <DialogDescription>
-                Esta acción no se puede deshacer.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
+        {confirmingDelete ? (
+          <div className="py-6">
+            <p className="text-center">
+              El tipo de evento será eliminado permanentemente.
+            </p>
+            <div className="flex justify-end gap-3 pt-6 mt-6 border-t">
               <Button
                 variant="outline"
                 onClick={() => setConfirmingDelete(false)}
-                className="min-w-[100px]"
+                disabled={isLoading}
               >
                 Cancelar
               </Button>
@@ -470,15 +250,266 @@ export default function EventTypeDialog({
                 variant="destructive"
                 onClick={handleEliminar}
                 disabled={isLoading}
-                className="min-w-[100px]"
               >
-                {isLoading ? "Eliminando..." : "Eliminar"}
+                {isLoading ? (
+                  <div className="animate-spin w-4 h-4 border-2 rounded-full border-white border-t-transparent" />
+                ) : (
+                  <Trash2 className="w-4 h-4 mr-2" />
+                )}
+                Sí, eliminar
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        )
-      }
+            </div>
+          </div>
+        ) : (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium text-gray-700">
+                      Nombre del Tipo de Evento
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={!canUpdateCalendar}
+                        {...field}
+                        placeholder="Ej: Reunión de Padres"
+                        className="h-11"
+                        onChange={(e) => {
+                          field.onChange(e);
+                          handleNameChange(e.target.value);
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
+              <FormField
+                control={form.control}
+                name="key"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium text-gray-700">
+                      Clave de Identificación
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={!canUpdateCalendar}
+                        {...field}
+                        placeholder="REUNION_PADRES"
+                        className="h-11 font-mono"
+                        style={{ textTransform: "uppercase" }}
+                      />
+                    </FormControl>
+                    <FormDescription className="text-xs text-gray-500">
+                      Solo mayúsculas, números y guiones bajos. Máximo 10
+                      caracteres.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium text-gray-700">
+                      Descripción (Opcional)
+                    </FormLabel>
+                    <FormControl>
+                      <Textarea
+                        disabled={!canUpdateCalendar}
+                        {...field}
+                        placeholder="Descripción breve del tipo de evento..."
+                        className="min-h-[80px] resize-none"
+                        maxLength={200}
+                      />
+                    </FormControl>
+                    <FormDescription className="text-xs text-gray-500">
+                      {field.value?.length || 0}/200 caracteres
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="color"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium text-gray-700">
+                      Color
+                    </FormLabel>
+                    <FormControl>
+                      <Select
+                        disabled={!canUpdateCalendar}
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <SelectTrigger className="h-11">
+                          <SelectValue>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className={`w-4 h-4 rounded-full border border-gray-300 ${
+                                colorOptions.find(c => c.value === field.value)?.preview || 'bg-gray-500'
+                              }`}
+                                style={{ backgroundColor: selectedColor }}
+                              />
+                              {colorOptions.find((c) => c.value === selectedColor)?.label}
+                            </div>
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {colorOptions.map((color) => (
+                            <SelectItem key={color.value} value={color.value}>
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className={`w-4 h-4 rounded-full border border-gray-300 ${color.preview}`}
+                                  style={{ backgroundColor: color.value }}
+                                />
+                                {color.label}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="icon"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium text-gray-700">
+                      Icono
+                    </FormLabel>
+                    <FormControl>
+                      <Select
+                        disabled={!canUpdateCalendar}
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <SelectTrigger className="h-11">
+                          <SelectValue>
+                            <div className="flex items-center gap-2">
+                              {(() => {
+                                const IconComponent = iconOptions.find(
+                                  (i) => i.value === selectedIcon
+                                )?.icon;
+                                return IconComponent ? (
+                                  <IconComponent className="w-4 h-4" />
+                                ) : null;
+                              })()}
+                              {
+                                iconOptions.find(
+                                  (i) => i.value === selectedIcon
+                                )?.label
+                              }
+                            </div>
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {iconOptions.map((icon) => (
+                            <SelectItem key={icon.value} value={icon.value}>
+                              <div className="flex items-center gap-2">
+                                <icon.icon className="w-4 h-4" />
+                                {icon.label}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {tipoEventoEditar ? (
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estado</FormLabel>
+                      <FormControl>
+                        <Select
+                          disabled={!canUpdateCalendar}
+                          onValueChange={(value) => field.onChange(value)}
+                          value={field.value || "active"}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona el estado" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="active">Activo</SelectItem>
+                            <SelectItem value="inactive">Inactivo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : (
+                ""
+              )}
+
+              <div className="flex gap-3 pt-4 border-t justify-between">
+                {canDeleteCalendar && !!tipoEventoEditar && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => setConfirmingDelete(true)}
+                    disabled={isLoading}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Eliminar
+                  </Button>
+                )}
+                <div className="flex gap-3 ml-auto">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                    disabled={isLoading}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Cerrar
+                  </Button>
+                  {canUpdateCalendar && (
+                    <Button
+                      type="submit"
+                      disabled={isLoading}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {isLoading ? (
+                        "Guardando..."
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Save className="w-4 h-4" />
+                          <span>{tipoEventoEditar ? "Guardar" : "Crear"}</span>
+                        </div>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </form>
+          </Form>
+        )}
+      </DialogContent>
     </Dialog>
   );
 }

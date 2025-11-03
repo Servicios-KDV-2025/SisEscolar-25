@@ -114,10 +114,14 @@ export default function SubjectPage() {
       description: values.description as string | undefined,
       credits: values.credits as number | undefined,
       status: values.status as "active" | "inactive",
+      
     };
 
     if (operation === "create") {
-      await createSubject(baseData);
+      await createSubject({...baseData,
+        updatedAt: new Date().getTime(),
+        updatedBy: currentUser._id,}
+      );
     } else if (operation === "edit" && data?._id) {
       await updateSubject({
         ...baseData,
