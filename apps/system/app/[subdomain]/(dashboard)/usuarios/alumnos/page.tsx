@@ -808,15 +808,15 @@ export default function AlumnosPage() {
                           </Badge>
                         </TableCell>
 
-                        <TableCell className="text-center hidden lg:table-cell">
-                          <div className="text-sm">
-                            {getTutorInfo(student.tutorId)}
-                          </div>
-                        </TableCell>
                         <TableCell className="text-center">
                           <Badge variant="secondary">
                             {getSchoolCycleInfo(student.schoolCycleId)}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="text-center hidden lg:table-cell">
+                          <div className="text-sm">
+                            {getTutorInfo(student.tutorId)}
+                          </div>
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline" className="font-medium">
