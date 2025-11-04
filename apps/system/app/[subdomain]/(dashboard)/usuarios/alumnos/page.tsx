@@ -148,13 +148,36 @@ export default function AlumnosPage() {
     scholarshipPercentage: undefined,
   }), [currentSchool?.school._id, nextEnrollment, activeCycle?._id]);
 
+  // const paginatedStudents = useMemo(() => {
+  //   const dataToUse = filteredStudents.length > 0 ? filteredStudents : students;
+  //   const startIndex = (currentPage - 1) * itemsPerPage;
+  //   const endIndex = startIndex + itemsPerPage;
+  //   return dataToUse.slice(startIndex, endIndex);
+  // }, [filteredStudents, students, currentPage, itemsPerPage]);
+
   const paginatedStudents = useMemo(() => {
+    // 1. Decide qué lista usar (filtrada o completa)
     const dataToUse = filteredStudents.length > 0 ? filteredStudents : students;
+
+    // 2. Ordena la lista alfabéticamente
+    // Usamos [...dataToUse] para crear una copia y no mutar el estado original
+    const sortedData = [...dataToUse].sort((a, b) => {
+      // Combinamos nombre y apellido para un ordenado completo
+      const nameA = `${a.name} ${a.lastName || ''}`.toLowerCase().trim();
+      const nameB = `${b.name} ${b.lastName || ''}`.toLowerCase().trim();
+      
+      // localeCompare es la forma correcta de ordenar alfabéticamente (maneja acentos)
+      return nameA.localeCompare(nameB);
+    });
+
+    // 3. Pagina la lista ya ordenada
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return dataToUse.slice(startIndex, endIndex);
-  }, [filteredStudents, students, currentPage, itemsPerPage]);
+    
+    return sortedData.slice(startIndex, endIndex);
 
+  }, [filteredStudents, students, currentPage, itemsPerPage]); // Las dependencias siguen igual
+  
   const totalPages = Math.ceil(
     (filteredStudents.length > 0 ? filteredStudents.length : students.length) / itemsPerPage
   );
