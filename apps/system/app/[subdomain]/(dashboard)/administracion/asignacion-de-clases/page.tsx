@@ -50,6 +50,7 @@ export default function StudentClassesDashboard() {
   } = usePermissions(currentSchool?.school._id);
 
   const students = useQuery(api.functions.student.listStudentsBySchool, currentSchool ? { schoolId: currentSchool.school._id as Id<'school'> } : 'skip')
+
   const {
     classCatalogsWithDetails: ClassCatalog,
     getClassByTeacher
@@ -114,24 +115,46 @@ export default function StudentClassesDashboard() {
     setSchoolYearFilter(activeSchoolYear?.name || "all");
   }, [schoolYears])
 
-  const filteredEnrollments = (enrollments?.filter(Boolean) || []).filter((enrollment) => {
-    const matchesSearch =
-      enrollment?.student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      enrollment?.student.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      enrollment?.student.enrollment.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (enrollment?.classCatalog.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        enrollment?.classCatalog.name?.toLowerCase().includes(searchTerm.toLowerCase()))
-    const matchesSchoolYear = schoolYearFilter === "all" || enrollment?.schoolCycle?.name?.startsWith(schoolYearFilter)
-    const matchesTeacherClass = classesByTeacher === "all" || 
-    enrollment?.classCatalog?.name === classesByTeacher
-    const matchesGrade = gradeFilter === "all" || enrollment?.classCatalog?.grade?.startsWith(gradeFilter)
-    const matchesGroup = groupFilter === "all" || enrollment?.classCatalog?.group?.startsWith(groupFilter)
-    const matchesStatus = statusFilter === "all" ||
-      (statusFilter === "active" && enrollment?.status === "active") ||
-      (statusFilter === "inactive" && enrollment?.status === "inactive")
+  const filteredEnrollments = useMemo(() => {
+    // 1. Lógica de FILTRADO (la que ya tenías)
+    const filtered = (enrollments?.filter(Boolean) || []).filter((enrollment) => {
+      const matchesSearch =
+        enrollment?.student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        enrollment?.student.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        enrollment?.student.enrollment.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (enrollment?.classCatalog.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          enrollment?.classCatalog.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesSchoolYear = schoolYearFilter === "all" || enrollment?.schoolCycle?.name?.startsWith(schoolYearFilter);
+      const matchesTeacherClass = classesByTeacher === "all" ||
+        enrollment?.classCatalog?.name === classesByTeacher;
+      const matchesGrade = gradeFilter === "all" || enrollment?.classCatalog?.grade?.startsWith(gradeFilter);
+      const matchesGroup = groupFilter === "all" || enrollment?.classCatalog?.group?.startsWith(groupFilter);
+      const matchesStatus = statusFilter === "all" ||
+        (statusFilter === "active" && enrollment?.status === "active") ||
+        (statusFilter === "inactive" && enrollment?.status === "inactive");
 
-    return matchesSearch && matchesGrade && matchesTeacherClass && matchesStatus && matchesGroup && matchesSchoolYear
-  })
+      return matchesSearch && matchesGrade && matchesTeacherClass && matchesStatus && matchesGroup && matchesSchoolYear;
+    });
+
+    // 2. Lógica de ORDENAMIENTO (la nueva)
+    // Usamos [...filtered] para crear una copia antes de ordenar
+    return [...filtered].sort((a, b) => {
+      const nameA = `${a?.student.name} ${a?.student.lastName || ''}`.toLowerCase().trim();
+      const nameB = `${b?.student.name} ${b?.student.lastName || ''}`.toLowerCase().trim();
+      
+      // localeCompare ordena alfabéticamente y maneja acentos
+      return nameA.localeCompare(nameB);
+    });
+
+  }, [
+    enrollments, 
+    searchTerm, 
+    schoolYearFilter, 
+    classesByTeacher, 
+    gradeFilter, 
+    groupFilter, 
+    statusFilter
+  ]); // <-- Añadimos las dependencias para que se recalcule solo cuando cambien
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!currentSchool?.school?._id) {

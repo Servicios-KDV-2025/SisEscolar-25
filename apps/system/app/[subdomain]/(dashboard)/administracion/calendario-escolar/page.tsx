@@ -433,7 +433,7 @@ export default function CalendarioEscolar() {
               />
             </div>
 
-            <div className="col-span-2 xl:col-span-1">
+            <div className="col-span-1 xl:col-span-1">
               <Card className="lg:col-span-1 shadow-xl bg-white/90 backdrop-blur-md">
                 <CardContent className="px-4">
                   <CardHeader className="flex flex-row justify-between pb-4">
