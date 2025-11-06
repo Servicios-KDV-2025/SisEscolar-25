@@ -116,7 +116,7 @@ export default function StudentClassesDashboard() {
   }, [schoolYears])
 
   const filteredEnrollments = useMemo(() => {
-    // 1. Lógica de FILTRADO (la que ya tenías)
+    
     const filtered = (enrollments?.filter(Boolean) || []).filter((enrollment) => {
       const matchesSearch =
         enrollment?.student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -135,14 +135,9 @@ export default function StudentClassesDashboard() {
 
       return matchesSearch && matchesGrade && matchesTeacherClass && matchesStatus && matchesGroup && matchesSchoolYear;
     });
-
-    // 2. Lógica de ORDENAMIENTO (la nueva)
-    // Usamos [...filtered] para crear una copia antes de ordenar
     return [...filtered].sort((a, b) => {
       const nameA = `${a?.student.name} ${a?.student.lastName || ''}`.toLowerCase().trim();
       const nameB = `${b?.student.name} ${b?.student.lastName || ''}`.toLowerCase().trim();
-      
-      // localeCompare ordena alfabéticamente y maneja acentos
       return nameA.localeCompare(nameB);
     });
 
@@ -154,7 +149,7 @@ export default function StudentClassesDashboard() {
     gradeFilter, 
     groupFilter, 
     statusFilter
-  ]); // <-- Añadimos las dependencias para que se recalcule solo cuando cambien
+  ]);
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!currentSchool?.school?._id) {
