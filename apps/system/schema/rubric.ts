@@ -10,10 +10,6 @@ export const rubricSchema = z.object({
         .min(1, 'La puntuación máxima debe ser al menos 1')
         .max(100, 'La puntuación máxima no puede ser mayor a 100')
     ),
-  // maxScore: z.number()
-  //   .min(1, 'La puntuación máxima debe ser entre 1 y 100')
-  //   .max(3, 'La puntuación máxima debe ser entre 1 y 100')
-  //   .refine((val) => !isNaN(val), 'La calificación máxima debe ser un número válido'),
   class: z.string().min(1, 'La clase es obligatoria'),
   term: z. string().min(1, 'El período es obligatorio'),
 })

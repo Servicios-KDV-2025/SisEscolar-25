@@ -19,12 +19,12 @@ import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { useUser } from "@clerk/nextjs";
 import { useUserWithConvex } from "../../../../../stores/userStore";
-import { RubricFormData, useGradeRubricStore } from "../../../../../stores/gradeRubricStore";
+import {  useGradeRubricStore } from "../../../../../stores/gradeRubricStore";
 import { usePermissions } from 'hooks/usePermissions';
 import { CrudDialog, useCrudDialog, WithId } from "@repo/ui/components/dialog/crud-dialog";
 import { RubricFormValues, rubricSchema } from "schema/rubric"
 import { toast } from "sonner"
-import { FormControl, FormField, FormItem, FormLabel } from "@repo/ui/components/shadcn/form";
+import { FormField, FormLabel } from "@repo/ui/components/shadcn/form";
 import { SelectPopover } from "components/selectPopover";
 import { ClassCatalog, useClassCatalogWithPermissions } from "stores/classCatalogStore";
 import { Term } from "stores/termStore";
@@ -56,10 +56,8 @@ export default function RubricDashboard() {
     selectedSchoolCycle,
     selectedClass,
     selectedTerm,
-    selectedClassSchoolCycleName,
     rubrics,
     rubricPercentage,
-    isModalOpen,
     editingRubric,
     formData,
     // Acciones de filtros
@@ -77,7 +75,6 @@ export default function RubricDashboard() {
     getTotalWeight,
     getAvailableWeight,
     canActivateRubric,
-    canCreateRubric,
     getValidationMessage,
     isNameDuplicate,
     getDuplicateInfo,
@@ -129,7 +126,6 @@ export default function RubricDashboard() {
     data,
     openCreate,
     openEdit,
-    openView,
     openDelete,
     close
   } = useCrudDialog(rubricSchema, {
@@ -302,7 +298,6 @@ export default function RubricDashboard() {
       const rubricToActivate = rubrics.find((r) => r._id === rubricId);
       if (!rubricToActivate) return;
     }
-
     await updateGradeRubric({
       gradeRubricId: rubricId,
       data: {
@@ -684,7 +679,6 @@ export default function RubricDashboard() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={
-                                    // () => handleOpenModal(rubric as RubricWithDetails)
                                     () => openEdit({
                                       ...rubric,
                                       _id: rubric._id,
@@ -704,8 +698,7 @@ export default function RubricDashboard() {
                                     onClick={() => openDelete({
                                       _id: rubric._id,
                                       name: rubric.name
-                                    } as Record<string, unknown> & Partial<WithId>)
-                                      // handleDeleteRubric(rubric._id)
+                                      } as Record<string, unknown> & Partial<WithId>)
                                     }
                                     className="text-destructive hover:text-destructive"
                                   >
@@ -921,7 +914,6 @@ export default function RubricDashboard() {
                         type="number"
                         value={field.value as number || ' '}
                         onChange={
-                          // field.onChange
                           (e) => {
                             const value = e.target.value === '' ? 0 : Number.parseInt(e.target.value) || 0
                             field.onChange(value)
