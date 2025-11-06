@@ -189,17 +189,17 @@ export default function RubricDashboard() {
   );
   // Sincronizar datos con el store
   useEffect(() => {
-   if (isOpen && operation === 'edit' && data?._id) {
-    // Buscar la rúbrica a editar
-    const rubricToEdit = rubrics.find(r => r._id === data._id);
-    if (rubricToEdit) {
-      setEditingRubric(rubricToEdit);
+    if (isOpen && operation === 'edit' && data?._id) {
+      // Buscar la rúbrica a editar
+      const rubricToEdit = rubrics.find(r => r._id === data._id);
+      if (rubricToEdit) {
+        setEditingRubric(rubricToEdit);
+      }
+    } else if (isOpen && operation === 'create') {
+      // Para creación, resetear
+      setEditingRubric(null);
     }
-  } else if (isOpen && operation === 'create') {
-    // Para creación, resetear
-    setEditingRubric(null);
-  }
-}, [isOpen, operation, data, rubrics, setEditingRubric])
+  }, [isOpen, operation, data, rubrics, setEditingRubric])
 
   useEffect(() => {
     if (allRubricsQuery !== undefined) {
@@ -272,22 +272,6 @@ export default function RubricDashboard() {
   const deleteGradeRubric = useMutation(
     api.functions.gradeRubrics.deleteGradeRubric
   );
-
-  const handleOpenModal = (rubric?: RubricWithDetails) => {
-    if (rubric) {
-      setEditingRubric(rubric);
-    } else {
-      resetForm();
-      // Obtener el nombre del ciclo escolar activo
-      const activeCycleName = schoolCycles?.find(cycle => cycle._id === selectedSchoolCycle)?.name || "Ciclo Escolar";
-      setFormData({
-        schoolCycle: activeCycleName,
-        class: selectedClass || "",
-        term: selectedTerm || "",
-      });
-    }
-    setModalOpen(true);
-  };
   // La baja lógica ahora se maneja con la mutación de actualización
   const handleToggleStatus = async (
     rubricId: Id<"gradeRubric">,
@@ -359,8 +343,6 @@ export default function RubricDashboard() {
       console.log('Error al guardar la rúbrica:', error)
       toast.error('Ocurrió un error al guardar la rúbrica. Por favor, intenta de nuevo.')
     }
-    // setModalOpen(false);
-    // resetForm();
   }
 
   const handleDeleteRubric = async (id: string) => {
@@ -422,7 +404,7 @@ export default function RubricDashboard() {
                     maxScore: 100
                   });
                   openCreate()
-                }}//{() => handleOpenModal()}
+                }}
                 className="gap-2 cursor-pointer"
                 disabled={false}
               >
@@ -738,7 +720,20 @@ export default function RubricDashboard() {
                           </div>
                           {canCreateRubricPermission && (
                             <Button
-                              onClick={() => handleOpenModal()}
+                              onClick={() => {
+                                // Resetear el formulario con el ciclo activo antes de abrir
+                                const activeCycleName = schoolCycles?.find(cycle => cycle._id === activeSchoolCycle?._id)?.name || "Ciclo Escolar";
+                                resetForm();
+                                setFormData({
+                                  schoolCycle: activeCycleName,
+                                  class: "",
+                                  term: "",
+                                  name: '',
+                                  weight: [0],
+                                  maxScore: 100
+                                });
+                                openCreate()
+                              }}
                               className="gap-2 cursor-pointer"
                               disabled={false}
                             >
