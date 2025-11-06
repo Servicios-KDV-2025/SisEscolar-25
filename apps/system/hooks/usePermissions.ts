@@ -519,9 +519,9 @@ export const usePermissions = (schoolId?: string) => {
       "update:studentsClasses": false,
       "delete:studentsClasses": false,
       //Schedule Assignment
-      "create:scheduleAssignament": true,
+      "create:scheduleAssignament": false,
       "read:scheduleAssignament": true,
-      "update:scheduleAssignament": true,
+      "update:scheduleAssignament": false,
       "delete:scheduleAssignament": false,
       //Attendance
       "create:attendance": true,
