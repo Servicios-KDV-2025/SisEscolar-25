@@ -5,11 +5,11 @@ import { Button } from "@repo/ui/components/shadcn/button"
 import { Label } from "@repo/ui/components/shadcn/label"
 import { Card } from "@repo/ui/components/shadcn/card"
 import { Loader2, Building2, Copy, CheckCircle, AlertCircle } from "lucide-react"
-import { toast } from "sonner"
 import { useAction } from "convex/react"
 import { api } from "@repo/convex/convex/_generated/api"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
 import Stripe from "stripe"
+import { toast } from "@repo/ui/sonner"
 
 interface SPEIPaymentFormProps {
   billingId: Id<"billing">

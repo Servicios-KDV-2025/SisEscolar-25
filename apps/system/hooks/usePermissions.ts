@@ -120,7 +120,7 @@ export const usePermissions = (schoolId?: string) => {
     { action: "read", resource: "rubrics" },
     { action: "update", resource: "rubrics" },
     { action: "delete", resource: "rubrics" },
-    // Attendance
+    // Assignance
     { action: "create", resource: "assignance" },
     { action: "read", resource: "assignance" },
     { action: "update", resource: "assignance" },
@@ -228,9 +228,9 @@ export const usePermissions = (schoolId?: string) => {
       "read:rubrics": true,
       "update:rubrics": true,
       "delete:rubrics": true,
-      // Attendance
+      // Assignance
       "create:assignance": false,
-      "read:assignance": true,
+      "read:assignance": false,
       "update:assignance": true,
       "delete:assignance": false,
     },
@@ -331,10 +331,10 @@ export const usePermissions = (schoolId?: string) => {
       "read:rubrics": true,
       "update:rubrics": true,
       "delete:rubrics": true,
-      // Attendance
+      // Assignance
       "create:assignance": false,
-      "read:assignance": true,
-      "update:assignance": true,
+      "read:assignance": false,
+      "update:assignance": false,
       "delete:assignance": false,
     },
     auditor: {
@@ -435,9 +435,9 @@ export const usePermissions = (schoolId?: string) => {
       "read:rubrics": true,
       "update:rubrics": false,
       "delete:rubrics": false,
-      // Attendance
+      // Assignance
       "create:assignance": false,
-      "read:assignance": true,
+      "read:assignance": false,
       "update:assignance": false,
       "delete:assignance": false,
     },
@@ -519,9 +519,9 @@ export const usePermissions = (schoolId?: string) => {
       "update:studentsClasses": false,
       "delete:studentsClasses": false,
       //Schedule Assignment
-      "create:scheduleAssignament": true,
+      "create:scheduleAssignament": false,
       "read:scheduleAssignament": true,
-      "update:scheduleAssignament": true,
+      "update:scheduleAssignament": false,
       "delete:scheduleAssignament": false,
       //Attendance
       "create:attendance": true,

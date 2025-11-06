@@ -15,7 +15,8 @@ import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui/components/shadcn/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@repo/ui/components/shadcn/command";
 import {
-  Users, Search, Plus, Eye, Edit, Trash2, Filter, Calendar, UserCheck, UserX, GraduationCap, AlertCircle, Loader2, Check, ChevronsUpDown, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight
+  Users, Search, Plus, Eye, Edit, Trash2, Filter, Calendar, UserCheck, UserX, GraduationCap, AlertCircle, Loader2, Check, ChevronsUpDown, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight,
+  Info
 } from "@repo/ui/icons";
 import { studentSchema } from "@/types/form/userSchemas";
 import { useStudentsWithPermissions, type CreateStudentData, type UpdateStudentData } from "../../../../../stores/studentStore";
@@ -125,12 +126,17 @@ export default function AlumnosPage() {
   // Flag para mostrar pantalla de no autorización
   const showNotAuth = (permissionsError || !canReadUsersAlumnos) && !permissionsLoading && !isLoading;
 
+  // Oct30: Obtener el ciclo escolar activo
+  const activeCycle = useMemo(() => {
+    return schoolCycles?.find((cycle) => cycle.status === "active");
+  }, [schoolCycles]);
+
   // Default values para el formulario
   const defaultValues = useMemo(() => ({
     schoolId: currentSchool?.school._id || "",
     groupId: "", // Dejar vacío para forzar selección
     tutorId: "", // Dejar vacío para forzar selección
-    schoolCycleId: "", // Dejar vacío para forzar selección
+    schoolCycleId: activeCycle?._id || "", // Oct30: Usar el ciclo activo por defecto
     enrollment: nextEnrollment || "", // Usar la matrícula generada automáticamente
     name: "",
     lastName: "",
@@ -138,15 +144,40 @@ export default function AlumnosPage() {
     admissionDate: Date.now(),
     birthDate: undefined,
     imgUrl: "",
-  }), [currentSchool?.school._id, nextEnrollment]);
+    scholarshipType: "inactive" as const,
+    scholarshipPercentage: undefined,
+  }), [currentSchool?.school._id, nextEnrollment, activeCycle?._id]);
+
+  // const paginatedStudents = useMemo(() => {
+  //   const dataToUse = filteredStudents.length > 0 ? filteredStudents : students;
+  //   const startIndex = (currentPage - 1) * itemsPerPage;
+  //   const endIndex = startIndex + itemsPerPage;
+  //   return dataToUse.slice(startIndex, endIndex);
+  // }, [filteredStudents, students, currentPage, itemsPerPage]);
 
   const paginatedStudents = useMemo(() => {
+    // 1. Decide qué lista usar (filtrada o completa)
     const dataToUse = filteredStudents.length > 0 ? filteredStudents : students;
+
+    // 2. Ordena la lista alfabéticamente
+    // Usamos [...dataToUse] para crear una copia y no mutar el estado original
+    const sortedData = [...dataToUse].sort((a, b) => {
+      // Combinamos nombre y apellido para un ordenado completo
+      const nameA = `${a.name} ${a.lastName || ''}`.toLowerCase().trim();
+      const nameB = `${b.name} ${b.lastName || ''}`.toLowerCase().trim();
+      
+      // localeCompare es la forma correcta de ordenar alfabéticamente (maneja acentos)
+      return nameA.localeCompare(nameB);
+    });
+
+    // 3. Pagina la lista ya ordenada
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return dataToUse.slice(startIndex, endIndex);
-  }, [filteredStudents, students, currentPage, itemsPerPage]);
+    
+    return sortedData.slice(startIndex, endIndex);
 
+  }, [filteredStudents, students, currentPage, itemsPerPage]); // Las dependencias siguen igual
+  
   const totalPages = Math.ceil(
     (filteredStudents.length > 0 ? filteredStudents.length : students.length) / itemsPerPage
   );
@@ -207,6 +238,8 @@ export default function AlumnosPage() {
       admissionDate: formData.admissionDate as number || Date.now(),
       imgUrl: formData.imgUrl as string || undefined,
       status: formData.status as 'active' | 'inactive' || 'active',
+      scholarshipType: formData.scholarshipType as 'active' | 'inactive' || 'inactive',
+      scholarshipPercentage: formData.scholarshipPercentage as number || undefined,
     };
 
     const result = await createStudent(studentData);
@@ -237,6 +270,8 @@ export default function AlumnosPage() {
       admissionDate: formData.admissionDate as number || undefined,
       imgUrl: formData.imgUrl as string || undefined,
       status: formData.status as 'active' | 'inactive',
+      scholarshipType: formData.scholarshipType as 'active' | 'inactive',
+      scholarshipPercentage: formData.scholarshipPercentage as number || undefined,
     };
 
     const result = await updateStudent(data._id as Id<"student">, updateData);
@@ -296,6 +331,16 @@ export default function AlumnosPage() {
     if (!schoolCycles) return "Cargando...";
     const schoolCycle = schoolCycles.find((s) => s._id === schoolCycleId);
     return schoolCycle ? `${schoolCycle.name}` : "No asignado";
+  };
+
+  const getScholarshipInfo = (scholarshipType: string, scholarshipPercentage?: number) => {
+    if (scholarshipType === "inactive") {
+      return "Sin Beca";
+    } else if (scholarshipType === "active" && scholarshipPercentage) {
+      return `Beca con ${scholarshipPercentage}%`;
+    } else {
+      return "Beca sin porcentaje";
+    }
   };
 
   const calculateAge = (birthDate?: number) => {
@@ -536,33 +581,42 @@ export default function AlumnosPage() {
       icon={GraduationCap}
     />
   ) : (
-   <div className="space-y-8 p-6">
+    <div className="space-y-8 p-6">
 
         {/* Mostrar alerta cuando no hay datos necesarios para crear estudiantes */}
-        {canCreateUsersAlumnos && (!groups?.length || !tutors?.length) && (
+        {canCreateUsersAlumnos && (!groups?.length || !tutors?.length || !activeCycle) && (
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              {!groups?.length && !tutors?.length
-                ? "No se pueden crear estudiantes porque no hay grupos ni tutores disponibles. Debes crear grupos y asignar tutores primero."
-                : !groups?.length
-                  ? "No se pueden crear estudiantes porque no hay grupos disponibles. Debes crear grupos primero."
-                  : "No se pueden crear estudiantes porque no hay tutores disponibles. Debes asignar tutores a esta escuela primero."
+              {/*Oct30: Se muestra mensaje de alerta para distintos escenarios (se agrega el del ciclo escolar activo) */}
+              {!groups?.length && !tutors?.length && !activeCycle
+                ? "No se pueden crear estudiantes porque no hay grupos, tutores disponibles ni un ciclo escolar activo. Debes crear grupos, asignar tutores y activar un ciclo escolar primero."
+                : !groups?.length && !tutors?.length
+                  ? "No se pueden crear estudiantes porque no hay grupos ni tutores disponibles. Debes crear grupos y asignar tutores primero."
+                  : !groups?.length && !activeCycle
+                    ? "No se pueden crear estudiantes porque no hay grupos disponibles ni un ciclo escolar activo. Debes crear grupos y activar un ciclo escolar primero."
+                    : !tutors?.length && !activeCycle
+                      ? "No se pueden crear estudiantes porque no hay tutores disponibles ni un ciclo escolar activo. Debes asignar tutores y activar un ciclo escolar primero."
+                      : !groups?.length
+                        ? "No se pueden crear estudiantes porque no hay grupos disponibles. Debes crear grupos primero."
+                        : !tutors?.length
+                          ? "No se pueden crear estudiantes porque no hay tutores disponibles. Debes asignar tutores a esta escuela primero."
+                          : "No se pueden crear estudiantes porque no hay un ciclo escolar activo. Debes activar un ciclo escolar primero."
               }
             </AlertDescription>
           </Alert>
         )}
 
-        {/* Información de permisos */}
-        {(isTutor || isTeacher) && !isSuperAdmin && !isAdmin && (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {isTutor && "Como tutor, solo puedes ver los estudiantes que tienes asignados."}
-              {isTeacher && "Como maestro, solo puedes ver los estudiantes de las materias que impartes."}
-            </AlertDescription>
-          </Alert>
-        )}
+      {/* Información de permisos */}
+      {(isTutor || isTeacher) && !isSuperAdmin && !isAdmin && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {isTutor && "Como tutor, solo puedes ver los estudiantes que tienes asignados."}
+            {isTeacher && "Como maestro, solo puedes ver los estudiantes de las materias que impartes."}
+          </AlertDescription>
+        </Alert>
+      )}
 
         {/* Header */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-background border">
@@ -587,11 +641,12 @@ export default function AlumnosPage() {
                   size="lg"
                   className="gap-2 bg-blue-600 hover:bg-blue-700"
                   onClick={openCreate}
-                  disabled={isCreating || !currentSchool || !groups?.length || !tutors?.length}
+                  disabled={isCreating || !currentSchool || !groups?.length || !tutors?.length || !activeCycle}
                   title={
                     !groups?.length ? "No hay grupos disponibles" :
                       !tutors?.length ? "No hay tutores disponibles" :
-                        !currentSchool ? "No hay escuela seleccionada" : ""
+                        !activeCycle ? "No hay un ciclo escolar activo" :
+                          !currentSchool ? "No hay escuela seleccionada" : ""
                   }
                 >
                   {isCreating ? (
@@ -606,84 +661,84 @@ export default function AlumnosPage() {
           </div>
         </div>
 
-        {/* Estadísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {stats.map((stat, index) => (
-            <Card key={index} className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {stat.title}
-                </CardTitle>
-                <div className="p-2 bg-indigo-500/10 rounded-lg group-hover:bg-indigo-500/20 transition-colors">
-                  <stat.icon className="h-4 w-4 text-indigo-600" />
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="text-3xl font-bold">{stat.value}</div>
-                <p className="text-xs text-muted-foreground">{stat.trend}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      {/* Estadísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {stats.map((stat, index) => (
+          <Card key={index} className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {stat.title}
+              </CardTitle>
+              <div className="p-2 bg-indigo-500/10 rounded-lg group-hover:bg-indigo-500/20 transition-colors">
+                <stat.icon className="h-4 w-4 text-indigo-600" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-3xl font-bold">{stat.value}</div>
+              <p className="text-xs text-muted-foreground">{stat.trend}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-        {/* Filtros y búsqueda */}
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Filter className="h-5 w-5" />
-                  Filtros y Búsqueda
-                </CardTitle>
-                <CardDescription>
-                  Encuentra alumnos por nombre, matrícula, estado o grupo
-                </CardDescription>
+      {/* Filtros y búsqueda */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                Filtros y Búsqueda
+              </CardTitle>
+              <CardDescription>
+                Encuentra alumnos por nombre, matrícula, estado o grupo
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nombre, apellido o matrícula..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por nombre, apellido o matrícula..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-48">
-                  <SelectValue placeholder="Estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los estados</SelectItem>
-                  <SelectItem value="active">Activos</SelectItem>
-                  <SelectItem value="inactive">Inactivos</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={groupFilter} onValueChange={setGroupFilter}>
-                <SelectTrigger className="w-full md:w-48">
-                  <SelectValue placeholder="Grupo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los grupos</SelectItem>
-                  {groups?.map((group: Group) => (
-                    <SelectItem key={group._id} value={group._id}>
-                      {group.grade} - {group.name}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="active">Activos</SelectItem>
+                <SelectItem value="inactive">Inactivos</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={groupFilter} onValueChange={setGroupFilter}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Grupo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los grupos</SelectItem>
+                {groups?.map((group: Group) => (
+                  <SelectItem key={group._id} value={group._id}>
+                    {group.grade} - {group.name}
+                  </SelectItem>
+                )) || (
+                    <SelectItem value="loading" disabled>
+                      Cargando grupos...
                     </SelectItem>
-                  )) || (
-                      <SelectItem value="loading" disabled>
-                        Cargando grupos...
-                      </SelectItem>
-                    )}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+                  )}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Tabla de Alumnos */}
       <Card>
@@ -717,7 +772,7 @@ export default function AlumnosPage() {
                 <Button
                   onClick={openCreate}
                   className="gap-2 bg-blue-600 hover:bg-blue-700"
-                  disabled={!groups?.length || !tutors?.length}
+                  disabled={!groups?.length || !tutors?.length || !activeCycle}
                 >
                   <Plus className="h-4 w-4" />
                   Agregar Alumno
@@ -736,6 +791,7 @@ export default function AlumnosPage() {
                       <TableHead className="text-center">Grupo</TableHead>
                       <TableHead className="text-center">Ciclo Escolar</TableHead>
                       <TableHead className="text-center hidden lg:table-cell">Tutor</TableHead>
+                      <TableHead className="text-center">Beca</TableHead>
                       <TableHead className="text-center">Estado</TableHead>
                       <TableHead className="text-center hidden xl:table-cell">Fecha de Ingreso</TableHead>
                       <TableHead className="text-center">Acciones</TableHead>
@@ -775,14 +831,19 @@ export default function AlumnosPage() {
                           </Badge>
                         </TableCell>
 
+                        <TableCell className="text-center">
+                          <Badge variant="secondary">
+                            {getSchoolCycleInfo(student.schoolCycleId)}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-center hidden lg:table-cell">
                           <div className="text-sm">
                             {getTutorInfo(student.tutorId)}
                           </div>
                         </TableCell>
-<                       TableCell className="text-center">
-                          <Badge variant="secondary">
-                            {getSchoolCycleInfo(student.schoolCycleId)}
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="font-medium">
+                            {getScholarshipInfo(student.scholarshipType, student.scholarshipPercentage)}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">
@@ -897,6 +958,13 @@ export default function AlumnosPage() {
                         </div>
 
                         <div className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground font-medium">Beca:</span>
+                          <Badge variant="outline" className="font-medium text-xs">
+                            {getScholarshipInfo(student.scholarshipType, student.scholarshipPercentage)}
+                          </Badge>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-sm">
                           <Calendar className="h-3 w-3 text-muted-foreground" />
                           <span>{formatDate(student.admissionDate)}</span>
                         </div>
@@ -945,103 +1013,103 @@ export default function AlumnosPage() {
         {(filteredStudents.length > 0 || students.length > 0) && <PaginationControls />}
       </Card>
 
-        {/* Dialog CRUD */}
-        <CrudDialog
-          operation={operation}
-          title={
-            operation === "create"
-              ? "Agregar Alumno"
-              : operation === "edit"
-                ? "Editar Alumno"
-                : operation === "view"
-                  ? "Ver Alumno"
-                  : "Eliminar Alumno"
-          }
-          description={
-            operation === "create"
-              ? "Completa la información para agregar un nuevo alumno"
-              : operation === "edit"
-                ? "Modifica la información del alumno"
-                : operation === "view"
-                  ? "Información detallada del alumno"
-                  : undefined
-          }
-          schema={studentSchema}
-          defaultValues={defaultValues}
-          data={data}
-          isOpen={isOpen}
-          onOpenChange={close}
-          onSubmit={operation === "create" ? handleCreate : handleUpdate}
-          onDelete={handleDelete}
-          deleteConfirmationTitle="¿Eliminar alumno?"
-          deleteConfirmationDescription="Esta acción eliminará permanentemente al alumno del sistema. Esta acción no se puede deshacer."
-          onError={() => {
-            // Evitar que el CrudDialog muestre su propio toast de error
-            // ya que nosotros mostramos el error específico dentro del dialog
-          }}
-        >
-          {(form, currentOperation) => (
-            <div className="space-y-4">
-              {/* Mostrar error del store dentro del formulario */}
-              {studentsError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    {studentsError}
-                  </AlertDescription>
-                </Alert>
-              )}
+      {/* Dialog CRUD */}
+      <CrudDialog
+        operation={operation}
+        title={
+          operation === "create"
+            ? "Agregar Alumno"
+            : operation === "edit"
+              ? "Editar Alumno"
+              : operation === "view"
+                ? "Ver Alumno"
+                : "Eliminar Alumno"
+        }
+        description={
+          operation === "create"
+            ? "Completa la información para agregar un nuevo alumno"
+            : operation === "edit"
+              ? "Modifica la información del alumno"
+              : operation === "view"
+                ? "Información detallada del alumno"
+                : undefined
+        }
+        schema={studentSchema}
+        defaultValues={defaultValues}
+        data={data}
+        isOpen={isOpen}
+        onOpenChange={close}
+        onSubmit={operation === "create" ? handleCreate : handleUpdate}
+        onDelete={handleDelete}
+        deleteConfirmationTitle="¿Eliminar alumno?"
+        deleteConfirmationDescription="Esta acción eliminará permanentemente al alumno del sistema. Esta acción no se puede deshacer."
+        onError={() => {
+          // Evitar que el CrudDialog muestre su propio toast de error
+          // ya que nosotros mostramos el error específico dentro del dialog
+        }}
+      >
+        {(form, currentOperation) => (
+          <div className="space-y-4">
+            {/* Mostrar error del store dentro del formulario */}
+            {studentsError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {studentsError}
+                </AlertDescription>
+              </Alert>
+            )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Campo oculto para schoolId */}
-                <FormField
-                  control={form.control}
-                  name="schoolId"
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="hidden"
-                      value={currentSchool?.school._id || ""}
-                    />
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nombre *</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          value={field.value as string || ""}
-                          placeholder="Nombre del alumno"
-                          disabled={currentOperation === "view"}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Campo oculto para schoolId */}
+              <FormField
+                control={form.control}
+                name="schoolId"
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="hidden"
+                    value={currentSchool?.school._id || ""}
+                  />
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre *</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        value={field.value as string || ""}
+                        placeholder="Nombre del alumno"
+                        disabled={currentOperation === "view"}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="lastName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Apellidos</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          value={field.value as string || ""}
-                          placeholder="Apellidos"
-                          disabled={currentOperation === "view"}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <FormField
+                control={form.control}
+                name="lastName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Apellidos</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        value={field.value as string || ""}
+                        placeholder="Apellidos"
+                        disabled={currentOperation === "view"}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}
@@ -1067,7 +1135,7 @@ export default function AlumnosPage() {
                     <FormMessage />
                     {currentOperation === "create" && (
                       <p className="text-xs text-muted-foreground">
-                        La matrícula se genera automáticamente con el formato: AÑO + número consecutivo
+                        Generada automáticamente con formato: AÑO + número consecutivo
                       </p>
                     )}
                   </FormItem>
@@ -1089,7 +1157,7 @@ export default function AlumnosPage() {
                         <SelectTrigger>
                           <SelectValue placeholder="Seleccionar estado" />
                         </SelectTrigger>
-                        <SelectContent>  
+                        <SelectContent>
                           <SelectItem value="active">Activo</SelectItem>
                           <SelectItem value="inactive">Inactivo</SelectItem>
                         </SelectContent>
@@ -1182,9 +1250,8 @@ export default function AlumnosPage() {
                                       }}
                                     >
                                       <Check
-                                        className={`mr-2 h-4 w-4 ${
-                                          field.value === cycle._id ? "opacity-100" : "opacity-0"
-                                        }`}
+                                        className={`mr-2 h-4 w-4 ${field.value === cycle._id ? "opacity-100" : "opacity-0"
+                                          }`}
                                       />
                                       <div className="flex flex-col">
                                         <span className="font-medium">{cycle.name}</span>
@@ -1215,117 +1282,190 @@ export default function AlumnosPage() {
                 }}
               />
 
+              <FormField
+                control={form.control}
+                name="tutorId"
+                render={({ field }) => {
+                  const selectedTutor = tutors?.find((tutor: Tutor) => tutor._id === field.value);
+
+                  return (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Tutor *</FormLabel>
+                      <Popover open={tutorPopoverOpen} onOpenChange={setTutorPopoverOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={`w-full justify-between ${!field.value && "text-muted-foreground"}`}
+                              disabled={currentOperation === "view"}
+                            >
+                              {selectedTutor
+                                ? `${selectedTutor.name} ${selectedTutor.lastName || ''}`
+                                : "Seleccionar tutor"
+                              }
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0">
+                          <Command>
+                            <CommandInput placeholder="Buscar tutor..." className="h-9" />
+                            <CommandList>
+                              <CommandEmpty>
+                                {tutors && tutors.length === 0
+                                  ? "No hay tutores disponibles en esta escuela."
+                                  : "No se encontró ningún tutor."
+                                }
+                              </CommandEmpty>
+                              <CommandGroup>
+                                {tutors && tutors.length > 0 ? (
+                                  tutors.map((tutor: Tutor) => (
+                                    <CommandItem
+                                      value={`${tutor.name} ${tutor.lastName || ''}`}
+                                      key={tutor._id}
+                                      onSelect={() => {
+                                        field.onChange(tutor._id);
+                                        setTutorPopoverOpen(false);
+                                      }}
+                                    >
+                                      <div className="flex flex-col">
+                                        <span className="font-medium">
+                                          {tutor.name} {tutor.lastName || ''}
+                                        </span>
+                                        <span className="text-sm text-muted-foreground">
+                                          {tutor.email}
+                                        </span>
+                                      </div>
+                                      <Check
+                                        className={`ml-auto h-4 w-4 ${tutor._id === field.value
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                          }`}
+                                      />
+                                    </CommandItem>
+                                  ))
+                                ) : tutors === undefined ? (
+                                  <CommandItem disabled>
+                                    Cargando tutores...
+                                  </CommandItem>
+                                ) : (
+                                  <CommandItem disabled>
+                                    No hay tutores disponibles
+                                  </CommandItem>
+                                )}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+
+              <FormField
+                control={form.control}
+                name="scholarshipType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de Beca</FormLabel>
+                    <FormControl>
+                      <Select
+                        value={field.value as string}
+                        onValueChange={field.onChange}
+                        disabled={currentOperation === "view"}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar tipo de beca" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="inactive">Sin Beca</SelectItem>
+                          <SelectItem value="active">Beca con Porcentaje</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                    {form.watch("scholarshipType") === "active" && (
+                      <div className="flex flex-row text-xs text-muted-foreground gap-2">
+                        <Info className="h-4.5 w-4.5 items-center" />
+                        <p className="">
+                          La beca solo aplica para las inscripciones y colegiaturas
+                        </p>
+                      </div>
+
+                    )}
+                  </FormItem>
+                )}
+              />
+              {form.watch("scholarshipType") === "active" && (
                 <FormField
                   control={form.control}
-                  name="tutorId"
+                  name="scholarshipPercentage"
                   render={({ field }) => {
-                    const selectedTutor = tutors?.find((tutor: Tutor) => tutor._id === field.value);
+                    const inputValue = field.value === null || field.value === undefined
+                      ? ""
+                      : String(field.value);
+                    return (<FormItem>
+                      <FormLabel>Porcentaje de Beca</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="number"
+                          value={inputValue}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            const numValue = value === ""
+                              ? undefined
+                              : Number(value);
+                            field.onChange(numValue);
+                          }}
+                          placeholder="Ej: 50"
+                          disabled={currentOperation === "view" || form.watch("scholarshipType") !== "active"}
 
-                    return (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Tutor *</FormLabel>
-                        <Popover open={tutorPopoverOpen} onOpenChange={setTutorPopoverOpen}>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                role="combobox"
-                                className={`w-full justify-between ${!field.value && "text-muted-foreground"}`}
-                                disabled={currentOperation === "view"}
-                              >
-                                {selectedTutor
-                                  ? `${selectedTutor.name} ${selectedTutor.lastName || ''}`
-                                  : "Seleccionar tutor"
-                                }
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[400px] p-0">
-                            <Command>
-                              <CommandInput placeholder="Buscar tutor..." className="h-9" />
-                              <CommandList>
-                                <CommandEmpty>
-                                  {tutors && tutors.length === 0
-                                    ? "No hay tutores disponibles en esta escuela."
-                                    : "No se encontró ningún tutor."
-                                  }
-                                </CommandEmpty>
-                                <CommandGroup>
-                                  {tutors && tutors.length > 0 ? (
-                                    tutors.map((tutor: Tutor) => (
-                                      <CommandItem
-                                        value={`${tutor.name} ${tutor.lastName || ''}`}
-                                        key={tutor._id}
-                                        onSelect={() => {
-                                          field.onChange(tutor._id);
-                                          setTutorPopoverOpen(false);
-                                        }}
-                                      >
-                                        <div className="flex flex-col">
-                                          <span className="font-medium">
-                                            {tutor.name} {tutor.lastName || ''}
-                                          </span>
-                                          <span className="text-sm text-muted-foreground">
-                                            {tutor.email}
-                                          </span>
-                                        </div>
-                                        <Check
-                                          className={`ml-auto h-4 w-4 ${tutor._id === field.value
-                                            ? "opacity-100"
-                                            : "opacity-0"
-                                            }`}
-                                        />
-                                      </CommandItem>
-                                    ))
-                                  ) : tutors === undefined ? (
-                                    <CommandItem disabled>
-                                      Cargando tutores...
-                                    </CommandItem>
-                                  ) : (
-                                    <CommandItem disabled>
-                                      No hay tutores disponibles
-                                    </CommandItem>
-                                  )}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    );
+                        />
+                      </FormControl>
+                      <FormMessage />
+                      {form.watch("scholarshipType") === "active" && (
+                        <p className="text-xs text-muted-foreground">
+                          Ingresa el porcentaje de descuento (1-100%)
+                        </p>
+                      )}
+                    </FormItem>
+                    )
                   }}
-                />
+                />)}
 
-                {currentOperation === "view" && data && (
-                  <div className="md:col-span-2 space-y-4 pt-4 border-t">
-                    <h3 className="font-medium text-sm text-muted-foreground">Información adicional</h3>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">ID de Estudiante:</span>
-                        <p className="font-mono">{data._id as string}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Fecha de Creación:</span>
-                        <p>{formatDate(data.createdAt as number)}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Última Actualización:</span>
-                        <p>{formatDate(data.updatedAt as number)}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">ID de Escuela:</span>
-                        <p className="font-mono">{data.schoolId as string}</p>
-                      </div>
+
+              {currentOperation === "view" && data && (
+                <div className="md:col-span-2 space-y-4 pt-4 border-t">
+                  <h3 className="font-medium text-sm text-muted-foreground">Información adicional</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">ID de Estudiante:</span>
+                      <p className="font-mono">{data._id as string}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Fecha de Creación:</span>
+                      <p>{formatDate(data.createdAt as number)}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Última Actualización:</span>
+                      <p>{formatDate(data.updatedAt as number)}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">ID de Escuela:</span>
+                      <p className="font-mono">{data.schoolId as string}</p>
                     </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-          )}
-        </CrudDialog>
-      </div>
+          </div>
+        )}
+      </CrudDialog>
+    </div>
 
 
   );

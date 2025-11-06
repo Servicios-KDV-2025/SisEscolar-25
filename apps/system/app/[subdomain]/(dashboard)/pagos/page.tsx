@@ -12,11 +12,11 @@ import { api } from "@repo/convex/convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
 import { useUserWithConvex } from "../../../../stores/userStore";
 import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
-import Pagos from "./pagos";
 import PaymentHistoryComponent from "./payment-history";
 import StripeConfigPage from "./escuela";
 import { Button } from "@repo/ui/components/shadcn/button";
-import BillingConfig from "components/billings/BillingConfig"
+import BillingConfigPage from "components/billingConfigs/BillingConfigPage";
+import BillingPage from "components/billing/BillingPage";
 
 export default function Colegiaturas() {
   const [selectedSchoolCycle, setSelectedSchoolCycle] = useState<string>("");
@@ -92,7 +92,7 @@ export default function Colegiaturas() {
                     Sistema de Pagos
                   </h1>
                   <p className="text-lg text-muted-foreground">
-                    Administra configuraciones, pagos e historial de pagos.
+                    Administra las configuraciones de cobros, cobros y el historial de pagos.
                   </p>
                 </div>
               </div>
@@ -165,14 +165,11 @@ export default function Colegiaturas() {
         </TabsList>
 
         <TabsContent value="configuracion" className="mt-4 md:mt-6">
-          <BillingConfig/>
+          <BillingConfigPage/>
         </TabsContent>
 
         <TabsContent value="pagos" className="mt-4 md:mt-6">
-          <Pagos
-            selectedSchoolCycle={selectedSchoolCycle}
-            setSelectedSchoolCycle={setSelectedSchoolCycle}
-          />
+          <BillingPage selectedSchoolCycle={selectedSchoolCycle} setSelectedSchoolCycle={setSelectedSchoolCycle} />
         </TabsContent>
 
         <TabsContent value="historial" className="mt-4 md:mt-6">

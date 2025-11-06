@@ -123,8 +123,8 @@ export const createBillingConfig = mutation({
       updatedAt: now,
     });
 
-    const billings: unknown = await ctx.runMutation(internal.functions.billing.generatePaymentsForConfig, { billingConfigId: configId })
-
+    const billings: unknown = await ctx.runMutation(internal.functions.billing.generateBillingsForConfig, { billingConfigId: configId })
+    await ctx.runMutation(internal.functions.billingRule.applyBillingPolicies, {});
     return billings;
   },
 });
@@ -194,10 +194,23 @@ export const updateBillingConfig = mutation({
     if (newStartDate > newEndDate) {
       throw new Error("La fecha de inicio debe ser anterior a la fecha de fin");
     }
-
     const updateData: Partial<typeof existing> = {
       updatedAt: Date.now(),
+      updatedBy: args.updatedBy,
     };
+
+    if (args.schoolCycleId !== undefined) updateData.schoolCycleId = args.schoolCycleId;
+    if (args.scope !== undefined) updateData.scope = args.scope;
+    if (args.targetGroup !== undefined) updateData.targetGroup = args.targetGroup;
+    if (args.targetGrade !== undefined) updateData.targetGrade = args.targetGrade;
+    if (args.targetStudent !== undefined) updateData.targetStudent = args.targetStudent;
+    if (args.recurrence_type !== undefined) updateData.recurrence_type = args.recurrence_type;
+    if (args.type !== undefined) updateData.type = args.type;
+    if (args.amount !== undefined) updateData.amount = args.amount;
+    if (args.ruleIds !== undefined) updateData.ruleIds = args.ruleIds;
+    if (args.startDate !== undefined) updateData.startDate = args.startDate;
+    if (args.endDate !== undefined) updateData.endDate = args.endDate;
+    if (args.status !== undefined) updateData.status = args.status;
 
     switch (args.scope) {
       case 'all_students':
@@ -221,7 +234,10 @@ export const updateBillingConfig = mutation({
 
     await ctx.db.patch(args.id, updateData);
 
-    return args.id;
+    const billings: unknown = await ctx.runMutation(internal.functions.billing.generateBillingsForConfig, { billingConfigId: args.id });
+    await ctx.runMutation(internal.functions.billingRule.applyBillingPolicies, {});
+
+    return billings;
   },
 });
 

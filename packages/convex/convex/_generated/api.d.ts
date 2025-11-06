@@ -10,6 +10,7 @@
 
 import type * as actions_actionsclassSchedule from "../actions/actionsclassSchedule.js";
 import type * as actions_users from "../actions/users.js";
+import type * as crons from "../crons.js";
 import type * as functions_assignment from "../functions/assignment.js";
 import type * as functions_attendance from "../functions/attendance.js";
 import type * as functions_billing from "../functions/billing.js";
@@ -57,6 +58,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   "actions/actionsclassSchedule": typeof actions_actionsclassSchedule;
   "actions/users": typeof actions_users;
+  crons: typeof crons;
   "functions/assignment": typeof functions_assignment;
   "functions/attendance": typeof functions_attendance;
   "functions/billing": typeof functions_billing;
