@@ -54,6 +54,7 @@ import ListStudents from "components/asignaciones/ListStudents";
 import { CrudDialog, useCrudDialog } from '@repo/ui/components/dialog/crud-dialog';
 import { TaskForm } from 'components/tasks/TaskForm';
 import { UseFormReturn } from 'react-hook-form';
+import NotAuth from "../../../../../components/NotAuth";
 
 // Componente principal de contenido (solo se ejecuta cuando está autenticado)
 export default function TaskManagement() {
@@ -285,7 +286,9 @@ export default function TaskManagement() {
     }) ?? [];
 
   return (
-    <div className="space-y-8 p-6">
+    <>
+    {canReadTask? (
+      <div className="space-y-8 p-6">
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
         <div className="relative p-8">
@@ -819,7 +822,14 @@ export default function TaskManagement() {
         close={setListStudentDialogOpen}
         assignmentDetails={assignmentDetails}
       />
-    </div>
+    </div>):(
+      <NotAuth
+                pageName="Asignaciones"
+                pageDetails="Administra las asignaciones"
+                icon={BookText}
+              />
+    )}
+    </>
   );
 }
 
