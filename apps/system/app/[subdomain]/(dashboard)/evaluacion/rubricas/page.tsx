@@ -134,7 +134,7 @@ export default function RubricDashboard() {
     close
   } = useCrudDialog(rubricSchema, {
     name: "",
-    weight: [50],
+    weight: [0],
     maxScore: 100,
     class: "",
     term: "",
@@ -192,6 +192,19 @@ export default function RubricDashboard() {
       : "skip"
   );
   // Sincronizar datos con el store
+  useEffect(() => {
+   if (isOpen && operation === 'edit' && data?._id) {
+    // Buscar la rúbrica a editar
+    const rubricToEdit = rubrics.find(r => r._id === data._id);
+    if (rubricToEdit) {
+      setEditingRubric(rubricToEdit);
+    }
+  } else if (isOpen && operation === 'create') {
+    // Para creación, resetear
+    setEditingRubric(null);
+  }
+}, [isOpen, operation, data, rubrics, setEditingRubric])
+
   useEffect(() => {
     if (allRubricsQuery !== undefined) {
       useGradeRubricStore.getState().setAllRubrics(allRubricsQuery);
@@ -317,9 +330,9 @@ export default function RubricDashboard() {
     const numericWeight = weight / 100;
 
     try {
-      if (operation === 'edit' && data._id) {
+      if (operation === 'edit') {
         await updateGradeRubric({
-          gradeRubricId: data._id as Id<'gradeRubric'>,
+          gradeRubricId: editingRubric?._id as Id<'gradeRubric'>,
           data: {
             name,
             weight: numericWeight,// Convertir el porcentaje del slider a decimal para Convex
@@ -331,7 +344,7 @@ export default function RubricDashboard() {
           },
         });
         toast.success('Rúbrica actualizada correctamente')
-      } else {
+      } else if (operation === 'create') {
         await createGradeRubric({
           classCatalogId,
           termId,
@@ -340,8 +353,10 @@ export default function RubricDashboard() {
           maxScore,
           status: true,
           createdBy: currentUser!._id,
-        });
+        })
         toast.success('Rúbrica creada correctamente')
+      } else {
+        throw new Error('Operación no valida')
       }
       close()
       resetForm()
@@ -357,6 +372,7 @@ export default function RubricDashboard() {
     try {
       await deleteGradeRubric({ gradeRubricId: id as Id<'gradeRubric'>})
       toast.success('Rúbrica eliminada correctamente')
+      close()
     } catch (error) {
       console.error('Error al eliminar la rúbrica:', error)
       toast.error('Error al eliminar rúbrica')
@@ -407,7 +423,7 @@ export default function RubricDashboard() {
                     class: "",
                     term: "",
                     name: '',
-                    weight: [50],
+                    weight: [0],
                     maxScore: 100
                   });
                   openCreate()
@@ -769,33 +785,6 @@ export default function RubricDashboard() {
         deleteConfirmationDescription="Esta acción no se puede deshacer. Se eliminarán todos los datos asociados a esta rúbrica."
       >
         {(form, operation) => {
-          useEffect(() => {
-            if(isOpen && (operation === 'create' || operation === 'edit') && data) {
-              // form.setValue('name', formData.name);
-              // form.setValue('weight', formData.weight);
-              // form.setValue('maxScore', formData.maxScore);
-              // form.setValue('class', formData.class);
-              // form.setValue('term', formData.term);
-              // form.setValue('schoolCycle', formData.schoolCycle)
-              // Sincronizar con el store cuando el diálog se habre
-              setFormData({
-                name: data.name as string || '',
-                weight: data.weight as number[] || [50],
-                maxScore: data.maxScore as number || 100,
-                class: data.class as string || '',
-                term: data.term as string || '',
-                schoolCycle: data.schoolCycle as string || formData.schoolCycle
-              })
-              // Al editar establecer rubica de edición 
-              if(operation === 'edit' && data._id) {
-                const editingRubric = rubrics.find(r => r._id === data._id)
-                if(editingRubric) {
-                  setEditingRubric(editingRubric)
-                }
-              }
-            }
-          }, [isOpen, operation, data, setFormData, setEditingRubric, rubrics, formData.schoolCycle])
-
           return(
           <div className="space-y-4 py-4">
             {/* Nombre */}
@@ -930,8 +919,9 @@ export default function RubricDashboard() {
                       <Input
                         id="maxScore"
                         type="number"
-                        value={field.value as number}
-                        onChange={//field.onChange
+                        value={field.value as number || ' '}
+                        onChange={
+                          // field.onChange
                           (e) => {
                             const value = e.target.value === '' ? 0 : Number.parseInt(e.target.value) || 0
                             field.onChange(value)
@@ -992,7 +982,7 @@ export default function RubricDashboard() {
                                 </div>
                               )}
                             <Slider
-                              value={field.value as number[] || [50]}
+                              value={field.value as number[] || [0]}
                               onValueChange=//{field.onChange}
                               {(value) => {
                                 // Limitar el valor al máximo permitido
