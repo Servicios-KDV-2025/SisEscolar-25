@@ -650,9 +650,6 @@ export default function HorariosPorClasePage() {
   const deleteClassAndSchedulesAction = useAction(
     api.actions.actionsclassSchedule.deleteClassAndSchedules
   );
-  const validateConflictsMutation = useMutation(
-    api.functions.classSchedule.validateScheduleConflicts
-  );
 
   const watchedTeacherId = createForm.watch("teacherId");
   const watchedClassroomId = createForm.watch("classroomId");
@@ -786,6 +783,10 @@ export default function HorariosPorClasePage() {
       );
     } catch (error) {
       //console.error("Error al crear la clase:", error);
+      const message = cleanErrorMessage(error);
+      toast.error("Error al crear la clase", {
+        description: message,
+      });
     }
   };
 
@@ -1044,7 +1045,11 @@ export default function HorariosPorClasePage() {
         }
       );
     } catch (error) {
-      //console.error("Error al eliminar la clase y sus horarios:", error);
+      // Mostrar el mensaje limpio en un toast y no retornar nada para mantener la firma Promise<void>
+      const message = cleanErrorMessage(error);
+      toast.error("Error al eliminar la clase y sus horarios", {
+        description: message,
+      });
     }
   };
 
@@ -1846,7 +1851,7 @@ export default function HorariosPorClasePage() {
             <form
               onSubmit={createForm.handleSubmit(
                 handleCreateSubmit,
-                (errors) => {
+                () => {
                   //console.error("Validation errors:", errors);
                   toast.error("Por favor, revisa el formulario", {
                     description:

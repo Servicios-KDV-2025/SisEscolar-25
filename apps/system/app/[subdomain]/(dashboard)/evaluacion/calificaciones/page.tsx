@@ -454,7 +454,7 @@ export default function GradeManagementDashboard() {
               <Select
                 value={selectedClass}
                 onValueChange={setSelectedClass}
-                disabled={students?.length === 0}
+                disabled={!selectedSchoolCycle}
               >
                 <SelectTrigger className="w-full md:w-48">
                   <SelectValue placeholder="Clase" />

@@ -711,7 +711,7 @@ export default function TaskManagement() {
                     <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3 mb-3">
                       <div 
                         className="flex-1 cursor-pointer"
-                        onClick={() => handleListStudent(task._id)}
+                        onClick={() => (canUpdateTask ? handleListStudent(task._id) : handleViewDetails(task._id))}
                       >
                         <div className="flex flex-col xs:flex-row xs:items-center gap-2 mb-2">
                           <div className="flex items-center">
