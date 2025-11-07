@@ -229,10 +229,10 @@ export const usePermissions = (schoolId?: string) => {
       "update:rubrics": true,
       "delete:rubrics": true,
       // Assignance
-      "create:assignance": false,
-      "read:assignance": false,
+      "create:assignance": true,
+      "read:assignance": true,
       "update:assignance": true,
-      "delete:assignance": false,
+      "delete:assignance": true,
     },
     admin: {
       // Admin tiene casi todos los permisos (excepto eliminar escuelas)
@@ -327,13 +327,13 @@ export const usePermissions = (schoolId?: string) => {
       "update:attendance": true,
       "delete:attendance": false,
       //Rubrics
-      "create:rubrics": true,
+      "create:rubrics": false,
       "read:rubrics": true,
-      "update:rubrics": true,
-      "delete:rubrics": true,
+      "update:rubrics": false,
+      "delete:rubrics": false,
       // Assignance
       "create:assignance": false,
-      "read:assignance": false,
+      "read:assignance": true,
       "update:assignance": false,
       "delete:assignance": false,
     },
@@ -437,7 +437,7 @@ export const usePermissions = (schoolId?: string) => {
       "delete:rubrics": false,
       // Assignance
       "create:assignance": false,
-      "read:assignance": false,
+      "read:assignance": true,
       "update:assignance": false,
       "delete:assignance": false,
     },
@@ -907,3 +907,5 @@ export const usePermissions = (schoolId?: string) => {
     getStudentFilters,
   };
 }
+
+export type UsePermissionsReturnType = ReturnType<typeof usePermissions>;
