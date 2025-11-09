@@ -32,7 +32,7 @@ export function SelectPopover<T extends { _id: string }>({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+      <PopoverTrigger asChild className="truncate">
         <Button
           variant="outline"
           role="combobox"

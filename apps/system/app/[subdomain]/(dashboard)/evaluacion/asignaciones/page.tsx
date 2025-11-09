@@ -287,548 +287,548 @@ export default function TaskManagement() {
 
   return (
     <>
-    {canReadTask? (
-      <div className="space-y-8 p-6">
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
-        <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
-        <div className="relative p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-primary/10 rounded-xl">
-                  <BookText className="h-8 w-8 text-primary" />
+      {canReadTask ? (
+        <div className="space-y-8 p-6">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
+            <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
+            <div className="relative p-8">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-primary/10 rounded-xl">
+                      <BookText className="h-8 w-8 text-primary" />
+                    </div>
+                    <div>
+                      <h1 className="text-4xl font-bold tracking-tight">
+                        Asignaciones
+                      </h1>
+                      <p className="text-lg text-muted-foreground">
+                        Administra las asignaciones de los estudiantes
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-4xl font-bold tracking-tight">
-                    Asignaciones
-                  </h1>
-                  <p className="text-lg text-muted-foreground">
-                    Administra las asignaciones de los estudiantes
-                  </p>
-                </div>
+                {canCreateTask &&
+                  <Button
+                    className="cursor-pointer w-full sm:w-auto"
+                    onClick={openCreate}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Agregar Asignación</span>
+                    <span className="sm:hidden">Agregar Asignación</span>
+                  </Button>
+                }
               </div>
             </div>
-            {canCreateTask &&
-              <Button
-                className="cursor-pointer w-full sm:w-auto"
-                onClick={openCreate}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Agregar Asignación</span>
-                <span className="sm:hidden">Agregar Asignación</span>
-              </Button>
-            }
           </div>
-        </div>
-      </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Filter className="h-5 w-5" />
-                Filtros y Búsqueda
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Filter className="h-5 w-5" />
+                    Filtros y Búsqueda
+                  </CardTitle>
+                  <CardDescription>
+                    Encuentra asignaciones por nombre, grupo, materia, rúbrica,
+                    periodo o estado
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="relative mb-6 w-full md:w-[50%]">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nombre, materia, grupo, rúbrica o descripción..."
+                  value={searchTermTask}
+                  onChange={(e) => setSearchTermTask(e.target.value)}
+                  className="pl-10"
+                />
+                {searchTermTask && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs">
+                      {filteredTasksList.length} resultado{filteredTasksList.length !== 1 ? 's' : ''}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSearchTermTask("")}
+                      className="h-6 w-6 p-0 hover:bg-gray-200"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div className="w-full flex flex-col gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="flex flex-col gap-1">
+                    <Select value={groupFilter} onValueChange={setGroupFilter}>
+                      <SelectTrigger className="w-full cursor-pointer">
+                        <SelectValue placeholder="Selecciona un grupo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los grupos</SelectItem>
+                        {uniqueGradeGroups.map((gg) => (
+                          <SelectItem key={gg.id} value={gg.id}>
+                            {gg.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Select value={subjectFilter} onValueChange={setSubjectFilter}>
+                      <SelectTrigger className="w-full cursor-pointer">
+                        <SelectValue placeholder="Selecciona una materia" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas las materias</SelectItem>
+                        {uniqueSubject.map((subject) => (
+                          <SelectItem key={subject._id} value={subject._id!}>
+                            {subject.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Select value={rubricFilter} onValueChange={setRubricFilter}>
+                      <SelectTrigger className="w-full cursor-pointer">
+                        <SelectValue placeholder="Selecciona una rúbrica " />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas las rúbricas</SelectItem>
+                        {uniqueRubrics.map((rubric) => (
+                          <SelectItem key={rubric._id} value={rubric._id}>
+                            {rubric.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Select value={termFilter} onValueChange={setTermFilter}>
+                      <SelectTrigger className="w-full cursor-pointer">
+                        <SelectValue placeholder="Selecciona un periodo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los periodos</SelectItem>
+                        {uniqueTerm.map((term) => (
+                          <SelectItem key={term._id} value={term._id}>
+                            {term.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Lista de Asignaciones</span>
+                <Badge variant="outline">{filteredTasksList.length} asignaciones</Badge>
               </CardTitle>
               <CardDescription>
-                Encuentra asignaciones por nombre, grupo, materia, rúbrica,
-                periodo o estado
+                Haz clic en una asignación para acceder al panel de calificación de estudiantes.
               </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="relative mb-6 w-full md:w-[50%]">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nombre, materia, grupo, rúbrica o descripción..."
-              value={searchTermTask}
-              onChange={(e) => setSearchTermTask(e.target.value)}
-              className="pl-10"
-            />
-            {searchTermTask && (
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs">
-                  {filteredTasksList.length} resultado{filteredTasksList.length !== 1 ? 's' : ''}
-                </Badge>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSearchTermTask("")}
-                  className="h-6 w-6 p-0 hover:bg-gray-200"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-            )}
-          </div>
-          <div className="w-full flex flex-col gap-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="flex flex-col gap-1">
-                <Select value={groupFilter} onValueChange={setGroupFilter}>
-                  <SelectTrigger className="w-full cursor-pointer">
-                    <SelectValue placeholder="Selecciona un grupo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los grupos</SelectItem>
-                    {uniqueGradeGroups.map((gg) => (
-                      <SelectItem key={gg.id} value={gg.id}>
-                        {gg.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <Select value={subjectFilter} onValueChange={setSubjectFilter}>
-                  <SelectTrigger className="w-full cursor-pointer">
-                    <SelectValue placeholder="Selecciona una materia" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las materias</SelectItem>
-                    {uniqueSubject.map((subject) => (
-                      <SelectItem key={subject._id} value={subject._id!}>
-                        {subject.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <Select value={rubricFilter} onValueChange={setRubricFilter}>
-                  <SelectTrigger className="w-full cursor-pointer">
-                    <SelectValue placeholder="Selecciona una rúbrica " />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las rúbricas</SelectItem>
-                    {uniqueRubrics.map((rubric) => (
-                      <SelectItem key={rubric._id} value={rubric._id}>
-                        {rubric.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <Select value={termFilter} onValueChange={setTermFilter}>
-                  <SelectTrigger className="w-full cursor-pointer">
-                    <SelectValue placeholder="Selecciona un periodo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los periodos</SelectItem>
-                    {uniqueTerm.map((term) => (
-                      <SelectItem key={term._id} value={term._id}>
-                        {term.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Lista de Asignaciones</span>
-            <Badge variant="outline">{filteredTasksList.length} asignaciones</Badge>
-          </CardTitle>
-          <CardDescription>
-            Haz clic en una asignación para acceder al panel de calificación de estudiantes.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AuthLoading>
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">
-                Cargando información de las asignaciones, por favor espere...
-              </p>
-            </div>
-          </AuthLoading>
-          <Authenticated>
-            <div className="space-y-4">
-              {filteredTasksList
-                ?.sort((a, b) => b._creationTime - a._creationTime)
-                .map((task) => (
-                  <div
-                    key={task._id}
-                    className="border rounded-lg p-4 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3 mb-3">
+            </CardHeader>
+            <CardContent>
+              <AuthLoading>
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">
+                    Cargando información de las asignaciones, por favor espere...
+                  </p>
+                </div>
+              </AuthLoading>
+              <Authenticated>
+                <div className="space-y-4">
+                  {filteredTasksList
+                    ?.sort((a, b) => b._creationTime - a._creationTime)
+                    .map((task) => (
                       <div
-                        className="flex-1 cursor-pointer"
-                        onClick={() => handleListStudent(task._id)}
+                        key={task._id}
+                        className="border rounded-lg p-4 hover:shadow-md transition-shadow"
                       >
-                        <div className="flex flex-col xs:flex-row xs:items-center gap-2 mb-2">
-                          <div className="flex items-center">
-                            <FileText className="w-5 h-5 text-blue-600" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold">
-                              {task.gradeRubric?.name ?? "Sin rúbrica"} -{" "}
-                              {task.name}
-                              {task.group && (
-                                <span className="text-sm font-normal text-gray-600 ml-2">
-                                  (Grupo: {task.group.grade}
-                                  {task.group.name})
-                                </span>
-                              )}
-                            </h3>
-                          </div>
-                        </div>
-                        <p className="text-gray-600 mb-2 break-words">{task.description}</p>
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-500">
-                          <span className="flex items-center">
-                            <Calendar className="w-4 h-4 mr-1" />
-                            Vence: {new Date(task.dueDate).toLocaleDateString()} a
-                            las{" "}
-                            {new Date(task.dueDate).toLocaleTimeString("es-MX", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                          <span>Puntuación máxima: {task.maxScore}</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col md:flex-row gap-2 mt-3 md:mt-0">
-                        {canUpdateTask && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openEdit(task)}
-                            className="cursor-pointer"
-                          >
-                            <Edit className="w-4 h-4 mr-1" />
-                            Editar
-                          </Button>
-                        )}
-
-                        {canDeleteTask && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 cursor-pointer"
-                            onClick={() => openDelete(task)}
-                          >
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            Eliminar
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-3 pt-3 border-t md:flex-row md:justify-between md:items-center">
-                      <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
-                        <span className="text-sm">
-                          <span className="font-medium">
-                            {getTaskProgressFromQuery(
-                              task._id,
-                              assignmentsProgress
-                            )?.submittedCount || 0}
-                          </span>{" "}
-                          de{" "}
-                          <span className="font-medium">
-                            {getTaskProgressFromQuery(
-                              task._id,
-                              assignmentsProgress
-                            )?.totalStudents || 0}
-                          </span>{" "}
-                          entregas
-                        </span>
-                        <div className="w-full max-w-xs md:w-32 bg-gray-200 rounded-full h-2">
+                        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3 mb-3">
                           <div
-                            className="bg-green-600 h-2 rounded-full"
-                            style={{
-                              width: `${getTaskProgressFromQuery(task._id, assignmentsProgress)?.progressPercentage || 0}%`,
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-
-                      {canReadTask && (
-                        <div className="mt-2 md:mt-0 flex-shrink-0">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewDetails(task._id)}
-                            className="cursor-pointer w-full md:w-auto"
+                            className="flex-1 cursor-pointer"
+                            onClick={() => handleListStudent(task._id)}
                           >
-                            <Eye className="w-4 h-4 mr-1" />
-                            Ver Entregas
-                          </Button>
+                            <div className="flex flex-col xs:flex-row xs:items-center gap-2 mb-2">
+                              <div className="flex items-center">
+                                <FileText className="w-5 h-5 text-blue-600" />
+                              </div>
+                              <div>
+                                <h3 className="text-lg font-semibold">
+                                  {task.gradeRubric?.name ?? "Sin rúbrica"} -{" "}
+                                  {task.name}
+                                  {task.group && (
+                                    <span className="text-sm font-normal text-gray-600 ml-2">
+                                      (Grupo: {task.group.grade}
+                                      {task.group.name})
+                                    </span>
+                                  )}
+                                </h3>
+                              </div>
+                            </div>
+                            <p className="text-gray-600 mb-2 break-words">{task.description}</p>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-500">
+                              <span className="flex items-center">
+                                <Calendar className="w-4 h-4 mr-1" />
+                                Vence: {new Date(task.dueDate).toLocaleDateString()} a
+                                las{" "}
+                                {new Date(task.dueDate).toLocaleTimeString("es-MX", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                              <span>Puntuación máxima: {task.maxScore}</span>
+                            </div>
+                          </div>
+                          <div className="flex flex-col md:flex-row gap-2 mt-3 md:mt-0">
+                            {canUpdateTask && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openEdit(task)}
+                                className="cursor-pointer"
+                              >
+                                <Edit className="w-4 h-4 mr-1" />
+                                Editar
+                              </Button>
+                            )}
+
+                            {canDeleteTask && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700 cursor-pointer"
+                                onClick={() => openDelete(task)}
+                              >
+                                <Trash2 className="w-4 h-4 mr-1" />
+                                Eliminar
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              {(!filteredTasks || filteredTasks.length === 0) && (
-                <div className="text-center py-12">
+                        <div className="flex flex-col gap-3 pt-3 border-t md:flex-row md:justify-between md:items-center">
+                          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
+                            <span className="text-sm">
+                              <span className="font-medium">
+                                {getTaskProgressFromQuery(
+                                  task._id,
+                                  assignmentsProgress
+                                )?.submittedCount || 0}
+                              </span>{" "}
+                              de{" "}
+                              <span className="font-medium">
+                                {getTaskProgressFromQuery(
+                                  task._id,
+                                  assignmentsProgress
+                                )?.totalStudents || 0}
+                              </span>{" "}
+                              entregas
+                            </span>
+                            <div className="w-full max-w-xs md:w-32 bg-gray-200 rounded-full h-2">
+                              <div
+                                className="bg-green-600 h-2 rounded-full"
+                                style={{
+                                  width: `${getTaskProgressFromQuery(task._id, assignmentsProgress)?.progressPercentage || 0}%`,
+                                }}
+                              ></div>
+                            </div>
+                          </div>
 
-                  <div className="flex flex-col items-center justify-center space-y-4">
-
-                    <BookText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-
-                    <div className="space-y-2 text-center">
-                      <h3 className="text-lg font-medium text-foreground mb-2">
-                        No se encontraron asignaciones
-                      </h3>
-                      {currentRole !== 'tutor' ? (
-                        <p className="text-muted-foreground mb-4">
-                          No hay asignaciones creadas. Crea tu primera asignación para comenzar a calificar.
-                        </p>
-                      ) : (
-                        <>
-                          <p className="text-muted-foreground">Aún no se tiene asignaciones al alumno.</p>
-                          <p className="text-muted-foreground">Si al alumno ya cuenta con asignaciones y no se ve información comunicate con soporte.</p>
-                        </>
-                      )
-                      }
-                    </div>
-                    {canCreateTask &&
-                      <Button
-                        className="cursor-pointer w-full sm:w-auto"
-                        onClick={openCreate}
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        <span className="hidden sm:inline">Agregar Asignación</span>
-                        <span className="sm:hidden">Agregar Asignación</span>
-                      </Button>
-                    }
-                  </div>
-                </div>
-              )}
-            </div>
-          </Authenticated>
-        </CardContent>
-      </Card>
-
-      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              Detalles de: {assignmentDetails?.assignment.name}
-            </DialogTitle>
-          </DialogHeader>
-
-          {assignmentDetails && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <span className="text-sm font-medium text-gray-500">
-                    Clase:
-                  </span>
-                  <p className="text-gray-900">
-                    {assignmentDetails.classCatalog.name}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-gray-500">
-                    Fecha de Entrega:
-                  </span>
-                  <p className="text-gray-900">
-                    {new Date(
-                      assignmentDetails.assignment.dueDate
-                    ).toLocaleDateString("es-MX")}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-gray-500">
-                    Progreso:
-                  </span>
-                  <p className="text-gray-900">
-                    {assignmentDetails.submittedCount}/
-                    {assignmentDetails.totalStudents}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-gray-500">
-                    Estado:
-                  </span>
-                  <Badge
-                    className={
-                      assignmentDetails.submittedCount ===
-                        assignmentDetails.totalStudents
-                        ? "bg-green-100 text-green-800"
-                        : assignmentDetails.submittedCount > 0
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-red-100 text-red-800"
-                    }
-                  >
-                    {assignmentDetails.submittedCount ===
-                      assignmentDetails.totalStudents
-                      ? "Completada"
-                      : assignmentDetails.submittedCount > 0
-                        ? "En Progreso"
-                        : "Sin Entregas"}
-                  </Badge>
-                </div>
-                <div className="text-gray-900 ">
-                  {assignmentDetails.totalStudents > 0 ? (
-                    <div className="flex items-center gap-3">
-                      {/* Barra de progreso visual */}
-                      <div className="flex-1 bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                          style={{
-                            width: `${Math.round((assignmentDetails.submittedCount / assignmentDetails.totalStudents) * 100)}%`,
-                          }}
-                        />
+                          {canReadTask && (
+                            <div className="mt-2 md:mt-0 flex-shrink-0">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewDetails(task._id)}
+                                className="cursor-pointer w-full md:w-auto"
+                              >
+                                <Eye className="w-4 h-4 mr-1" />
+                                Ver Entregas
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      {/* Porcentaje al lado */}
-                      <div className="text-sm font-semibold text-gray-700 min-w-[3rem] text-right">
-                        {Math.round(
-                          (assignmentDetails.submittedCount /
-                            assignmentDetails.totalStudents) *
-                          100
-                        )}
-                        %
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1 bg-gray-200 rounded-full h-2"></div>
-                      <div className="text-sm font-semibold text-gray-700 min-w-[3rem] text-right">
-                        0%
+                    ))}
+                  {(!filteredTasks || filteredTasks.length === 0) && (
+                    <div className="text-center py-12">
+
+                      <div className="flex flex-col items-center justify-center space-y-4">
+
+                        <BookText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+
+                        <div className="space-y-2 text-center">
+                          <h3 className="text-lg font-medium text-foreground mb-2">
+                            No se encontraron asignaciones
+                          </h3>
+                          {currentRole !== 'tutor' ? (
+                            <p className="text-muted-foreground mb-4">
+                              No hay asignaciones creadas. Crea tu primera asignación para comenzar a calificar.
+                            </p>
+                          ) : (
+                            <>
+                              <p className="text-muted-foreground">Aún no se tiene asignaciones al alumno.</p>
+                              <p className="text-muted-foreground">Si al alumno ya cuenta con asignaciones y no se ve información comunicate con soporte.</p>
+                            </>
+                          )
+                          }
+                        </div>
+                        {canCreateTask &&
+                          <Button
+                            className="cursor-pointer w-full sm:w-auto"
+                            onClick={openCreate}
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            <span className="hidden sm:inline">Agregar Asignación</span>
+                            <span className="sm:hidden">Agregar Asignación</span>
+                          </Button>
+                        }
                       </div>
                     </div>
                   )}
                 </div>
-              </div>
+              </Authenticated>
+            </CardContent>
+          </Card>
 
-              {assignmentDetails.submittedStudents.length > 0 && (
-                <div>
-                  <h4 className="text-lg font-semibold text-green-700 mb-3 flex items-center">
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    Estudiantes que Entregaron (
-                    {assignmentDetails.submittedCount})
-                  </h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    {assignmentDetails.submittedStudents
-                      .filter((student) => student !== null)
-                      .map((student, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between gap-2 p-2 bg-green-50 rounded"
-                        >
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="w-4 h-4 text-green-500" />
-                            <span className="text-sm text-green-800">
-                              {student.name}
-                            </span>
+          <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  Detalles de: {assignmentDetails?.assignment.name}
+                </DialogTitle>
+              </DialogHeader>
+
+              {assignmentDetails && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">
+                        Clase:
+                      </span>
+                      <p className="text-gray-900">
+                        {assignmentDetails.classCatalog.name}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">
+                        Fecha de Entrega:
+                      </span>
+                      <p className="text-gray-900">
+                        {new Date(
+                          assignmentDetails.assignment.dueDate
+                        ).toLocaleDateString("es-MX")}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">
+                        Progreso:
+                      </span>
+                      <p className="text-gray-900">
+                        {assignmentDetails.submittedCount}/
+                        {assignmentDetails.totalStudents}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">
+                        Estado:
+                      </span>
+                      <Badge
+                        className={
+                          assignmentDetails.submittedCount ===
+                            assignmentDetails.totalStudents
+                            ? "bg-green-100 text-green-800"
+                            : assignmentDetails.submittedCount > 0
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                        }
+                      >
+                        {assignmentDetails.submittedCount ===
+                          assignmentDetails.totalStudents
+                          ? "Completada"
+                          : assignmentDetails.submittedCount > 0
+                            ? "En Progreso"
+                            : "Sin Entregas"}
+                      </Badge>
+                    </div>
+                    <div className="text-gray-900 ">
+                      {assignmentDetails.totalStudents > 0 ? (
+                        <div className="flex items-center gap-3">
+                          {/* Barra de progreso visual */}
+                          <div className="flex-1 bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                              style={{
+                                width: `${Math.round((assignmentDetails.submittedCount / assignmentDetails.totalStudents) * 100)}%`,
+                              }}
+                            />
                           </div>
-                          <span className="text-xs text-green-600">
-                            {student.grade !== null
-                              ? `${student.grade}/${assignmentDetails.assignment.maxScore}`
-                              : "Sin calificar"}
-                          </span>
+                          {/* Porcentaje al lado */}
+                          <div className="text-sm font-semibold text-gray-700 min-w-[3rem] text-right">
+                            {Math.round(
+                              (assignmentDetails.submittedCount /
+                                assignmentDetails.totalStudents) *
+                              100
+                            )}
+                            %
+                          </div>
                         </div>
-                      ))}
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 bg-gray-200 rounded-full h-2"></div>
+                          <div className="text-sm font-semibold text-gray-700 min-w-[3rem] text-right">
+                            0%
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
+
+                  {assignmentDetails.submittedStudents.length > 0 && (
+                    <div>
+                      <h4 className="text-lg font-semibold text-green-700 mb-3 flex items-center">
+                        <CheckCircle className="w-5 h-5 mr-2" />
+                        Estudiantes que Entregaron (
+                        {assignmentDetails.submittedCount})
+                      </h4>
+                      <div className="grid grid-cols-2 gap-2">
+                        {assignmentDetails.submittedStudents
+                          .filter((student) => student !== null)
+                          .map((student, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center justify-between gap-2 p-2 bg-green-50 rounded"
+                            >
+                              <div className="flex items-center gap-2">
+                                <CheckCircle className="w-4 h-4 text-green-500" />
+                                <span className="text-sm text-green-800">
+                                  {student.name}
+                                </span>
+                              </div>
+                              <span className="text-xs text-green-600">
+                                {student.grade !== null
+                                  ? `${student.grade}/${assignmentDetails.assignment.maxScore}`
+                                  : "Sin calificar"}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {assignmentDetails.pendingStudents.length > 0 && (
+                    <div>
+                      <h4 className="text-lg font-semibold text-red-700 mb-3 flex items-center">
+                        <XCircle className="w-5 h-5 mr-2" />
+                        Estudiantes Pendientes ({assignmentDetails.pendingCount})
+                      </h4>
+                      <div className="grid grid-cols-2 gap-2">
+                        {assignmentDetails.pendingStudents
+                          .filter((student) => student !== null)
+                          .map((student, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-2 p-2 bg-red-50 rounded"
+                            >
+                              <XCircle className="w-4 h-4 text-red-500" />
+                              <span className="text-sm text-red-800">
+                                {student.name}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
+            </DialogContent>
+          </Dialog>
 
-              {assignmentDetails.pendingStudents.length > 0 && (
-                <div>
-                  <h4 className="text-lg font-semibold text-red-700 mb-3 flex items-center">
-                    <XCircle className="w-5 h-5 mr-2" />
-                    Estudiantes Pendientes ({assignmentDetails.pendingCount})
-                  </h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    {assignmentDetails.pendingStudents
-                      .filter((student) => student !== null)
-                      .map((student, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-2 p-2 bg-red-50 rounded"
-                        >
-                          <XCircle className="w-4 h-4 text-red-500" />
-                          <span className="text-sm text-red-800">
-                            {student.name}
-                          </span>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <CrudDialog
-        operation={operation}
-        title={
-          operation === "create"
-            ? "Crear Nueva Asignación"
-            : operation === "edit"
-              ? "Editar Asignación"
-              : "Ver Asignación"
-        }
-        description={
-          operation === "create"
-            ? "Define una nueva Asignación para tus estudiantes"
-            : operation === "edit"
-              ? "Modifica los datos de la asignación"
-              : "Información de la asignación"
-        }
-        schema={taskFormSchema}
-        defaultValues={{
-          name: '',
-          description: '',
-          dueDate: '',
-          dueTime: '23:59',
-          maxScore: '',
-          classCatalogId: '',
-          termId: '',
-          gradeRubricId: '',
-        }}
-        data={
-          operation === "edit" && data
-            ? {
-              ...data,
-              // Transformar el timestamp de dueDate a string en formato YYYY-MM-DD
-              dueDate: data.dueDate
-                ? new Date(data.dueDate as number).toISOString().split('T')[0]
-                : '',
-              // Extraer la hora del timestamp
-              dueTime: data.dueDate
-                ? new Date(data.dueDate as number).toTimeString().slice(0, 5)
-                : '23:59',
-              // Convertir maxScore de número a string
-              maxScore: data.maxScore ? data.maxScore.toString() : '',
-            }
-            : data
-        }
-        isOpen={isOpen}
-        onOpenChange={close}
-        onSubmit={handleSubmit}
-        onDelete={handleDelete}
-      >
-        {(form, operation) => (
-          <TaskForm
-            form={form as unknown as UseFormReturn<TaskFormData>}
+          <CrudDialog
             operation={operation}
-            teacherClasses={teacherClasses}
-            allTerms={allTerms}
-            gradeRubrics={gradeRubrics} // Esto ahora funcionará porque el store se actualiza
-          />
-        )}
-      </CrudDialog>
-
-      <ListStudents
-        open={listStudentDialogOpen}
-        close={setListStudentDialogOpen}
-        assignmentDetails={assignmentDetails}
-      />
-    </div>):(
-      <NotAuth
-                pageName="Asignaciones"
-                pageDetails="Administra las asignaciones"
-                icon={BookText}
+            title={
+              operation === "create"
+                ? "Crear Nueva Asignación"
+                : operation === "edit"
+                  ? "Editar Asignación"
+                  : "Ver Asignación"
+            }
+            description={
+              operation === "create"
+                ? "Define una nueva Asignación para tus estudiantes"
+                : operation === "edit"
+                  ? "Modifica los datos de la asignación"
+                  : "Información de la asignación"
+            }
+            schema={taskFormSchema}
+            defaultValues={{
+              name: '',
+              description: '',
+              dueDate: '',
+              dueTime: '23:59',
+              maxScore: '',
+              classCatalogId: '',
+              termId: '',
+              gradeRubricId: '',
+            }}
+            data={
+              operation === "edit" && data
+                ? {
+                  ...data,
+                  // Transformar el timestamp de dueDate a string en formato YYYY-MM-DD
+                  dueDate: data.dueDate
+                    ? new Date(data.dueDate as number).toISOString().split('T')[0]
+                    : '',
+                  // Extraer la hora del timestamp
+                  dueTime: data.dueDate
+                    ? new Date(data.dueDate as number).toTimeString().slice(0, 5)
+                    : '23:59',
+                  // Convertir maxScore de número a string
+                  maxScore: data.maxScore ? data.maxScore.toString() : '',
+                }
+                : data
+            }
+            isOpen={isOpen}
+            onOpenChange={close}
+            onSubmit={handleSubmit}
+            onDelete={handleDelete}
+          >
+            {(form, operation) => (
+              <TaskForm
+                form={form as unknown as UseFormReturn<TaskFormData>}
+                operation={operation}
+                teacherClasses={teacherClasses}
+                allTerms={allTerms}
+                gradeRubrics={gradeRubrics}
               />
-    )}
+            )}
+          </CrudDialog>
+
+          <ListStudents
+            open={listStudentDialogOpen}
+            close={setListStudentDialogOpen}
+            assignmentDetails={assignmentDetails}
+          />
+        </div>) : (
+        <NotAuth
+          pageName="Asignaciones"
+          pageDetails="Administra las asignaciones"
+          icon={BookText}
+        />
+      )}
     </>
   );
 }

@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { action, internalQuery, internalMutation } from "../_generated/server";
-import { Doc, Id } from "../_generated/dataModel";
+import { Doc } from "../_generated/dataModel";
 import Stripe from "stripe";
 import { internal } from "../_generated/api";
 

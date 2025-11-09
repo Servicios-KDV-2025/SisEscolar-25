@@ -1,4 +1,3 @@
-// TaskForm.tsx
 import { UseFormReturn, useWatch } from "react-hook-form";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@repo/ui/components/shadcn/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select";
@@ -187,6 +186,7 @@ export function TaskForm({
                 placeholder="Ej: Ejercicios de Álgebra"
                 {...field}
                 disabled={operation === "view"}
+                required
               />
             </FormControl>
             <FormMessage />
@@ -263,9 +263,11 @@ export function TaskForm({
             <FormControl>
               <Input
                 type="number"
-                placeholder="100"
+                placeholder="Máxima puntuación 100"
                 {...field}
                 disabled={operation === "view"}
+                min={1}
+                max={100}
               />
             </FormControl>
             <FormMessage />
