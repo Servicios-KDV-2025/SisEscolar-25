@@ -201,7 +201,7 @@ export const getTutorStudentsRecentActivity = query({
           _id: event._id,
           eventName: eventType?.name || 'Evento',
           description: event.description || eventType?.description || '',
-          eventDate: event.date,
+          eventDate: event.startDate,
           createdAt: event.createdAt,
         };
       })

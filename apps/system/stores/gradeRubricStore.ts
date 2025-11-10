@@ -89,7 +89,7 @@ interface GradeRubricStore {
 
 const initialFormData: RubricFormData = {
   name: "",
-  weight: [50],
+  weight: [0],
   maxScore: 100,
   schoolCycle: "",
   class: "",

@@ -174,7 +174,7 @@ export function useTutorDashboard({
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     const formattedEvents = upcomingEvents.map((event) => {
-      const eventDate = new Date(event.date);
+      const eventDate = new Date(event.startDate);
       const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
       
       const timeDiff = eventDay.getTime() - today.getTime();
