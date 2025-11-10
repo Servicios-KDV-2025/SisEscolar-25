@@ -432,8 +432,6 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
             </TableHeader>
             <TableBody>
               {students?.map((student) => {
-                const status = getSubmissionStatus(student._id)
-
                 const currentScore = getSafeValue(student._id, 'score')
                 const currentComments = getSafeValue(student._id, 'comments')
                 const studentName = `${student.student?.name} ${student.student?.lastName || ''}`.trim()
