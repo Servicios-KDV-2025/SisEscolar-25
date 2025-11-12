@@ -21,6 +21,26 @@ export const termSchema = z.object({
 }, {
   message: "La fecha de fin debe ser posterior a la fecha de inicio",
   path: ["endDate"],
+
+  // Nov7: validacion de duración minima y maxima del periodo
+}).refine((data) => {
+  const startDate = new Date(data.startDate);
+  const endDate = new Date(data.endDate);
+  const diffInMs = endDate.getTime() - startDate.getTime();
+  const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+  return diffInDays >= 28;
+}, {
+  message: "El período debe durar al menos 28 días",
+  path: ["endDate"],
+}).refine((data) => {
+  const startDate = new Date(data.startDate);
+  const endDate = new Date(data.endDate);
+  const diffInMs = endDate.getTime() - startDate.getTime();
+  const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+  return diffInDays <= 120; // 4 meses = ~120 días
+}, {
+  message: "El período no puede durar más de 4 meses (120 días)",
+  path: ["endDate"],
 });
 
 export type TermFormValues = z.infer<typeof termSchema>;
