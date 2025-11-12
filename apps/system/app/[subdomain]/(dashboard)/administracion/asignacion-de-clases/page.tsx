@@ -29,6 +29,7 @@ import { usePermissions } from 'hooks/usePermissions'
 import { type ClassCatalogWithDetails, useClassCatalogWithPermissions } from 'stores/classCatalogStore'
 import { useCicloEscolarWithConvex } from 'stores/useSchoolCiclesStore'
 import { ChartNoAxesCombined } from 'lucide-react'
+import MassAssignmentStudets from "components/classAssignment/MassAssignmentStudents"
 
 export default function StudentClassesDashboard() {
   const { user: clerkUser } = useUser();
@@ -90,6 +91,7 @@ export default function StudentClassesDashboard() {
   const [groupFilter, setGroupFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [activeTab, setActiveTab] = useState("enrollments")
+  const [isMassAssignmentOpen, setIsMassAssignmentOpen] = useState(false)
 
   const {
     isOpen,
@@ -261,7 +263,7 @@ export default function StudentClassesDashboard() {
                       <Button
                         size="lg"
                         className="gap-2"
-                        onClick={openCreate}
+                        onClick={() => setIsMassAssignmentOpen(true)}
                         disabled={isLoading || !currentSchool}
                       >
                         <Plus className="w-4 h-4" />
@@ -770,6 +772,16 @@ export default function StudentClassesDashboard() {
                 </div>
               </TabsContent>
             </Tabs>
+            {/* Modal de asignación masiva */}
+            {currentSchool && (
+              <MassAssignmentStudets
+                isOpen={isMassAssignmentOpen}
+                onClose={() => setIsMassAssignmentOpen(false)}
+                schoolId={currentSchool.school._id as Id<'school'>}
+                students={students || []}
+                classCatalogs={ClassCatalog || []}
+              />
+            )}
 
             <CrudDialog
               isOpen={isOpen}
