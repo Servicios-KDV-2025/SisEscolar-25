@@ -235,10 +235,10 @@ export const usePermissions = (schoolId?: string) => {
       "update:rubrics": true,
       "delete:rubrics": true,
       // Assignance
-      "create:assignance": false,
-      "read:assignance": false,
+      "create:assignance": true,
+      "read:assignance": true,
       "update:assignance": true,
-      "delete:assignance": false,
+      "delete:assignance": true,
       // Term Averages
       "create:termAverages": false,  // Solo lectura
       "read:termAverages": true,
@@ -343,10 +343,10 @@ export const usePermissions = (schoolId?: string) => {
       "update:rubrics": true,
       "delete:rubrics": true,
       // Assignance
-      "create:assignance": false,
-      "read:assignance": false,
-      "update:assignance": false,
-      "delete:assignance": false,
+      "create:assignance": true,
+      "read:assignance": true,
+      "update:assignance": true,
+      "delete:assignance": true,
       // Term Averages
       "create:termAverages": false,  // Solo lectura
       "read:termAverages": true,
@@ -453,7 +453,7 @@ export const usePermissions = (schoolId?: string) => {
       "delete:rubrics": false,
       // Assignance
       "create:assignance": false,
-      "read:assignance": false,
+      "read:assignance": true,
       "update:assignance": false,
       "delete:assignance": false,
       // Term Averages
