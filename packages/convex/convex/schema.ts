@@ -65,6 +65,11 @@ const applicationTable = defineSchema({
     status: v.union(v.literal("active"), v.literal("inactive")),
     createdAt: v.number(),
     updatedAt: v.number(),
+    stripeAccountId: v.optional(v.string()),
+    stripeAccountStatus: v.optional(
+      v.union(v.literal("enabled"), v.literal("disabled"), v.literal("pending"))
+    ),
+    stripeOnboardingComplete: v.optional(v.boolean()),
   })
     .index("by_subdomain", ["subdomain"])
     .index("by_name", ["name"])
@@ -73,17 +78,22 @@ const applicationTable = defineSchema({
     .index("by_phone", ["phone"])
     .index("by_email", ["email"])
     .index("by_status", ["status"]),
+
   //estudiantes
   student: defineTable({
     schoolId: v.id("school"),
     groupId: v.id("group"),
     tutorId: v.id("user"),
     enrollment: v.string(),
+    schoolCycleId: v.optional(v.id("schoolCycle")),
+    credit: v.optional(v.number()),
     name: v.string(),
     lastName: v.optional(v.string()),
     birthDate: v.optional(v.number()),
     admissionDate: v.optional(v.number()),
     imgUrl: v.optional(v.string()),
+    scholarshipType: v.union(v.literal("inactive"), v.literal("active")),
+    scholarshipPercentage: v.optional(v.number()),
     status: v.union(v.literal("active"), v.literal("inactive")),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -108,6 +118,7 @@ const applicationTable = defineSchema({
   })
     .index("by_school", ["schoolId"])
     .index("by_status", ["status"])
+    .index("by_school_status", ["schoolId", "status"])
     .index("by_school_and_name", ["schoolId", "name"]), // Índice único compuesto
 
   //Materias
@@ -122,7 +133,8 @@ const applicationTable = defineSchema({
   })
     .index("by_school", ["schoolId"])
     .index("by_status", ["status"])
-    .index("by_name", ["name"]),
+    .index("by_name", ["name"])
+    .index("by_school_and_name", ["schoolId", "name"]),
 
   //Aulas
   classroom: defineTable({
@@ -250,8 +262,8 @@ const applicationTable = defineSchema({
     .index("by_term", ["termId"]),
   //Fk
 
-    //Clases
-    classCatalog: defineTable({
+  //Clases
+  classCatalog: defineTable({
     schoolId: v.id("school"),
     schoolCycleId: v.id("schoolCycle"),
     subjectId: v.id("subject"),
@@ -294,14 +306,14 @@ const applicationTable = defineSchema({
 
   //Asistencia
   attendance: defineTable({
-    schoolId: v.optional(v.id('school')),
+    schoolId: v.optional(v.id("school")),
     studentClassId: v.id("studentClass"),
     date: v.number(),
     attendanceState: v.union(
-      v.literal('present'),
-      v.literal('absent'),
-      v.literal('justified'),
-      v.literal('unjustified'),
+      v.literal("present"),
+      v.literal("absent"),
+      v.literal("justified"),
+      v.literal("unjustified")
     ),
     comments: v.optional(v.string()),
     createdBy: v.id("user"),
@@ -317,7 +329,11 @@ const applicationTable = defineSchema({
   calendar: defineTable({
     schoolCycleId: v.id("schoolCycle"),
     schoolId: v.id("school"),
-    date: v.number(),
+    title: v.string(),
+    allDay: v.boolean(),
+    location: v.optional(v.string()),
+    startDate: v.number(),
+    endDate: v.number(),
     eventTypeId: v.id("eventType"),
     description: v.optional(v.string()),
     status: v.union(v.literal("active"), v.literal("inactive")),
@@ -326,7 +342,7 @@ const applicationTable = defineSchema({
   })
     .index("by_school", ["schoolId"])
     .index("by_cycle", ["schoolCycleId"])
-    .index("by_date", ["date"]),
+    .index("by_cycle_and_start_date", ["schoolCycleId", "startDate"]),
 
   //Tipos de eventos del calendario escolar
   eventType: defineTable({
@@ -367,6 +383,150 @@ const applicationTable = defineSchema({
   })
     .index("by_schoolId", ["schoolId"])
     .index("by_stripeSubscriptionId", ["stripeSubscriptionId"])
+    .index("by_status", ["status"]),
+
+  billing: defineTable({
+    studentId: v.id("student"),
+    billingConfigId: v.id("billingConfig"),
+    status: v.union(
+      v.literal("Pago pendiente"),
+      v.literal("Pago cumplido"),
+      v.literal("Pago vencido"),
+      v.literal("Pago parcial"),
+      v.literal("Pago retrasado")
+    ),
+    amount: v.number(),
+    lateFee: v.optional(v.number()),
+    totalAmount: v.optional(v.number()),
+    paidAt: v.optional(v.number()),
+    appliedDiscounts: v.optional(v.array(v.object({
+      ruleId: v.optional(v.id("billingRule")),
+      reason: v.string(),
+      amount: v.number(),
+      percentage: v.optional(v.number()),
+      type: v.union(v.literal("scholarship"), v.literal("rule"))
+    }))),
+    totalDiscount: v.optional(v.number()),
+    lateFeeRuleId: v.optional(v.id("billingRule")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_student", ["studentId"])
+    .index("by_billingConfig", ["billingConfigId"])
+    .index("by_status", ["status"])
+    .index("by_student_and_config", ["studentId", "billingConfigId"]),
+
+  billingConfig: defineTable({
+    schoolId: v.id("school"),
+    schoolCycleId: v.id("schoolCycle"),
+    scope: v.union(
+      v.literal("all_students"),
+      v.literal("specific_groups"),
+      v.literal("specific_grades"),
+      v.literal("specific_students")
+    ),
+    targetGroup: v.optional(v.array(v.id("group"))),
+    targetGrade: v.optional(v.array(v.string())),
+    targetStudent: v.optional(v.array(v.id("student"))),
+    recurrence_type: v.union(
+      v.literal("cuatrimestral"),
+      v.literal("semestral"),
+      v.literal("sabatino"),
+      v.literal("mensual"),
+      v.literal("diario"),
+      v.literal("semanal"),
+      v.literal("anual"),
+      v.literal("unico")
+    ),
+    type: v.union(
+      v.literal("inscripción"),
+      v.literal("colegiatura"),
+      v.literal("examen"),
+      v.literal("material-escolar"),
+      v.literal("seguro-vida"),
+      v.literal("plan-alimenticio"),
+      v.literal("otro")
+    ),
+    amount: v.number(),
+    startDate: v.number(),
+    endDate: v.number(),
+    ruleIds: v.optional(v.array(v.id("billingRule"))),
+    createdBy: v.id("user"),
+    updatedBy: v.id("user"),
+    status: v.union(
+      v.literal("required"),
+      v.literal("optional"),
+      v.literal("inactive")
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_school", ["schoolId"])
+    .index("by_schoolCycle", ["schoolCycleId"])
+    .index("by_status", ["status"])
+    .index("by_type", ["type"])
+    .index("by_recurrence_type", ["recurrence_type"])
+    .index("by_scope", ["scope"])
+    .index("by_group", ["targetGroup"])
+    .index("by_grade", ["targetGrade"])
+    .index("by_student", ["targetStudent"]),
+
+  payments: defineTable({
+    billingId: v.id("billing"),
+    studentId: v.id("student"),
+    method: v.union(
+      v.literal("cash"),
+      v.literal("bank_transfer"),
+      v.literal("card"),
+      v.literal("other")
+    ),
+    amount: v.number(),
+    invoiceId: v.optional(v.string()),
+    invoiceFilename: v.optional(v.string()),
+    invoiceMimeType: v.optional(v.string()),
+    createdBy: v.id("user"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    stripePaymentIntentId: v.optional(v.string()),
+    stripeTransferId: v.optional(v.string()),
+    stripeChargeId: v.optional(v.string()),
+  })
+    .index("by_billing", ["billingId"])
+    .index("by_student", ["studentId"])
+    .index("by_method", ["method"])
+    .index("by_stripePaymentIntentId", ["stripePaymentIntentId"]),
+
+  billingRule: defineTable({
+    schoolId: v.id("school"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    type: v.union(
+      v.literal("late_fee"),
+      v.literal("early_discount"),
+      v.literal("cutoff")
+    ),
+    scope: v.union(
+      v.literal("estandar"),
+      v.literal("becarios"),
+      v.literal("all_students")
+    ),
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    lateFeeType: v.optional(
+      v.union(v.literal("percentage"), v.literal("fixed"))
+    ),
+    lateFeeValue: v.optional(v.number()),
+    startDay: v.optional(v.number()),
+    endDay: v.optional(v.number()),
+    maxUses: v.optional(v.number()),
+    usedCount: v.optional(v.number()),
+    cutoffAfterDays: v.optional(v.number()),
+    createdBy: v.id("user"),
+    updatedBy: v.id("user"),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_school", ["schoolId"])
+    .index("by_type", ["type"])
     .index("by_status", ["status"]),
 });
 

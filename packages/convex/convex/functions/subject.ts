@@ -57,10 +57,11 @@ export const createSubjectWithSchoolId = mutation({
             );
         }
 
-        const existingSubject = await ctx.db
+            const existingSubject = await ctx.db
             .query("subject")
-            .withIndex("by_name", q =>
-                q.eq("name", args.name)
+            .withIndex("by_school_and_name", q =>
+                q.eq("schoolId", args.schoolId) 
+                 .eq("name", args.name)
             )
             .first();
 

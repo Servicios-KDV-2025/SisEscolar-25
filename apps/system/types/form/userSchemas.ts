@@ -205,6 +205,7 @@ export const studentSchema = z.object({
   schoolId: z.string(),
   groupId: z.string(),
   tutorId: z.string(),
+  schoolCycleId: z.string(),
   enrollment: z.string(),
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
   lastName: z.string().optional(),
@@ -212,7 +213,20 @@ export const studentSchema = z.object({
   admissionDate: z.number().optional(),
   imgUrl: z.string().optional(),
   status: z.enum(["active", "inactive"]).default("active"),
-});
+  scholarshipType: z.union([z.literal("inactive"), z.literal("active")]),
+  scholarshipPercentage: z.number().max(100, "El porcentaje debe ser menor a 100").optional(),
+}).refine(
+    (data) => {
+      if (data.scholarshipType === "active") {
+        return data.scholarshipPercentage && data.scholarshipPercentage > 0;
+      }
+      return true;
+    },
+    {
+      message: "El porcentaje no puede ser 0",
+      path: ["scholarshipPercentage"],
+    }
+  );
 
 // -----------------------------------------------------
 // TIPOS DERIVADOS

@@ -4,42 +4,13 @@ import { useEffect, useMemo } from "react";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@repo/ui/components/shadcn/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@repo/ui/components/shadcn/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@repo/ui/components/shadcn/table";
-import { Switch } from "@repo/ui/components/shadcn/switch";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@repo/ui/components/shadcn/dialog";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@repo/ui/components/shadcn/select";
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@repo/ui/components/shadcn/table";
+import { Switch } from "@repo/ui/components/shadcn/switch"
 import { Label } from "@repo/ui/components/shadcn/label";
 import { Slider } from "@repo/ui/components/shadcn/slider";
 import { Badge } from "@repo/ui/components/shadcn/badge";
-import {
-  AlertCircle,
-  AlertTriangle,
-  Pencil,
-  Plus,
-  Trash2,
-  BadgeCheck,
-  CircleX,
-  Filter,
-  ClipboardPenLine,
-} from "@repo/ui/icons";
+import {AlertCircle, AlertTriangle, Pencil, Plus, Trash2, BadgeCheck, CircleX, Filter, ClipboardPenLine,} from "@repo/ui/icons";
 // Importaciones de Convex
 import { api } from "@repo/convex/convex/_generated/api";
 import { useQuery, useMutation } from "convex/react";
@@ -48,9 +19,15 @@ import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { useUser } from "@clerk/nextjs";
 import { useUserWithConvex } from "../../../../../stores/userStore";
-import { useGradeRubricStore } from "../../../../../stores/gradeRubricStore";
+import {  useGradeRubricStore } from "../../../../../stores/gradeRubricStore";
 import { usePermissions } from 'hooks/usePermissions';
-
+import { CrudDialog, useCrudDialog, WithId } from "@repo/ui/components/dialog/crud-dialog";
+import { RubricFormValues, rubricSchema } from "schema/rubric"
+import { toast } from "sonner"
+import { FormField, FormLabel } from "@repo/ui/components/shadcn/form";
+import { SelectPopover } from "components/selectPopover";
+import { ClassCatalog, useClassCatalogWithPermissions } from "stores/classCatalogStore";
+import { Term } from "stores/termStore";
 // Tipo para rúbricas con datos extendidos
 type RubricWithDetails = {
   classCatalogName: string;
@@ -79,31 +56,24 @@ export default function RubricDashboard() {
     selectedSchoolCycle,
     selectedClass,
     selectedTerm,
-    selectedClassSchoolCycleName,
     rubrics,
     rubricPercentage,
-    isModalOpen,
     editingRubric,
     formData,
-
     // Acciones de filtros
     setSelectedSchoolCycle,
     setSelectedClass,
     setSelectedTerm,
     setSelectedClassSchoolCycleName,
     clearFilters,
-
     // Acciones del modal
-    setModalOpen,
     setEditingRubric,
     setFormData,
     resetForm,
-
     // Cálculos
     getTotalWeight,
     getAvailableWeight,
     canActivateRubric,
-    canCreateRubric,
     getValidationMessage,
     isNameDuplicate,
     getDuplicateInfo,
@@ -111,7 +81,6 @@ export default function RubricDashboard() {
 
   const { user: clerkUser } = useUser();
   const { currentUser } = useUserWithConvex(clerkUser?.id);
-
   // Get current school information using the subdomain
   const { currentSchool, isLoading: schoolLoading } = useCurrentSchool(
     currentUser?._id
@@ -129,7 +98,6 @@ export default function RubricDashboard() {
   const studentFilters = useMemo(() => {
     return getStudentFilters?.() || { canViewAll: false };
   }, [getStudentFilters]);
-
   // Obtener el ciclo escolar activo
   const activeSchoolCycle = useQuery(
     api.functions.schoolCycles.ObtenerCicloActivo,
@@ -151,13 +119,34 @@ export default function RubricDashboard() {
     } : 'skip'
   );
 
+  const {
+    isOpen,
+    operation,
+    data,
+    openCreate,
+    openEdit,
+    openDelete,
+    close
+  } = useCrudDialog(rubricSchema, {
+    name: "",
+    weight: [0],
+    maxScore: 100,
+    class: "",
+    term: "",
+    }
+  );
+
+  const { classCatalogs } = useClassCatalogWithPermissions(
+    currentSchool?.school._id,
+    getStudentFilters
+  )
+
   const terms = useQuery(
     api.functions.terms.getTermsByCycleId,
     selectedSchoolCycle
       ? { schoolCycleId: selectedSchoolCycle as Id<"schoolCycle"> }
       : "skip"
   );
-
   // Consulta para obtener todas las rúbricas cuando no hay filtros específicos
   const allRubricsQuery = useQuery(
     api.functions.gradeRubrics.getAllGradeRubricsBySchool,
@@ -171,7 +160,6 @@ export default function RubricDashboard() {
       }
       : "skip"
   );
-
   // Consulta para obtener rúbricas filtradas cuando se seleccionan filtros específicos
   const filteredRubricsQuery = useQuery(
     api.functions.gradeRubrics.getGradeRubricByClassAndTerm,
@@ -185,7 +173,6 @@ export default function RubricDashboard() {
       }
       : "skip"
   );
-
   // Consulta para obtener el porcentaje de rúbricas por clase y período
   const rubricPercentageQuery = useQuery(
     api.functions.gradeRubrics.getRubricPercentageByClassAndTerm,
@@ -199,8 +186,20 @@ export default function RubricDashboard() {
       }
       : "skip"
   );
-
   // Sincronizar datos con el store
+  useEffect(() => {
+    if (isOpen && operation === 'edit' && data?._id) {
+      // Buscar la rúbrica a editar
+      const rubricToEdit = rubrics.find(r => r._id === data._id);
+      if (rubricToEdit) {
+        setEditingRubric(rubricToEdit);
+      }
+    } else if (isOpen && operation === 'create') {
+      // Para creación, resetear
+      setEditingRubric(null);
+    }
+  }, [isOpen, operation, data, rubrics, setEditingRubric])
+
   useEffect(() => {
     if (allRubricsQuery !== undefined) {
       useGradeRubricStore.getState().setAllRubrics(allRubricsQuery);
@@ -218,7 +217,6 @@ export default function RubricDashboard() {
       useGradeRubricStore.getState().setRubricPercentage(rubricPercentageQuery);
     }
   }, [rubricPercentageQuery]);
-
   // Determinar qué rúbricas mostrar
   useEffect(() => {
     const currentRubrics =
@@ -227,7 +225,6 @@ export default function RubricDashboard() {
       useGradeRubricStore.getState().setRubrics(currentRubrics);
     }
   }, [selectedClass, selectedTerm, filteredRubricsQuery, allRubricsQuery]);
-
   // Establecer el ciclo activo como valor inicial
   useEffect(() => {
     if (activeSchoolCycle && !selectedSchoolCycle) {
@@ -235,6 +232,14 @@ export default function RubricDashboard() {
     }
   }, [activeSchoolCycle, selectedSchoolCycle, setSelectedSchoolCycle]);
 
+  useEffect(() => {
+    if (activeSchoolCycle && !formData.schoolCycle) {
+      const activeCycleName = schoolCycles?.find(cycle => cycle._id === activeSchoolCycle._id)?.name || "Ciclo Escolar";
+      setFormData({
+        schoolCycle: activeCycleName,
+      });
+    }
+  }, [activeSchoolCycle, schoolCycles, formData.schoolCycle, setFormData])
   // Ajustar automáticamente el valor del slider cuando el porcentaje disponible sea menor
   useEffect(() => {
     // Solo ejecutar cuando hay datos de formulario y porcentaje disponible
@@ -244,12 +249,10 @@ export default function RubricDashboard() {
         setFormData({ weight: [availableWeight] });
       }
     }
-  }, [formData.class, formData.term, formData.weight, setFormData, getAvailableWeight]);
-
+  }, [formData.class, formData.term, formData.weight, setFormData, getAvailableWeight])
   // Función para manejar el cambio de clase
   const handleClassChange = (classId: string) => {
     setSelectedClass(classId);
-
     // Buscar la clase seleccionada y obtener el nombre del ciclo escolar
     const selectedClassData = classes?.find((clase) => clase._id === classId);
     if (selectedClassData?.schoolCycle) {
@@ -268,23 +271,6 @@ export default function RubricDashboard() {
   const deleteGradeRubric = useMutation(
     api.functions.gradeRubrics.deleteGradeRubric
   );
-
-  const handleOpenModal = (rubric?: RubricWithDetails) => {
-    if (rubric) {
-      setEditingRubric(rubric);
-    } else {
-      resetForm();
-      // Obtener el nombre del ciclo escolar activo
-      const activeCycleName = schoolCycles?.find(cycle => cycle._id === selectedSchoolCycle)?.name || "Ciclo Escolar";
-      setFormData({
-        schoolCycle: activeCycleName,
-        class: selectedClass || "",
-        term: selectedTerm || "",
-      });
-    }
-    setModalOpen(true);
-  };
-
   // La baja lógica ahora se maneja con la mutación de actualización
   const handleToggleStatus = async (
     rubricId: Id<"gradeRubric">,
@@ -295,7 +281,6 @@ export default function RubricDashboard() {
       const rubricToActivate = rubrics.find((r) => r._id === rubricId);
       if (!rubricToActivate) return;
     }
-
     await updateGradeRubric({
       gradeRubricId: rubricId,
       data: {
@@ -305,60 +290,79 @@ export default function RubricDashboard() {
     });
   };
 
-  const handleSaveRubric = async () => {
+  const handleSaveRubric = async (data: Record<string, unknown> ) => {
+    const formData = data as RubricFormValues
+
+    const name = formData.name
+    const weightArray = formData.weight
+    const weight = weightArray[0] ?? 0
+    const maxScore = formData.maxScore
+    const classCatalogId = formData.class as Id<"classCatalog">
+    const termId = formData.term as Id<"term">
     // Aseguramos que los IDs de clase y periodo existan antes de guardar
-    if (!formData.class || !formData.term) {
-      console.error("Clase y Periodo son obligatorios.");
+    if (!classCatalogId || !termId) {
+      toast.error("Clase y Periodo son obligatorios.");
       return;
     }
 
-    const numericWeight = (formData.weight[0] ?? 0) / 100;
+    const numericWeight = weight / 100;
 
-    if (editingRubric) {
-      await updateGradeRubric({
-        gradeRubricId: editingRubric._id,
-        data: {
-          name: formData.name,
-          // Convertir el porcentaje del slider a decimal para Convex
-          weight: numericWeight,
-          maxScore: formData.maxScore,
-          status: true, // Asumimos que la edición la activa
-          createdBy: currentUser?._id as Id<"user">,
-          classCatalogId: formData.class as Id<"classCatalog">,
-          termId: formData.term as Id<"term">,
-        },
-      });
-    } else {
-      await createGradeRubric({
-        classCatalogId: formData.class as Id<"classCatalog">,
-        termId: formData.term as Id<"term">,
-        name: formData.name,
-        // Convertir el porcentaje del slider a decimal
-        weight: numericWeight,
-        maxScore: formData.maxScore,
-        status: true,
-        createdBy: currentUser!._id,
-      });
+    try {
+      if (operation === 'edit') {
+        await updateGradeRubric({
+          gradeRubricId: editingRubric?._id as Id<'gradeRubric'>,
+          data: {
+            name,
+            weight: numericWeight,// Convertir el porcentaje del slider a decimal para Convex
+            maxScore,
+            status: true, // Asumimos que la edición la activa
+            createdBy: currentUser?._id as Id<"user">,
+            classCatalogId,
+            termId,
+          },
+        });
+        toast.success('Rúbrica actualizada correctamente')
+      } else if (operation === 'create') {
+        await createGradeRubric({
+          classCatalogId,
+          termId,
+          name,
+          weight: numericWeight,// Convertir el porcentaje del slider a decimal
+          maxScore,
+          status: true,
+          createdBy: currentUser!._id,
+        })
+        toast.success('Rúbrica creada correctamente')
+      } else {
+        throw new Error('Operación no valida')
+      }
+      close()
+      resetForm()
+    } catch (error) {
+      console.log('Error al guardar la rúbrica:', error)
+      toast.error('Ocurrió un error al guardar la rúbrica. Por favor, intenta de nuevo.')
     }
-    setModalOpen(false);
-    resetForm();
-  };
+  }
 
-  const handleDeleteRubric = async (id: Id<"gradeRubric">) => {
-    await deleteGradeRubric({ gradeRubricId: id });
-  };
-
+  const handleDeleteRubric = async (id: string) => {
+    try {
+      await deleteGradeRubric({ gradeRubricId: id as Id<'gradeRubric'>})
+      toast.success('Rúbrica eliminada correctamente')
+      close()
+    } catch (error) {
+      console.error('Error al eliminar la rúbrica:', error)
+      toast.error('Error al eliminar rúbrica')
+    }
+  }
   // Usar las funciones del store
   const totalWeight = getTotalWeight();
   const availableWeight = getAvailableWeight();
   const validationMessage = getValidationMessage();
   const nameDuplicate = isNameDuplicate(formData.name, editingRubric?._id);
   const duplicateInfo = getDuplicateInfo(formData.name, editingRubric?._id);
-
   // Solo mostrar porcentaje en la vista general cuando hay filtros específicos
   const shouldShowPercentage =
     selectedClass && selectedTerm && totalWeight !== null;
-
   // Siempre mostrar validaciones en el formulario cuando hay datos
   const shouldShowFormValidation = !!(formData.class && formData.term);
 
@@ -386,7 +390,20 @@ export default function RubricDashboard() {
             </div>
             {canCreateRubricPermission &&
               <Button
-                onClick={() => handleOpenModal()}
+                onClick={() => {
+                  // Resetear el formulario con el ciclo activo antes de abrir
+                  const activeCycleName = schoolCycles?.find(cycle => cycle._id === activeSchoolCycle?._id)?.name || "Ciclo Escolar";
+                  resetForm();
+                  setFormData({
+                    schoolCycle: activeCycleName,
+                    class: "",
+                    term: "",
+                    name: '',
+                    weight: [0],
+                    maxScore: 100
+                  });
+                  openCreate()
+                }}
                 className="gap-2 cursor-pointer"
                 disabled={false}
               >
@@ -397,8 +414,6 @@ export default function RubricDashboard() {
           </div>
         </div>
       </div>
-
-
       {/* Filtros  */}
       <Card>
         <CardHeader>
@@ -483,7 +498,6 @@ export default function RubricDashboard() {
           </div>
         </CardHeader>
       </Card>
-
       {/* Alertas de porcentaje - solo cuando hay filtros específicos */}
       {shouldShowPercentage && rubricPercentage && (
         <div>
@@ -545,7 +559,6 @@ export default function RubricDashboard() {
           </Card>
         </div>
       )}
-
       {/* Rubrics Table */}
       <Card>
         <CardHeader>
@@ -604,38 +617,38 @@ export default function RubricDashboard() {
                         <TableCell>
                           {canCreateRubricPermission &&
                             <div className="flex items-center gap-2">
-                            <Switch
-                              checked={rubric.status}
-                              onCheckedChange={() =>
-                                handleToggleStatus(rubric._id, rubric.status)
-                              }
-                              disabled={
-                                (!rubric.status &&
-                                  !canActivateRubric(rubric._id)) ||
-                                (rubric as RubricWithDetails)
-                                  .schoolCycleStatus !== "active"
-                              }
-                            />
-                            {!rubric.status && !canActivateRubric(rubric._id) && (
-                              <div className="relative group">
-                                <AlertTriangle className="h-4 w-4 text-destructive cursor-help" />
-                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                                  No se puede activar: excedería el 100%
-                                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                                </div>
-                              </div>
-                            )}
-                            {(rubric as RubricWithDetails).schoolCycleStatus !==
-                              "active" && (
+                              <Switch
+                                checked={rubric.status}
+                                onCheckedChange={() =>
+                                  handleToggleStatus(rubric._id, rubric.status)
+                                }
+                                disabled={
+                                  (!rubric.status &&
+                                    !canActivateRubric(rubric._id)) ||
+                                  (rubric as RubricWithDetails)
+                                    .schoolCycleStatus !== "active"
+                                }
+                              />
+                              {!rubric.status && !canActivateRubric(rubric._id) && (
                                 <div className="relative group">
-                                  <AlertTriangle className="h-4 w-4 text-muted-foreground cursor-help" />
+                                  <AlertTriangle className="h-4 w-4 text-destructive cursor-help" />
                                   <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                                    Ciclo escolar inactivo
+                                    No se puede activar: excedería el 100%
                                     <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
                                   </div>
                                 </div>
                               )}
-                          </div>
+                              {(rubric as RubricWithDetails).schoolCycleStatus !==
+                                "active" && (
+                                  <div className="relative group">
+                                    <AlertTriangle className="h-4 w-4 text-muted-foreground cursor-help" />
+                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-gray-900 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                                      Ciclo escolar inactivo
+                                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                                    </div>
+                                  </div>
+                                )}
+                            </div>
                           }
 
                         </TableCell>
@@ -646,7 +659,16 @@ export default function RubricDashboard() {
                                 {canUpdateRubric && <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleOpenModal(rubric as RubricWithDetails)}
+                                  onClick={
+                                    () => openEdit({
+                                      ...rubric,
+                                      _id: rubric._id,
+                                      weight: [Math.round(rubric.weight*100)],
+                                      class: rubric.classCatalogId as string,
+                                      term: rubric.termId as string,
+                                      schoolCycle: (rubric as RubricWithDetails).schoolCycleName || ""
+                                    } as Record<string, unknown> & Partial<WithId> )
+                                  }
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </Button>}
@@ -654,7 +676,11 @@ export default function RubricDashboard() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => handleDeleteRubric(rubric._id)}
+                                    onClick={() => openDelete({
+                                      _id: rubric._id,
+                                      name: rubric.name
+                                      } as Record<string, unknown> & Partial<WithId>)
+                                    }
                                     className="text-destructive hover:text-destructive"
                                   >
                                     <Trash2 className="h-4 w-4" />
@@ -693,8 +719,21 @@ export default function RubricDashboard() {
                           </div>
                           {canCreateRubricPermission && (
                             <Button
-                              onClick={() => setModalOpen(true)}
-                              className="gap-2"
+                              onClick={() => {
+                                // Resetear el formulario con el ciclo activo antes de abrir
+                                const activeCycleName = schoolCycles?.find(cycle => cycle._id === activeSchoolCycle?._id)?.name || "Ciclo Escolar";
+                                resetForm();
+                                setFormData({
+                                  schoolCycle: activeCycleName,
+                                  class: "",
+                                  term: "",
+                                  name: '',
+                                  weight: [0],
+                                  maxScore: 100
+                                });
+                                openCreate()
+                              }}
+                              className="gap-2 cursor-pointer"
                               disabled={false}
                             >
                               <Plus className="h-4 w-4" />
@@ -712,275 +751,281 @@ export default function RubricDashboard() {
         </CardContent>
       </Card>
 
-      {/* Modal Form */}
-      <Dialog open={isModalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {editingRubric ? "Editar Rubrica" : "Nueva Rubrica"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-6 py-4 ">
+      <CrudDialog
+        isOpen={isOpen}
+        operation={operation}
+        title={
+          operation === 'create' ? 'Nueva Rubrica' :
+          operation === 'edit' ? 'Editar Rúbrica' : 'Ver Rúbrica'
+        }
+        description={
+          operation === 'create' ? 'Completa los campos para crear una nueva rúbrica.' :
+          operation === 'edit' ? 'Modifica los campos para actualizar la rúbrica.' : 'Detalles de la rúbrica.'
+        }
+        schema={rubricSchema}
+        data={data}
+        onOpenChange={close}
+        onSubmit={handleSaveRubric}
+        onDelete={handleDeleteRubric}
+        submitButtonText={operation === 'create' ? 'Crear Rúbrica' : 'Actualizar Rúbrica'}
+        deleteConfirmationTitle="¿Estas seguro de eliminar esta rúbrica?"
+        deleteConfirmationDescription="Esta acción no se puede deshacer. Se eliminarán todos los datos asociados a esta rúbrica."
+      >
+        {(form, operation) => {
+          return(
+          <div className="space-y-4 py-4">
+            {/* Nombre */}
             <div className="space-y-2">
-              <Label htmlFor="name">Nombre</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                maxLength={30}
-                onChange={(e) => setFormData({ name: e.target.value })}
-                placeholder="Nombre de Rubrica"
-              />
-
-              {nameDuplicate && (
-                <div className="text-sm text-destructive p-1 flex justify-center items-center gap-2">
-                  <div className="text-center flex flex-col gap-2 justify-center items-center">
-                    <AlertTriangle className="h-5 w-5" />
-                    <p>Ya existe una rúbrica con este nombre en la misma clase y período.</p>
-                    {duplicateInfo.duplicateRubric && (
-                      <p className="text-xs text-muted-foreground mt-1 text-center">
-                        Rúbrica existente: {duplicateInfo.duplicateRubric.name}
-                        {duplicateInfo.duplicateRubric.classCatalogName && ` (${duplicateInfo.duplicateRubric.classCatalogName})`}
-                        {duplicateInfo.duplicateRubric.termName && ` - ${duplicateInfo.duplicateRubric.termName}`}
-                      </p>
+              <FormField
+                control={form.control}
+                name='name'
+                render={({ field }) => (
+                  <div className="space-y-2">
+                    <FormLabel htmlFor="name">Nombre</FormLabel>
+                    <Input
+                      id="name"
+                      value={field.value as string || ''}
+                      maxLength={30}
+                      onChange={
+                        // field.onChange
+                        (e) => {
+                          field.onChange(e.target.value)
+                          setFormData({ name: e.target.value})
+                        }
+                      }
+                      placeholder="Nombre de Rúbrica"
+                      disabled={operation === 'view'}
+                    />
+            
+                    {nameDuplicate && (
+                      <div className="text-sm text-destructive p-1 flex justify-center items-center gap-2">
+                        <div className="text-center flex flex-col gap-2 justify-center items-center">
+                          <AlertTriangle className="h-5 w-5"/>
+                          <p>Ya existe una rúbrica con este nombre en esta clase y período</p>
+                          {duplicateInfo.duplicateRubric && (
+                            <p className="text-sx text-muted-foreground mt-1 text-center">
+                              Rúbrica existente: {duplicateInfo.duplicateRubric.name}
+                              {duplicateInfo.duplicateRubric.classCatalogName && `(${duplicateInfo.duplicateRubric.classCatalogName})`}
+                              {duplicateInfo.duplicateRubric.termName && ` - ${duplicateInfo.duplicateRubric.termName}`}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
+                )}
+              />
+              {/* Información cuando no hay validaciones */}
+              {!shouldShowFormValidation && (
+                <div className="text-sm mt-2 text-blue-600 flex flex-row justify-center items-center">
+                  <AlertCircle className="h-5 text-blue-600"/>
+                  <p className="p-2">
+                    Selecciona una clase y después el período para asignar el porsentaje disponible
+                  </p>
                 </div>
               )}
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="schoolCycle">Ciclo Escolar</Label>
-                <Input
-                  value={
-                    formData.schoolCycle ||
-                    (formData.class ? selectedClassSchoolCycleName : "Ciclo Escolar")
-                  }
-                  readOnly={true}
-                  disabled={true}
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Ciclo escolar - solo lectura */}
+                <FormField
+                  control={form.control}
+                  name='schoolCycle'
+                  render={({field}) => (
+                    <div className="space-y-2">
+                      <FormLabel htmlFor="schoolCycle">Ciclo Escolar</FormLabel>
+                      <Input
+                        value={
+                          field.value as string || 
+                          formData.schoolCycle ||
+                          (activeSchoolCycle ? 
+                            schoolCycles?.find(cycle => cycle._id === activeSchoolCycle._id)?.name 
+                            : "Ciclo Escolar") ||
+                          "Ciclo Escolar"
+                        }
+                        readOnly={true}
+                        disabled={true}
+                      />
+                    </div>
+                  )}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="class">Clase</Label>
-                <Select
-                  value={formData.class}
-                  onValueChange={(value) => {
-                    setFormData({ class: value });
-                    // También actualizar el nombre del ciclo escolar en el formulario
-                    const selectedClassData = classes?.find(
-                      (clase) => clase._id === value
-                    );
-                    if (selectedClassData?.schoolCycle) {
-                      setSelectedClassSchoolCycleName(
-                        selectedClassData.schoolCycle.name
-                      );
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-full truncate">
-                    <SelectValue  placeholder="Selecciona una Clase" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {classes
-                      ?.filter(
-                        (clase) => clase.schoolCycle?.status === "active"
-                      )
-                      .map((clase) => (
-                        <SelectItem
-                          key={clase._id}
-                          value={clase._id as string}
-                          className="truncate"
-                        >
-                          <span className="truncate block">{clase.name}</span>
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="term">Periodo</Label>
-                <Select
-                  value={formData.term}
-                  onValueChange={(value) => setFormData({ term: value })}
-                >
-                  <SelectTrigger className="w-full truncate">
-                    <SelectValue placeholder="Selecciona un Periodo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(() => {
-                      // Buscar la clase seleccionada en el formulario
-                      const selectedClassData = classes?.find(
-                        (clase) => clase._id === formData.class
-                      );
-                      // Tomar el ciclo escolar de la clase seleccionada en el formulario
-                      const formSchoolCycleId =
-                        selectedClassData?.schoolCycleId ||
-                        formData.schoolCycle;
-
-                      return terms
-                        ?.filter((term) =>
-                          formSchoolCycleId
-                            ? term.schoolCycleId === formSchoolCycleId
-                            : true
-                        )
-                        .map((term) => (
-                          <SelectItem
-                            key={term._id}
-                            value={term._id as string}
-                            className="truncate"
-                          >
-                            <span className="truncate block">{term.name}</span>
-                          </SelectItem>
-                        ));
-                    })()}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="maxScore">Calificación máxima (100)</Label>
-                <Input
-                  id="maxScore"
-                  type="number"
-                  value={formData.maxScore}
-                  onChange={(e) =>
-                    setFormData({
-                      maxScore: Number.parseInt(e.target.value) || 0,
-                    })
-                  }
-                  placeholder="Ingresa la calificación máxima"
-                  min="1"
-                  max="100"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="px-3">
-                {(() => {
-                  const maxAllowed = (() => {
-                    // Si se está editando una rúbrica
-                    if (editingRubric) {
-                      if (shouldShowFormValidation && availableWeight !== null) {
-                        // El availableWeight ya incluye el porcentaje que liberaría la rúbrica actual
-                        return Math.min(100, availableWeight);
-                      } else {
-                        // Si no hay validaciones, permitir hasta 100%
-                        return 100;
-                      }
-                    }
-                    // Si se está creando una nueva rúbrica
-                    if (shouldShowFormValidation && availableWeight !== null) {
-                      return Math.min(100, availableWeight);
-                    }
-                    return 100;
-                  })();
-
-                  return (
-                    <>
-                      <Label className="mb-2">
-                        Porcentaje {" "}
-                        {shouldShowFormValidation && availableWeight !== null
-                          ? `(Disponible: ${availableWeight}%)`
-                          : ""}
-                      </Label>
-                      {shouldShowFormValidation &&
-                        availableWeight !== null && (
-                          <div className="flex justify-center text-sm mt-1 text-muted-foreground mb-2">
-                            {availableWeight === 0 &&
-                              "No hay porcentaje disponible"}
-                            {availableWeight < (formData.weight[0] || 0) &&
-                              availableWeight > 0 &&
-                              `Máximo permitido: ${maxAllowed}%`}
+                <FormField
+                  control={form.control}
+                  name='class'
+                  render={({field}) => (
+                    <div className="space-y-2">
+                      <FormLabel htmlFor="class">Clase</FormLabel>
+                      <SelectPopover<ClassCatalog>
+                        items={classCatalogs ?? []}
+                        value={field.value as string}
+                        onChange={field.onChange}
+                        placeholder="Seleccionar una clase"
+                        getKey={(c: ClassCatalog) => c._id}
+                        getLabel={(c: ClassCatalog) => c.name}
+                        renderItem={(c: ClassCatalog) => (
+                          <div className="flex items-center">
+                            <span>{c.name}</span>
                           </div>
                         )}
-                      <Slider
-                        value={formData.weight}
-                        onValueChange={(value) => {
-                          // Limitar el valor al máximo permitido
-                          const limitedValue = Math.min(value[0] || 0, maxAllowed);
-                          setFormData({ weight: [limitedValue] });
-                        }}
-                        max={maxAllowed}
-                        min={0}
-                        step={5}
-                        className="w-full"
-                        disabled={
-                          !!(
-                            shouldShowFormValidation &&
-                            availableWeight !== null &&
-                            availableWeight === 0 &&
-                            !editingRubric
-                          )
-                        }
+                        disabled={operation === 'view'}
                       />
-                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                        <span>0%</span>
-                        <span className="flex justify-center text-black text-xl font-bold">
-                          {formData.weight[0] || 0}%
-                        </span>
-                        <span>{maxAllowed}%</span>
-                      </div>
-                      {validationMessage && (
-                        <div
-                          className={`text-center text-sm mt-2 ${validationMessage.includes("No se puede")
-                            ? "text-destructive"
-                            : validationMessage.includes("⚠️")
-                              ? "text-yellow-600"
-                              : "text-blue-600"
-                            }`}
-                        >
-                          {validationMessage}
-                        </div>
-                      )}
-                      {(formData.weight[0] || 0) <= 0 && (
-                        <div className="text-center text-sm mt-2 text-destructive flex flex-row gap-2 justify-center">
-                          <AlertTriangle className="h-5 text-destructive" />
-                          <p>El porcentaje debe ser mayor a 0%</p>
-                        </div>
-                      )}
-                      {!shouldShowFormValidation && (
-                        <div className="text-center text-sm mt-2 text-blue-600 flex flex-row gap-2 justify-center">
-                          <AlertCircle className="h-5 text-blue-600" />
-                          <p>
-                            Selecciona una clase y período para ver el
-                            porcentaje disponible
-                          </p>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
+                    </div>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="term"
+                  render={({field}) => (
+                    <div className="space-y-2">
+                      <FormLabel htmlFor="class">Periodo</FormLabel>
+                      <SelectPopover<Term>
+                        items={terms ?? []}
+                        value={field.value as string}
+                        onChange={field.onChange}
+                        placeholder="Selecciona una clase"
+                        getKey={(t: Term) => t._id}
+                        getLabel={(t: Term) => t.name}
+                        renderItem={(t: Term) => (
+                          <div className="flex items-center">
+                            <span>{t.name}</span>
+                          </div>
+                        )}
+                        disabled={operation === 'view'}
+                      />
+                    </div>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="maxScore"
+                  render={({field}) => (
+                    <div className="space-y-2">
+                      <FormLabel htmlFor="maxScore">Calificación Máxima (100)</FormLabel>
+                      <Input
+                        id="maxScore"
+                        type="number"
+                        value={field.value as number || ' '}
+                        onChange={
+                          (e) => {
+                            const value = e.target.value === '' ? 0 : Number.parseInt(e.target.value) || 0
+                            field.onChange(value)
+                            setFormData({ maxScore: value }) 
+                          }
+                        }
+                        placeholder="Ingresar la calificación máxima"
+                        min='1'
+                        max='100'
+                        disabled={operation === 'view'}
+                      />
+                    </div>
+                  )}
+                />
               </div>
+
+              <FormField
+                control={form.control}
+                name="weight"
+                render={({field}) => (
+                  <div className="space-y-3">
+                    <div className="px-3">
+                      {(() => {
+                        const maxAllowed = (() => {
+                          // Si se está editando una rúbrica
+                          if (editingRubric) {
+                            if (shouldShowFormValidation && availableWeight !== null) {
+                              // El availableWeight ya incluye el porcentaje que liberaría la rúbrica actual
+                              return Math.min(100, availableWeight);
+                            } else {
+                              // Si no hay validaciones, permitir hasta 100%
+                              return 100;
+                            }
+                          }
+                          // Si se está creando una nueva rúbrica
+                          if (shouldShowFormValidation && availableWeight !== null) {
+                            return Math.min(100, availableWeight);
+                          }
+                          return 100;
+                        })();
+
+                        return (
+                          <>
+                            <Label className="mb-2">
+                              Porcentaje {" "}
+                              {shouldShowFormValidation && availableWeight !== null
+                                ? `(Disponible: ${availableWeight}%)`
+                                : ""}
+                            </Label>
+                            {shouldShowFormValidation &&
+                              availableWeight !== null && (
+                                <div className="flex justify-center text-sm mt-1 text-muted-foreground mb-2">
+                                  {availableWeight === 0 &&
+                                    "No hay porcentaje disponible"}
+                                  {availableWeight < (formData.weight[0] || 0) &&
+                                    availableWeight > 0 &&
+                                    `Máximo permitido: ${maxAllowed}%`}
+                                </div>
+                              )}
+                            <Slider
+                              value={field.value as number[] || [0]}
+                              onValueChange=//{field.onChange}
+                              {(value) => {
+                                // Limitar el valor al máximo permitido
+                                const limitedValue = Math.min(value[0] || 0, maxAllowed)
+                                field.onChange([limitedValue])
+                                setFormData({ weight: [limitedValue] });
+                              }}
+                              max={maxAllowed}
+                              min={0}
+                              step={5}
+                              className="w-full"
+                              disabled={
+                                !!(
+                                  shouldShowFormValidation &&
+                                  availableWeight !== null &&
+                                  availableWeight === 0 &&
+                                  !editingRubric
+                                )
+                              }
+                            />
+                            <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                              <span>0%</span>
+                              <span className="flex justify-center text-black text-xl font-bold">
+                                {formData.weight[0] || 0}%
+                              </span>
+                              <span>{maxAllowed}%</span>
+                            </div>
+                            {validationMessage && (
+                              <div
+                                className={`text-center text-sm mt-2 ${validationMessage.includes("No se puede")
+                                  ? "text-destructive"
+                                  : validationMessage.includes("⚠️")
+                                    ? "text-yellow-600"
+                                    : "text-blue-600"
+                                  }`}
+                              >
+                                {validationMessage}
+                              </div>
+                            )}
+                            {(formData.weight[0] || 0) <= 0 && (
+                              <div className="text-center text-sm mt-2 text-destructive flex flex-row gap-2 justify-center">
+                                <AlertTriangle className="h-5 text-destructive" />
+                                <p>El porcentaje debe ser mayor a 0%</p>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+              />
             </div>
           </div>
-
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSaveRubric}
-              disabled={
-                !formData.name.trim() ||
-                formData.maxScore > 100 ||
-                formData.maxScore <= 0 ||
-                !formData.class ||
-                !!nameDuplicate ||
-                !formData.term ||
-                (formData.weight[0] || 0) <= 0 ||
-                !!(
-                  shouldShowFormValidation &&
-                  availableWeight !== null &&
-                  !canCreateRubric() &&
-                  !editingRubric
-                )
-              }
-            >
-              Guardar
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+          )
+        }}
+      </CrudDialog>
     </div>
   );
 }

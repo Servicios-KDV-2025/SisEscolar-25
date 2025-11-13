@@ -304,9 +304,17 @@ export default function TutorPage() {
   }, [allUsers, searchTerm, statusFilter]);
 
   const paginatedUsers = useMemo(() => {
+    const sortedData = [...filteredUsers].sort((a, b) => {
+      const nameA = `${a.name} ${a.lastName || ''}`.toLowerCase().trim();
+      const nameB = `${b.name} ${b.lastName || ''}`.toLowerCase().trim();
+      return nameA.localeCompare(nameB);
+    });
+
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return filteredUsers.slice(startIndex, endIndex);
+    
+    return sortedData.slice(startIndex, endIndex);
+
   }, [filteredUsers, currentPage, itemsPerPage]);
 
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
@@ -465,6 +473,8 @@ export default function TutorPage() {
         name: combinedData.name as string,
         lastName: combinedData.lastName as string,
         email: combinedData.email as string,
+        phone: combinedData.phone as string,
+        address: combinedData.address as string,
       };
 
       const userResult = await userActions.updateUser(
@@ -1271,7 +1281,7 @@ export default function TutorPage() {
                     <Input
                       {...field}
                       value={(field.value as string) || ""}
-                      placeholder="+52 555 1234567"
+                      placeholder="555 1234567"
                       disabled={currentOperation === "view"}
                     />
                   </FormControl>

@@ -66,6 +66,11 @@ export interface CrudDialogProps {
   cancelButtonText?: string
   deleteButtonText?: string
 
+  // Modal de confirmación(opcional)
+  confirmOnSubmit?: boolean
+  submitConfirmationTitle?: string
+  submitConfirmationDescription?: string
+
   // Estados de carga
   isLoading?: boolean
   isSubmitting?: boolean
@@ -94,6 +99,9 @@ export function CrudDialog({
   submitButtonText,
   cancelButtonText = 'Cancelar',
   deleteButtonText = 'Eliminar',
+  confirmOnSubmit = false,
+  submitConfirmationTitle = 'Confirmar acción',
+  submitConfirmationDescription = '¿Estás seguro de que quieres continuar?',
   isLoading = false,
   isSubmitting = false,
   isDeleting = false,
@@ -101,8 +109,10 @@ export function CrudDialog({
   onError
 }: CrudDialogProps) {
   const [open, setOpen] = useState(false)
-  const [isInternalSubmitting, setIsInternalSubmitting] = useState(false)
   const [isInternalDeleting, setIsInternalDeleting] = useState(false)
+
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [pendingValues, setPendingValues] = useState<Record<string, unknown> | null>(null)
 
   const isControlled = isOpen !== undefined
   const dialogOpen = isControlled ? isOpen : open
@@ -132,7 +142,6 @@ export function CrudDialog({
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     try {
-      setIsInternalSubmitting(true)
       await onSubmit(values)
       setDialogOpen?.(false)
       form.reset()
@@ -142,8 +151,6 @@ export function CrudDialog({
         description: `Ocurrió un error al ${operation === 'create' ? 'crear' : 'actualizar'}`
       })
       onError?.(error)
-    } finally {
-      setIsInternalSubmitting(false)
     }
   }
 
@@ -162,6 +169,23 @@ export function CrudDialog({
       onError?.(error)
     } finally {
       setIsInternalDeleting(false)
+    }
+  }
+
+  const submitWithConfirmation = (values: Record<string, unknown>) => {
+    if (confirmOnSubmit && (operation === 'create' || operation === 'edit')) {
+      setPendingValues(values)
+      setConfirmOpen(true)
+    } else {
+      handleSubmit(values)
+    }
+  }
+
+  const confirmSubmit = async () => {
+    if (pendingValues) {
+      await handleSubmit(pendingValues)
+      setPendingValues(null)
+      setConfirmOpen(false)
     }
   }
 
@@ -185,7 +209,7 @@ export function CrudDialog({
     }
   }
 
-  const isSubmittingState = isSubmitting || isInternalSubmitting
+  const isSubmittingState = isSubmitting || isLoading
   const isDeletingState = isDeleting || isInternalDeleting
 
   // Para operación de eliminación, mostrar AlertDialog
@@ -211,7 +235,7 @@ export function CrudDialog({
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeletingState}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-white"
+              className="hover:bg-destructive/90 dark:bg-destructive/60 min-w-[100px] hover:cursor-pointer"
             >
               {isDeletingState ? 'Eliminando...' : deleteButtonText}
             </AlertDialogAction>
@@ -221,50 +245,78 @@ export function CrudDialog({
     )
   }
 
-  // Para operaciones de crear, editar y ver, mostrar Dialog
   return (
-    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {getIcon()}
-            {title}
-          </DialogTitle>
-          {description && (
-            <DialogDescription>
-              {description}
-            </DialogDescription>
-          )}
-        </DialogHeader>
+    <>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {getIcon()}
+              {title}
+            </DialogTitle>
+            {description && (
+              <DialogDescription>
+                {description}
+              </DialogDescription>
+            )}
+          </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <div className="space-y-4">
-              {children(form, operation)}
-            </div>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(submitWithConfirmation)} className="space-y-4">
+              <div className="space-y-4">
+                {children(form, operation)}
+              </div>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setDialogOpen?.(false)}
+                  disabled={isSubmittingState}
+                >
+                  {cancelButtonText}
+                </Button>
+                {operation !== 'view' && (
+                  <Button
+                    type="submit"
+                    disabled={isSubmittingState}
+                  >
+                    {isSubmittingState ? 'Guardando...' : getSubmitButtonText()}
+                  </Button>
+                )}
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {confirmOnSubmit && (
+        <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{submitConfirmationTitle}</DialogTitle>
+              <DialogDescription>{submitConfirmationDescription}</DialogDescription>
+            </DialogHeader>
 
             <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setDialogOpen?.(false)}
-                disabled={isSubmittingState}
+                onClick={() => setConfirmOpen(false)}
               >
                 {cancelButtonText}
               </Button>
-              {operation !== 'view' && (
-                <Button
-                  type="submit"
-                  disabled={isSubmittingState || isLoading}
-                >
-                  {isSubmittingState ? 'Guardando...' : getSubmitButtonText()}
-                </Button>
-              )}
+              <Button
+                onClick={confirmSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Guardando...' : getSubmitButtonText()}
+              </Button>
             </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   )
 }
 
@@ -316,6 +368,7 @@ export function useCrudDialog(
     openDelete,
     close,
     schema,
-    defaultValues
+    defaultValues,
+    setData
   }
 } 

@@ -30,8 +30,12 @@ import { Input } from "@repo/ui/components/shadcn/input";
 import Link from "next/link";
 import { useUserWithConvex } from "stores/userStore";
 import { useCurrentSchool } from "stores/userSchoolsStore";
-import { TaskCreateForm } from "components/TaskCreateForm";
 import { usePermissions } from 'hooks/usePermissions';
+import { CrudDialog, useCrudDialog } from '@repo/ui/components/dialog/crud-dialog';
+import { TaskForm } from 'components/tasks/TaskForm';
+import { UseFormReturn } from 'react-hook-form';
+import { TaskFormData, taskFormSchema } from '@/types/form/taskSchema';
+import { useTask } from 'stores/taskStore';
 
 export default function GradeManagementDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,6 +52,25 @@ export default function GradeManagementDashboard() {
     isLoading: schoolLoading,
     error: schoolError,
   } = useCurrentSchool(currentUser?._id);
+
+  const { createTask } = useTask(currentSchool?.school._id);
+
+  const {
+    isOpen,
+    operation,
+    data,
+    openCreate,
+    close,
+  } = useCrudDialog(taskFormSchema, {
+    name: '',
+    description: '',
+    dueDate: '',
+    dueTime: '23:59',
+    maxScore: '',
+    classCatalogId: '',
+    termId: '',
+    gradeRubricId: '',
+  })
 
   const permissions = usePermissions();
 
@@ -324,9 +347,38 @@ export default function GradeManagementDashboard() {
   const hasClasses = classes && classes.length > 0;
   const hasTerms = terms && terms.length > 0;
 
+  const handleSubmit = async (values: Record<string, unknown>) => {
+    if (!currentSchool?.school._id || !currentUser?._id) {
+      console.error('Missing required IDs');
+      return;
+    }
+
+    try {
+      // Combinar fecha y hora para crear el timestamp
+      const dueDateTime = new Date(`${values.dueDate}T${values.dueTime}`);
+      const dueTimestamp = dueDateTime.getTime();
+
+      // Aquí necesitarías la función createTask - puede que necesites importarla o crearla
+      await createTask({
+        classCatalogId: values.classCatalogId as Id<"classCatalog">,
+        termId: values.termId as Id<"term">,
+        gradeRubricId: values.gradeRubricId as Id<"gradeRubric">,
+        name: values.name as string,
+        description: values.description as string,
+        dueDate: dueTimestamp,
+        maxScore: parseInt(values.maxScore as string),
+      });
+
+      close();
+    } catch (error) {
+      console.error('Error al procesar la tarea:', error);
+    }
+  }
+
+
   // Main UI when all data is available
   return (
-    <div className="space-y-8 p-6 min-w-full max-w-5xl mx-auto">
+    <div className="space-y-8 p-6">
       {/* Header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
@@ -349,7 +401,13 @@ export default function GradeManagementDashboard() {
             </div>
             <div className="flex flex-col gap-4 sm:flex-col sm:items-center sm:gap-8 lg:gap-2">
               {canCreateAssignance &&
-                <TaskCreateForm />
+                <Button
+                  className="cursor-pointer"
+                  onClick={openCreate}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Agregar Asignación
+                </Button>
               }
               {currentRole !== 'tutor' && (
                 <Button
@@ -596,19 +654,51 @@ export default function GradeManagementDashboard() {
               </div>
             </div>
           ) : (
-            <div className="w-full">
-              <GradeMatrix
-                students={filteredAndSortedStudents}
-                assignments={assignments!}
-                grades={grades!}
-                onGradeUpdate={handleUpdateGrade}
-                calculateAverage={calculateAverage}
-                canUpdateRubric={canUpdateRubric}
-              />
+            <div className="w-full overflow-x-auto">
+              <div className="min-w-full">
+                <GradeMatrix
+                  students={filteredAndSortedStudents}
+                  assignments={assignments!}
+                  grades={grades!}
+                  onGradeUpdate={handleUpdateGrade}
+                  calculateAverage={calculateAverage}
+                  canUpdateRubric={canUpdateRubric}
+                />
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
+
+      <CrudDialog
+        operation={operation}
+        title="Crear Nueva Asignación"
+        description="Define una nueva Asignación para tus estudiantes"
+        schema={taskFormSchema}
+        defaultValues={{
+          name: '',
+          description: '',
+          dueDate: '',
+          dueTime: '23:59',
+          maxScore: '',
+          classCatalogId: '',
+          termId: '',
+          gradeRubricId: '',
+        }}
+        data={data}
+        isOpen={isOpen}
+        onOpenChange={close}
+        onSubmit={handleSubmit}
+      >
+        {(form, operation) => (
+          <TaskForm
+            form={form as unknown as UseFormReturn<TaskFormData>}
+            operation={operation}
+            teacherClasses={classes}
+            allTerms={terms}
+          />
+        )}
+      </CrudDialog>
     </div>
   );
 }

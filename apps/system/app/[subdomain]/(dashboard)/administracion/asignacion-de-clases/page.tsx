@@ -1,10 +1,10 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Plus, Search, Eye, Trash2, School, Filter, Pencil, BookUser } from "@repo/ui/icons"
+import { Plus, Search, Eye, Trash2, School, Filter, Pencil, BookUser, User, BookOpen, GraduationCap, Calendar, Users } from "@repo/ui/icons"
 import { useEffect } from "react"
 import { Button } from "@repo/ui/components/shadcn/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card"
 import { Input } from "@repo/ui/components/shadcn/input"
 import { Badge } from "@repo/ui/components/shadcn/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table"
@@ -26,8 +26,9 @@ import { parseConvexErrorMessage } from "lib/parseConvexErrorMessage"
 import { SelectPopover } from "../../../../../components/selectPopover"
 import { Student } from "@/types/student"
 import { usePermissions } from 'hooks/usePermissions'
-import { ClassCatalog, useClassCatalogWithPermissions } from 'stores/classCatalogStore'
+import { type ClassCatalogWithDetails, useClassCatalogWithPermissions } from 'stores/classCatalogStore'
 import { useCicloEscolarWithConvex } from 'stores/useSchoolCiclesStore'
+import { ChartNoAxesCombined } from 'lucide-react'
 
 export default function StudentClassesDashboard() {
   const { user: clerkUser } = useUser();
@@ -49,7 +50,11 @@ export default function StudentClassesDashboard() {
   } = usePermissions(currentSchool?.school._id);
 
   const students = useQuery(api.functions.student.listStudentsBySchool, currentSchool ? { schoolId: currentSchool.school._id as Id<'school'> } : 'skip')
-  const { classCatalogs } = useClassCatalogWithPermissions(
+
+  const {
+    classCatalogsWithDetails: ClassCatalog,
+    getClassByTeacher
+  } = useClassCatalogWithPermissions(
     currentSchool?.school._id,
     getStudentFilters
   );
@@ -80,6 +85,7 @@ export default function StudentClassesDashboard() {
 
   const [searchTerm, setSearchTerm] = useState("")
   const [schoolYearFilter, setSchoolYearFilter] = useState<string>("all")
+  const [classesByTeacher, setClassesByTeacher] = useState<string>("all")
   const [gradeFilter, setGradeFilter] = useState<string>("all")
   const [groupFilter, setGroupFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
@@ -105,25 +111,50 @@ export default function StudentClassesDashboard() {
   });
 
   useEffect(() => {
-    setSchoolYearFilter(schoolYears?.[schoolYears.length - 1]?.name || "all")
+    const activeSchoolYear = schoolYears?.find(year => year.status === "active");
+    setSchoolYearFilter(activeSchoolYear?.name || "all");
   }, [schoolYears])
 
-  const filteredEnrollments = (enrollments?.filter(Boolean) || []).filter((enrollment) => {
-    const matchesSearch =
-      enrollment?.student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      enrollment?.student.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      enrollment?.student.enrollment.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (enrollment?.classCatalog.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        enrollment?.classCatalog.name?.toLowerCase().includes(searchTerm.toLowerCase()))
-    const matchesSchoolYear = schoolYearFilter === "all" || enrollment?.schoolCycle?.name?.startsWith(schoolYearFilter)
-    const matchesGrade = gradeFilter === "all" || enrollment?.classCatalog?.grade?.startsWith(gradeFilter)
-    const matchesGroup = groupFilter === "all" || enrollment?.classCatalog?.group?.startsWith(groupFilter)
-    const matchesStatus = statusFilter === "all" ||
-      (statusFilter === "active" && enrollment?.status === "active") ||
-      (statusFilter === "inactive" && enrollment?.status === "inactive")
+  const filteredEnrollments = useMemo(() => {
+    // 1. Lógica de FILTRADO (la que ya tenías)
+    const filtered = (enrollments?.filter(Boolean) || []).filter((enrollment) => {
+      const matchesSearch =
+        enrollment?.student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        enrollment?.student.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        enrollment?.student.enrollment.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (enrollment?.classCatalog.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          enrollment?.classCatalog.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesSchoolYear = schoolYearFilter === "all" || enrollment?.schoolCycle?.name?.startsWith(schoolYearFilter);
+      const matchesTeacherClass = classesByTeacher === "all" ||
+        enrollment?.classCatalog?.name === classesByTeacher;
+      const matchesGrade = gradeFilter === "all" || enrollment?.classCatalog?.grade?.startsWith(gradeFilter);
+      const matchesGroup = groupFilter === "all" || enrollment?.classCatalog?.group?.startsWith(groupFilter);
+      const matchesStatus = statusFilter === "all" ||
+        (statusFilter === "active" && enrollment?.status === "active") ||
+        (statusFilter === "inactive" && enrollment?.status === "inactive");
 
-    return matchesSearch && matchesGrade && matchesStatus && matchesGroup && matchesSchoolYear
-  })
+      return matchesSearch && matchesGrade && matchesTeacherClass && matchesStatus && matchesGroup && matchesSchoolYear;
+    });
+
+    // 2. Lógica de ORDENAMIENTO (la nueva)
+    // Usamos [...filtered] para crear una copia antes de ordenar
+    return [...filtered].sort((a, b) => {
+      const nameA = `${a?.student.name} ${a?.student.lastName || ''}`.toLowerCase().trim();
+      const nameB = `${b?.student.name} ${b?.student.lastName || ''}`.toLowerCase().trim();
+      
+      // localeCompare ordena alfabéticamente y maneja acentos
+      return nameA.localeCompare(nameB);
+    });
+
+  }, [
+    enrollments, 
+    searchTerm, 
+    schoolYearFilter, 
+    classesByTeacher, 
+    gradeFilter, 
+    groupFilter, 
+    statusFilter
+  ]); // <-- Añadimos las dependencias para que se recalcule solo cuando cambien
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!currentSchool?.school?._id) {
@@ -190,7 +221,7 @@ export default function StudentClassesDashboard() {
     }
   }
 
-  const isLoading = schoolLoading || !schoolYears || !students || !classCatalogs || !enrollments || permissionsLoading;
+  const isLoading = schoolLoading || !schoolYears || !students || !ClassCatalog || !enrollments || permissionsLoading;
 
   return (
     <>
@@ -258,102 +289,134 @@ export default function StudentClassesDashboard() {
               )}
 
               <TabsContent value="enrollments" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                      <div>
-                        <CardTitle className="flex items-center gap-2">
-                          <Filter className="h-5 w-5" />
-                          Filtros y Búsqueda
-                        </CardTitle>
-                        <CardDescription>
-                          Encuentra las asignaciones por alumno, matrícula, o materia
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col xl:flex-row space-y-4 gap-2">
-                      <div className="flex-2 relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <Input
-                          placeholder="Buscar por alumno, matrícula o materia..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-10"
-                        />
-                      </div>
-                      <div className="flex flex-1 flex-col xl:flex-row gap-3">
-                        <div className="flex flex-1 flex-col sm:flex-row gap-3 justify-center">
-                          <Select value={schoolYearFilter} onValueChange={setSchoolYearFilter}>
-                            <SelectTrigger className="w-full sm:w-40">
-                              <School className="h-4 w-4 mr-2" />
-                              <SelectValue placeholder="Filtrar por ciclo escolar" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">Todos los ciclos Escolares</SelectItem>
-                              {schoolYears?.map((year) => (
-                                <SelectItem key={year.name} value={year.name}>
-                                  {year.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Select value={gradeFilter} onValueChange={setGradeFilter}>
-                            <SelectTrigger className="w-full sm:w-40">
-                              <SelectValue placeholder="Filtrar por grado" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">Todos los grados</SelectItem>
-                              <SelectItem value="1">1° Grado</SelectItem>
-                              <SelectItem value="2">2° Grado</SelectItem>
-                              <SelectItem value="3">3° Grado</SelectItem>
-                              <SelectItem value="4">4° Grado</SelectItem>
-                              <SelectItem value="5">5° Grado</SelectItem>
-                              <SelectItem value="6">6° Grado</SelectItem>
-                            </SelectContent>
-                          </Select>
+                {currentRole !== 'tutor' &&
+                  <Card>
+                    <CardHeader>
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                          <CardTitle className="flex items-center gap-2">
+                            <Filter className="h-5 w-5" />
+                            Filtros y Búsqueda
+                          </CardTitle>
+                          <CardDescription>
+                            Encuentra las asignaciones por alumno, matrícula, o materia
+                          </CardDescription>
                         </div>
-                        <div className="flex flex-1 flex-col sm:flex-row gap-3 justify-center">
-                          <Select value={groupFilter} onValueChange={setGroupFilter}>
-                            <SelectTrigger className="w-full sm:w-40">
-                              <SelectValue placeholder="Filtrar por grupo" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">Todos los grupos</SelectItem>
-                              <SelectItem value="A">A</SelectItem>
-                              <SelectItem value="B">B</SelectItem>
-                              <SelectItem value="C">C</SelectItem>
-                              <SelectItem value="D">D</SelectItem>
-                              <SelectItem value="E">E</SelectItem>
-                              <SelectItem value="F">F</SelectItem>
-                            </SelectContent>
-                          </Select>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-col xl:flex-row space-y-4 gap-2">
+                        <div className="flex-2 relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <Input
+                            placeholder="Buscar por alumno, matrícula o materia..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10"
+                          />
+                        </div>
+                        <div className="flex flex-1 flex-col xl:flex-row gap-3">
+                          <div className="flex flex-1 flex-col sm:flex-row gap-3 justify-center">
+                            {currentRole !== 'teacher' && (
+                              <>
+                                <Select value={schoolYearFilter} onValueChange={setSchoolYearFilter}>
+                                  <SelectTrigger className="w-full sm:w-40">
+                                    <School className="h-4 w-4 mr-2" />
+                                    <SelectValue placeholder="Filtrar por ciclo escolar" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">Todos los ciclos Escolares</SelectItem>
+                                    {schoolYears?.map((year) => (
+                                      <SelectItem key={year.name} value={year.name}>
+                                        {year.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Select value={gradeFilter} onValueChange={setGradeFilter}>
+                                  <SelectTrigger className="w-full sm:w-40">
+                                    <SelectValue placeholder="Filtrar por grado" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">Todos los grados</SelectItem>
+                                    <SelectItem value="1">1° Grado</SelectItem>
+                                    <SelectItem value="2">2° Grado</SelectItem>
+                                    <SelectItem value="3">3° Grado</SelectItem>
+                                    <SelectItem value="4">4° Grado</SelectItem>
+                                    <SelectItem value="5">5° Grado</SelectItem>
+                                    <SelectItem value="6">6° Grado</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <Select value={groupFilter} onValueChange={setGroupFilter}>
+                                  <SelectTrigger className="w-full sm:w-40">
+                                    <SelectValue placeholder="Filtrar por grupo" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">Todos los grupos</SelectItem>
+                                    <SelectItem value="A">A</SelectItem>
+                                    <SelectItem value="B">B</SelectItem>
+                                    <SelectItem value="C">C</SelectItem>
+                                    <SelectItem value="D">D</SelectItem>
+                                    <SelectItem value="E">E</SelectItem>
+                                    <SelectItem value="F">F</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </>
+                            )}
 
-                          {(canCreateStudentsClasses || isAuditor) && (
-                            <Select value={statusFilter} onValueChange={setStatusFilter}>
-                              <SelectTrigger className="w-full sm:w-40">
-                                <SelectValue placeholder="Filtro por Estatus" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="all">Todos los estados</SelectItem>
-                                <SelectItem value="active">Activo</SelectItem>
-                                <SelectItem value="inactive">Inactivo</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          )}
+                            {currentRole === 'teacher' && (
+                              <Select value={classesByTeacher} onValueChange={setClassesByTeacher}>
+                                <SelectTrigger className="w-full sm:w-40">
+                                  <SelectValue placeholder="Filtrar por tus clases" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">Todas mis clases</SelectItem>
+                                  {getClassByTeacher?.map((c) => (
+                                    <SelectItem key={c.name} value={c.name}>
+                                      {c.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+
+                            {(canCreateStudentsClasses || isAuditor) && (
+                              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                <SelectTrigger className="w-full sm:w-40">
+                                  <SelectValue placeholder="Filtro por Estatus" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">Todos los estados</SelectItem>
+                                  <SelectItem value="active">Activo</SelectItem>
+                                  <SelectItem value="inactive">Inactivo</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                }
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <span>Lista de Asignaciones</span>
-                      <Button variant="outline" size="sm" className="text-xs sm:text-sm">
-                        Exportar
-                      </Button>
+                      {currentRole !== 'tutor' &&
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs sm:text-sm"
+                          disabled={currentRole === 'auditor'}
+                        >
+                          Exportar
+                        </Button>
+                      }
+                      {currentRole === 'tutor' &&
+                        <Badge variant="outline">
+                          {filteredEnrollments.length} {filteredEnrollments.length > 1 ? 'asignados' : 'asignado'}
+                        </Badge>
+                      }
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -392,127 +455,237 @@ export default function StudentClassesDashboard() {
                           )
                         }
                       </div>
-                    ) : (
-                      <div className="rounded-md border">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="w-[110px] px-4">Alumno</TableHead>
-                              <TableHead className="w-[120px] text-center">Ciclo Escolar</TableHead>
-                              <TableHead className="w-[120px] text-center">Grado y Grupo</TableHead>
-                              <TableHead className="w-[150px] text-center">Materia</TableHead>
-                              <TableHead className="w-[110px] text-center">Maestro</TableHead>
-                              <TableHead className="w-[110px] text-center">Promedio</TableHead>
-                              <TableHead className="w-[140px] text-center">Fecha de Asignación</TableHead>
-                              <TableHead className="w-[100px] text-center">Estado</TableHead>
-                              <TableHead className="w-[140px] text-center sticky right-0 bg-white shadow-[-2px_0_5px_rgba(0,0,0,0.1)] z-10">Acciones</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {filteredEnrollments.length === 0 ? (
+                    ) : currentRole !== 'tutor' ?
+                      (
+                        <div className="rounded-md border">
+                          <Table>
+                            <TableHeader>
                               <TableRow>
-                                <TableCell colSpan={7} className="text-center py-8">
-                                  No hay asignaciones registradas
-                                </TableCell>
+                                <TableHead className="w-[110px] px-4">Alumno</TableHead>
+                                <TableHead className="w-[120px] text-center">Ciclo Escolar</TableHead>
+                                <TableHead className="w-[120px] text-center">Grado y Grupo</TableHead>
+                                <TableHead className="w-[150px] text-center">Materia</TableHead>
+                                <TableHead className="w-[110px] text-center">Maestro</TableHead>
+                                <TableHead className="w-[110px] text-center">Promedio</TableHead>
+                                <TableHead className="w-[140px] text-center">Fecha de Asignación</TableHead>
+                                <TableHead className="w-[100px] text-center">Estado</TableHead>
+                                <TableHead className="w-[140px] text-center sticky right-0 bg-white shadow-[-2px_0_5px_rgba(0,0,0,0.1)] z-10">Acciones</TableHead>
                               </TableRow>
-                            ) : (
-                              filteredEnrollments.map((enrollment) => (
-                                <TableRow key={enrollment?._id}>
-                                  <TableCell className="font-medium px-4">
-                                    <div className="max-w-[180px]">
-                                      <div className="truncate font-medium">
-                                        {enrollment?.student.name} {enrollment?.student.lastName}
-                                      </div>
-                                      <div className="text-xs text-gray-500 truncate">
-                                        {enrollment?.student.enrollment}
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="text-center">
-                                    <div className="flex justify-center items-center truncate">
-                                      {enrollment?.schoolCycle?.name}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="text-center">
-                                    <div className="flex justify-center items-center truncate">
-                                      {enrollment?.classCatalog.grade} {enrollment?.classCatalog.group}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="text-center">
-                                    <div className="flex justify-center items-center truncate">
-                                      {enrollment?.classCatalog.subject}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="text-center">
-                                    <div className="flex justify-center items-center truncate">
-                                      {enrollment?.classCatalog.teacher}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="text-center">
-                                    <div className="flex justify-center items-center truncate">
-                                      {enrollment?.averageScore !== undefined ? enrollment.averageScore.toFixed(0) : '-'}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="px-4 text-center">
-                                    <div className="flex justify-center items-center truncate">
-                                      {enrollment?.enrollmentDate
-                                        ? new Date(enrollment.enrollmentDate).toISOString().split("T")[0]
-                                        : "No disponible"}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="text-center">
-                                    <Badge
-                                      variant={enrollment?.status === "active" ? "default" : "secondary"}
-                                      className={enrollment?.status === "active" ? "bg-green-600 text-white flex-shrink-0 ml-2" : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}>
-                                      {enrollment?.status === 'active' ? 'Activa' : 'Inactiva'}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="text-center">
-                                    <div className="flex gap-1 justify-center">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          openView(mapEnrollmentToFormValues(enrollment as unknown as StudentClasses));
-                                        }}
-                                        className="hover:scale-105 transition-transform cursor-pointer">
-                                        <Eye className="h-4 w-4" />
-                                      </Button>
-                                      {canUpdateStudentsClasses && (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            openEdit(mapEnrollmentToFormValues(enrollment as unknown as StudentClasses));
-                                          }}
-                                          className="hover:scale-105 transition-transform cursor-pointer">
-                                          <Pencil className="h-4 w-4" />
-                                        </Button>
-                                      )}
-                                      {canDeleteStudentsClasses && (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            openDelete(enrollment as Record<string, unknown>)
-                                          }}
-                                          className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive"
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      )}
-                                    </div>
+                            </TableHeader>
+                            <TableBody>
+                              {filteredEnrollments.length === 0 ? (
+                                <TableRow>
+                                  <TableCell colSpan={7} className="text-center py-8">
+                                    No hay asignaciones registradas
                                   </TableCell>
                                 </TableRow>
-                              ))
-                            )}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    )}
+                              ) : (
+                                filteredEnrollments.map((enrollment) => (
+                                  <TableRow key={enrollment?._id}>
+                                    <TableCell className="font-medium px-4">
+                                      <div className="max-w-[180px]">
+                                        <div className="truncate font-medium">
+                                          {enrollment?.student.name} {enrollment?.student.lastName}
+                                        </div>
+                                        <div className="text-xs text-gray-500 truncate">
+                                          {enrollment?.student.enrollment}
+                                        </div>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      <div className="flex justify-center items-center truncate">
+                                        {enrollment?.schoolCycle?.name}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      <div className="flex justify-center items-center truncate">
+                                        {enrollment?.classCatalog.grade} {enrollment?.classCatalog.group}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      <div className="flex justify-center items-center truncate">
+                                        {enrollment?.classCatalog.subject}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      <div className="flex justify-center items-center truncate">
+                                        {enrollment?.classCatalog.teacher}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      <div className="flex justify-center items-center truncate">
+                                        {enrollment?.averageScore !== undefined ? enrollment.averageScore.toFixed(0) : '-'}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="px-4 text-center">
+                                      <div className="flex justify-center items-center truncate">
+                                        {enrollment?.enrollmentDate
+                                          ? new Date(enrollment.enrollmentDate).toISOString().split("T")[0]
+                                          : "No disponible"}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      <Badge
+                                        variant={enrollment?.status === "active" ? "default" : "secondary"}
+                                        className={enrollment?.status === "active" ? "bg-green-600 text-white flex-shrink-0 ml-2" : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}>
+                                        {enrollment?.status === 'active' ? 'Activa' : 'Inactiva'}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      <div className="flex gap-1 justify-center">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            openView(mapEnrollmentToFormValues(enrollment as unknown as StudentClasses));
+                                          }}
+                                          className="hover:scale-105 transition-transform cursor-pointer">
+                                          <Eye className="h-4 w-4" />
+                                        </Button>
+                                        {canUpdateStudentsClasses && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              openEdit(mapEnrollmentToFormValues(enrollment as unknown as StudentClasses));
+                                            }}
+                                            className="hover:scale-105 transition-transform cursor-pointer">
+                                            <Pencil className="h-4 w-4" />
+                                          </Button>
+                                        )}
+                                        {canDeleteStudentsClasses && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              openDelete(enrollment as Record<string, unknown>)
+                                            }}
+                                            className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive"
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                ))
+                              )}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      ) :
+                      (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-9">
+                          {filteredEnrollments.length === 0 ? (
+                            <Card className="w-full hover:shadow-lg transition-shadow duration-200 flex flex-col h-full">
+                              <CardHeader>
+                                <CardTitle className="text-lg font-semibold leading-tight line-clamp-2 break-words flex justify-between">Valores</CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                <p className="text-muted-foreground">
+                                  No hay asignaciones registradas.
+                                </p>
+                              </CardContent>
+                            </Card>
+                          ) : (
+                            filteredEnrollments.map((enrollment) => (
+                              <Card className="w-full hover:shadow-lg transition-shadow duration-200 flex flex-col h-full" key={enrollment?._id}>
+                                <CardHeader>
+                                  <CardTitle className="text-lg font-semibold leading-tight line-clamp-2 break-words flex justify-between">
+                                    <span className='flex'>
+                                      <GraduationCap className="h-4 w-4 text-muted-foreground mr-2" />
+                                      {enrollment?.student.name} {enrollment?.student.lastName}
+                                    </span>
+                                    <Badge
+                                      variant={enrollment?.status === "active" ? "default" : "secondary"}
+                                      className={enrollment?.status === "active" ? "bg-green-600 text-white flex-shrink-0 ml-2" : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"}
+                                    >
+                                      {enrollment?.status === "active" ? 'Activo' : 'Inactivo'}
+                                    </Badge>
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+
+                                  <div className="flex items-start gap-2">
+                                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 break-words flex gap-2">
+                                      <School className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                                      <span className='font-bold text-black'>
+                                        Ciclo escolar:
+                                      </span>
+                                      {enrollment?.schoolCycle?.name}
+                                    </p>
+                                  </div>
+
+                                  <div className="flex items-start gap-2">
+                                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 break-words flex gap-2">
+                                      <Users className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                                      <span className='font-bold text-black'>
+                                        Grado y Grupo:
+                                      </span> {enrollment?.classCatalog.grade} {enrollment?.classCatalog.group}
+                                    </p>
+                                  </div>
+
+                                  <div className="flex items-start gap-2">
+                                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 break-words flex gap-2">
+                                      <BookOpen className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                                      <span className='font-bold text-black'>
+                                        Materia:
+                                      </span>
+                                      {enrollment?.classCatalog.subject}
+                                    </p>
+                                  </div>
+
+                                  <div className="flex items-start gap-2">
+                                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 break-words flex gap-2">
+                                      <User className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                                      <span className='font-bold text-black'>
+                                        Maestro:
+                                      </span>
+                                      {enrollment?.classCatalog.teacher}
+                                    </p>
+                                  </div>
+
+                                  <div className="flex items-start gap-2">
+                                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 break-words flex gap-2">
+                                      <ChartNoAxesCombined className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                                      <span className='font-bold text-black'>
+                                        Promedio:
+                                      </span>
+                                      {enrollment?.averageScore !== undefined ? enrollment.averageScore.toFixed(0) : '-'}
+                                    </p>
+                                  </div>
+
+                                  <div className="flex items-start gap-2">
+                                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3 break-words flex gap-2">
+                                      <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                                      <span className='font-bold text-black'>Fecha de asignación:</span> {enrollment?.enrollmentDate
+                                        ? new Date(enrollment.enrollmentDate).toISOString().split("T")[0]
+                                        : "No disponible"}
+                                    </p>
+                                  </div>
+                                </CardContent>
+
+                                <CardFooter className="flex justify-end gap-2 pt-2 border-t mt-auto">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      openView(mapEnrollmentToFormValues(enrollment as unknown as StudentClasses));
+                                    }}
+                                    className="hover:scale-105 transition-transform cursor-pointer">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </CardFooter>
+                              </Card>
+                            ))
+                          )}
+
+                        </div>
+                      )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -633,7 +806,7 @@ export default function StudentClassesDashboard() {
                       name="studentId"
                       render={({ field }) => (
                         <div className="space-y-2">
-                          <FormLabel className="text-sm font-medium">Alumno</FormLabel>
+                          <FormLabel className="text-sm">Alumno</FormLabel>
                           <SelectPopover<Student>
                             items={students ?? []}
                             value={field.value as string}
@@ -643,7 +816,7 @@ export default function StudentClassesDashboard() {
                             getLabel={(s: Student) => `${s.name} ${s.lastName ?? ""} (${s.enrollment})`}
                             renderItem={(s: Student) => (
                               <div className="flex flex-col">
-                                <span className="font-medium">{s.name} {s.lastName}</span>
+                                <span>{s.name} {s.lastName}</span>
                                 <span className="text-xs text-muted-foreground">{s.enrollment}</span>
                               </div>
                             )}
@@ -660,21 +833,43 @@ export default function StudentClassesDashboard() {
                       render={({ field }) => (
                         <div className="space-y-2">
                           <FormLabel className="text-sm font-medium">Clase</FormLabel>
-                          <SelectPopover<ClassCatalog>
-                            items={classCatalogs ?? []}
+                          <SelectPopover<ClassCatalogWithDetails>
+                            items={ClassCatalog ?? []}
                             value={field.value as string}
                             onChange={field.onChange}
                             placeholder="Selecciona una clase"
-                            getKey={(c: ClassCatalog) => c._id}
-                            getLabel={(c: ClassCatalog) => c.name}
-                            renderItem={(c: ClassCatalog) => (
+                            getKey={(c: ClassCatalogWithDetails) => c._id}
+                            getLabel={(c: ClassCatalogWithDetails) => c.name}
+                            renderItem={(c: ClassCatalogWithDetails) => (
                               <div className="flex items-center">
-                                <span>{c.name}</span>
+                                <span>{c.name} - {c.teacher?.name} {c.teacher?.lastName}</span>
                               </div>
                             )}
                             disabled={operation === "view"}
                           />
                         </div>
+                        // <FormItem>
+                        //   <FormLabel>Clase</FormLabel>
+                        //   <Select
+                        //     onValueChange={field.onChange}
+                        //     value={field.value as string}
+                        //     disabled={operation === 'view'}
+                        //   >
+                        //     <FormControl>
+                        //       <SelectTrigger className="w-full truncate">
+                        //         <SelectValue placeholder="Seleccione una clase" />
+                        //       </SelectTrigger>
+                        //     </FormControl>
+                        //     <SelectContent>
+                        //       {classCatalogsWithDetails?.map((cc) => (
+                        //         <SelectItem key={cc._id} value={cc._id}>
+                        //           {cc.name} - {cc.teacher?.name} {cc.teacher?.lastName}
+                        //         </SelectItem>
+                        //       ))}
+                        //     </SelectContent>
+                        //   </Select>
+                        //   <FormMessage />
+                        // </FormItem>
                       )}
                     />
                   </div>

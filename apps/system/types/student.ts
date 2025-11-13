@@ -9,6 +9,8 @@ export interface Student {
   groupId: Id<"group">;
   tutorId: Id<"user">;
   enrollment: string;
+  schoolCycleId?: Id<"schoolCycle">;
+  credit?: number;
   name: string;
   lastName?: string;
   birthDate?: number;

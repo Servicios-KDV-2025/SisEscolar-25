@@ -5,7 +5,8 @@ export interface CalendarType {
     _id: GenericId<"calendar">
     schoolId : Id<"school">
     schoolCycleId: Id<"schoolCycle">
-    date: number
+    startDate: number
+    endDate: number
     eventTypeId: Id<"eventType">
     description?: string
     status: string
