@@ -67,7 +67,6 @@ export default function RubricDashboard() {
     setSelectedClassSchoolCycleName,
     clearFilters,
     // Acciones del modal
-    setModalOpen,
     setEditingRubric,
     setFormData,
     resetForm,

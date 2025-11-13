@@ -217,9 +217,22 @@ export default function CalendarioEscolar() {
       ciclosEscolares.length > 0 &&
       !filtroCicloEscolarId
     ) {
-      const ultimoCiclo = ciclosEscolares[ciclosEscolares.length - 1];
-      if (ultimoCiclo && ultimoCiclo._id) {
-        setFiltroCicloEscolarId(ultimoCiclo._id);
+      // const ultimoCiclo = ciclosEscolares[ciclosEscolares.length - 1];
+      // if (ultimoCiclo && ultimoCiclo._id) {
+      //   setFiltroCicloEscolarId(ultimoCiclo._id);
+
+      // Nov 4: Busca el ciclo ACTIVO
+      const cicloActivo = ciclosEscolares.find((ciclo) => ciclo.status === "active");
+
+      if (cicloActivo) {
+        // Nov 4: Selecciona el ciclo activo
+        setFiltroCicloEscolarId(cicloActivo._id);
+      } else {
+        // Nov 4: Si no hay activo, usa el último como respaldo
+        const ultimoCiclo = ciclosEscolares[ciclosEscolares.length - 1];
+        if (ultimoCiclo && ultimoCiclo._id) {
+          setFiltroCicloEscolarId(ultimoCiclo._id);
+        }
       }
     }
   }, [ciclosEscolares, filtroCicloEscolarId]);
@@ -382,24 +395,7 @@ export default function CalendarioEscolar() {
         <div>
           <div className="container mx-auto px-6 py-6">
             <div className="text-center space-y-4">
-              <div className="flex mt-2 justify-end">
-                <Select
-                  value={filtroCicloEscolarId}
-                  onValueChange={setFiltroCicloEscolarId}
-                >
-                  <SelectTrigger className="bg-slate-50 border-slate-200 focus:bg-white">
-                    <School className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Filtrar por ciclo escolar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ciclosEscolares?.map((ciclo) => (
-                      <SelectItem key={ciclo._id} value={ciclo._id}>
-                        {ciclo.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+
               <div className="flex justify-center items-center gap-3 mb-5">
                 <div className="p-3 rounded-full backdrop-blur-sm">
                   <School className="h-8 w-8" />
@@ -415,7 +411,36 @@ export default function CalendarioEscolar() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {/* Filtros */}
+          <div className="container mx-auto px-6 mb-6">
+            <Card className="max-w-md mx-auto">
+              <CardContent className="pt-0">
+                <div className="flex items-center gap-3 justify-center">
+                  <label className="text-sm font-bold">Ciclo Escolar:</label>
+                  <Select
+                    value={filtroCicloEscolarId ?? ""}
+                    onValueChange={(value) => {
+                      setFiltroCicloEscolarId(value || "");
+                    }}
+                  >
+                    <SelectTrigger className="w-auto min-w-[180px] max-w-[300px] gap-8 px-3">
+                      <SelectValue placeholder="Seleccionar ciclo escolar..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ciclosEscolares?.map((cycle) => (
+                        <SelectItem key={cycle._id} value={cycle._id}>
+                          {cycle.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="container mx-auto px-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             <div className="row-span-2 col-span-3 lg:col-span-2 xl:col-span-3">
               <EventCalendar
                 events={formattedEvents}
@@ -539,6 +564,7 @@ export default function CalendarioEscolar() {
               </Card>
             </div>
           </div>
+        </div>
 
           <EventTypeDialog
             isOpen={modalAbiertoT}
