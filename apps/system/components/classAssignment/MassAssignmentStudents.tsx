@@ -88,6 +88,16 @@ export default function MassAssignmentStudets({ isOpen, onClose, schoolId, stude
     }
     setSelectedStudents(newSelected)
   }
+  // Reiniciar el formulario
+  const handleReset = () => {
+    setSelectedStudents(new Set())
+    setSelectedClass('')
+    setSearchTerm('')
+    setGradeFilter('all')
+    setGroupFilter('all')
+    setAssignmentResult([])
+    setShowResult(false)
+  }
   // Asignar estudiantes masivamente
   const handleMassAssignment = async () => {
     if (!selectedClass || selectedStudents.size === 0) {
@@ -115,7 +125,7 @@ export default function MassAssignmentStudets({ isOpen, onClose, schoolId, stude
             results.push({
               student,
               success: false,
-              error: 'El estudiante ya esta asignado a esta clase'
+              error: 'Ya esta asignado(a) a esta clase'
             })
             continue
           }
@@ -154,14 +164,15 @@ export default function MassAssignmentStudets({ isOpen, onClose, schoolId, stude
         })
       } else if (successful === 0) {
         toast.error('Error', {
-          description: `No se pudo asignar ningún estudiante`
+          description: `Los estudiantes ya pertenecen a esta clase.`
         })
       } else {
         toast.warning('Resultado parcial', {
-          description: `${successful} asignaciones existosas, ${failed} fallidas`
+          description: `${successful} asignacion(es) existosas, ${failed} fallidas`
         })
       }
-    } catch (error) {
+      handleReset()
+    } catch {
       toast.error('Error', {
         description: 'Ocurrio un error durante la asignación masiva'
       })
@@ -169,17 +180,7 @@ export default function MassAssignmentStudets({ isOpen, onClose, schoolId, stude
       setIsAssigning(false)
     }
   }
-  // Reiniciar el formulario
-  const handleReset = () => {
-    setSelectedStudents(new Set())
-    setSelectedClass('')
-    setSearchTerm('')
-    setGradeFilter('all')
-    setGroupFilter('all')
-    setAssignmentResult([])
-    setShowResult(false)
-  }
-  // Cerrar dialog
+
   const handleClose = () => {
     handleReset()
     onClose()
@@ -189,7 +190,7 @@ export default function MassAssignmentStudets({ isOpen, onClose, schoolId, stude
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-h-[100vh] w-[500px] bg-amber-100">
+      <DialogContent className="max-h-[100vh] sm:max-w-[800px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">Asignación masiva</DialogTitle>
           <DialogDescription>
@@ -197,9 +198,9 @@ export default function MassAssignmentStudets({ isOpen, onClose, schoolId, stude
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex sm:flex-row flex-col gap-2 max-h-[70vh] overflow-y-auto bg-sky-900">
+        <div className="flex sm:flex-row flex-col gap-2 max-h-[70vh] overflow-y-auto">
           {/* Panel de selección de Estudiantes */}
-          <Card className="flex flex-col mr-4">
+          <Card className="flex flex-col w-1/2 mr-4">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center justify-between">
                 <span>Seleccionar Estudiantes ({selectedStudents.size} seleccionados)</span>
@@ -227,8 +228,8 @@ export default function MassAssignmentStudets({ isOpen, onClose, schoolId, stude
               </div>
             </CardHeader>
 
-            <CardContent className="flex-1 overflow-hidden p-0">
-              <ScrollArea className="h-[300px]">
+            <CardContent className="flex-1 overflow-y-auto p-0">
+              <ScrollArea className="h-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -266,9 +267,13 @@ export default function MassAssignmentStudets({ isOpen, onClose, schoolId, stude
                             {student.enrollment}
                           </TableCell>
                           <TableCell>
-                            {isEnrolled && (
-                              <Badge variant='outline' className="text-xs">
+                            {isEnrolled ? (
+                              <Badge variant='outline' className="text-xs bg-red-50 border-red-200 text-red-600">
                                 Ya asignado
+                              </Badge>
+                            ):(
+                              <Badge variant='outline' className="text-xs bg-green-50 border-green-200 text-green-600">
+                                Sin asignar
                               </Badge>
                             )}
                           </TableCell>
@@ -289,7 +294,7 @@ export default function MassAssignmentStudets({ isOpen, onClose, schoolId, stude
             </CardContent>
           </Card>
           {/* Panel de selección de Clase y Resultados */}
-          <div className="space-y-4 w-2xl bg-amber-800">
+          <div className="space-y-4 w-1/2">
             {/* Selección de clase */}
             <Card>
               <CardHeader>
@@ -302,46 +307,16 @@ export default function MassAssignmentStudets({ isOpen, onClose, schoolId, stude
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Filtros para las clases */}
-                <div className="grid grid-cols-2 gap-2">
-                  <Select value={gradeFilter} onValueChange={setGradeFilter}>
-                    <SelectTrigger>
-                      <SelectValue placeholder='Grado' />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos los grados</SelectItem>
-                      <SelectItem value="1°">1°</SelectItem>
-                      <SelectItem value="2°">2°</SelectItem>
-                      <SelectItem value="3°">3°</SelectItem>
-                      <SelectItem value="4°">4°</SelectItem>
-                      <SelectItem value="5°">5°</SelectItem>
-                      <SelectItem value="6°">6°</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={groupFilter} onValueChange={setGroupFilter}>
-                    <SelectTrigger>
-                      <SelectValue placeholder='Grado' />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos los grupos</SelectItem>
-                      <SelectItem value="A">A</SelectItem>
-                      <SelectItem value="B">B</SelectItem>
-                      <SelectItem value="C">C</SelectItem>
-                      <SelectItem value="D">D</SelectItem>
-                      <SelectItem value="E">E</SelectItem>
-                      <SelectItem value="F">F</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-2">
                   {/* Selección de clase especifica */}
                   <Select
                     value={selectedClass}
                     onValueChange={(value: string) => setSelectedClass(value as Id<'classCatalog'> | '')}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full truncate">
                       <SelectValue placeholder='Selecciona una clase' />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="">
                       {filteredClasses.map(classCatalog => (
                         <SelectItem key={classCatalog._id} value={classCatalog._id}>
                           <div className="flex flex-col">
@@ -400,7 +375,7 @@ export default function MassAssignmentStudets({ isOpen, onClose, schoolId, stude
                             ) : (
                               <XCircle className="h-4 w-4 text-red-600" />
                             )}
-                            <span className="text-sm">
+                            <span className="text-sm font-medium">
                               {result.student.name} {result.student.lastName}
                             </span>
                           </div>
@@ -442,24 +417,25 @@ export default function MassAssignmentStudets({ isOpen, onClose, schoolId, stude
           </div>
         </div>
 
-        <DialogFooter className="flex justify-center sm:flex-row flex-col">
-          <Button
+        <DialogFooter>
+          {/* <Button
             variant='outline'
             onClick={handleReset}
             disabled={isAssigning}
           >
             Reiniciar
-          </Button>
+          </Button> */}
 
-          {showResult ? (
+          {/* {showResult ? (
             <Button onClick={handleClose}>
               Cerrar
             </Button>
-          ) : (
+          ) : ( */}
+          <div className="w-full justify-end flex">
             <Button
               onClick={handleMassAssignment}
               disabled={!selectedClass || selectedStudents.size === 0 || isAssigning}
-              className="gap-2"
+              className=""
             >
               {isAssigning ? (
                 <>
@@ -473,7 +449,8 @@ export default function MassAssignmentStudets({ isOpen, onClose, schoolId, stude
                 </>
               )}
             </Button>
-          )}
+          </div>  
+          {/* )} */}
         </DialogFooter>
       </DialogContent>
     </Dialog>
