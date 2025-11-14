@@ -30,6 +30,51 @@ export const createStudentClass = mutation({
     },
 });
 
+export const createMassStudentClasses = mutation({
+    args: {
+        schoolId: v.id('school'),
+        classCatalogId: v.id('classCatalog'),
+        studentIds: v.array(v.id('student')),
+        enrollmentDate: v.number()
+    },
+    handler: async (ctx, args) => {
+        const results = []
+
+        for(const studentId of args.studentIds) {
+            try {
+                // Verificar si ya existe
+                const exists = await ctx.db
+                    .query('studentClass')
+                    .withIndex('by_student', q => q.eq('studentId', studentId))
+                    .filter(q =>
+                        q.and(
+                            q.eq(q.field('classCatalogId'), args.classCatalogId),
+                            q.eq(q.field('schoolId'), args.schoolId)
+                        )
+                    )
+                    .first();
+
+                if(!exists) {
+                    const enrollment = await ctx.db.insert('studentClass', {
+                        schoolId: args.schoolId,
+                        classCatalogId: args.classCatalogId,
+                        studentId: studentId,
+                        enrollmentDate: args.enrollmentDate,
+                        status: 'active',
+                        averageScore: 0,
+                    });
+                    results.push({ studentId, success: true, enrollmentId: enrollment })
+                } else {
+                    results.push({ studentId, success: false, message: 'El estudiante ya está asignado a esta clase.' })
+                }
+            } catch {
+                results.push({ studentId, success: false, message: 'Error al inscribir al estudiante.' } )
+            }
+        }
+        return results
+    },
+})
+
 export const getStudentClassesBySchool = query({
     args: { schoolId: v.id("school") },
     handler: async (ctx, args) => {
