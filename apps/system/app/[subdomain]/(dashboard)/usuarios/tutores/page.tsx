@@ -348,9 +348,17 @@ export default function TutorPage() {
   }, [allUsers, searchTerm, statusFilter]);
 
   const paginatedUsers = useMemo(() => {
+    const sortedData = [...filteredUsers].sort((a, b) => {
+      const nameA = `${a.name} ${a.lastName || ''}`.toLowerCase().trim();
+      const nameB = `${b.name} ${b.lastName || ''}`.toLowerCase().trim();
+      return nameA.localeCompare(nameB);
+    });
+
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return filteredUsers.slice(startIndex, endIndex);
+    
+    return sortedData.slice(startIndex, endIndex);
+
   }, [filteredUsers, currentPage, itemsPerPage]);
 
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);

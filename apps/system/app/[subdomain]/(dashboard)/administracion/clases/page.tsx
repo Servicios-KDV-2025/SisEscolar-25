@@ -77,6 +77,7 @@ import {
   Users,
   Filter,
   Pencil,
+  LayoutList,
 } from "lucide-react";
 import {
   CrudDialog,
@@ -97,6 +98,8 @@ import {
   SchoolCycleType,
   TeacherType,
 } from "@/types/temporalSchema";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@repo/ui/components/shadcn/tabs";
+import { WeeklySchedule } from "../../../../../components/clase/horario-semanal";
 
 // Tipos para los props de los componentes de pasos
 type FullClassForm = UseFormReturn<z.infer<typeof FullClassSchema>>;
@@ -295,6 +298,10 @@ export default function HorariosPorClasePage() {
   const { currentSchool, isLoading: schoolLoading } = useCurrentSchool(
     currentUser?._id
   );
+  
+  // Estado para el estudiante seleccionado (solo para tutores)
+  const [selectedStudentId, setSelectedStudentId] = useState<Id<"student"> | "all">("all");
+  
   const [formStep, setFormStep] = useState(1);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditingClassDetails, setIsEditingClassDetails] = useState(false);
@@ -453,16 +460,41 @@ export default function HorariosPorClasePage() {
     return getStudentFilters?.() || { canViewAll: false };
   }, [getStudentFilters]);
 
+  // Obtener estudiantes del tutor
+  const tutorStudents = useQuery(
+    api.functions.student.getStudentsByTutor,
+    currentRole === "tutor" && currentSchool && currentUser
+      ? {
+          schoolId: currentSchool.school._id as Id<"school">,
+          tutorId: currentUser._id as Id<"user">,
+        }
+      : "skip"
+  );
+
+  // Obtener las clases del estudiante seleccionado (solo para tutores)
+  const studentClasses = useQuery(
+    api.functions.studentsClasses.getStudentClassesByStudentId,
+    currentRole === "tutor" && 
+    currentSchool && 
+    selectedStudentId !== "all" && 
+    typeof selectedStudentId === "string"
+      ? {
+          schoolId: currentSchool.school._id as Id<"school">,
+          studentId: selectedStudentId as Id<"student">,
+        }
+      : "skip"
+  );
+
   // Data Fetching
   const classesRaw = useQuery(
     api.functions.classSchedule.getClassScheduleWithRoleFilter,
     currentSchool && classFilters
       ? {
-        schoolId: currentSchool?.school._id as Id<"school">,
-        canViewAll: classFilters.canViewAll,
-        tutorId: classFilters.tutorId,
-        teacherId: classFilters.teacherId,
-      }
+          schoolId: currentSchool?.school._id as Id<"school">,
+          canViewAll: classFilters.canViewAll,
+          tutorId: classFilters.tutorId,
+          teacherId: classFilters.teacherId,
+        }
       : "skip"
   );
 
@@ -982,6 +1014,74 @@ export default function HorariosPorClasePage() {
     },
   ];
 
+  // Función para transformar los datos al formato esperado por WeeklySchedule
+  const transformClassesForWeeklySchedule = useMemo(() => {
+    // Si es tutor y hay un estudiante seleccionado, filtrar por las clases del estudiante
+    let classesToTransform = classesRaw;
+    
+    if (currentRole === "tutor" && selectedStudentId !== "all" && studentClasses) {
+      // Obtener los IDs de las clases del estudiante
+      const studentClassIds = new Set(
+        studentClasses
+          .filter((sc): sc is NonNullable<typeof sc> => sc !== null && sc.class?._id !== undefined)
+          .map((sc) => sc.class._id)
+      );
+      
+      // Filtrar las clases que están en las inscripciones del estudiante
+      classesToTransform = classesRaw?.filter((c) => 
+        c && c.classCatalogId && studentClassIds.has(c.classCatalogId)
+      );
+    }
+
+    if (!classesToTransform) return [];
+
+    const dayMap: Record<string, string> = {
+      "lun.": "Lunes",
+      "mar.": "Martes",
+      "mié.": "Miércoles",
+      "jue.": "Jueves",
+      "vie.": "Viernes",
+    };
+
+    const transformed = classesToTransform
+      .filter((c): c is NonNullable<typeof c> => c !== null && c.status === "active")
+      .map((classItem) => {
+        // Obtener nombre del profesor
+        const teacherName = classItem.teacher
+          ? `${classItem.teacher.name}${classItem.teacher.lastName ? ` ${classItem.teacher.lastName}` : ""}`.trim()
+          : "Sin profesor";
+
+        // Transformar horarios, filtrando nulls
+        const transformedSchedules = (classItem.schedules || [])
+          .filter((s): s is NonNullable<typeof s> => s !== null)
+          .map((schedule) => ({
+            day: dayMap[schedule.day] || schedule.day,
+            startTime: schedule.startTime,
+            endTime: schedule.endTime,
+          }));
+
+        return {
+          id: classItem.classCatalogId || classItem._id,
+          name: classItem.name,
+          subject: classItem.subject?.name || "Sin asignatura",
+          teacher: teacherName,
+          grade: classItem.group?.grade || "",
+          group: classItem.group?.name || "",
+          classroom: classItem.classroom ? { name: classItem.classroom.name } : null,
+          schedules: transformedSchedules,
+          status: classItem.status as "active" | "inactive",
+        };
+      })
+      .filter((c) => c.schedules.length > 0);
+
+    
+
+    return transformed;
+  }, [classesRaw, currentRole, selectedStudentId, studentClasses]);
+
+  // Si el rol es tutor o teacher, solo mostrar el WeeklySchedule
+  const isTutorOrTeacher = currentRole === "tutor" || currentRole === "teacher";
+
   return (
     <div className="space-y-8 p-6">
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
@@ -999,7 +1099,7 @@ export default function HorariosPorClasePage() {
               </p>
             </div>
           </div>
-          {canCreateScheduleAssignament && (
+          {canCreateScheduleAssignament && currentRole !== "teacher" && (
             <Button
               size="lg"
               className="gap-2"
@@ -1020,9 +1120,71 @@ export default function HorariosPorClasePage() {
         </div>
       </div>
 
-      {(currentRole === "superadmin" ||
-        currentRole === "admin" ||
-        currentRole === "auditor") && (
+      {isTutorOrTeacher ? (
+        <div className="space-y-4">
+          {currentRole === "tutor" && tutorStudents && tutorStudents.length > 0 && (
+            <Card className="p-4">
+              <div className="flex flex-col gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold">Seleccionar Estudiante</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Elige el estudiante para ver su horario
+                  </p>
+                </div>
+                <Select
+                  value={selectedStudentId === "all" ? "all" : selectedStudentId}
+                  onValueChange={(value) => {
+                    setSelectedStudentId(value === "all" ? "all" : (value as Id<"student">));
+                  }}
+                >
+                  <SelectTrigger className="w-full text-muted-foreground">
+                    <SelectValue placeholder="Selecciona un estudiante" />
+                  </SelectTrigger>
+                  <SelectContent className="text-muted-foreground">
+                    <SelectItem value="all" className="text-muted-foreground">Selecciona un estudiante</SelectItem>
+                    {tutorStudents.map((student) => (
+                      <SelectItem key={student._id} value={student._id}>
+                        {student.name} {student.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </Card>
+          )}
+          {currentRole === "tutor" && selectedStudentId === "all" ? (
+            <Card className="p-12">
+              <div className="text-center">
+                <GraduationCap className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">
+                  No has seleccionado un estudiante
+                </h3>
+                <p className="text-muted-foreground">
+                  Por favor, selecciona un estudiante para ver su horario de clases.
+                </p>
+              </div>
+            </Card>
+          ) : (
+            <WeeklySchedule 
+              classes={transformClassesForWeeklySchedule} 
+              studentName={
+                currentRole === "tutor" && 
+                selectedStudentId !== "all" && 
+                tutorStudents
+                  ? (() => {
+                      const student = tutorStudents.find((s) => s._id === selectedStudentId);
+                      return student ? `${student.name} ${student.lastName || ""}`.trim() : undefined;
+                    })()
+                  : undefined
+              }
+            />
+          )}
+        </div>
+      ) : (
+        <>
+          {(currentRole === "superadmin" ||
+            currentRole === "admin" ||
+            currentRole === "auditor") && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {stats.map((stat, index) => (
               <Card
@@ -1046,7 +1208,24 @@ export default function HorariosPorClasePage() {
           </div>
         )}
 
-      <Card>
+       <Tabs defaultValue="list" className="space-y-4 md:space-y-6">
+        <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 gap-2 md:gap-6 h-auto cursor-pointer">
+          <TabsTrigger value="list"
+           className="flex items-center justify-center gap-2 p-3 md:p-2 h-auto md:h-10 text-sm md:text-base  cursor-pointer"
+
+          >
+          <LayoutList className="h-4 w-4 md:h-4 md:w-4 flex-shrink-0"  />
+          Vista de Lista</TabsTrigger>
+          <TabsTrigger value="schedules"
+          className="flex items-center justify-center gap-2 p-3 md:p-2 h-auto md:h-10 text-sm md:text-base cursor-pointer"
+
+          >
+          <Clock className="h-4 w-4 md:h-4 md:w-4 flex-shrink-0"  />
+          Vista Horario Semanal</TabsTrigger>
+        </TabsList>
+        <TabsContent value="list">
+
+          <Card className="mb-6 mt-6">
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
@@ -1140,9 +1319,7 @@ export default function HorariosPorClasePage() {
                 No se encontraron clases
               </h3>
               <p className="text-muted-foreground mb-4">
-                {currentRole === "tutor"
-                  ? "En caso de alguna inconsistencia con la información, comunícate con soporte."
-                  : "Intenta ajustar los filtros o agrega una nueva clase con horario."}
+                Intenta ajustar los filtros o agrega una nueva clase con horario.
               </p>
               {canCreateScheduleAssignament && (
                 <Button
@@ -1167,7 +1344,7 @@ export default function HorariosPorClasePage() {
                   className="w-full max-w-md hover:shadow-lg transition-shadow duration-200 flex flex-col h-full"
                 >
                   <CardHeader className="flex items-center gap-2 justify-between">
-                    <CardTitle className="text-lg font-semibold leading-tight line-clamp-2 break-words flex-1 min-w-0">
+                    <CardTitle className="text-lg font-semibold leading-tight text-center md:text-left line-clamp-2 break-words flex-1 min-w-0">
                       {classItem.name}
                     </CardTitle>
                     <Badge
@@ -1735,6 +1912,63 @@ export default function HorariosPorClasePage() {
       </CrudDialog>
 
       {/* Dialogo para Creación (multi-paso) */}
+      {/* <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="sm:max-w-[625px]">
+          <DialogHeader>
+            <DialogTitle>Crear Nueva Clase</DialogTitle>
+            <DialogDescription>
+              Completa la información de la clase y asigna horarios.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...createForm}>
+            <form
+              onSubmit={createForm.handleSubmit(
+                handleCreateSubmit,
+                (errors) => {
+                  console.error("Validation errors:", errors);
+                  toast.error("Por favor, revisa el formulario", {
+                    description:
+                      "Algunos campos tienen errores o están incompletos.",
+                  });
+                }
+              )}
+            >
+              {formStep === 1 && (
+                <StepOneContent
+                  form={createForm}
+                  setFormStep={setFormStep}
+                  subjects={subjects}
+                  groups={groups}
+                  teachers={teachersData}
+                  classrooms={classrooms}
+                  schoolCycles={schoolCycles}
+                  closeDialog={() => setIsCreateDialogOpen(false)}
+                  activeSchoolCycleId={activeCycle?._id}
+                />
+              )}
+              {formStep === 2 && (
+                <StepTwoContent
+                  form={createForm}
+                  setFormStep={setFormStep}
+                  schedules={schedules}
+                  getDayName={getDayName}
+                  formatTime={formatTime}
+                  conflictScheduleIds={conflictScheduleIds || []}
+                  existingClass={existingClass} // ← AGREGAR ESTA LÍNEA
+                />
+              )}
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog> */}
+      </TabsContent>
+      <TabsContent value="schedules">
+        <WeeklySchedule classes={transformClassesForWeeklySchedule} />
+      </TabsContent>
+      </Tabs>
+        </>
+        
+      )}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="sm:max-w-[625px]">
           <DialogHeader>
