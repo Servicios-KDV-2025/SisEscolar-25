@@ -13,9 +13,12 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
-import type * as actions_actionsclassSchedule from "../actions/actionsclassSchedule.js";
-import type * as actions_users from "../actions/users.js";
 import type * as crons from "../crons.js";
+import type * as functions_actions_actionsclassSchedule from "../functions/actions/actionsclassSchedule.js";
+import type * as functions_actions_facturapi from "../functions/actions/facturapi.js";
+import type * as functions_actions_stripeConnect from "../functions/actions/stripeConnect.js";
+import type * as functions_actions_stripePayments from "../functions/actions/stripePayments.js";
+import type * as functions_actions_users from "../functions/actions/users.js";
 import type * as functions_assignment from "../functions/assignment.js";
 import type * as functions_attendance from "../functions/attendance.js";
 import type * as functions_billing from "../functions/billing.js";
@@ -26,6 +29,8 @@ import type * as functions_classCatalog from "../functions/classCatalog.js";
 import type * as functions_classSchedule from "../functions/classSchedule.js";
 import type * as functions_classroom from "../functions/classroom.js";
 import type * as functions_eventType from "../functions/eventType.js";
+import type * as functions_facturapiQueries from "../functions/facturapiQueries.js";
+import type * as functions_fiscalData from "../functions/fiscalData.js";
 import type * as functions_gradeRubrics from "../functions/gradeRubrics.js";
 import type * as functions_grades from "../functions/grades.js";
 import type * as functions_group from "../functions/group.js";
@@ -34,8 +39,6 @@ import type * as functions_schedule from "../functions/schedule.js";
 import type * as functions_schoolCycles from "../functions/schoolCycles.js";
 import type * as functions_schoolSubscriptions from "../functions/schoolSubscriptions.js";
 import type * as functions_schools from "../functions/schools.js";
-import type * as functions_stripeConnect from "../functions/stripeConnect.js";
-import type * as functions_stripePayments from "../functions/stripePayments.js";
 import type * as functions_student from "../functions/student.js";
 import type * as functions_studentsClasses from "../functions/studentsClasses.js";
 import type * as functions_subject from "../functions/subject.js";
@@ -45,6 +48,7 @@ import type * as functions_userSchool from "../functions/userSchool.js";
 import type * as functions_users from "../functions/users.js";
 import type * as http from "../http.js";
 import type * as templates_paymentSuccess from "../templates/paymentSuccess.js";
+import type * as utils_dateUtils from "../utils/dateUtils.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -55,9 +59,12 @@ import type * as templates_paymentSuccess from "../templates/paymentSuccess.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  "actions/actionsclassSchedule": typeof actions_actionsclassSchedule;
-  "actions/users": typeof actions_users;
   crons: typeof crons;
+  "functions/actions/actionsclassSchedule": typeof functions_actions_actionsclassSchedule;
+  "functions/actions/facturapi": typeof functions_actions_facturapi;
+  "functions/actions/stripeConnect": typeof functions_actions_stripeConnect;
+  "functions/actions/stripePayments": typeof functions_actions_stripePayments;
+  "functions/actions/users": typeof functions_actions_users;
   "functions/assignment": typeof functions_assignment;
   "functions/attendance": typeof functions_attendance;
   "functions/billing": typeof functions_billing;
@@ -68,6 +75,8 @@ declare const fullApi: ApiFromModules<{
   "functions/classSchedule": typeof functions_classSchedule;
   "functions/classroom": typeof functions_classroom;
   "functions/eventType": typeof functions_eventType;
+  "functions/facturapiQueries": typeof functions_facturapiQueries;
+  "functions/fiscalData": typeof functions_fiscalData;
   "functions/gradeRubrics": typeof functions_gradeRubrics;
   "functions/grades": typeof functions_grades;
   "functions/group": typeof functions_group;
@@ -76,8 +85,6 @@ declare const fullApi: ApiFromModules<{
   "functions/schoolCycles": typeof functions_schoolCycles;
   "functions/schoolSubscriptions": typeof functions_schoolSubscriptions;
   "functions/schools": typeof functions_schools;
-  "functions/stripeConnect": typeof functions_stripeConnect;
-  "functions/stripePayments": typeof functions_stripePayments;
   "functions/student": typeof functions_student;
   "functions/studentsClasses": typeof functions_studentsClasses;
   "functions/subject": typeof functions_subject;
@@ -87,6 +94,7 @@ declare const fullApi: ApiFromModules<{
   "functions/users": typeof functions_users;
   http: typeof http;
   "templates/paymentSuccess": typeof templates_paymentSuccess;
+  "utils/dateUtils": typeof utils_dateUtils;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

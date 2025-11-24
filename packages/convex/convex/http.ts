@@ -105,7 +105,7 @@ async function validateRequest(req: Request): Promise<WebhookEvent | null> {
 
 // Stripe 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-09-30.clover",
+  apiVersion: "2025-10-29.clover",
 });
  
 http.route({
@@ -403,7 +403,7 @@ async function handleCheckoutSessionCompletedForBilling(ctx: ActionCtx, session:
   console.log("   amount:", (session.amount_total || 0) / 100);
 
   // Confirmar el pago en la base de datos
-  await ctx.runMutation(internal.functions.stripePayments.confirmPayment, {
+  await ctx.runMutation(internal.functions.payments.confirmPayment, {
     paymentIntentId: paymentIntentId,
     billingId: metadata.billingId as Id<"billing">,
     studentId: metadata.studentId as Id<"student">,
@@ -459,7 +459,7 @@ async function handlePaymentIntentSucceeded(ctx: ActionCtx, paymentIntent: Strip
   console.log("   method:", paymentMethod);
 
   // Confirmar el pago en la base de datos
-  await ctx.runMutation(internal.functions.stripePayments.confirmPayment, {
+  await ctx.runMutation(internal.functions.payments.confirmPayment, {
     paymentIntentId: paymentIntent.id,
     billingId: metadata.billingId as Id<"billing">,
     studentId: metadata.studentId as Id<"student">,

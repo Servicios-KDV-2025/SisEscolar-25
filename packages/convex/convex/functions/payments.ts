@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { query } from "../_generated/server";
+import { query, mutation, internalQuery, internalMutation } from "../_generated/server";
+import { internal } from "../_generated/api";
 
 // Obtener historial de pagos por escuela y ciclo escolar
 export const getPaymentHistory = query({
@@ -38,8 +39,8 @@ export const getPaymentHistory = query({
 
         // Obtener la URL del archivo de factura si existe
         let invoiceUrl = null;
-        if (payment.invoiceId) {
-          invoiceUrl = await ctx.storage.getUrl(payment.invoiceId as any);
+        if (payment) {
+          invoiceUrl = await ctx.storage.getUrl(payment.facturapiInvoiceId as any);
         }
 
         return {
@@ -56,11 +57,11 @@ export const getPaymentHistory = query({
           billingStatus: billing.status,
           amount: payment.amount,
           method: payment.method,
-          methodLabel: payment.method === "cash" 
+          methodLabel: payment.method === "cash"
             ? (payment.stripePaymentIntentId?.startsWith("pi_") ? "OXXO" : "Efectivo")
-            : payment.method === "bank_transfer" 
+            : payment.method === "bank_transfer"
               ? (payment.stripePaymentIntentId?.startsWith("pi_") ? "SPEI" : "Transferencia Bancaria")
-              : payment.method === "card" 
+              : payment.method === "card"
                 ? "Tarjeta"
                 : "Otro",
           billingAmount: billing.amount,
@@ -70,10 +71,10 @@ export const getPaymentHistory = query({
           paidAt: payment.createdAt,
           createdBy: createdByUser ? `${createdByUser.name} ${createdByUser.lastName || ""}` : "N/A",
           createdAt: payment.createdAt,
-          invoiceId: payment.invoiceId || null,
           invoiceUrl: invoiceUrl,
-          invoiceFilename: payment.invoiceFilename || null,
-          invoiceMimeType: payment.invoiceMimeType || null,
+          facturapiInvoiceId: payment.facturapiInvoiceId || null,
+          facturapiInvoiceNumber: payment.facturapiInvoiceNumber || null,
+          facturapiInvoiceStatus: payment.facturapiInvoiceStatus || null,
         };
       })
     );
@@ -100,7 +101,7 @@ export const getPaymentStats = query({
       allPayments.map(async (payment) => {
         const student = await ctx.db.get(payment.studentId);
         if (!student || student.schoolId !== args.schoolId) return null;
-        
+
         if (args.schoolCycleId && student.schoolCycleId !== args.schoolCycleId) {
           return null;
         }
@@ -181,6 +182,34 @@ export const getPaymentsByStudent = query({
   },
 });
 
+// Obtener pago por ID
+export const getPaymentById = query({
+  args: {
+    paymentId: v.id("payments"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.paymentId);
+  },
+});
+
+// Actualizar pago con información de Facturapi
+export const updatePaymentWithFacturapi = mutation({
+  args: {
+    paymentId: v.id("payments"),
+    facturapiInvoiceId: v.string(),
+    facturapiInvoiceNumber: v.string(),
+    facturapiInvoiceStatus: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.paymentId, {
+      facturapiInvoiceId: args.facturapiInvoiceId,
+      facturapiInvoiceNumber: args.facturapiInvoiceNumber,
+      facturapiInvoiceStatus: args.facturapiInvoiceStatus,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
 // Obtener pagos por billing
 export const getPaymentsByBilling = query({
   args: {
@@ -206,5 +235,172 @@ export const getPaymentsByBilling = query({
     );
 
     return paymentsWithDetails;
+  },
+});
+
+// Internal queries para acceder a la DB desde actions
+export const getStudentWithTutor = internalQuery({
+  args: { studentId: v.id("student") },
+  handler: async (ctx, args) => {
+    const student = await ctx.db.get(args.studentId);
+    if (!student) return null;
+
+    const tutor = await ctx.db.get(student.tutorId);
+    return { student, tutor };
+  },
+});
+
+export const getBillingWithConfig = internalQuery({
+  args: { billingId: v.id("billing") },
+  handler: async (ctx, args) => {
+    const billing = await ctx.db.get(args.billingId);
+    if (!billing) return null;
+
+    const billingConfig = await ctx.db.get(billing.billingConfigId);
+    return { billing, billingConfig };
+  },
+});
+
+// Confirmar un pago después de que se complete
+export const confirmPayment = internalMutation({
+  args: {
+    paymentIntentId: v.string(),
+    billingId: v.id("billing"),
+    studentId: v.id("student"),
+    amount: v.number(),
+    createdBy: v.id("user"),
+    stripeChargeId: v.optional(v.string()),
+    stripeTransferId: v.optional(v.string()),
+    paymentMethod: v.optional(v.union(v.literal("cash"), v.literal("bank_transfer"), v.literal("card"), v.literal("other"))),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const billing = await ctx.db.get(args.billingId);
+
+    if (!billing) {
+      console.error("❌ Registro de cobro no encontrado:", args.billingId);
+      throw new Error("Registro de cobro no encontrado");
+    };
+
+    const student = await ctx.db.get(args.studentId);
+    if (!student) {
+      console.error("❌ Estudiante no encontrado:", args.studentId);
+      throw new Error("Estudiante no encontrado");
+    }
+    const existingPayment = await ctx.db
+      .query("payments")
+      .filter((q) => q.eq(q.field("stripePaymentIntentId"), args.paymentIntentId))
+      .first();
+
+    if (existingPayment) {
+      console.log("⚠️ Ya existe un pago con este Payment Intent:", existingPayment._id);
+      return {
+        success: true,
+        paymentId: existingPayment._id,
+        newStatus: billing.status,
+        message: "Pago ya procesado anteriormente"
+      };
+    }
+    
+    const paymentId = await ctx.db.insert("payments", {
+      billingId: args.billingId,
+      studentId: args.studentId,
+      method: args.paymentMethod || "card", // Usar el método detectado o default a card
+      amount: args.amount,
+      createdBy: args.createdBy,
+      stripePaymentIntentId: args.paymentIntentId,
+      stripeChargeId: args.stripeChargeId,
+      stripeTransferId: args.stripeTransferId,
+      createdAt: now,
+      updatedAt: now,
+    });
+    console.log("✅ Pago registrado con ID:", paymentId);
+
+    // Preparar para generación de factura con Facturapi (marcar como pendiente)
+    try {
+      console.log("📄 Preparando generación de factura con Facturapi...");
+
+      // Obtener información necesaria para verificar si se puede generar factura
+      const student = await ctx.db.get(args.studentId);
+      const tutor = student ? await ctx.db.get(student.tutorId) : null;
+
+      if (student && tutor) {
+        // Marcar como pendiente para generación manual por el usuario
+        await ctx.db.patch(paymentId, {
+          facturapiInvoiceStatus: "pending",
+          updatedAt: now,
+        });
+        console.log("✅ Factura preparada para generación manual");
+      } else {
+        console.log("⚠️ Información incompleta para factura, marcando como pendiente");
+        await ctx.db.patch(paymentId, {
+          facturapiInvoiceStatus: "pending",
+          updatedAt: now,
+        });
+      }
+    } catch (error) {
+      console.error("❌ Error preparando factura:", error);
+      // No fallar el pago por errores de factura
+    }
+
+    // Actualizar el billing (misma lógica que processPayment existente)
+    const previousTotalAmount = billing.totalAmount || billing.amount;
+    const newTotalAmount = previousTotalAmount - args.amount;
+    console.log("📊 Calculando nuevo total:");
+    console.log("   Previous total:", previousTotalAmount);
+    console.log("   Pago:", args.amount);
+    console.log("   New total:", newTotalAmount);
+
+    let newStatus: typeof billing.status;
+    let paidAt: number | undefined;
+    let creditToAdd = 0;
+
+    if (newTotalAmount === 0) {
+      newStatus = "Pago cumplido";
+      paidAt = now;
+      console.log("✅ Pago completado exacto");
+    } else if (newTotalAmount < 0) {
+      newStatus = "Pago cumplido";
+      paidAt = now;
+      creditToAdd = Math.abs(newTotalAmount);
+      console.log("✅ Pago completado con crédito extra:", creditToAdd);
+    } else {
+      newStatus = "Pago parcial";
+      paidAt = undefined;
+      console.log("⚠️ Pago parcial, falta:", newTotalAmount);
+    }
+
+    console.log("📝 Actualizando billing...");
+    await ctx.db.patch(args.billingId, {
+      status: newStatus,
+      totalAmount: Math.max(0, newTotalAmount),
+      paidAt: paidAt,
+      updatedAt: now,
+    });
+    console.log("✅ Billing actualizado - Nuevo status:", newStatus);
+
+    // Actualizar el credit del estudiante
+    const currentCredit = student.credit || 0;
+    const newCredit = currentCredit + creditToAdd;
+
+    if (creditToAdd > 0) {
+      console.log("💰 Actualizando crédito del estudiante:");
+      console.log("   Crédito anterior:", currentCredit);
+      console.log("   Crédito a agregar:", creditToAdd);
+      console.log("   Nuevo crédito:", newCredit);
+
+      await ctx.db.patch(args.studentId, {
+        credit: newCredit,
+        updatedAt: now,
+      });
+      console.log("✅ Crédito actualizado");
+    }
+
+    console.log("✅ confirmPayment - Completado exitosamente");
+    return {
+      success: true,
+      paymentId,
+      newStatus,
+    };
   },
 });

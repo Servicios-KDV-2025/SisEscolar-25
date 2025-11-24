@@ -104,9 +104,9 @@ export const useUserActionsWithConvex = () => {
   const store = useUserActionsStore();
 
   // Actions de Convex
-  const createUserAction = useAction(api.actions.users.createUser);
-  const updateUserAction = useAction(api.actions.users.updateUser);
-  const deleteUserAction = useAction(api.actions.users.deleteUser);
+  const createUserAction = useAction(api.functions.actions.users.createUser);
+  const updateUserAction = useAction(api.functions.actions.users.updateUser);
+  const deleteUserAction = useAction(api.functions.actions.users.deleteUser);
 
   // Función para crear usuario
   const createUser = React.useCallback(async (data: CreateUserData): Promise<UserActionResponse> => {

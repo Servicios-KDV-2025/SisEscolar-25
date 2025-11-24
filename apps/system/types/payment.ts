@@ -6,9 +6,9 @@ export interface Payment {
   studentId: Id<"student">
   method: "cash" | "bank_transfer" | "card" | "other"
   amount: number
-  invoiceId?: string
-  invoiceFilename?: string
-  invoiceMimeType?: string
+  facturapiInvoiceId?: string
+  facturapiInvoiceNumber?: string
+  facturapiInvoiceStatus?: string
   createdBy: Id<"user">
   createdAt: number
   updatedAt: number

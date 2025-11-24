@@ -216,17 +216,17 @@ export const studentSchema = z.object({
   scholarshipType: z.union([z.literal("inactive"), z.literal("active")]),
   scholarshipPercentage: z.number().max(100, "El porcentaje debe ser menor a 100").optional(),
 }).refine(
-    (data) => {
-      if (data.scholarshipType === "active") {
-        return data.scholarshipPercentage && data.scholarshipPercentage > 0;
-      }
-      return true;
-    },
-    {
-      message: "El porcentaje no puede ser 0",
-      path: ["scholarshipPercentage"],
+  (data) => {
+    if (data.scholarshipType === "active") {
+      return data.scholarshipPercentage && data.scholarshipPercentage > 0;
     }
-  );
+    return true;
+  },
+  {
+    message: "El porcentaje no puede ser 0",
+    path: ["scholarshipPercentage"],
+  }
+);
 
 // -----------------------------------------------------
 // TIPOS DERIVADOS
@@ -298,3 +298,88 @@ export type TeacherWithSchoolInfo = TeacherWithMetadata & {
 export type TutorWithSchoolInfo = TutorWithMetadata & {
   userSchool?: UserSchool & WithSystemMetadata;
 };
+
+export const fiscalDataSchema = z.object({
+  legalName: z
+    .string()
+    .trim()
+    .nonempty("El nombre o razón social es obligatorio")
+    .min(2, "El nombre o razón social debe tener al menos 2 caracteres")
+    .max(120, "El nombre o razón social no puede tener más de 120 caracteres")
+    .regex(/^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9\s.,&'-]+$/, "El nombre contiene caracteres inválidos"),
+  taxId: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .nonempty("El RFC es obligatorio")
+    .regex(
+      /^([A-ZÑ&]{3,4})\d{6}([A-Z\d]{3})?$/,
+      "El RFC no tiene un formato válido"
+    ),
+  taxSystem: z.enum(["605", "606", "612", "616"], {
+    message: "Debe seleccionar un régimen fiscal válido",
+  }),
+  cfdiUse: z.enum(["G03", "D10"], {
+    message: "Debe seleccionar un uso de CFDI válido",
+  }),
+  street: z
+    .string()
+    .trim()
+    .nonempty("La calle es obligatoria")
+    .min(3, "La calle debe tener al menos 3 caracteres")
+    .max(100, "La calle no puede tener más de 100 caracteres"),
+  exteriorNumber: z
+    .string()
+    .nonempty("El número exterior es obligatorio")
+    .trim()
+    .refine((val) => (val !== undefined && val !== null) || val === "", "El número exterior es requerido")
+    .regex(/^[\w-]+$/, "El número exterior contiene caracteres inválidos")
+    .min(1, "El número exterior es requerido"),
+  interiorNumber: z
+    .string()
+    .optional(),
+  neighborhood: z
+    .string()
+    .trim()
+    .nonempty("La colonia es obligatoria")
+    .min(2, "La colonia debe tener al menos 2 caracteres")
+    .max(100, "La colonia no puede tener más de 100 caracteres"),
+  city: z
+    .string()
+    .trim()
+    .nonempty("La ciudad es obligatoria")
+    .min(2, "La ciudad debe tener al menos 2 caracteres")
+    .max(100, "La ciudad no puede tener más de 100 caracteres"),
+  state: z
+    .string()
+    .trim()
+    .nonempty("El estado es obligatorio")
+    .min(2, "El estado debe tener al menos 2 caracteres")
+    .max(100, "El estado no puede tener más de 100 caracteres"),
+  zip: z
+    .string()
+    .trim()
+    .nonempty("El código es obligatorio")
+    .regex(/^\d{5}$/, "El código postal debe tener exactamente 5 dígitos"),
+  country: z.literal("MXN").default("MXN"),
+  email: z
+  .string()
+    .nonempty("El correo es obligatorio")
+    .email("Correo inválido"),
+  phone: z
+    .string()
+    .trim()
+    .nonempty("El teléfono es obligatorio")
+    .regex(/^\d{10}$/, "El teléfono debe tener exactamente 10 dígitos (solo números)")
+    .optional(),
+});
+
+export const fiscalDataCreateSchema = fiscalDataSchema.extend({
+  userId: z.string(),
+});
+
+export const fiscalDataEditSchema = fiscalDataSchema;
+
+export type FiscalData = z.infer<typeof fiscalDataSchema>;
+export type FiscalDataCreate = z.infer<typeof fiscalDataCreateSchema>;
+export type FiscalDataEdit = z.infer<typeof fiscalDataEditSchema>;

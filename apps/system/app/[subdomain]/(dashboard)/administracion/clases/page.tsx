@@ -561,7 +561,7 @@ export default function HorariosPorClasePage() {
 
   // Mutations and Actions
   const createClassWithSchedule = useAction(
-    api.actions.actionsclassSchedule.createClassWithSchedule
+    api.functions.actions.actionsclassSchedule.createClassWithSchedule
   );
   const updateClassAndSchedules = useMutation(
     api.functions.classSchedule.updateClassAndSchedules
@@ -570,7 +570,7 @@ export default function HorariosPorClasePage() {
     api.functions.classCatalog.updateClassCatalog
   );
   const deleteClassAndSchedulesAction = useAction(
-    api.actions.actionsclassSchedule.deleteClassAndSchedules
+    api.functions.actions.actionsclassSchedule.deleteClassAndSchedules
   );
   const validateConflictsMutation = useMutation(
     api.functions.classSchedule.validateScheduleConflicts

@@ -8,12 +8,13 @@ import { Input } from "@repo/ui/components/shadcn/input"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@repo/ui/components/shadcn/select"
 import { Button } from "@repo/ui/components/shadcn/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@repo/ui/components/shadcn/tooltip"
-import { useQuery } from "convex/react"
+import { useQuery, useMutation, useAction } from "convex/react"
 import { api } from "@repo/convex/convex/_generated/api"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
 import { useUser } from "@clerk/nextjs"
 import { useUserWithConvex } from "../../../../stores/userStore"
 import { useCurrentSchool } from "../../../../stores/userSchoolsStore"
+import { PAYMENT_TYPES } from "lib/billing/constants"
 
 interface PaymentHistoryProps {
   selectedSchoolCycle: string
@@ -30,6 +31,61 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
   const { user: clerkUser } = useUser()
   const { currentUser } = useUserWithConvex(clerkUser?.id)
   const { currentSchool } = useCurrentSchool(currentUser?._id)
+
+  // Verificar si el tutor tiene información fiscal completa
+  const tutorFiscalData = useQuery(
+    api.functions.fiscalData.getFiscalDataByUserId,
+    currentUser?._id ? { userId: currentUser._id } : "skip"
+  );
+  const hasCompleteFiscalInfo = !!tutorFiscalData;
+
+  // Action para generar facturas
+  const generateInvoice = useAction(api.functions.actions.facturapi.generateFacturapiInvoice);
+
+  // Mutation para actualizar el pago con información de Facturapi
+  const updatePaymentWithFacturapi = useMutation(api.functions.payments.updatePaymentWithFacturapi);
+
+  // Action para descargar facturas de Facturapi
+  const downloadFacturapiInvoice = useAction(api.functions.actions.facturapi.downloadFacturapiInvoice);
+
+  // Función para generar facturas automáticamente para pagos pendientes
+  const generatePendingInvoices = async () => {
+    if (!hasCompleteFiscalInfo || !currentUser?._id) return;
+
+    // Filtrar pagos que están pendientes y no tienen factura generada
+    const pendingPayments = (paymentHistory || []).filter(
+      payment =>
+        payment.facturapiInvoiceStatus === "pending" &&
+        !payment.facturapiInvoiceId
+    );
+
+    for (const payment of pendingPayments) {
+      try {
+        console.log(`Generando factura automática para pago: ${payment.id}`);
+
+        // Generar la factura
+        const result = await generateInvoice({
+          paymentId: payment.id as Id<"payments">,
+          tutorId: currentUser._id as Id<"user">,
+        });
+
+        if (result.success) {
+          // Actualizar el pago con la información de Facturapi
+          await updatePaymentWithFacturapi({
+            paymentId: payment.id as Id<"payments">,
+            facturapiInvoiceId: result.facturapiInvoiceId,
+            facturapiInvoiceNumber: String(result.invoiceNumber),
+            facturapiInvoiceStatus: result.status,
+          });
+
+          console.log(`Factura generada automáticamente: ${result.facturapiInvoiceId}`);
+        }
+      } catch (error) {
+        console.error(`Error generando factura para pago ${payment.id}:`, error);
+        // No mostrar error al usuario, solo continuar con otros pagos
+      }
+    }
+  };
 
   // Obtener ciclos escolares
   const schoolCycles = useQuery(
@@ -71,6 +127,13 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
     }
   }, [schoolCycles, selectedSchoolCycle, setSelectedSchoolCycle])
 
+  // Generar facturas automáticamente cuando se carga el historial de pagos
+  useEffect(() => {
+    if (paymentHistory && hasCompleteFiscalInfo && currentUser?._id) {
+      generatePendingInvoices();
+    }
+  }, [paymentHistory, hasCompleteFiscalInfo, currentUser?._id])
+
   const totalPayments = paymentStats?.totalPayments || 0
   const paidPayments = paymentStats?.paidPayments || 0
   const pendingPayments = (paymentStats?.pendingPayments || 0) + (paymentStats?.overduePayments || 0)
@@ -96,15 +159,51 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 
+  const handleGenerateInvoice = async (paymentId: string) => {
+    if (!hasCompleteFiscalInfo) {
+      alert("Debes completar tu información fiscal antes de generar facturas");
+      return;
+    }
+
+    if (!currentUser?._id) return;
+
+    try {
+      // Llamar a la función de generación de facturas
+      const result = await generateInvoice({
+        paymentId: paymentId as Id<"payments">,
+        tutorId: currentUser._id as Id<"user">,
+      });
+
+      if (result.success) {
+        // Actualizar el pago con la información de Facturapi usando una mutation
+        await updatePaymentWithFacturapi({
+          paymentId: paymentId as Id<"payments">,
+          facturapiInvoiceId: result.facturapiInvoiceId,
+          facturapiInvoiceNumber: String(result.invoiceNumber),
+          facturapiInvoiceStatus: result.status,
+        });
+
+        alert("Factura generada exitosamente");
+        // Refrescar la página para mostrar los cambios
+        window.location.reload();
+      } else {
+        alert("Error al generar la factura");
+      }
+    } catch (error) {
+      console.error("Error generando factura:", error);
+      alert("Error al generar la factura: " + (error instanceof Error ? error.message : "Error desconocido"));
+    }
+  };
+
   const handleDownloadInvoice = async (url: string, studentName: string, filename?: string | null, mimeType?: string | null) => {
     try {
       const response = await fetch(url)
       const blob = await response.blob()
-      
+
       // Detectar la extensión desde múltiples fuentes
       let extension = 'pdf' // Por defecto
       let finalFilename = `Factura_${studentName.replace(/\s/g, '_')}`
-      
+
       // 1. Si tenemos el nombre del archivo guardado, usar su extensión
       if (filename) {
         const fileExtension = filename.split('.').pop()
@@ -145,7 +244,7 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
             }
           }
         }
-        
+
         // 4. Usar Content-Type como último recurso
         const contentType = response.headers.get('content-type')
         if (contentType) {
@@ -164,21 +263,56 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
           }
           extension = mimeToExtension[contentType] || extension
         }
-        
+
         finalFilename = `${finalFilename}.${extension}`
       }
-      
+
       const downloadUrl = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = downloadUrl
       link.download = finalFilename
-      
+
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
       window.URL.revokeObjectURL(downloadUrl)
     } catch (error) {
       console.error('Error descargando la factura:', error)
+    }
+  }
+
+  const handleDownloadFacturapiInvoice = async (facturapiInvoiceId: string, student: string, paymentType: string) => {
+    try {
+      console.log('Descargando factura de Facturapi:', facturapiInvoiceId);
+
+      const result = await downloadFacturapiInvoice({ facturapiInvoiceId, student, paymentType});
+
+      if (result.success) {
+        const binaryString = atob(result.pdfData);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = result.filename || `Factura_${student.replace(/\s/g, '_')}.pdf`;
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+
+        console.log('Factura descargada exitosamente');
+      } else {
+        console.error('Error descargando factura:', result);
+        alert('Error al descargar la factura');
+      }
+    } catch (error) {
+      console.error('Error descargando factura de Facturapi:', error);
+      alert('Error al descargar la factura: ' + (error instanceof Error ? error.message : 'Error desconocido'));
     }
   }
 
@@ -468,52 +602,113 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
                       <TableCell>{payment.methodLabel}</TableCell>
                       <TableCell>{payment.createdBy}</TableCell>
                       <TableCell>
-                        {payment.invoiceUrl ? (
+                        {payment.invoiceUrl || payment.facturapiInvoiceId ? (
                           <TooltipProvider>
                             <div className="flex items-center gap-2">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleViewInvoice(payment.invoiceUrl!)}
-                                    className="h-8 w-8 p-0 hover:bg-blue-100 cursor-pointer"
-                                  >
-                                    <Eye className="h-4 w-4 text-primary" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Ver factura</p>
-                                </TooltipContent>
-                              </Tooltip>
-                              
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleDownloadInvoice(
-                                      payment.invoiceUrl!, 
-                                      payment.studentName,
-                                      payment.invoiceFilename,
-                                      payment.invoiceMimeType
-                                    )}
-                                    className="h-8 w-8 p-0 hover:bg-green-100 cursor-pointer"
-                                  >
-                                    <Download className="h-4 w-4 text-primary" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Descargar factura</p>
-                                </TooltipContent>
-                              </Tooltip>
+                              {payment.invoiceUrl && (
+                                <>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleViewInvoice(payment.invoiceUrl!)}
+                                        className="h-8 w-8 p-0 hover:bg-blue-100 cursor-pointer"
+                                      >
+                                        <Eye className="h-4 w-4 text-primary" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Ver factura</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleDownloadInvoice(
+                                          payment.invoiceUrl!,
+                                          payment.studentName,
+                                          payment.facturapiInvoiceId,
+                                        )}
+                                        className="h-8 w-8 p-0 hover:bg-green-100 cursor-pointer"
+                                      >
+                                        <Download className="h-4 w-4 text-primary" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Descargar factura</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </>
+                              )}
+
+                              {payment.facturapiInvoiceId && !payment.invoiceUrl && (
+                                <div className="flex items-center gap-1">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="flex items-center gap-1 text-orange-600">
+                                        <FileX className="h-4 w-4" />
+                                        <span className="text-xs">
+                                          {payment.facturapiInvoiceStatus === 'pending' ? 'Factura pendiente' :
+                                           payment.facturapiInvoiceStatus === 'valid' ? 'Factura generada' :
+                                           `Factura: ${payment.facturapiInvoiceStatus}`}
+                                        </span>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>ID Facturapi: {payment.facturapiInvoiceId}</p>
+                                      {payment.facturapiInvoiceNumber && <p>Número: {payment.facturapiInvoiceNumber}</p>}
+                                    </TooltipContent>
+                                  </Tooltip>
+
+                                  {payment.facturapiInvoiceStatus === 'valid' && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleDownloadFacturapiInvoice(payment.facturapiInvoiceId!, payment.studentName, payment.paymentType)}
+                                          className="h-6 w-6 p-0 hover:bg-green-100 ml-1"
+                                        >
+                                          <Download className="h-3 w-3 text-green-600" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Descargar factura PDF</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </TooltipProvider>
                         ) : (
-                          <div className="flex items-center gap-1 text-gray-400">
-                            <FileX className="h-4 w-4" />
-                            <span className="text-xs">Sin factura</span>
-                          </div>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleGenerateInvoice(payment.id)}
+                                  className="h-8 w-8 p-0 hover:bg-blue-100 cursor-pointer"
+                                  disabled={!hasCompleteFiscalInfo}
+                                >
+                                  <FileX className="h-4 w-4 text-primary" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>
+                                  {hasCompleteFiscalInfo
+                                    ? "Generar factura"
+                                    : "Completa tu información fiscal para generar facturas"
+                                  }
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         )}
                       </TableCell>
                     </TableRow>
