@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
@@ -56,13 +56,11 @@ import { TaskForm } from 'components/tasks/TaskForm';
 import { UseFormReturn } from 'react-hook-form';
 import NotAuth from "../../../../../components/NotAuth";
 
-// Componente principal de contenido (solo se ejecuta cuando está autenticado)
 export default function TaskManagement() {
   const { user: clerkUser } = useUser();
   const { currentUser } = useUserWithConvex(clerkUser?.id);
   const { currentSchool } = useCurrentSchool(currentUser?._id);
   const {
-    // Datos
     allAssignmentsForFilters,
     allClassesForFilters,
     teacherAssignments: filteredTasks,
@@ -70,8 +68,6 @@ export default function TaskManagement() {
     allTerms,
     gradeRubrics,
     assignmentsProgress,
-
-    // Acciones
     createTask,
     updateTask,
     deleteTask,
@@ -83,7 +79,7 @@ export default function TaskManagement() {
     currentRole,
   } = useTask(currentSchool?.school._id);
 
-  // Estados para filtros (estos se mantienen locales)
+  // Estados para filtros
   const [rubricFilter, setRubricFilter] = useState<string>("all");
   const [termFilter, setTermFilter] = useState<string>("all");
   const [groupFilter, setGroupFilter] = useState<string>("all");
@@ -92,10 +88,8 @@ export default function TaskManagement() {
 
   // Estado para el dialog de detalles
   const [detailsDialogOpen, setDetailsDialogOpen] = useState<boolean>(false);
-  const [listStudentDialogOpen, setListStudentDialogOpen] = useState<boolean>(false)
-  const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<
-    string | null
-  >(null);
+  const [listStudentDialogOpen, setListStudentDialogOpen] = useState<boolean>(false);
+  const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<string | null>(null);
 
   // Query para obtener detalles de entregas
   const assignmentDetails = useQuery(
@@ -104,6 +98,72 @@ export default function TaskManagement() {
       ? { assignmentId: selectedTaskForDetails as Id<"assignment"> }
       : "skip"
   );
+
+  // Query para obtener los estudiantes del tutor (solo si es tutor)
+  const tutorStudents = useQuery(
+    api.functions.student.getStudentsByTutor,
+    // Aseguramos que solo se ejecute si los IDs son válidos y el rol es CORRECTO
+    currentRole === 'tutor' && currentUser?._id && currentSchool?.school._id
+      ? {
+        tutorId: currentUser._id,
+        schoolId: currentSchool.school._id
+      }
+      : "skip"
+  );
+
+
+  // Filtrar los detalles de la asignación según el rol
+  const filteredAssignmentDetails = useMemo(() => {
+    if (!assignmentDetails) return null;
+
+    // Si no es tutor, devolver todos los detalles sin filtrar
+    if (currentRole !== 'tutor') {
+      return assignmentDetails;
+    }
+
+    // Si la lista de alumnos del tutor aún está cargando, mostramos todo temporalmente
+    if (tutorStudents === undefined) {
+      return assignmentDetails;
+    }
+
+    // Si ya cargó y el tutor no tiene estudiantes asignados, devolvemos lista vacía
+    if (tutorStudents.length === 0) {
+      return {
+        ...assignmentDetails,
+        submittedStudents: [],
+        pendingStudents: [],
+        submittedCount: 0,
+        pendingCount: 0,
+        totalStudents: 0,
+      };
+    }
+
+    // 1. Creamos el Set con los IDs de TUS estudiantes (Estos vienen de la tabla Student, así que usan _id)
+    const tutorStudentIds = new Set(
+      tutorStudents.map(student => student._id)
+    );
+
+    // 2. Filtramos usando 'studentId' que es como viene en el objeto de la tarea
+    const filteredSubmittedStudents = assignmentDetails.submittedStudents.filter(
+      student => student && tutorStudentIds.has(student.studentId as Id<"student">)
+    );
+
+    // 3. Lo mismo para los pendientes, usando 'studentId'
+    const filteredPendingStudents = assignmentDetails.pendingStudents.filter(
+      student => student && tutorStudentIds.has(student.studentId as Id<"student">)
+    );
+
+    const newTotal = filteredSubmittedStudents.length + filteredPendingStudents.length;
+
+    return {
+      ...assignmentDetails,
+      submittedStudents: filteredSubmittedStudents,
+      pendingStudents: filteredPendingStudents,
+      submittedCount: filteredSubmittedStudents.length,
+      pendingCount: filteredPendingStudents.length,
+      totalStudents: newTotal,
+    };
+  }, [assignmentDetails, tutorStudents, currentRole]);
 
   const {
     isOpen,
@@ -122,18 +182,17 @@ export default function TaskManagement() {
     classCatalogId: '',
     termId: '',
     gradeRubricId: '',
-  })
+  });
 
-  // Función para abrir el dialog de detalles
   const handleViewDetails = (taskId: string) => {
     setSelectedTaskForDetails(taskId);
     setDetailsDialogOpen(true);
   };
 
   const handleListStudent = (taskId: string) => {
-    setSelectedTaskForDetails(taskId)
-    setListStudentDialogOpen(true)
-  }
+    setSelectedTaskForDetails(taskId);
+    setListStudentDialogOpen(true);
+  };
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!currentSchool?.school._id || !currentUser?._id) {
@@ -142,16 +201,13 @@ export default function TaskManagement() {
     }
 
     try {
-      // Validar que dueDate y dueTime estén presentes
       if (!values.dueDate || !values.dueTime) {
         console.error('Fecha u hora faltantes');
         return;
       }
 
-      // Combinar fecha y hora para crear el timestamp
       const dueDateTime = new Date(`${values.dueDate}T${values.dueTime}`);
 
-      // Validar que la fecha sea válida
       if (isNaN(dueDateTime.getTime())) {
         console.error('Fecha u hora inválidas');
         return;
@@ -184,13 +240,11 @@ export default function TaskManagement() {
         });
       }
 
-      // Cerrar el diálogo después de éxito
       close();
-
     } catch (error) {
       console.error('Error al procesar la tarea:', error);
     }
-  }
+  };
 
   const handleDelete = async (taskId: string) => {
     try {
@@ -254,7 +308,6 @@ export default function TaskManagement() {
 
   const filteredTasksList =
     filteredTasks?.filter((task) => {
-      // Filtro por término de búsqueda
       const subject = teacherClasses?.find((clase) => clase._id === task.classCatalogId);
       const searchMatch = searchTermTask === "" ||
         task.name.toLowerCase().includes(searchTermTask.toLowerCase()) ||
@@ -264,20 +317,15 @@ export default function TaskManagement() {
         subject?.subject.toLowerCase().includes(searchTermTask.toLowerCase()) ||
         subject?.name.toLowerCase().includes(searchTermTask.toLowerCase());
 
-      // Si hay término de búsqueda y no coincide, excluir la tarea
       if (searchTermTask !== "" && !searchMatch) {
         return false;
       }
 
-      // Filtros por selectores
       const rubricMatch =
         rubricFilter === "all" || task.gradeRubric?._id === rubricFilter;
-
       const termMatch = termFilter === "all" || task.termId === termFilter;
-
       const subjectMatch =
         subjectFilter === "all" || task.classCatalogId === subjectFilter;
-
       const groupMatch =
         groupFilter === "all" ||
         `${task.group?.grade}-${task.group?._id}` === groupFilter;
@@ -314,8 +362,7 @@ export default function TaskManagement() {
                     onClick={openCreate}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    <span className="hidden sm:inline">Agregar Asignación</span>
-                    <span className="sm:hidden">Agregar Asignación</span>
+                    <span>Agregar Asignación</span>
                   </Button>
                 }
               </div>
@@ -364,66 +411,61 @@ export default function TaskManagement() {
               </div>
               <div className="w-full flex flex-col gap-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="flex flex-col gap-1">
-                    <Select value={groupFilter} onValueChange={setGroupFilter}>
-                      <SelectTrigger className="w-full cursor-pointer">
-                        <SelectValue placeholder="Selecciona un grupo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos los grupos</SelectItem>
-                        {uniqueGradeGroups.map((gg) => (
-                          <SelectItem key={gg.id} value={gg.id}>
-                            {gg.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <Select value={subjectFilter} onValueChange={setSubjectFilter}>
-                      <SelectTrigger className="w-full cursor-pointer">
-                        <SelectValue placeholder="Selecciona una materia" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todas las materias</SelectItem>
-                        {uniqueSubject.map((subject) => (
-                          <SelectItem key={subject._id} value={subject._id!}>
-                            {subject.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <Select value={rubricFilter} onValueChange={setRubricFilter}>
-                      <SelectTrigger className="w-full cursor-pointer">
-                        <SelectValue placeholder="Selecciona una rúbrica " />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todas las rúbricas</SelectItem>
-                        {uniqueRubrics.map((rubric) => (
-                          <SelectItem key={rubric._id} value={rubric._id}>
-                            {rubric.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <Select value={termFilter} onValueChange={setTermFilter}>
-                      <SelectTrigger className="w-full cursor-pointer">
-                        <SelectValue placeholder="Selecciona un periodo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos los periodos</SelectItem>
-                        {uniqueTerm.map((term) => (
-                          <SelectItem key={term._id} value={term._id}>
-                            {term.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Select value={groupFilter} onValueChange={setGroupFilter}>
+                    <SelectTrigger className="w-full cursor-pointer">
+                      <SelectValue placeholder="Selecciona un grupo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los grupos</SelectItem>
+                      {uniqueGradeGroups.map((gg) => (
+                        <SelectItem key={gg.id} value={gg.id}>
+                          {gg.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={subjectFilter} onValueChange={setSubjectFilter}>
+                    <SelectTrigger className="w-full cursor-pointer">
+                      <SelectValue placeholder="Selecciona una materia" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las materias</SelectItem>
+                      {uniqueSubject.map((subject) => (
+                        <SelectItem key={subject._id} value={subject._id!}>
+                          {subject.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={rubricFilter} onValueChange={setRubricFilter}>
+                    <SelectTrigger className="w-full cursor-pointer">
+                      <SelectValue placeholder="Selecciona una rúbrica" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las rúbricas</SelectItem>
+                      {uniqueRubrics.map((rubric) => (
+                        <SelectItem key={rubric._id} value={rubric._id}>
+                          {rubric.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={termFilter} onValueChange={setTermFilter}>
+                    <SelectTrigger className="w-full cursor-pointer">
+                      <SelectValue placeholder="Selecciona un periodo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los periodos</SelectItem>
+                      {uniqueTerm.map((term) => (
+                        <SelectItem key={term._id} value={term._id}>
+                          {term.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardContent>
@@ -460,7 +502,7 @@ export default function TaskManagement() {
                         <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3 mb-3">
                           <div
                             className="flex-1 cursor-pointer"
-                            onClick={() => handleListStudent(task._id)}
+                            onClick={() => (canUpdateTask ? handleListStudent(task._id) : handleViewDetails(task._id))}
                           >
                             <div className="flex flex-col xs:flex-row xs:items-center gap-2 mb-2">
                               <div className="flex items-center">
@@ -520,39 +562,48 @@ export default function TaskManagement() {
                           </div>
                         </div>
                         <div className="flex flex-col gap-3 pt-3 border-t md:flex-row md:justify-between md:items-center">
-                          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
-                            <span className="text-sm">
-                              <span className="font-medium">
-                                {getTaskProgressFromQuery(
-                                  task._id,
-                                  assignmentsProgress
-                                )?.submittedCount || 0}
-                              </span>{" "}
-                              de{" "}
-                              <span className="font-medium">
-                                {getTaskProgressFromQuery(
-                                  task._id,
-                                  assignmentsProgress
-                                )?.totalStudents || 0}
-                              </span>{" "}
-                              entregas
-                            </span>
-                            <div className="w-full max-w-xs md:w-32 bg-gray-200 rounded-full h-2">
-                              <div
-                                className="bg-green-600 h-2 rounded-full"
-                                style={{
-                                  width: `${getTaskProgressFromQuery(task._id, assignmentsProgress)?.progressPercentage || 0}%`,
-                                }}
-                              ></div>
+
+                          {/* CAMBIO: Agregamos esta condición para ocultar la barra global si es tutor */}
+                          {currentRole !== 'tutor' ? (
+                            <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
+                              <span className="text-sm">
+                                <span className="font-medium">
+                                  {getTaskProgressFromQuery(
+                                    task._id,
+                                    assignmentsProgress
+                                  )?.submittedCount || 0}
+                                </span>{" "}
+                                de{" "}
+                                <span className="font-medium">
+                                  {getTaskProgressFromQuery(
+                                    task._id,
+                                    assignmentsProgress
+                                  )?.totalStudents || 0}
+                                </span>{" "}
+                                entregas
+                              </span>
+                              <div className="w-full max-w-xs md:w-32 bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="bg-green-600 h-2 rounded-full"
+                                  style={{
+                                    width: `${getTaskProgressFromQuery(task._id, assignmentsProgress)?.progressPercentage || 0}%`,
+                                  }}
+                                ></div>
+                              </div>
                             </div>
-                          </div>
+                          ) : (
+                            // Opcional: Puedes poner un texto alternativo o dejarlo vacío
+                            <div className="text-sm text-muted-foreground">
+                              Clic en Ver Entregas para revisar estatus
+                            </div>
+                          )}
 
                           {canReadTask && (
                             <div className="mt-2 md:mt-0 flex-shrink-0">
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleViewDetails(task._id)}
+                                onClick={() => handleViewDetails(task._id)} // Aquí sí funcionará tu filtro
                                 className="cursor-pointer w-full md:w-auto"
                               >
                                 <Eye className="w-4 h-4 mr-1" />
@@ -565,11 +616,8 @@ export default function TaskManagement() {
                     ))}
                   {(!filteredTasks || filteredTasks.length === 0) && (
                     <div className="text-center py-12">
-
                       <div className="flex flex-col items-center justify-center space-y-4">
-
                         <BookText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-
                         <div className="space-y-2 text-center">
                           <h3 className="text-lg font-medium text-foreground mb-2">
                             No se encontraron asignaciones
@@ -583,8 +631,7 @@ export default function TaskManagement() {
                               <p className="text-muted-foreground">Aún no se tiene asignaciones al alumno.</p>
                               <p className="text-muted-foreground">Si al alumno ya cuenta con asignaciones y no se ve información comunicate con soporte.</p>
                             </>
-                          )
-                          }
+                          )}
                         </div>
                         {canCreateTask &&
                           <Button
@@ -592,8 +639,7 @@ export default function TaskManagement() {
                             onClick={openCreate}
                           >
                             <Plus className="w-4 h-4 mr-2" />
-                            <span className="hidden sm:inline">Agregar Asignación</span>
-                            <span className="sm:hidden">Agregar Asignación</span>
+                            <span>Agregar Asignación</span>
                           </Button>
                         }
                       </div>
@@ -608,11 +654,11 @@ export default function TaskManagement() {
             <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
-                  Detalles de: {assignmentDetails?.assignment.name}
+                  Detalles de: {filteredAssignmentDetails?.assignment.name}
                 </DialogTitle>
               </DialogHeader>
 
-              {assignmentDetails && (
+              {filteredAssignmentDetails && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                     <div>
@@ -620,7 +666,7 @@ export default function TaskManagement() {
                         Clase:
                       </span>
                       <p className="text-gray-900">
-                        {assignmentDetails.classCatalog.name}
+                        {filteredAssignmentDetails.classCatalog.name}
                       </p>
                     </div>
                     <div>
@@ -629,7 +675,7 @@ export default function TaskManagement() {
                       </span>
                       <p className="text-gray-900">
                         {new Date(
-                          assignmentDetails.assignment.dueDate
+                          filteredAssignmentDetails.assignment.dueDate
                         ).toLocaleDateString("es-MX")}
                       </p>
                     </div>
@@ -638,8 +684,8 @@ export default function TaskManagement() {
                         Progreso:
                       </span>
                       <p className="text-gray-900">
-                        {assignmentDetails.submittedCount}/
-                        {assignmentDetails.totalStudents}
+                        {filteredAssignmentDetails.submittedCount}/
+                        {filteredAssignmentDetails.totalStudents}
                       </p>
                     </div>
                     <div>
@@ -648,39 +694,37 @@ export default function TaskManagement() {
                       </span>
                       <Badge
                         className={
-                          assignmentDetails.submittedCount ===
-                            assignmentDetails.totalStudents
+                          filteredAssignmentDetails.submittedCount ===
+                            filteredAssignmentDetails.totalStudents
                             ? "bg-green-100 text-green-800"
-                            : assignmentDetails.submittedCount > 0
+                            : filteredAssignmentDetails.submittedCount > 0
                               ? "bg-yellow-100 text-yellow-800"
                               : "bg-red-100 text-red-800"
                         }
                       >
-                        {assignmentDetails.submittedCount ===
-                          assignmentDetails.totalStudents
+                        {filteredAssignmentDetails.submittedCount ===
+                          filteredAssignmentDetails.totalStudents
                           ? "Completada"
-                          : assignmentDetails.submittedCount > 0
+                          : filteredAssignmentDetails.submittedCount > 0
                             ? "En Progreso"
                             : "Sin Entregas"}
                       </Badge>
                     </div>
-                    <div className="text-gray-900 ">
-                      {assignmentDetails.totalStudents > 0 ? (
+                    <div className="text-gray-900">
+                      {filteredAssignmentDetails.totalStudents > 0 ? (
                         <div className="flex items-center gap-3">
-                          {/* Barra de progreso visual */}
                           <div className="flex-1 bg-gray-200 rounded-full h-2">
                             <div
                               className="bg-green-600 h-2 rounded-full transition-all duration-300"
                               style={{
-                                width: `${Math.round((assignmentDetails.submittedCount / assignmentDetails.totalStudents) * 100)}%`,
+                                width: `${Math.round((filteredAssignmentDetails.submittedCount / filteredAssignmentDetails.totalStudents) * 100)}%`,
                               }}
                             />
                           </div>
-                          {/* Porcentaje al lado */}
                           <div className="text-sm font-semibold text-gray-700 min-w-[3rem] text-right">
                             {Math.round(
-                              (assignmentDetails.submittedCount /
-                                assignmentDetails.totalStudents) *
+                              (filteredAssignmentDetails.submittedCount /
+                                filteredAssignmentDetails.totalStudents) *
                               100
                             )}
                             %
@@ -697,15 +741,23 @@ export default function TaskManagement() {
                     </div>
                   </div>
 
-                  {assignmentDetails.submittedStudents.length > 0 && (
+                  {currentRole === 'tutor' && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <p className="text-sm text-blue-800">
+                        Mostrando solo los estudiantes asignados a tu tutoría
+                      </p>
+                    </div>
+                  )}
+
+                  {filteredAssignmentDetails.submittedStudents.length > 0 && (
                     <div>
                       <h4 className="text-lg font-semibold text-green-700 mb-3 flex items-center">
                         <CheckCircle className="w-5 h-5 mr-2" />
                         Estudiantes que Entregaron (
-                        {assignmentDetails.submittedCount})
+                        {filteredAssignmentDetails.submittedCount})
                       </h4>
                       <div className="grid grid-cols-2 gap-2">
-                        {assignmentDetails.submittedStudents
+                        {filteredAssignmentDetails.submittedStudents
                           .filter((student) => student !== null)
                           .map((student, index) => (
                             <div
@@ -720,7 +772,7 @@ export default function TaskManagement() {
                               </div>
                               <span className="text-xs text-green-600">
                                 {student.grade !== null
-                                  ? `${student.grade}/${assignmentDetails.assignment.maxScore}`
+                                  ? `${student.grade}/${filteredAssignmentDetails.assignment.maxScore}`
                                   : "Sin calificar"}
                               </span>
                             </div>
@@ -729,14 +781,14 @@ export default function TaskManagement() {
                     </div>
                   )}
 
-                  {assignmentDetails.pendingStudents.length > 0 && (
+                  {filteredAssignmentDetails.pendingStudents.length > 0 && (
                     <div>
                       <h4 className="text-lg font-semibold text-red-700 mb-3 flex items-center">
                         <XCircle className="w-5 h-5 mr-2" />
-                        Estudiantes Pendientes ({assignmentDetails.pendingCount})
+                        Estudiantes Pendientes ({filteredAssignmentDetails.pendingCount})
                       </h4>
                       <div className="grid grid-cols-2 gap-2">
-                        {assignmentDetails.pendingStudents
+                        {filteredAssignmentDetails.pendingStudents
                           .filter((student) => student !== null)
                           .map((student, index) => (
                             <div
@@ -788,15 +840,12 @@ export default function TaskManagement() {
               operation === "edit" && data
                 ? {
                   ...data,
-                  // Transformar el timestamp de dueDate a string en formato YYYY-MM-DD
                   dueDate: data.dueDate
                     ? new Date(data.dueDate as number).toISOString().split('T')[0]
                     : '',
-                  // Extraer la hora del timestamp
                   dueTime: data.dueDate
                     ? new Date(data.dueDate as number).toTimeString().slice(0, 5)
                     : '23:59',
-                  // Convertir maxScore de número a string
                   maxScore: data.maxScore ? data.maxScore.toString() : '',
                 }
                 : data
@@ -832,4 +881,3 @@ export default function TaskManagement() {
     </>
   );
 }
-

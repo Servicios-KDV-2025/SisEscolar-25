@@ -71,7 +71,7 @@ export function ClassCatalogForm({
                         </div>
                         <div className="flex-1">
                             <p className="text-sm font-medium text-blue-800">
-                                💡 Clase existente detectada
+                                Clase existente detectada
                             </p>
                             <p className="text-sm text-blue-700 mt-1">
                                 Ya existe una clase con estas características: <strong>{existingClassWarning.name}</strong>
