@@ -41,7 +41,7 @@ import {
   CheckCircle,
   Eye,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@repo/ui/sonner";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { useUser } from "@clerk/nextjs";
 import { useUserWithConvex } from "stores/userStore";
@@ -280,7 +280,7 @@ export default function ClassroomManagement() {
           status: validData.status,
           updatedAt: Date.now(),
         });
-        toast.success("Aula actualizada correctamente.");
+        toast.info("Aula actualizada correctamente.");
       } else if (operation === "create") {
         await createClassroom({
           schoolId: currentSchool.school._id as Id<"school">,

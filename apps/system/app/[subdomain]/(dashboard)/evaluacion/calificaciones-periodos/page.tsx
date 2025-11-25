@@ -24,7 +24,7 @@ import { useQuery, useMutation } from "convex/react";
 import { useUserWithConvex } from "../../../../../stores/userStore";
 import { useUser } from "@clerk/nextjs";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
-import { toast } from "sonner";
+import { toast } from "@repo/ui/sonner";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Badge } from "@repo/ui/components/shadcn/badge";

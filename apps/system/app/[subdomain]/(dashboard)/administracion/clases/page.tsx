@@ -83,7 +83,7 @@ import {
   CrudDialog,
   useCrudDialog,
 } from "@repo/ui/components/dialog/crud-dialog";
-import { toast } from "sonner";
+import { toast } from "@repo/ui/sonner";
 import { Book, ClockPlus } from "@repo/ui/icons";
 import { z } from "zod";
 import { useForm, UseFormReturn } from "react-hook-form";

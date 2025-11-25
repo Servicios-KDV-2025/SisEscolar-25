@@ -55,6 +55,7 @@ import { CrudDialog, useCrudDialog } from '@repo/ui/components/dialog/crud-dialo
 import { TaskForm } from 'components/tasks/TaskForm';
 import { UseFormReturn } from 'react-hook-form';
 import NotAuth from "../../../../../components/NotAuth";
+import { toast } from "@repo/ui/sonner";
 
 // Componente principal de contenido (solo se ejecuta cuando está autenticado)
 export default function TaskManagement() {
@@ -168,7 +169,8 @@ export default function TaskManagement() {
           description: values.description as string,
           dueDate: dueTimestamp,
           maxScore: parseInt(values.maxScore as string),
-        });
+        })
+        toast.success('Asignación creada exitosamente')
       } else if (operation === "edit" && data?._id) {
         await updateTask({
           id: data._id as Id<"assignment">,
@@ -181,23 +183,26 @@ export default function TaskManagement() {
             dueDate: dueTimestamp,
             maxScore: parseInt(values.maxScore as string),
           },
-        });
+        })
+        toast.info('Asignación actualizada exitosamente')
       }
 
       // Cerrar el diálogo después de éxito
       close();
 
     } catch (error) {
+      toast.error('Error al procesar la asignación')
       console.error('Error al procesar la tarea:', error);
     }
   }
 
   const handleDelete = async (taskId: string) => {
     try {
-      await deleteTask(taskId);
+      await deleteTask(taskId)
+      toast.success('Asignación eliminada exitosamente')
     } catch (error) {
       console.error("Error al eliminar la asignación:", error);
-      alert("Error al eliminar la asignación");
+      toast.error('Error al eliminar la asignación')
     }
   };
 

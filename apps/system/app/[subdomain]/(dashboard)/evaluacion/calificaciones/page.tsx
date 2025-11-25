@@ -20,7 +20,7 @@ import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { api } from "@repo/convex/convex/_generated/api";
 import { useQuery, useMutation } from "convex/react";
 import { useUser } from "@clerk/nextjs";
-import { toast } from "sonner";
+import { toast } from "@repo/ui/sonner";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Filter, BookCheck, SaveAll, Search, Plus } from "@repo/ui/icons";
 import { Badge } from "@repo/ui/components/shadcn/badge";
@@ -368,9 +368,10 @@ export default function GradeManagementDashboard() {
         dueDate: dueTimestamp,
         maxScore: parseInt(values.maxScore as string),
       });
-
+      toast.success('Asignación creada exitosamente')
       close();
     } catch (error) {
+      toast.error('Error al crear la asignación')
       console.error('Error al procesar la tarea:', error);
     }
   }
