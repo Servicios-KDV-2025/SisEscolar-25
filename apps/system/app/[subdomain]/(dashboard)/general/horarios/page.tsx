@@ -28,7 +28,7 @@ import {
   FormMessage,
 } from "@repo/ui/components/shadcn/form";
 import { Input } from "@repo/ui/components/shadcn/input";
-import { toast } from "sonner";
+import { toast } from "@repo/ui/sonner";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import {
@@ -145,7 +145,7 @@ export default function SchedulePage() {
           status: value.status as "active" | "inactive",
           updatedAt: Date.now(),
         });
-        toast.success("Horario actualizado exitosamente");
+        toast.info("Horario actualizado exitosamente");
       }
     } catch (error) {
       console.error("Error en operación CRUD:", error);

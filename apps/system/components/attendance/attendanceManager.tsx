@@ -11,7 +11,7 @@ import { Textarea } from "@repo/ui/components/shadcn/textarea"
 import { Save } from "@repo/ui/icons"
 import { useMutation, useQuery } from "convex/react"
 import { useState, useMemo } from "react"
-import { toast } from "sonner"
+import { toast } from "@repo/ui/sonner"
 import { ClassCatalog } from "stores/classCatalogStore"
 import { User } from "stores/userStore"
 
