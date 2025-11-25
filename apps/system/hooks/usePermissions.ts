@@ -93,7 +93,7 @@ export const usePermissions = (schoolId?: string) => {
     { action: "read", resource: "suscripciones" },
     { action: "update", resource: "suscripciones" },
     { action: "delete", resource: "suscripciones" },
-    
+
 
     //Class Catalog
     { action: "create", resource: "classCatalog" },
@@ -125,6 +125,12 @@ export const usePermissions = (schoolId?: string) => {
     { action: "read", resource: "assignance" },
     { action: "update", resource: "assignance" },
     { action: "delete", resource: "assignance" },
+
+    // Term Averages
+    { action: "create", resource: "termAverages" },
+    { action: "read", resource: "termAverages" },
+    { action: "update", resource: "termAverages" },
+    { action: "delete", resource: "termAverages" },
   ];
 
 
@@ -229,10 +235,15 @@ export const usePermissions = (schoolId?: string) => {
       "update:rubrics": true,
       "delete:rubrics": true,
       // Assignance
-      "create:assignance": false,
-      "read:assignance": false,
+      "create:assignance": true,
+      "read:assignance": true,
       "update:assignance": true,
-      "delete:assignance": false,
+      "delete:assignance": true,
+      // Term Averages
+      "create:termAverages": false,  // Solo lectura
+      "read:termAverages": true,
+      "update:termAverages": false,
+      "delete:termAverages": false,
     },
     admin: {
       // Admin tiene casi todos los permisos (excepto eliminar escuelas)
@@ -327,15 +338,20 @@ export const usePermissions = (schoolId?: string) => {
       "update:attendance": true,
       "delete:attendance": false,
       //Rubrics
-      "create:rubrics": true,
+      "create:rubrics": false,
       "read:rubrics": true,
-      "update:rubrics": true,
-      "delete:rubrics": true,
+      "update:rubrics": false,
+      "delete:rubrics": false,
       // Assignance
-      "create:assignance": false,
-      "read:assignance": false,
-      "update:assignance": false,
-      "delete:assignance": false,
+      "create:assignance": true,
+      "read:assignance": true,
+      "update:assignance": true,
+      "delete:assignance": true,
+      // Term Averages
+      "create:termAverages": false,  // Solo lectura
+      "read:termAverages": true,
+      "update:termAverages": false,
+      "delete:termAverages": false,
     },
     auditor: {
       // Auditor solo puede leer y ver reportes
@@ -403,12 +419,12 @@ export const usePermissions = (schoolId?: string) => {
       "read:term": true,
       "update:term": false,
       "delete:term": false,
-//suscripciones
+      //suscripciones
       "create:suscripciones": false,
       "read:suscripciones": false,
       "update:suscripciones": false,
       "delete:suscripciones": false,
-      
+
 
       //Class Catalog
       "create:classCatalog": false,
@@ -437,9 +453,14 @@ export const usePermissions = (schoolId?: string) => {
       "delete:rubrics": false,
       // Assignance
       "create:assignance": false,
-      "read:assignance": false,
+      "read:assignance": true,
       "update:assignance": false,
       "delete:assignance": false,
+      // Term Averages
+      "create:termAverages": false,
+      "read:termAverages": true,
+      "update:termAverages": false,
+      "delete:termAverages": false,
     },
     teacher: {
       // Profesor similar al tutor pero con menos permisos
@@ -538,6 +559,11 @@ export const usePermissions = (schoolId?: string) => {
       "read:assignance": true,
       "update:assignance": true,
       "delete:assignance": true,
+      // term Averages
+      "create:termAverages": true,  // Puede editar
+      "read:termAverages": true,
+      "update:termAverages": true,
+      "delete:termAverages": false,
     },
     tutor: {
       // Tutor es el padre
@@ -636,6 +662,11 @@ export const usePermissions = (schoolId?: string) => {
       "read:assignance": true,
       "update:assignance": false,
       "delete:assignance": false,
+      // term Averages
+      "create:termAverages": true,  // Puede editar
+      "read:termAverages": true,
+      "update:termAverages": false,
+      "delete:termAverages": false,
     },
   };
 
@@ -871,6 +902,12 @@ export const usePermissions = (schoolId?: string) => {
     canUpdateAssignance: permissions["update:assignance"] || false,
     canDeleteAssignance: permissions["delete:assignance"] || false,
 
+    /** Term Averages */
+    canCreateTermAverage: permissions["create:termAverages"] || false,
+    canReadTermAverage: permissions["read:termAverages"] || false,
+    canUpdateTermAverage: permissions["update:termAverages"] || false,
+    canDeleteTermAverage: permissions["delete:termAverages"] || false,
+
     // Propiedades específicas por rol
     isSuperAdmin: hasRole("superadmin"),
     isAdmin: hasRole("admin"),
@@ -907,3 +944,5 @@ export const usePermissions = (schoolId?: string) => {
     getStudentFilters,
   };
 }
+
+export type UsePermissionsReturnType = ReturnType<typeof usePermissions>;

@@ -23,7 +23,7 @@ import {  useGradeRubricStore } from "../../../../../stores/gradeRubricStore";
 import { usePermissions } from 'hooks/usePermissions';
 import { CrudDialog, useCrudDialog, WithId } from "@repo/ui/components/dialog/crud-dialog";
 import { RubricFormValues, rubricSchema } from "schema/rubric"
-import { toast } from "sonner"
+import { toast } from "@repo/ui/sonner"
 import { FormField, FormLabel } from "@repo/ui/components/shadcn/form";
 import { SelectPopover } from "components/selectPopover";
 import { ClassCatalog, useClassCatalogWithPermissions } from "stores/classCatalogStore";
@@ -321,7 +321,7 @@ export default function RubricDashboard() {
             termId,
           },
         });
-        toast.success('Rúbrica actualizada correctamente')
+        toast.info('Rúbrica actualizada correctamente')
       } else if (operation === 'create') {
         await createGradeRubric({
           classCatalogId,

@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/sh
 import { useMutation, useQuery } from "convex/react"
 import { api } from "@repo/convex/convex/_generated/api"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
-import { toast } from "sonner"
+import { toast } from "@repo/ui/sonner"
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog"
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form"
 import { Switch } from "@repo/ui/components/shadcn/switch"
@@ -118,7 +118,7 @@ export default function StudentClassesDashboard() {
   }, [schoolYears])
 
   const filteredEnrollments = useMemo(() => {
-    // 1. Lógica de FILTRADO (la que ya tenías)
+    
     const filtered = (enrollments?.filter(Boolean) || []).filter((enrollment) => {
       const matchesSearch =
         enrollment?.student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -137,14 +137,9 @@ export default function StudentClassesDashboard() {
 
       return matchesSearch && matchesGrade && matchesTeacherClass && matchesStatus && matchesGroup && matchesSchoolYear;
     });
-
-    // 2. Lógica de ORDENAMIENTO (la nueva)
-    // Usamos [...filtered] para crear una copia antes de ordenar
     return [...filtered].sort((a, b) => {
       const nameA = `${a?.student.name} ${a?.student.lastName || ''}`.toLowerCase().trim();
       const nameB = `${b?.student.name} ${b?.student.lastName || ''}`.toLowerCase().trim();
-      
-      // localeCompare ordena alfabéticamente y maneja acentos
       return nameA.localeCompare(nameB);
     });
 
@@ -156,7 +151,7 @@ export default function StudentClassesDashboard() {
     gradeFilter, 
     groupFilter, 
     statusFilter
-  ]); // <-- Añadimos las dependencias para que se recalcule solo cuando cambien
+  ]);
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!currentSchool?.school?._id) {
@@ -187,7 +182,7 @@ export default function StudentClassesDashboard() {
           status: validatedValues.status,
           averageScore: validatedValues.averageScore || 0
         })
-        toast.success("Actualizado correctamente")
+        toast.info("Actualizado correctamente")
       } else {
         throw new Error('Operación no válida')
       }
