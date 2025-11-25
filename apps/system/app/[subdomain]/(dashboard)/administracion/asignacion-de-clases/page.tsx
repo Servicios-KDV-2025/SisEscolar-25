@@ -29,6 +29,7 @@ import { usePermissions } from 'hooks/usePermissions'
 import { type ClassCatalogWithDetails, useClassCatalogWithPermissions } from 'stores/classCatalogStore'
 import { useCicloEscolarWithConvex } from 'stores/useSchoolCiclesStore'
 import { ChartNoAxesCombined } from 'lucide-react'
+import MassAssignmentStudets from "components/classAssignment/MassAssignmentStudents"
 
 export default function StudentClassesDashboard() {
   const { user: clerkUser } = useUser();
@@ -90,6 +91,7 @@ export default function StudentClassesDashboard() {
   const [groupFilter, setGroupFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [activeTab, setActiveTab] = useState("enrollments")
+  const [isMassAssignmentOpen, setIsMassAssignmentOpen] = useState(false)
 
   const {
     isOpen,
@@ -116,7 +118,7 @@ export default function StudentClassesDashboard() {
   }, [schoolYears])
 
   const filteredEnrollments = useMemo(() => {
-    // 1. Lógica de FILTRADO (la que ya tenías)
+    
     const filtered = (enrollments?.filter(Boolean) || []).filter((enrollment) => {
       const matchesSearch =
         enrollment?.student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -135,14 +137,9 @@ export default function StudentClassesDashboard() {
 
       return matchesSearch && matchesGrade && matchesTeacherClass && matchesStatus && matchesGroup && matchesSchoolYear;
     });
-
-    // 2. Lógica de ORDENAMIENTO (la nueva)
-    // Usamos [...filtered] para crear una copia antes de ordenar
     return [...filtered].sort((a, b) => {
       const nameA = `${a?.student.name} ${a?.student.lastName || ''}`.toLowerCase().trim();
       const nameB = `${b?.student.name} ${b?.student.lastName || ''}`.toLowerCase().trim();
-      
-      // localeCompare ordena alfabéticamente y maneja acentos
       return nameA.localeCompare(nameB);
     });
 
@@ -154,7 +151,7 @@ export default function StudentClassesDashboard() {
     gradeFilter, 
     groupFilter, 
     statusFilter
-  ]); // <-- Añadimos las dependencias para que se recalcule solo cuando cambien
+  ]);
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!currentSchool?.school?._id) {
@@ -261,7 +258,7 @@ export default function StudentClassesDashboard() {
                       <Button
                         size="lg"
                         className="gap-2"
-                        onClick={openCreate}
+                        onClick={() => setIsMassAssignmentOpen(true)}
                         disabled={isLoading || !currentSchool}
                       >
                         <Plus className="w-4 h-4" />
@@ -770,6 +767,16 @@ export default function StudentClassesDashboard() {
                 </div>
               </TabsContent>
             </Tabs>
+            {/* Modal de asignación masiva */}
+            {currentSchool && (
+              <MassAssignmentStudets
+                isOpen={isMassAssignmentOpen}
+                onClose={() => setIsMassAssignmentOpen(false)}
+                schoolId={currentSchool.school._id as Id<'school'>}
+                students={students || []}
+                classCatalogs={ClassCatalog || []}
+              />
+            )}
 
             <CrudDialog
               isOpen={isOpen}
