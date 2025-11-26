@@ -24,7 +24,7 @@ import { useQuery, useMutation } from "convex/react";
 import { useUserWithConvex } from "../../../../../stores/userStore";
 import { useUser } from "@clerk/nextjs";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
-import { toast } from "sonner";
+import { toast } from "@repo/ui/sonner";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Badge } from "@repo/ui/components/shadcn/badge";
@@ -49,8 +49,7 @@ export default function GradeManagementDashboard() {
   const permissions = usePermissions();
 
   const {
-    currentRole,
-    canUpdateRubric,
+    canUpdateTermAverage,
   } = permissions;
 
   // Fetch data with Convex
@@ -433,7 +432,7 @@ export default function GradeManagementDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Si no hay estudiantes o no hay Periodos, muestra un mensaje */}
+          {/* Si está cargando */}
           {(
             !isLoaded ||
             userLoading ||
@@ -448,9 +447,9 @@ export default function GradeManagementDashboard() {
             <TermAverageMatrix
               students={filteredAndSortedStudents}
               terms={terms!}
-              averages={averagesMap} // ✨ PASAMOS EL MAP CORREGIDO
+              averages={averagesMap}
               onAverageUpdate={handleUpdateGrade}
-              canUpdateRubric={canUpdateRubric}
+              canUpdateRubric={canUpdateTermAverage}
             />
           ) : (
             <div className="flex justify-center">
@@ -461,30 +460,30 @@ export default function GradeManagementDashboard() {
                 </h3>
                 <p className="">Registra:</p>
                 <div className="flex justify-center gap-3">
-                {!hasStudents && (
-                  <Link href={`/administracion/asignacion-de-clases`}>
-                    <Button>
-                      <Plus className="w-4 h-4" />
-                      Estudiantes en esta clase
-                    </Button>
-                  </Link>
-                )}
-                {!hasTerms && (
-                  <Link href={`/administracion/periodos`}>
-                    <Button>
-                      <Plus className="w-4 h-4" />
-                      Periodos en este ciclo{" "}
-                    </Button>
-                  </Link>
-                )}
-                {!hasClasses && (
-                  <Link href={`/administracion/clases`}>
-                    <Button>
-                      <Plus className="w-4 h-4" />
-                      Clases{" "}
-                    </Button>
-                  </Link>
-                )}
+                  {!hasStudents && (
+                    <Link href={`/administracion/asignacion-de-clases`}>
+                      <Button>
+                        <Plus className="w-4 h-4" />
+                        Estudiantes en esta clase
+                      </Button>
+                    </Link>
+                  )}
+                  {!hasTerms && (
+                    <Link href={`/administracion/periodos`}>
+                      <Button>
+                        <Plus className="w-4 h-4" />
+                        Periodos en este ciclo
+                      </Button>
+                    </Link>
+                  )}
+                  {!hasClasses && (
+                    <Link href={`/administracion/clases`}>
+                      <Button>
+                        <Plus className="w-4 h-4" />
+                        Clases
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>

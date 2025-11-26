@@ -48,6 +48,7 @@ import {
 import { GroupCard } from "../../../../../components/GroupCard";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { toast } from '@repo/ui/sonner'
 
 export default function GroupPage() {
   const { user: clerkUser, isLoaded } = useUser();
@@ -114,7 +115,8 @@ export default function GroupPage() {
         name: values.name as string,
         grade: values.grade as string,
         status: values.status as "active" | "inactive",
-      });
+      })
+      toast.success("Grupo creado exitosamente");
     } else if (operation === "edit" && data?._id) {
       await updateGroup({
         _id: data._id as Id<"subject">,
@@ -124,12 +126,14 @@ export default function GroupPage() {
         status: values.status as "active" | "inactive",
         updatedAt: new Date().getTime(),
         updatedBy: currentUser._id,
-      });
+      })
+      toast.info("Grupo actualizado exitosamente");
     }
   };
 
   const handleDelete = async (id: string) => {
-    await deleteGroup(id, currentSchool?.school._id);
+    await deleteGroup(id, currentSchool?.school._id)
+    toast.success("Grupo eliminado exitosamente")
   };
 
   const { canCreateGroup, canReadGroup } = usePermissions(

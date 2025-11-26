@@ -46,7 +46,7 @@ import {
   CardTitle,
 } from "@repo/ui/components/shadcn/card";
 import { Search } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@repo/ui/sonner";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";

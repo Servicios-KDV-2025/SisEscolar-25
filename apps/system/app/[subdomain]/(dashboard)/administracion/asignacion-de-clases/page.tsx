@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/sh
 import { useMutation, useQuery } from "convex/react"
 import { api } from "@repo/convex/convex/_generated/api"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
-import { toast } from "sonner"
+import { toast } from "@repo/ui/sonner"
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog"
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form"
 import { Switch } from "@repo/ui/components/shadcn/switch"
@@ -182,7 +182,7 @@ export default function StudentClassesDashboard() {
           status: validatedValues.status,
           averageScore: validatedValues.averageScore || 0
         })
-        toast.success("Actualizado correctamente")
+        toast.info("Actualizado correctamente")
       } else {
         throw new Error('Operación no válida')
       }

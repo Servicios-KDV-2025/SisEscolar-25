@@ -23,7 +23,7 @@ export const getClassSchedules = query({
     const filteredClassSchedules = classSchedules.filter(cs =>
       schoolClassIds.includes(cs.classCatalogId)
     );
-    
+
 
     // Agrupar por classCatalogId
     const groupedSchedules = filteredClassSchedules.reduce((acc, cs) => {
@@ -175,8 +175,8 @@ export const validateScheduleConflicts = mutation({
         }
 
         // Si estamos editando la misma clase, no es conflicto
-        if (args.isEdit && args.originalClassCatalogId && 
-            existingClass._id === args.originalClassCatalogId) {
+        if (args.isEdit && args.originalClassCatalogId &&
+          existingClass._id === args.originalClassCatalogId) {
           continue;
         }
 
@@ -312,6 +312,78 @@ export const updateClassSchedule = mutation({
       throw new Error("La clase seleccionada no pertenece al ciclo escolar activo. Por favor, selecciona una clase del ciclo escolar actual.");
     }
 
+    // ✅ VALIDAR CONFLICTOS ANTES DE ACTUALIZAR
+    const conflicts = [];
+
+    for (const scheduleId of args.selectedScheduleIds) {
+      const schedule = await ctx.db.get(scheduleId);
+      if (!schedule) continue;
+
+      const existingAssignments = await ctx.db
+        .query("classSchedule")
+        .withIndex("by_schedule", (q) => q.eq("scheduleId", scheduleId))
+        .filter((q) => q.eq(q.field("status"), "active"))
+        .collect();
+
+      if (existingAssignments.length === 0) continue;
+
+      for (const assignment of existingAssignments) {
+        const existingClass = await ctx.db.get(assignment.classCatalogId);
+        if (!existingClass) continue;
+
+        // Solo verificar conflictos dentro del MISMO ciclo escolar
+        if (existingClass.schoolCycleId !== activeCycle._id) continue;
+
+        // Si es la misma clase que estamos editando, no es conflicto
+        if (existingClass._id === args.classCatalogId) continue;
+
+        // Conflicto de grupo
+        if (classCatalog.groupId && existingClass.groupId === classCatalog.groupId) {
+          const conflictingGroup = await ctx.db.get(existingClass.groupId);
+          conflicts.push({
+            type: "group",
+            message: `El grupo "${conflictingGroup?.name || 'N/A'}" ya tiene una clase activa en este horario: ${schedule.day} ${schedule.startTime}-${schedule.endTime}`,
+            conflictingClass: existingClass.name,
+          });
+        }
+
+        // Conflicto de profesor
+        if (existingClass.teacherId === classCatalog.teacherId) {
+          const conflictingTeacher = await ctx.db.get(existingClass.teacherId);
+          conflicts.push({
+            type: "teacher",
+            message: `El profesor "${conflictingTeacher?.name || 'N/A'}" ya tiene una clase activa en este horario: ${schedule.day} ${schedule.startTime}-${schedule.endTime}`,
+            conflictingClass: existingClass.name,
+          });
+        }
+
+        // Conflicto de aula
+        if (existingClass.classroomId === classCatalog.classroomId) {
+          const conflictingClassroom = await ctx.db.get(existingClass.classroomId);
+          conflicts.push({
+            type: "classroom",
+            message: `El aula "${conflictingClassroom?.name || 'N/A'}" ya está ocupada en este horario: ${schedule.day} ${schedule.startTime}-${schedule.endTime}`,
+            conflictingClass: existingClass.name,
+          });
+        }
+      }
+    }
+
+    // De-duplicar conflictos
+    const uniqueConflicts = conflicts.filter(
+      (conflict, index, self) =>
+        index === self.findIndex((c) => c.message === conflict.message)
+    );
+
+    if (uniqueConflicts.length > 0) {
+      const conflictList = uniqueConflicts
+        .map(c => c.message)
+        .join('\n• ');
+
+      throw new Error(`CONFLICT_ERROR::No se puede actualizar debido a conflictos:\n• ${conflictList}`);
+    }
+
+    // ✅ SI NO HAY CONFLICTOS, PROCEDER CON LA ACTUALIZACIÓN
     // Eliminar todas las relaciones classSchedule existentes para esta clase
     const existingClassSchedules = await ctx.db
       .query("classSchedule")
@@ -376,6 +448,78 @@ export const updateClassAndSchedules = mutation({
       throw new Error("La clase seleccionada no pertenece al ciclo escolar activo. Por favor, selecciona una clase del ciclo escolar actual.");
     }
 
+    // ✅ VALIDAR CONFLICTOS ANTES DE ACTUALIZAR
+    const conflicts = [];
+
+    for (const scheduleId of args.selectedScheduleIds) {
+      const schedule = await ctx.db.get(scheduleId);
+      if (!schedule) continue;
+
+      const existingAssignments = await ctx.db
+        .query("classSchedule")
+        .withIndex("by_schedule", (q) => q.eq("scheduleId", scheduleId))
+        .filter((q) => q.eq(q.field("status"), "active"))
+        .collect();
+
+      if (existingAssignments.length === 0) continue;
+
+      for (const assignment of existingAssignments) {
+        const existingClass = await ctx.db.get(assignment.classCatalogId);
+        if (!existingClass) continue;
+
+        // Solo verificar conflictos dentro del MISMO ciclo escolar
+        if (existingClass.schoolCycleId !== activeCycle._id) continue;
+
+        // Si es la clase original que estamos editando, no es conflicto
+        if (existingClass._id === args.oldClassCatalogId) continue;
+
+        // Conflicto de grupo
+        if (newClassCatalog.groupId && existingClass.groupId === newClassCatalog.groupId) {
+          const conflictingGroup = await ctx.db.get(existingClass.groupId);
+          conflicts.push({
+            type: "group",
+            message: `El grupo "${conflictingGroup?.name || 'N/A'}" ya tiene una clase activa en este horario: ${schedule.day} ${schedule.startTime}-${schedule.endTime}`,
+            conflictingClass: existingClass.name,
+          });
+        }
+
+        // Conflicto de profesor
+        if (existingClass.teacherId === newClassCatalog.teacherId) {
+          const conflictingTeacher = await ctx.db.get(existingClass.teacherId);
+          conflicts.push({
+            type: "teacher",
+            message: `El profesor "${conflictingTeacher?.name || 'N/A'}" ya tiene una clase activa en este horario: ${schedule.day} ${schedule.startTime}-${schedule.endTime}`,
+            conflictingClass: existingClass.name,
+          });
+        }
+
+        // Conflicto de aula
+        if (existingClass.classroomId === newClassCatalog.classroomId) {
+          const conflictingClassroom = await ctx.db.get(existingClass.classroomId);
+          conflicts.push({
+            type: "classroom",
+            message: `El aula "${conflictingClassroom?.name || 'N/A'}" ya está ocupada en este horario: ${schedule.day} ${schedule.startTime}-${schedule.endTime}`,
+            conflictingClass: existingClass.name,
+          });
+        }
+      }
+    }
+
+    // De-duplicar conflictos
+    const uniqueConflicts = conflicts.filter(
+      (conflict, index, self) =>
+        index === self.findIndex((c) => c.message === conflict.message)
+    );
+
+    if (uniqueConflicts.length > 0) {
+      const conflictList = uniqueConflicts
+        .map(c => c.message)
+        .join('\n• ');
+
+      throw new Error(`CONFLICT_ERROR::No se puede actualizar debido a conflictos:\n• ${conflictList}`);
+    }
+
+    // ✅ SI NO HAY CONFLICTOS, PROCEDER CON LA ACTUALIZACIÓN
     // Obtener todas las relaciones classSchedule existentes para la clase original
     const existingClassSchedules = await ctx.db
       .query("classSchedule")

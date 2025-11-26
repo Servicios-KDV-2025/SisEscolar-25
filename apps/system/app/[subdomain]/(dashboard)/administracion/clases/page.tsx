@@ -83,7 +83,7 @@ import {
   CrudDialog,
   useCrudDialog,
 } from "@repo/ui/components/dialog/crud-dialog";
-import { toast } from "sonner";
+import { toast } from "@repo/ui/sonner";
 import { Book, ClockPlus } from "@repo/ui/icons";
 import { z } from "zod";
 import { useForm, UseFormReturn } from "react-hook-form";
@@ -289,6 +289,71 @@ function StepTwoContent({
     </div>
   );
 }
+const cleanErrorMessage = (error: unknown): React.ReactNode => {
+  if (error instanceof Error) {
+    let cleanMessage: string | undefined; // 1. Empezamos sin mensaje limpio
+
+    // 2. Lógica para encontrar un mensaje limpio (la tuya original)
+    if (error.message.includes("CONFLICT_ERROR::")) {
+      cleanMessage = error.message.split("CONFLICT_ERROR::")[1];
+    } else {
+      const match = error.message.match(
+        /Uncaught Error: (.+?)(?:\n|Called by client)/s
+      );
+      if (match && match[1]) {
+        if (match[1].includes("CONFLICT_ERROR::")) {
+          cleanMessage = match[1].split("CONFLICT_ERROR::")[1];
+        } else {
+          cleanMessage = match[1];
+        }
+      } else {
+        const convexMatch = error.message.match(
+          /Server Error\s+(.+?)(?:\n|Called by client)/s
+        );
+        if (convexMatch && convexMatch[1]) {
+          if (convexMatch[1].includes("CONFLICT_ERROR::")) {
+            cleanMessage = convexMatch[1].split("CONFLICT_ERROR::")[1];
+          } else {
+            cleanMessage = convexMatch[1];
+          }
+        }
+      }
+    }
+
+    // 3. Decidir qué mensaje usar
+    const messageToProcess =
+      cleanMessage && cleanMessage.trim() ? cleanMessage : error.message;
+
+    // 4. Limpiar el stack trace ('at handler...')
+    const stackTraceRegex = /\n\s*at |\nCalled by client/;
+    const finalMessage = (
+      messageToProcess.split(stackTraceRegex)[0] || ""
+    ).trim();
+
+    // 5. ✅ LÓGICA INTEGRADA: Formatear a JSX si hay múltiples líneas
+    const lines = finalMessage.split('\n');
+
+    // Si es un mensaje de una sola línea, devolvemos el string
+    if (lines.length <= 1) {
+      return finalMessage;
+    }
+
+    // Si es un mensaje multilínea, lo formateamos
+    return (
+      <div>
+        {lines.map((line, index) => (
+          <p key={index} style={{ margin: 0, padding: 0 }}>
+            {line}
+          </p>
+        ))}
+      </div>
+    );
+  }
+
+  // Fallback para errores que no son 'Error'
+  return "Ocurrió un error inesperado";
+};
+
 
 export default function HorariosPorClasePage() {
   const { user: clerkUser, isLoaded } = useUser();
@@ -311,7 +376,6 @@ export default function HorariosPorClasePage() {
     setFilter,
     setSearchTerm,
     setClasses,
-    updateClass,
     filterByActiveCycle,
     setFilterByActiveCycle,
     setActiveSchoolCycleId,
@@ -380,18 +444,25 @@ export default function HorariosPorClasePage() {
   const editScheduleConflicts = useQuery(
     api.functions.schedule.getScheduleConflictsForEdit,
     (() => {
+      // 1. Extraer variables de forma segura
       const classItem = crudDialog.data as ClassItem | null;
-      return currentSchool?.school._id &&
-        crudDialog.operation === "edit" &&
-        !isEditingClassDetails &&
-        classItem?.teacher?._id &&
-        classItem?.classroom?._id &&
-        classItem?.classCatalogId
+      const schoolId = currentSchool?.school._id;
+      const classCatalogId = classItem?.classCatalogId;
+
+      // 2. Comprobar las variables (no los accesos)
+      return (
+        schoolId &&
+        isEditingClassDetails &&
+        editWatchedTeacherId &&
+        editWatchedClassroomId &&
+        classCatalogId
+      )
         ? {
-          schoolId: currentSchool.school._id,
-          teacherId: classItem.teacher._id as Id<"user">,
-          classroomId: classItem.classroom._id as Id<"classroom">,
-          classCatalogIdToExclude: classItem.classCatalogId as Id<"classCatalog">,
+          // 3. Usar las variables seguras
+          schoolId: schoolId,
+          teacherId: editWatchedTeacherId as Id<"user">,
+          classroomId: editWatchedClassroomId as Id<"classroom">,
+          classCatalogIdToExclude: classCatalogId as Id<"classCatalog">,
         }
         : "skip";
     })()
@@ -400,25 +471,32 @@ export default function HorariosPorClasePage() {
   const existingClassOnEdit = useQuery(
     api.functions.classCatalog.checkDuplicateClass,
     (() => {
+      // 1. Extraer variables de FORMA SEGURA
       const watchedData = editClassForm.watch();
       const currentClassItem = crudDialog.data as ClassItem | null;
+      const schoolId = currentSchool?.school._id;
+      const classCatalogId = currentClassItem?.classCatalogId;
 
-      return currentSchool?.school._id &&
+      // 2. Comprobar TODAS las variables necesarias
+      return (
+        schoolId &&
         isEditingClassDetails &&
         watchedData.subjectId &&
         watchedData.classroomId &&
         watchedData.teacherId &&
         watchedData.groupId &&
         watchedData.schoolCycleId &&
-        currentClassItem?.classCatalogId
+        classCatalogId
+      )
         ? {
-          schoolId: currentSchool.school._id,
+          // 3. Usar las variables seguras (ESTAS SON LAS CORRECTAS)
+          schoolId: schoolId,
           subjectId: watchedData.subjectId as Id<"subject">,
           classroomId: watchedData.classroomId as Id<"classroom">,
           teacherId: watchedData.teacherId as Id<"user">,
           groupId: watchedData.groupId as Id<"group">,
           schoolCycleId: watchedData.schoolCycleId as Id<"schoolCycle">,
-          excludeClassCatalogId: currentClassItem.classCatalogId as Id<"classCatalog">, // Excluir la clase actual
+          excludeClassCatalogId: classCatalogId as Id<"classCatalog">,
         }
         : "skip";
     })()
@@ -604,9 +682,6 @@ export default function HorariosPorClasePage() {
   const deleteClassAndSchedulesAction = useAction(
     api.actions.actionsclassSchedule.deleteClassAndSchedules
   );
-  const validateConflictsMutation = useMutation(
-    api.functions.classSchedule.validateScheduleConflicts
-  );
 
   const watchedTeacherId = createForm.watch("teacherId");
   const watchedClassroomId = createForm.watch("classroomId");
@@ -645,7 +720,6 @@ export default function HorariosPorClasePage() {
   const handleCreateSubmit = async (data: Record<string, unknown>) => {
     const values = FullClassSchema.parse(data);
 
-    // ... (validación de horarios seleccionados, no cambia)
     if (!values.selectedScheduleIds || values.selectedScheduleIds.length === 0) {
       toast.error("Horarios requeridos", {
         description: "Debes asignar al menos un horario a la clase.",
@@ -659,30 +733,25 @@ export default function HorariosPorClasePage() {
           "La información de la escuela o del usuario no está disponible."
         );
 
-      // ✅ INICIO DE LA VALIDACIÓN (TU SUGERENCIA)
-      if (existingClass) {
-        
-        // 1. COMPROBAR SI QUIEREN GUARDARLA COMO INACTIVA
+      // ✅ VALIDACIÓN MEJORADA
+      if (existingClass && existingClass._id) {
+
         if (values.status === 'inactive') {
-          // 2. MOSTRAR ADVERTENCIA Y DETENER TODO
           toast.error("Acción no permitida", {
             description: "Ya existe una clase con estas características. No puede ser creada o combinada como 'inactiva'. Por favor, establécela como 'activa' para continuar.",
             duration: 5000,
           });
-          return; // <-- Detenemos la ejecución
+          return;
         }
-        
-        // 3. SI LLEGA AQUÍ, ES 'active' Y PROCEDE A COMBINAR
+
         console.log("📌 Clase existente encontrada, combinando como 'activa'...");
 
-        // Obtener los horarios actuales de la clase existente
         const existingClassWithSchedules = classesRaw?.find(
           c => c?.classCatalogId === existingClass._id
         );
 
-        const existingScheduleIds = existingClassWithSchedules?.selectedScheduleIds || [];
+        const existingScheduleIds = existingClassWithSchedules?.selectedScheduleIds ?? [];
 
-        // Combinar horarios existentes con los nuevos seleccionados
         const combinedSchedules = [
           ...new Set([
             ...existingScheduleIds,
@@ -695,25 +764,27 @@ export default function HorariosPorClasePage() {
             oldClassCatalogId: existingClass._id as Id<"classCatalog">,
             newClassCatalogId: existingClass._id as Id<"classCatalog">,
             selectedScheduleIds: combinedSchedules,
-            status: "active" // <-- Usamos 'active'
+            status: "active"
           }),
           {
             loading: "Asignando horarios a la clase existente...",
-            success: "¡Horarios asignados exitosamente a la clase existente!",
-            error: (err) => err.message || "No se pudo completar la operación.",
+            success: () => {
+              setIsCreateDialogOpen(false);
+              createForm.reset({
+                status: "active",
+                schoolCycleId: activeCycle?._id || "",
+              });
+              return "¡Horarios asignados exitosamente a la clase existente!";
+            },
+            error: (err) => cleanErrorMessage(err),
           }
         );
 
-        setIsCreateDialogOpen(false);
-        createForm.reset({
-          status: "active",
-          schoolCycleId: activeCycle?._id || "",
-        });
         return;
       }
       // ✅ FIN DE LA VALIDACIÓN
 
-      // Si no existe, crear nueva clase (aquí sí respeta 'active' o 'inactive')
+      // Si no existe, crear nueva clase
       await toast.promise(
         createClassWithSchedule({
           classData: {
@@ -731,18 +802,23 @@ export default function HorariosPorClasePage() {
         }),
         {
           loading: "Creando nueva clase...",
-          success: "¡Clase creada exitosamente!",
-          error: (err) => err.message || "No se pudo completar la operación.",
+          success: () => {
+            setIsCreateDialogOpen(false);
+            createForm.reset({
+              status: "active",
+              schoolCycleId: activeCycle?._id || "",
+            });
+            return "¡Clase creada exitosamente!";
+          },
+          error: (err) => cleanErrorMessage(err),
         }
       );
-
-      setIsCreateDialogOpen(false);
-      createForm.reset({
-        status: "active",
-        schoolCycleId: activeCycle?._id || "",
-      });
     } catch (error) {
-      console.error("Error al crear la clase:", error);
+      //console.error("Error al crear la clase:", error);
+      const message = cleanErrorMessage(error);
+      toast.error("Error al crear la clase", {
+        description: message,
+      });
     }
   };
 
@@ -759,210 +835,234 @@ export default function HorariosPorClasePage() {
         throw new Error("No se pudo obtener la información de la clase original");
       }
 
-      const finalScheduleIds = formData.selectedScheduleIds as Id<"schedule">[];
+      // ✅ VALIDACIÓN MEJORADA
+      if (existingClassOnEdit && existingClassOnEdit._id && existingClassOnEdit._id !== originalClass.classCatalogId) {
 
-      // Verificar si los horarios seleccionados son exactamente los mismos que ya tenía la clase
-      const originalScheduleIds = originalClass.selectedScheduleIds || [];
-      const sameSchedules =
-        finalScheduleIds.length === originalScheduleIds.length &&
-        finalScheduleIds.every(id => originalScheduleIds.includes(id));
-
-      // Solo validar conflictos si hay cambios en los horarios
-      if (!sameSchedules) {
-        // ✅ Validar conflictos independientemente del estado
-        const validation = await validateConflictsMutation({
-          classCatalogId: formData.classCatalogId as Id<"classCatalog">,
-          selectedScheduleIds: finalScheduleIds,
-          isEdit: true,
-          originalClassCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
-        });
-
-        if (validation.hasConflicts) {
-          const conflictMessages = validation.conflicts
-            .map((c: { message: string }) => c.message)
-            .join("\n");
-
-          toast.error("Conflictos de Horario Detectados", {
-            description: conflictMessages,
+        if (formData.status === 'inactive') {
+          toast.error("Acción no permitida", {
+            description: "Ya existe una clase con estas características. No puede ser combinada como 'inactiva'. Por favor, establécela como 'activa' para continuar.",
             duration: 5000,
           });
           return;
         }
+
+        console.log("Clase existente encontrada, combinando como 'activa'...");
+
+        // ✅ FIX: Validar que classesRaw existe y filtrar null
+        const existingClassWithSchedules = classesRaw?.filter(c => c !== null).find(
+          c => c?.classCatalogId === existingClassOnEdit._id
+        );
+
+        // ✅ FIX: Usar operador de coalescencia nula y validar arrays
+        const existingScheduleIds = existingClassWithSchedules?.selectedScheduleIds ?? [];
+        const originalScheduleIds = originalClass.selectedScheduleIds ?? [];
+
+        // Combinar horarios de AMBAS clases
+        const combinedSchedules = [
+          ...new Set([
+            ...existingScheduleIds,
+            ...originalScheduleIds,
+            ...formData.selectedScheduleIds,
+          ]),
+        ] as Id<"schedule">[];
+
+        // ✅ CAPTURAR EL ERROR SIN PROPAGARLO A LA CONSOLA
+        const result = await updateClassAndSchedules({
+          oldClassCatalogId: existingClassOnEdit._id as Id<"classCatalog">,
+          newClassCatalogId: existingClassOnEdit._id as Id<"classCatalog">,
+          selectedScheduleIds: combinedSchedules,
+          status: "active"
+        }).catch(error => {
+          const errorMessage = cleanErrorMessage(error);
+          toast.error("Error al combinar clases", {
+            description: errorMessage,
+            duration: 8000,
+          });
+          return null;
+        });
+
+        if (result === null) return;
+
+        // ✅ ELIMINAR LA CLASE ORIGINAL
+        await deleteClassAndSchedulesAction({
+          classCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
+        }).catch(error => {
+          const errorMessage = cleanErrorMessage(error);
+          toast.error("Error al eliminar clase original", {
+            description: errorMessage,
+          });
+        });
+
+        crudDialog.close();
+        toast.success(`¡Clases combinadas exitosamente! Los horarios se agregaron a "${existingClassOnEdit.name}".`);
+
+        return;
       }
 
-      await updateClassAndSchedules({
+      // ... resto del código para edición normal
+      const finalScheduleIds = formData.selectedScheduleIds as Id<"schedule">[];
+
+      // Verificar si los horarios son exactamente los mismos
+      const originalScheduleIds = originalClass.selectedScheduleIds ?? [];
+      const sameSchedules =
+        finalScheduleIds.length === originalScheduleIds.length &&
+        finalScheduleIds.every(id => originalScheduleIds.includes(id));
+
+      // Si no hay cambios en los horarios, solo actualizar el estado
+      if (sameSchedules && formData.status === originalClass.status) {
+        toast.info("No se detectaron cambios en los horarios o estado.");
+        crudDialog.close();
+        return;
+      }
+
+      // ✅ CAPTURAR ERRORES EN LA ACTUALIZACIÓN NORMAL
+      const result = await updateClassAndSchedules({
         oldClassCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
-        newClassCatalogId: formData.classCatalogId as Id<"classCatalog">,
+        newClassCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
         selectedScheduleIds: finalScheduleIds,
-        status: formData.status,
+        status: formData.status
+      }).catch(error => {
+        const errorMessage = cleanErrorMessage(error);
+        toast.error("Error al actualizar horarios", {
+          description: errorMessage,
+          duration: 8000,
+        });
+        return null;
       });
 
-      toast.success("Asignación actualizada exitosamente");
+      if (result === null) return;
+
       crudDialog.close();
+      toast.success("Horarios actualizados exitosamente.");
+
     } catch (error) {
-      console.error("Error al editar horario:", error);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Ocurrió un problema al actualizar el horario";
-      toast.error(errorMessage);
-      throw error;
+      // ✅ CAPTURAR ERRORES DE VALIDACIÓN
+      const errorMessage = cleanErrorMessage(error);
+      toast.error("Error de validación", {
+        description: errorMessage,
+      });
     }
   };
 
   const handleUpdateClassDetails = async (
-    data: z.infer<typeof FullClassSchema>
-  ) => {
-    const originalClass = crudDialog.data as ClassItem | null;
+  data: z.infer<typeof FullClassSchema>
+) => {
+  const originalClass = crudDialog.data as ClassItem | null;
 
-    if (!originalClass || !currentSchool) {
-      toast.error("No se pudo obtener la información de la clase");
+  if (!originalClass || !currentSchool) {
+    toast.error("No se pudo obtener la información de la clase");
+    return;
+  }
+
+  console.log("Actualizando clase con datos:", data);
+
+  try {
+    // ✅ SI EXISTE UNA CLASE DUPLICADA, COMBINARLAS
+    if (existingClassOnEdit && existingClassOnEdit._id !== originalClass.classCatalogId) {
+
+      if (data.status === 'inactive') {
+        toast.error("Acción no permitida", {
+          description: "Ya existe una clase con estas características. No puede ser combinada como 'inactiva'. Por favor, establécela como 'activa' para continuar.",
+          duration: 5000,
+        });
+        return;
+      }
+
+      console.log(" Clase duplicada encontrada, combinando clases...");
+
+      // ✅ FIX: Usar operador de coalescencia nula
+      const originalScheduleIds = originalClass.selectedScheduleIds ?? [];
+
+      // ✅ FIX: Validar que classesRaw existe y filtrar null
+      const targetClass = classesRaw?.filter((c): c is NonNullable<typeof c> => c !== null).find(
+        c => c.classCatalogId === existingClassOnEdit._id
+      );
+
+      const targetScheduleIds = targetClass?.selectedScheduleIds ?? [];
+
+      // Combinar horarios (sin duplicados)
+      const combinedSchedules = [
+        ...new Set([
+          ...targetScheduleIds,
+          ...originalScheduleIds,
+        ]),
+      ] as Id<"schedule">[];
+
+      // --- INICIO DE LA CORRECCIÓN: Reemplazo de toast.promise ---
+      toast.loading("Combinando clases..."); // 1. Muestra el toast de "cargando"
+
+      try {
+        // 2. Actualizar la clase existente con los horarios combinados
+        await updateClassAndSchedules({
+          oldClassCatalogId: existingClassOnEdit._id as Id<"classCatalog">,
+          newClassCatalogId: existingClassOnEdit._id as Id<"classCatalog">,
+          selectedScheduleIds: combinedSchedules,
+          status: "active",
+        });
+
+        // 3. Eliminar la clase original ya que se fusionó con la existente
+        await deleteClassAndSchedulesAction({
+          classCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
+        });
+
+        // 4. Si AMBAS tienen éxito, actualiza el toast a "éxito"
+        toast.success(
+          `¡Clases combinadas exitosamente! Los horarios se agregaron a "${existingClassOnEdit.name}".`
+        );
+
+        setIsEditingClassDetails(false);
+        crudDialog.close();
+        
+      } catch (err) {
+        // 5. Si CUALQUIERA falla, captura el error
+        const errorMessage = cleanErrorMessage(err); // <-- Tu función se usa aquí
+
+        // 6. Actualiza el toast a "error" con el mensaje limpio
+        toast.error("Error al combinar clases", {
+          description: errorMessage,
+          duration: 8000,
+        });
+        // 7. El error se "captura" y no se propaga a la consola
+      }
+      // --- FIN DE LA CORRECCIÓN ---
+
       return;
     }
 
-    console.log("🔄 Actualizando clase con datos:", data);
-
-    try {
-      // ✅ SI EXISTE UNA CLASE DUPLICADA, COMBINARLAS
-      if (existingClassOnEdit && existingClassOnEdit._id !== originalClass.classCatalogId) {
-        console.log("📌 Clase duplicada encontrada, combinando clases...");
-
-        // Obtener los horarios de ambas clases
-        const originalScheduleIds = originalClass.selectedScheduleIds || [];
-        const targetClass = classesRaw?.find(
-          c => c?.classCatalogId === existingClassOnEdit._id
-        );
-        const targetScheduleIds = targetClass?.selectedScheduleIds || [];
-
-        // Combinar horarios (sin duplicados)
-        const combinedSchedules = [
-          ...new Set([
-            ...targetScheduleIds,
-            ...originalScheduleIds,
-          ]),
-        ] as Id<"schedule">[];
-
-        await toast.promise(
-          (async () => {
-            // 1. Actualizar la clase existente con los horarios combinados
-            await updateClassAndSchedules({
-              oldClassCatalogId: existingClassOnEdit._id as Id<"classCatalog">,
-              newClassCatalogId: existingClassOnEdit._id as Id<"classCatalog">,
-              selectedScheduleIds: combinedSchedules,
-              status: data.status,
-            });
-
-            // 2. Eliminar la clase original ya que se fusionó con la existente
-            await deleteClassAndSchedulesAction({
-              classCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
-            });
-
-            return true;
-          })(),
-          {
-            loading: "Combinando clases...",
-            success: () => {
-              setIsEditingClassDetails(false);
-              crudDialog.close();
-              return `¡Clases combinadas exitosamente! Los horarios se agregaron a "${existingClassOnEdit.name}".`;
-            },
-            error: (err) => {
-              console.error("❌ Error al combinar:", err);
-              return "No se pudo completar la combinación de clases.";
-            },
-          }
-        );
-
-        return; // Salir después de combinar
+    // ✅ SI NO HAY DUPLICADO, ACTUALIZAR NORMALMENTE
+    // (Este toast.promise está bien, pero puedes cambiarlo también si quieres)
+    await toast.promise(
+      updateClassCatalog({
+        classCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
+        schoolId: currentSchool.school._id as Id<"school">,
+        schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
+        subjectId: data.subjectId as Id<"subject">,
+        classroomId: data.classroomId as Id<"classroom">,
+        teacherId: data.teacherId as Id<"user">,
+        groupId: data.groupId as Id<"group">,
+        name: data.name,
+        status: data.status,
+        updatedAt: Date.now(),
+      }),
+      {
+        loading: "Actualizando la información de la clase...",
+        success: () => {
+          setIsEditingClassDetails(false);
+          crudDialog.close();
+          return "Clase actualizada exitosamente.";
+        },
+        error: (error) => {
+          //console.error(" Error al actualizar:", error);
+          return cleanErrorMessage(error);
+        },
       }
-
-      // ✅ SI NO HAY DUPLICADO, ACTUALIZAR NORMALMENTE
-      await toast.promise(
-        updateClassCatalog({
-          classCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
-          schoolId: currentSchool.school._id as Id<"school">,
-          schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
-          subjectId: data.subjectId as Id<"subject">,
-          classroomId: data.classroomId as Id<"classroom">,
-          teacherId: data.teacherId as Id<"user">,
-          groupId: data.groupId as Id<"group">,
-          name: data.name,
-          status: data.status,
-          updatedAt: Date.now(),
-        }),
-        {
-          loading: "Actualizando la información de la clase...",
-          success: async () => {
-            setIsEditingClassDetails(false);
-
-            const updatedSubject = subjects?.find(s => s._id === data.subjectId);
-            const updatedClassroom = classrooms?.find(c => c.id === data.classroomId);
-            const updatedTeacher = teachersData?.find(t => t._id === data.teacherId);
-            const updatedGroup = groups?.find(g => g._id === data.groupId);
-            const updatedSchoolCycle = schoolCycles?.find(sc => sc._id === data.schoolCycleId);
-
-            const updatedClassItem: ClassItem = {
-              ...originalClass,
-              name: data.name,
-              status: data.status,
-              schoolCycleId: data.schoolCycleId,
-              schoolCycle: updatedSchoolCycle ? {
-                _id: updatedSchoolCycle._id,
-                name: updatedSchoolCycle.name,
-                startDate: updatedSchoolCycle.startDate,
-                endDate: updatedSchoolCycle.endDate,
-              } : originalClass.schoolCycle,
-              subject: updatedSubject ? {
-                _id: updatedSubject._id,
-                name: updatedSubject.name,
-                credits: updatedSubject.credits,
-              } : originalClass.subject,
-              classroom: updatedClassroom ? {
-                _id: updatedClassroom.id as string,
-                name: updatedClassroom.name,
-                location: updatedClassroom.location,
-                capacity: updatedClassroom.capacity,
-              } : originalClass.classroom,
-              teacher: updatedTeacher ? {
-                _id: updatedTeacher._id,
-                name: updatedTeacher.name,
-                lastName: updatedTeacher.lastName,
-                email: updatedTeacher.email,
-              } : originalClass.teacher,
-              group: updatedGroup ? {
-                _id: updatedGroup._id,
-                name: updatedGroup.name,
-                grade: updatedGroup.grade,
-              } : originalClass.group,
-            };
-
-            updateClass(originalClass._id, updatedClassItem);
-            crudDialog.setData(updatedClassItem);
-
-            const needsScheduleUpdate =
-              JSON.stringify(data.selectedScheduleIds?.sort()) !==
-              JSON.stringify(originalClass.selectedScheduleIds?.sort());
-
-            if (needsScheduleUpdate && data.selectedScheduleIds) {
-              await handleEdit({
-                classCatalogId: originalClass.classCatalogId,
-                selectedScheduleIds: data.selectedScheduleIds,
-                status: data.status,
-              });
-            }
-
-            return "Clase actualizada exitosamente.";
-          },
-          error: (error) => {
-            console.error("❌ Error al actualizar:", error);
-            return "No se pudo actualizar la clase.";
-          },
-        }
-      );
-    } catch (error) {
-      console.error("❌ Error en handleUpdateClassDetails:", error);
-    }
-  };
+    );
+  } catch (error) {
+    // Este catch es para errores generales ANTES del toast.promise
+    // console.error("Error en la actualizacion de la clase:", error);
+    return cleanErrorMessage(error);
+  }
+};
 
   const handleDelete = async (id: string) => {
     try {
@@ -977,7 +1077,11 @@ export default function HorariosPorClasePage() {
         }
       );
     } catch (error) {
-      console.error("Error al eliminar la clase y sus horarios:", error);
+      // Mostrar el mensaje limpio en un toast y no retornar nada para mantener la firma Promise<void>
+      const message = cleanErrorMessage(error);
+      toast.error("Error al eliminar la clase y sus horarios", {
+        description: message,
+      });
     }
   };
 
@@ -1986,8 +2090,8 @@ export default function HorariosPorClasePage() {
             <form
               onSubmit={createForm.handleSubmit(
                 handleCreateSubmit,
-                (errors) => {
-                  console.error("Validation errors:", errors);
+                () => {
+                  //console.error("Validation errors:", errors);
                   toast.error("Por favor, revisa el formulario", {
                     description:
                       "Algunos campos tienen errores o están incompletos.",
