@@ -105,7 +105,11 @@ export const getTutorStudentsAssignmentStats = query({
     tutorId: v.id("user"),
   },
   handler: async (ctx, args) => {
+     console.log("=== CONVEX AUTH DEBUG ===");
+    console.log("ctx.auth existe:", !!ctx.auth);
+
     const identity = await ctx.auth.getUserIdentity();
+    console.log(identity)
     if (!identity) throw new Error("No estás autenticado.");
 
     const user = await ctx.db

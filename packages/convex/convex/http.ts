@@ -105,9 +105,9 @@ async function validateRequest(req: Request): Promise<WebhookEvent | null> {
 
 // Stripe 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-09-30.clover",
+  apiVersion: "2025-10-29.clover",
 });
- 
+
 http.route({
   path: "/subscription-webhook",
   method: "POST",
@@ -273,7 +273,7 @@ http.route({
   method: "POST",
   handler: httpAction(async (ctx, request) => {
     console.log("🔔 Webhook recibido en /stripe-connect-webhook");
-    
+
     try {
       const sig = request.headers.get("stripe-signature");
       if (!sig) {
@@ -283,11 +283,11 @@ http.route({
 
       const body = await request.text();
       console.log("📦 Body recibido (primeros 200 chars):", body.substring(0, 200));
-      
+
       // Intentar verificar con ambos secrets
       let event;
       let usedSecret = "unknown";
-      
+
       // Primero intentar con STRIPE_V2_WEBHOOK_SECRET (para invoices)
       const v2Secret = process.env.STRIPE_V2_WEBHOOK_SECRET?.trim();
       if (v2Secret) {
@@ -299,7 +299,7 @@ http.route({
           console.log("⚠️ V2 secret falló, intentando con Connect secret...");
         }
       }
-      
+
       // Si V2 falló o no existe, intentar con STRIPE_CONNECT_WEBHOOK_SECRET
       if (!event) {
         const connectSecret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET?.trim();
@@ -356,11 +356,11 @@ http.route({
       console.error("❌ Error procesando webhook:", error);
       console.error("   Stack:", error.stack);
       console.error("   Message:", error.message);
-      
+
       // Retornar 500 para que Stripe reintente
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         error: "Internal server error",
-        message: error.message 
+        message: error.message
       }), { status: 500 });
     }
   }),
@@ -375,14 +375,14 @@ async function handleCheckoutSessionCompletedForBilling(ctx: ActionCtx, session:
   console.log("👤 Customer:", session.customer);
 
   const metadata = session.metadata;
-  
+
   if (!metadata?.billingId || !metadata?.studentId || !metadata?.tutorId) {
     console.error("❌ Metadata incompleta en Checkout Session");
     console.error("   billingId:", metadata?.billingId);
     console.error("   studentId:", metadata?.studentId);
     console.error("   tutorId:", metadata?.tutorId);
     console.error("   schoolId:", metadata?.schoolId);
-    
+
     // Lanzar error en lugar de return para que el webhook devuelva 500
     throw new Error(`Metadata incompleta: billingId=${metadata?.billingId}, studentId=${metadata?.studentId}, tutorId=${metadata?.tutorId}`);
   }
@@ -390,7 +390,7 @@ async function handleCheckoutSessionCompletedForBilling(ctx: ActionCtx, session:
   // Obtener el Payment Intent asociado
   const paymentIntentId = session.payment_intent as string;
   console.log("💳 Payment Intent ID extraído:", paymentIntentId);
-  
+
   if (!paymentIntentId) {
     console.error("❌ No se encontró Payment Intent en la sesión");
     throw new Error("No se encontró Payment Intent en la sesión");
@@ -403,13 +403,25 @@ async function handleCheckoutSessionCompletedForBilling(ctx: ActionCtx, session:
   console.log("   amount:", (session.amount_total || 0) / 100);
 
   // Confirmar el pago en la base de datos
-  await ctx.runMutation(internal.functions.stripePayments.confirmPayment, {
+  const payment = await ctx.runMutation(internal.functions.payments.confirmPayment, {
     paymentIntentId: paymentIntentId,
     billingId: metadata.billingId as Id<"billing">,
     studentId: metadata.studentId as Id<"student">,
     amount: (session.amount_total || 0) / 100, // Convertir de centavos a pesos
     createdBy: metadata.tutorId as Id<"user">,
     stripeChargeId: paymentIntentId,
+  });
+
+  const facturapi = await ctx.runAction(api.functions.actions.facturapi.generateFacturapiInvoice, {
+    paymentId: payment.paymentId as Id<"payments">,
+    tutorId: metadata.tutorId as Id<"user">,
+  });
+
+  await ctx.runMutation(api.functions.payments.updatePaymentWithFacturapi, {
+    paymentId: payment.paymentId as Id<"payments">,
+    facturapiInvoiceId: String(facturapi.facturapiInvoiceId),
+    facturapiInvoiceNumber: String(facturapi.facturapiInvoiceNumber),
+    facturapiInvoiceStatus: String(facturapi.facturapiInvoiceStatus),
   });
 
   console.log("✅ Pago de billing confirmado en base de datos desde Checkout");
@@ -425,7 +437,7 @@ async function handlePaymentIntentSucceeded(ctx: ActionCtx, paymentIntent: Strip
   console.log("💳 Payment method types:", paymentIntent.payment_method_types);
 
   const metadata = paymentIntent.metadata;
-  
+
   if (!metadata?.billingId || !metadata?.studentId || !metadata?.tutorId) {
     console.error("❌ Metadata incompleta en Payment Intent");
     console.error("   billingId:", metadata?.billingId);
@@ -439,7 +451,7 @@ async function handlePaymentIntentSucceeded(ctx: ActionCtx, paymentIntent: Strip
 
   // Detectar el método de pago real
   let paymentMethod: "cash" | "bank_transfer" | "card" | "other" = "other";
-  
+
   if (paymentIntent.payment_method_types.includes("oxxo")) {
     paymentMethod = "cash"; // OXXO es pago en efectivo
     console.log("💵 Método detectado: OXXO (cash)");
@@ -459,7 +471,7 @@ async function handlePaymentIntentSucceeded(ctx: ActionCtx, paymentIntent: Strip
   console.log("   method:", paymentMethod);
 
   // Confirmar el pago en la base de datos
-  await ctx.runMutation(internal.functions.stripePayments.confirmPayment, {
+  const payment = await ctx.runMutation(internal.functions.payments.confirmPayment, {
     paymentIntentId: paymentIntent.id,
     billingId: metadata.billingId as Id<"billing">,
     studentId: metadata.studentId as Id<"student">,
@@ -468,6 +480,19 @@ async function handlePaymentIntentSucceeded(ctx: ActionCtx, paymentIntent: Strip
     stripeChargeId: paymentIntent.latest_charge as string,
     paymentMethod: paymentMethod,
   });
+
+  const facturapi = await ctx.runAction(api.functions.actions.facturapi.generateFacturapiInvoice, {
+    paymentId: payment.paymentId as Id<"payments">,
+    tutorId: metadata.tutorId as Id<"user">,
+  });
+
+  await ctx.runMutation(api.functions.payments.updatePaymentWithFacturapi, {
+    paymentId: payment.paymentId as Id<"payments">,
+    facturapiInvoiceId: String(facturapi.facturapiInvoiceId),
+    facturapiInvoiceNumber: String(facturapi.facturapiInvoiceNumber),
+    facturapiInvoiceStatus: String(facturapi.facturapiInvoiceStatus),
+  });
+
 
   console.log("✅ Pago confirmado en base de datos desde Payment Intent");
 }
