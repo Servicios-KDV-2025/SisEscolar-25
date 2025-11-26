@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { toast } from "sonner";
+import { toast } from "@repo/ui/sonner";
 import { EventCalendar, type CalendarEvent } from "components/calendar";
 import {
   BookOpen,
@@ -184,7 +184,7 @@ export default function CalendarioEscolar() {
         schoolCycleId: originalEvent.schoolCycleId,
         status: originalEvent.status,
       });
-      toast.success(`Evento "${event.title}" actualizado`);
+      toast.info(`Evento "${event.title}" actualizado`);
     } catch (error) {
       toast.error("Error al actualizar el evento.");
       console.error(error);

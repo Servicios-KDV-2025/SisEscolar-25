@@ -244,40 +244,93 @@ export function GradingModal({
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="score">{scoreLabel} (0 - {maxScore})</Label>
-              <Input
-                id="score"
-                type="number"
-                min="0"
-                max={maxScore}
-                value={currentScoreValue}
-                onChange={(e) => setCurrentScoreValue(e.target.value)}
-                placeholder="Ingresa la calificación"
-                disabled={!canUpdateRubric}
-              />
+              {canUpdateRubric ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <Input
+                      id="score"
+                      type="number"
+                      min="0"
+                      max={maxScore}
+                      value={currentScoreValue}
+                      onChange={(e) => setCurrentScoreValue(e.target.value)}
+                      className="w-20"
+                    />
+                    <span className="text-sm text-gray-500">de {maxScore}</span>
+                  </div>
+
+                  {/* Slider visual */}
+                  <div className="px-2">
+                    <input
+                      type="range"
+                      min="0"
+                      max={maxScore}
+                      value={currentScoreValue || 0}
+                      onChange={(e) => setCurrentScoreValue(e.target.value)}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>0</span>
+                      <span>{maxScore}</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {currentScoreValue || "0"}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    / {maxScore} puntos
+                  </div>
+                  {/* Barra de progreso visual */}
+                  <div className="flex-1 ml-4">
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div
+                        className="bg-blue-600 h-2.5 rounded-full"
+                        style={{ width: `${(Number(currentScoreValue || 0) / maxScore) * 100}%` }} 
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
+
             {currentScoreValue !== "" && (Number(currentScoreValue) < 0 || Number(currentScoreValue) > maxScore) && (
               <p className="text-sm text-red-600">
                 La {scoreLabel.toLowerCase()} debe estar entre 0 y {maxScore}.
               </p>
             )}
+
+            {/* Resto del código permanece igual */}
             <div className="space-y-2">
               <Label htmlFor="comment">Comentario</Label>
-              <Textarea
-                id="comment"
-                value={comment}
-                maxLength={500}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder="Escribe un comentario sobre el trabajo del estudiante..."
-                rows={4}
-                disabled={!canUpdateRubric}
-              />
-              {(canUpdateRubric) && (
-                <CharacterCounter
-                  current={comment.length}
-                  max={500}
-                />
+              {canUpdateRubric ? (
+                <>
+                  <Textarea
+                    id="comment"
+                    value={comment}
+                    maxLength={500}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Escribe un comentario sobre el trabajo del estudiante..."
+                    rows={4}
+                  />
+                  <CharacterCounter
+                    current={comment.length}
+                    max={500}
+                  />
+                </>
+              ) : (
+                <div className="p-3 bg-gray-50 rounded-md border border-gray-200 min-h-[100px]">
+                  {comment ? (
+                    <p className="whitespace-pre-wrap text-gray-700">{comment}</p>
+                  ) : (
+                    <p className="text-gray-400 italic">Sin comentarios</p>
+                  )}
+                </div>
               )}
             </div>
+
             {canUpdateRubric && (
               <Button onClick={handleSave} className="w-full">
                 <Save className="h-4 w-4 mr-2" />

@@ -15,51 +15,48 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui/components/shadcn/select";
-import { GradeMatrix } from "../../../../../components/grade-matrix";
+import { GradeMatrix } from "components/grade-matrix";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { api } from "@repo/convex/convex/_generated/api";
 import { useQuery, useMutation } from "convex/react";
-import { useUser } from "@clerk/nextjs";
-import { toast } from "@repo/ui/sonner";
+
+import { toast } from "sonner";
 import { Button } from "@repo/ui/components/shadcn/button";
-import { Filter, BookCheck, SaveAll, Search, Plus } from "@repo/ui/icons";
+import { Filter, BookCheck, Search, Plus, SaveAll } from "@repo/ui/icons";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Skeleton } from "@repo/ui/components/shadcn/skeleton";
 import { SquareStack } from "lucide-react";
 import { Input } from "@repo/ui/components/shadcn/input";
 import Link from "next/link";
-import { useUserWithConvex } from "stores/userStore";
-import { useCurrentSchool } from "stores/userSchoolsStore";
-import { usePermissions } from 'hooks/usePermissions';
 import { CrudDialog, useCrudDialog } from '@repo/ui/components/dialog/crud-dialog';
 import { TaskForm } from 'components/tasks/TaskForm';
 import { UseFormReturn } from 'react-hook-form';
 import { TaskFormData, taskFormSchema } from '@/types/form/taskSchema';
 import { useTask } from 'stores/taskStore';
+import { User } from "stores/userStore"; // Importa los tipos
+import { UserSchool } from "stores/userSchoolsStore";
+import { UsePermissionsReturnType } from "hooks/usePermissions";
 
-export default function GradeManagementDashboard() {
+// PASO 1: Definir las props que recibirá del padre
+interface GradeMatrixTabProps {
+  currentUser: User | undefined | null;
+  currentSchool: UserSchool | undefined | null;
+  permissions: UsePermissionsReturnType; // Recibe el objeto de permisos completo
+  isLoading: boolean; // Recibe el estado de carga padre
+}
+
+// PASO 2: Renombrar el componente y aceptar las props
+export function GradeMatrixTab({ currentUser, currentSchool, permissions, isLoading: parentLoading }: GradeMatrixTabProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSchoolCycle, setSelectedSchoolCycle] = useState<string>("");
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [selectedTerm, setSelectedTerm] = useState<string>("");
-
-  const { user: clerkUser, isLoaded } = useUser();
-  const { currentUser, isLoading: userLoading } = useUserWithConvex(
-    clerkUser?.id
-  );
-  const {
-    currentSchool,
-    isLoading: schoolLoading,
-    error: schoolError,
-  } = useCurrentSchool(currentUser?._id);
-
   const { createTask } = useTask(currentSchool?.school._id);
 
   const {
     isOpen,
     operation,
     data,
-    openCreate,
     close,
   } = useCrudDialog(taskFormSchema, {
     name: '',
@@ -71,18 +68,15 @@ export default function GradeManagementDashboard() {
     termId: '',
     gradeRubricId: '',
   })
-
-  const permissions = usePermissions();
-
   const {
-    canCreateAssignance,
+    
     canCreateRubric,
     canUpdateRubric,
     currentRole,
-    isLoading,
+    isLoading: permissionsLoading,
   } = permissions;
 
-  // Fetch data with Convex
+  // Fetch data with Convex (usa 'permissions' y 'currentSchool' de las props)
   const schoolCycles = useQuery(
     api.functions.schoolCycles.ObtenerCiclosEscolares,
     currentSchool ? { escuelaID: currentSchool.school._id } : "skip"
@@ -93,7 +87,7 @@ export default function GradeManagementDashboard() {
       ? {
         schoolId: currentSchool.school._id as Id<"school">,
         schoolCycleId: selectedSchoolCycle as Id<"schoolCycle">,
-        canViewAll: permissions.getStudentFilters().canViewAll,
+        canViewAll: permissions.getStudentFilters().canViewAll, // usa 'permissions' prop
         tutorId: permissions.getStudentFilters().tutorId,
         teacherId: permissions.getStudentFilters().teacherId
       }
@@ -111,7 +105,7 @@ export default function GradeManagementDashboard() {
       ? {
         classCatalogId: selectedClass as Id<"classCatalog">,
         termId: selectedTerm as Id<"term">,
-        canViewAll: permissions.getStudentFilters().canViewAll,
+        canViewAll: permissions.getStudentFilters().canViewAll, // usa 'permissions' prop
         teacherId: permissions.getStudentFilters().teacherId,
         tutorId: permissions.getStudentFilters().tutorId,
       }
@@ -122,7 +116,7 @@ export default function GradeManagementDashboard() {
     selectedClass
       ? {
         classCatalogId: selectedClass as Id<"classCatalog">,
-        canViewAll: permissions.getStudentFilters().canViewAll,
+        canViewAll: permissions.getStudentFilters().canViewAll, // usa 'permissions' prop
         tutorId: permissions.getStudentFilters().tutorId,
         teacherId: permissions.getStudentFilters().teacherId
       }
@@ -153,13 +147,12 @@ export default function GradeManagementDashboard() {
       : "skip"
   );
 
-  // Mutations
+  // Mutations (se quedan idénticas)
   const upsertGrade = useMutation(api.functions.grades.upsertGrade);
   const upsertTermAverage = useMutation(
     api.functions.termAverages.upsertTermAverage
   );
 
-  // State synchronization and initial value setting
   useEffect(() => {
     // Establece el ciclo escolar por defecto si no hay uno seleccionado
     if (schoolCycles && schoolCycles.length > 0 && !selectedSchoolCycle) {
@@ -181,7 +174,7 @@ export default function GradeManagementDashboard() {
     terms, selectedTerm
   ]);
 
-  useEffect(() => {
+useEffect(() => {
     setSelectedClass("");
     setSelectedTerm("");
   }, [selectedSchoolCycle]);
@@ -209,7 +202,7 @@ export default function GradeManagementDashboard() {
         }
         return nameA.localeCompare(nameB);
       })
-    : [];
+    : [];  
 
   const handleSaveAverages = async () => {
     if (
@@ -339,101 +332,44 @@ export default function GradeManagementDashboard() {
 
     return Math.round(finalGrade);
   };
-
-  // Conditionally render based on data availability
-
-  // Check for missing data and display specific messages
+  
   const hasSchoolCycles = schoolCycles && schoolCycles.length > 0;
   const hasClasses = classes && classes.length > 0;
   const hasTerms = terms && terms.length > 0;
 
-  const handleSubmit = async (values: Record<string, unknown>) => {
-    if (!currentSchool?.school._id || !currentUser?._id) {
-      console.error('Missing required IDs');
-      return;
-    }
-
-    try {
-      // Combinar fecha y hora para crear el timestamp
-      const dueDateTime = new Date(`${values.dueDate}T${values.dueTime}`);
-      const dueTimestamp = dueDateTime.getTime();
-
-      // Aquí necesitarías la función createTask - puede que necesites importarla o crearla
-      await createTask({
-        classCatalogId: values.classCatalogId as Id<"classCatalog">,
-        termId: values.termId as Id<"term">,
-        gradeRubricId: values.gradeRubricId as Id<"gradeRubric">,
-        name: values.name as string,
-        description: values.description as string,
-        dueDate: dueTimestamp,
-        maxScore: parseInt(values.maxScore as string),
-      });
-      toast.success('Asignación creada exitosamente')
-      close();
-    } catch (error) {
-      toast.error('Error al crear la asignación')
-      console.error('Error al procesar la tarea:', error);
-    }
-  }
-
-
-  // Main UI when all data is available
+ const handleSubmit = async (values: Record<string, unknown>) => {
+     if (!currentSchool?.school._id || !currentUser?._id) {
+       console.error('Missing required IDs');
+       return;
+     }
+ 
+     try {
+       // Combinar fecha y hora para crear el timestamp
+       const dueDateTime = new Date(`${values.dueDate}T${values.dueTime}`);
+       const dueTimestamp = dueDateTime.getTime();
+ 
+       // Aquí necesitarías la función createTask - puede que necesites importarla o crearla
+       await createTask({
+         classCatalogId: values.classCatalogId as Id<"classCatalog">,
+         termId: values.termId as Id<"term">,
+         gradeRubricId: values.gradeRubricId as Id<"gradeRubric">,
+         name: values.name as string,
+         description: values.description as string,
+         dueDate: dueTimestamp,
+         maxScore: parseInt(values.maxScore as string),
+       });
+ 
+       close();
+     } catch (error) {
+       console.error('Error al procesar la tarea:', error);
+     }
+   };
+   const combinedIsLoading = parentLoading || permissionsLoading;
   return (
-    <div className="space-y-8 p-6">
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
-        <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
-        <div className="relative p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-primary/10 rounded-xl">
-                  <BookCheck className="h-8 w-8 text-primary" />
-                </div>
-                <div>
-                  <h1 className="text-4xl font-bold tracking-tight">
-                    Calificaciones de Asignaciones
-                  </h1>
-                  <p className="text-lg text-muted-foreground">
-                    Administra las calificaciones de las Asignaciones del curso.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-col gap-4 sm:flex-col sm:items-center sm:gap-8 lg:gap-2">
-              {canCreateAssignance &&
-                <Button
-                  className="cursor-pointer"
-                  onClick={openCreate}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Agregar Asignación
-                </Button>
-              }
-              {currentRole !== 'tutor' && (
-                <Button
-                  onClick={handleSaveAverages}
-                  size="lg"
-                  className="gap-2"
-                  disabled={
-                    isDataLoading ||
-                    !currentSchool ||
-                    !students ||
-                    students.length === 0 ||
-                    currentRole === 'auditor'
-                  }
-                >
-                  <SaveAll className="w-4 h-4" />
-                  Guardar Promedios
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
+    // Se quita el padding "p-6" para que se ajuste al `TabsContent`
+    <div className="space-y-8">
       <div className="grid grid-cols-1">
-        <Card className=" flex flex-row items-center justify-between">
+        <Card className=" flex items-center justify-between sm:flex-row flex-col gap-4">
           <div className="flex items-center gap-3 pl-6 flex-shrink-0">
             <SquareStack className="h-5 w-5" />
             <h3 className="font-semibold tracking-tight">
@@ -467,110 +403,123 @@ export default function GradeManagementDashboard() {
       </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Filter className="h-5 w-5" />
-                Filtros y Búsqueda
-              </CardTitle>
-              <CardDescription>
-                Filtra las calificaciones por ciclo escolar, clase y periodo.
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nombre, apellido"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Select
-              value={selectedSchoolCycle}
-              onValueChange={setSelectedSchoolCycle}
-            >
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Ciclo Escolar" />
-              </SelectTrigger>
-              <SelectContent>
-                {hasSchoolCycles &&
-                  schoolCycles.map((cycle) => (
-                    <SelectItem key={cycle._id} value={cycle._id as string}>
-                      {cycle.name}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-            {hasClasses && (
-              <Select
-                value={selectedClass}
-                onValueChange={setSelectedClass}
-                disabled={!selectedSchoolCycle}
-              >
-                <SelectTrigger className="w-full md:w-48">
-                  <SelectValue placeholder="Clase" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((cls) => (
-                    <SelectItem key={cls._id} value={cls._id as string}>
-                      {cls.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            {hasTerms && (
-              <Select
-                value={selectedTerm}
-                onValueChange={setSelectedTerm}
-                disabled={!selectedSchoolCycle}
-              >
-                <SelectTrigger className="w-full md:w-48">
-                  <SelectValue placeholder="Periodo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {hasTerms &&
-                    terms.map((term) => (
-                      <SelectItem key={term._id} value={term._id as string}>
-                        {term.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              <CardHeader>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Filter className="h-5 w-5" />
+                      Filtros y Búsqueda
+                    </CardTitle>
+                    <CardDescription>
+                      Filtra las calificaciones por ciclo escolar, clase y periodo.
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar por nombre, apellido"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                  <Select
+                    value={selectedSchoolCycle}
+                    onValueChange={setSelectedSchoolCycle}
+                  >
+                    <SelectTrigger className="w-full md:w-48">
+                      <SelectValue placeholder="Ciclo Escolar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {hasSchoolCycles &&
+                        schoolCycles.map((cycle) => (
+                          <SelectItem key={cycle._id} value={cycle._id as string}>
+                            {cycle.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  {hasClasses && (
+                    <Select
+                      value={selectedClass}
+                      onValueChange={setSelectedClass}
+                      disabled={students?.length === 0}
+                    >
+                      <SelectTrigger className="w-full md:w-48">
+                        <SelectValue placeholder="Clase" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {classes.map((cls) => (
+                          <SelectItem key={cls._id} value={cls._id as string}>
+                            {cls.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {hasTerms && (
+                    <Select
+                      value={selectedTerm}
+                      onValueChange={setSelectedTerm}
+                      disabled={!selectedSchoolCycle}
+                    >
+                      <SelectTrigger className="w-full md:w-48">
+                        <SelectValue placeholder="Periodo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {hasTerms &&
+                          terms.map((term) => (
+                            <SelectItem key={term._id} value={term._id as string}>
+                              {term.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
-      {/* Grade Matrix */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <CardTitle className="flex items-center justify-between sm:flex-row flex-col gap-4">
             <span>Calificaciones</span>
-            <Badge
+            {canCreateRubric  && (
+              <Button
+                onClick={handleSaveAverages}
+                size="sm" // Lo hacemos un poco más pequeño para que quepa bien
+                className="gap-2"
+                disabled={
+                  isDataLoading ||
+                  !currentSchool ||
+                  !students ||
+                  students.length === 0 ||
+                  currentRole === 'auditor'
+                }
+              >
+                <SaveAll className="w-4 h-4" />
+                Guardar Promedios
+              </Button>
+            )}
+          </CardTitle>
+          <CardDescription className="flex justify-end items-center py-2 sm:flex-row flex-col gap-4">
+                            <Badge
               variant="outline"
-              className="bg-black-50 text-black-700 border-black-200"
+              
             >
               {assignments?.length} asignaciones
             </Badge>
-          </CardTitle>
+                          </CardDescription>
         </CardHeader>
         <CardContent className="w-full">
           {(
-            !isLoaded ||
-            userLoading ||
-            schoolLoading ||
-            isLoading ||
-            (currentUser && !currentSchool && !schoolError)
-          ) ? (
+          combinedIsLoading) ? (
             <div className="space-y-4 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
               <p className="text-muted-foreground">
@@ -671,35 +620,36 @@ export default function GradeManagementDashboard() {
         </CardContent>
       </Card>
 
-      <CrudDialog
-        operation={operation}
-        title="Crear Nueva Asignación"
-        description="Define una nueva Asignación para tus estudiantes"
-        schema={taskFormSchema}
-        defaultValues={{
-          name: '',
-          description: '',
-          dueDate: '',
-          dueTime: '23:59',
-          maxScore: '',
-          classCatalogId: '',
-          termId: '',
-          gradeRubricId: '',
-        }}
-        data={data}
-        isOpen={isOpen}
-        onOpenChange={close}
-        onSubmit={handleSubmit}
-      >
-        {(form, operation) => (
-          <TaskForm
-            form={form as unknown as UseFormReturn<TaskFormData>}
-            operation={operation}
-            teacherClasses={classes}
-            allTerms={terms}
-          />
-        )}
-      </CrudDialog>
+      {/* El CrudDialog se queda idéntico */}
+         <CrudDialog
+              operation={operation}
+              title="Crear Nueva Asignación"
+              description="Define una nueva Asignación para tus estudiantes"
+              schema={taskFormSchema}
+              defaultValues={{
+                name: '',
+                description: '',
+                dueDate: '',
+                dueTime: '23:59',
+                maxScore: '',
+                classCatalogId: '',
+                termId: '',
+                gradeRubricId: '',
+              }}
+              data={data}
+              isOpen={isOpen}
+              onOpenChange={close}
+              onSubmit={handleSubmit}
+            >
+              {(form, operation) => (
+                <TaskForm
+                  form={form as unknown as UseFormReturn<TaskFormData>}
+                  operation={operation}
+                  teacherClasses={classes}
+                  allTerms={terms}
+                />
+              )}
+            </CrudDialog>
     </div>
   );
 }
