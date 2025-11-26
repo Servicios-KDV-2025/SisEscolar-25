@@ -859,18 +859,6 @@ export default function PersonalPage() {
                 </div>
               </div>
             </div>
-            {canCreateUsersPersonal && (
-              <Button
-                size="lg"
-                className="gap-2"
-                onClick={handleOpenCreate}
-                disabled={isLoading || !currentSchool || isCrudLoading}
-              >
-                <Plus className="w-4 h-4" />
-                Agregar Personal
-              </Button>
-            )}
-
           </div>
         </div>
       </div>
@@ -1011,27 +999,37 @@ export default function PersonalPage() {
       {/* Tabla de Personal */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Lista de Personal</span>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(roleConfig).map(([roleKey, roleInfo]) => (
-                <Badge
-                  key={roleKey}
-                  variant="outline"
-                  className={`${roleInfo.color} text-xs m-x-2 space-x-2`}
-                >
-                  <roleInfo.icon className="h-4 w-4 mr-1" />
-                  {roleInfo.label}
-                </Badge>
-              ))}
-            </div>
-            <Badge variant="outline">{filteredUsers.length} usuarios</Badge>
-          </CardTitle>
-
-          <CardDescription className="space-x-1">
-
-
-          </CardDescription>
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <CardTitle>
+              <div className="flex flex-col gap-2">
+                <span>Lista de Personal</span>
+                <div className="flex flex-wrap gap-2 items-center">
+                  {Object.entries(roleConfig).map(([roleKey, roleInfo]) => (
+                    <Badge
+                      key={roleKey}
+                      variant="outline"
+                      className={`${roleInfo.color} text-xs m-x-2 space-x-2`}
+                    >
+                      <roleInfo.icon className="h-4 w-4 mr-1" />
+                      {roleInfo.label}
+                    </Badge>
+                  ))}
+                </div>
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">{filteredUsers.length} usuarios</Badge>
+              </div>
+            </CardTitle>
+            {canCreateUsersPersonal && (
+              <Button
+                size="lg"
+                className="gap-2"
+                onClick={handleOpenCreate}
+                disabled={isLoading || !currentSchool || isCrudLoading}
+              >
+                <Plus className="w-4 h-4" />
+                Agregar Personal
+              </Button>
+            )}
+          </div>
         </CardHeader>
 
         <CardContent>

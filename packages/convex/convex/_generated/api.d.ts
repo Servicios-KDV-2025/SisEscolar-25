@@ -46,6 +46,14 @@ import type * as functions_users from "../functions/users.js";
 import type * as http from "../http.js";
 import type * as templates_paymentSuccess from "../templates/paymentSuccess.js";
 
+/**
+ * A utility for referencing Convex functions in your app's API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = api.myModule.myFunction;
+ * ```
+ */
 declare const fullApi: ApiFromModules<{
   "actions/actionsclassSchedule": typeof actions_actionsclassSchedule;
   "actions/users": typeof actions_users;
@@ -84,15 +92,6 @@ export declare const api: FilterApi<
   typeof fullApi,
   FunctionReference<any, "public">
 >;
-
-/**
- * A utility for referencing Convex functions in your app's internal API.
- *
- * Usage:
- * ```js
- * const myFunctionReference = internal.myModule.myFunction;
- * ```
- */
 export declare const internal: FilterApi<
   typeof fullApi,
   FunctionReference<any, "internal">

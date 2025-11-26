@@ -740,17 +740,6 @@ export default function TutorPage() {
                 </div>
               </div>
             </div>
-            {canCreateUsersTutores && (
-              <Button
-                size="lg"
-                className="gap-2 bg-orange-600 hover:bg-orange-700"
-                onClick={handleOpenCreate}
-                disabled={isLoading || !currentSchool || isCrudLoading}
-              >
-                <Plus className="w-4 h-4" />
-                Agregar Tutor
-              </Button>
-            )}
           </div>
         </div>
       </div>
@@ -864,15 +853,30 @@ export default function TutorPage() {
       {/* Tabla de Tutores */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Lista de Tutores</span>
-            <Badge
-              variant="outline"
-              className="bg-orange-50 text-orange-700 border-orange-200"
-            >
-              {filteredUsers.length} tutores
-            </Badge>
-          </CardTitle>
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <CardTitle>
+              <div className="flex flex-col gap-2">
+              <span>Lista de Tutores</span>
+                <Badge
+                  variant="outline"
+                  className="bg-orange-50 text-orange-700 border-orange-200 w-fit"
+                >
+                  {filteredUsers.length} tutores
+                </Badge>
+              </div>
+            </CardTitle>
+            {canCreateUsersTutores && (
+              <Button
+                size="lg"
+                className="gap-2 bg-orange-600 hover:bg-orange-700"
+                onClick={handleOpenCreate}
+                disabled={isLoading || !currentSchool || isCrudLoading}
+              >
+                <Plus className="w-4 h-4" />
+                Agregar Tutor
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (

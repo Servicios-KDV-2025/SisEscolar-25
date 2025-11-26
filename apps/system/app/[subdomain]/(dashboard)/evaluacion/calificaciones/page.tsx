@@ -10,7 +10,7 @@ import {
 } from "@repo/ui/components/shadcn/card";
 import {
   Select,
-  SelectContent,
+  SelectContent,  
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -399,34 +399,7 @@ export default function GradeManagementDashboard() {
                 </div>
               </div>
             </div>
-            <div className="flex flex-col gap-4 sm:flex-col sm:items-center sm:gap-8 lg:gap-2">
-              {canCreateAssignance &&
-                <Button
-                  className="cursor-pointer"
-                  onClick={openCreate}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Agregar Asignación
-                </Button>
-              }
-              {currentRole !== 'tutor' && (
-                <Button
-                  onClick={handleSaveAverages}
-                  size="lg"
-                  className="gap-2"
-                  disabled={
-                    isDataLoading ||
-                    !currentSchool ||
-                    !students ||
-                    students.length === 0 ||
-                    currentRole === 'auditor'
-                  }
-                >
-                  <SaveAll className="w-4 h-4" />
-                  Guardar Promedios
-                </Button>
-              )}
-            </div>
+         
           </div>
         </div>
       </div>
@@ -552,15 +525,48 @@ export default function GradeManagementDashboard() {
       {/* Grade Matrix */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <CardTitle>
+            <div className="flex flex-col gap-2">
             <span>Calificaciones</span>
             <Badge
               variant="outline"
-              className="bg-black-50 text-black-700 border-black-200"
+              className="bg-black-50 text-black-700 border-black-200 w-fit"
             >
               {assignments?.length} asignaciones
             </Badge>
+            </div>
           </CardTitle>
+          <div className="flex flex-col gap-2 md:flex-row">
+          {canCreateAssignance &&
+                <Button
+                  className="cursor-pointer"
+                  onClick={openCreate}
+                  size="lg"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Agregar Asignación
+                </Button>
+              }
+              {currentRole !== 'tutor' && (
+                <Button
+                  onClick={handleSaveAverages}
+                  size="lg"
+                  className="gap-2"
+                  disabled={
+                    isDataLoading ||
+                    !currentSchool ||
+                    !students ||
+                    students.length === 0 ||
+                    currentRole === 'auditor'
+                  }
+                >
+                  <SaveAll className="w-4 h-4" />
+                  Guardar Promedios
+                </Button>
+              )}
+          </div>
+          </div>
         </CardHeader>
         <CardContent className="w-full">
           {(

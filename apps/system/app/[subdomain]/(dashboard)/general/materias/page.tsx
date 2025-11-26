@@ -173,15 +173,6 @@ export default function SubjectPage() {
                     </div>
                   </div>
                 </div>
-                {canCreateSubject && (<Button
-                  size="lg"
-                  className="gap-2"
-                  onClick={openCreate}
-                  disabled={isCreatingSubject}
-                >
-                  <Plus className="h-4 w-4" />
-                  Agregar Materia
-                </Button>)}
               </div>
             </div>
           </div>
@@ -321,12 +312,25 @@ export default function SubjectPage() {
           {/* Tabla de Materias */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Lista de Materias</span>
-                <Badge variant="outline">
-                  {filteredSubjects.length} materias
-                </Badge>
-              </CardTitle>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <CardTitle>
+                  <div className="flex flex-col gap-2">
+                    <span>Lista de Materias</span>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                      {filteredSubjects.length} materias
+                    </Badge>
+                  </div>
+                </CardTitle>
+                {canCreateSubject && (<Button
+                  size="lg"
+                  className="gap-2"
+                  onClick={openCreate}
+                  disabled={isCreatingSubject}
+                >
+                  <Plus className="h-4 w-4" />
+                  Agregar Materia
+                </Button>)}
+              </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (

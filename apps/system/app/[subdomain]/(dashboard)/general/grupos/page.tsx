@@ -159,17 +159,6 @@ export default function GroupPage() {
                     </div>
                   </div>
                 </div>
-                {canCreateGroup && (
-                  <Button
-                    size="lg"
-                    className="gap-2"
-                    onClick={openCreate}
-                    disabled={isCreatingGroup}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Agregar Grupo
-                  </Button>
-                )}
               </div>
             </div>
           </div>
@@ -331,10 +320,27 @@ export default function GroupPage() {
           {/* Tabla de Personal */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Lista de los grupos</span>
-                <Badge variant="outline">{filteredGroups.length} grupos</Badge>
-              </CardTitle>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <CardTitle>
+                  <div className="flex flex-col gap-2">
+                    <span>Lista de los grupos</span>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                      {filteredGroups.length} grupos
+                    </Badge>
+                  </div>
+                </CardTitle>
+                {canCreateGroup && (
+                  <Button
+                    size="lg"
+                    className="gap-2"
+                    onClick={openCreate}
+                    disabled={isCreatingGroup}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Agregar Grupo
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (

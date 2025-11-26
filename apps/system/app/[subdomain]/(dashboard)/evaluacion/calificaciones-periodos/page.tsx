@@ -335,17 +335,7 @@ export default function GradeManagementDashboard() {
                 </div>
               </div>
             </div>
-            {currentRole !== 'tutor' && (
-              <Button
-                onClick={handleSaveAverages}
-                size="lg"
-                className="gap-2"
-                disabled={!currentSchool || currentRole === 'auditor'}
-              >
-                <SaveAll className="w-4 h-4" />
-                Guardar promedios
-              </Button>
-            )}
+           
           </div>
         </div>
       </div>
@@ -417,7 +407,9 @@ export default function GradeManagementDashboard() {
       {/* Grade Matrix */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <CardTitle>
+            <div className="flex flex-col gap-2">
             <span>Calificaciones</span>
             <Badge
               variant="outline"
@@ -425,7 +417,20 @@ export default function GradeManagementDashboard() {
             >
               {terms?.length} periodos
             </Badge>
+            </div>
           </CardTitle>
+          {currentRole !== 'tutor' && (
+              <Button
+                onClick={handleSaveAverages}
+                size="lg"
+                className="gap-2"
+                disabled={!currentSchool || currentRole === 'auditor'}
+              >
+                <SaveAll className="w-4 h-4" />
+                Guardar promedios
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {/* Si no hay estudiantes o no hay Periodos, muestra un mensaje */}

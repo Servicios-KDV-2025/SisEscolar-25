@@ -399,15 +399,6 @@ export default function PeriodsManagement() {
                   </div>
                 </div>
               </div>
-              {canCreateTerm && (<Button
-                size="lg"
-                className="gap-2"
-                onClick={openCreate}
-                disabled={isCreating}
-              >
-                <Plus className="h-4 w-4" />
-                Agregar Periodo
-              </Button>)}
             </div>
           </div>
         </div>
@@ -578,10 +569,25 @@ export default function PeriodsManagement() {
         {/* Terms Table */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Lista de Periodos</span>
-              <Badge variant="outline">{filteredTerms.length} periodos</Badge>
-            </CardTitle>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <CardTitle>
+                <div className="flex flex-col gap-2">
+                  <span>Lista de Periodos</span>
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                    {filteredTerms.length} periodos
+                  </Badge>
+                </div>
+              </CardTitle>
+              {canCreateTerm && (<Button
+                  size="lg"
+                  className="gap-2"
+                  onClick={openCreate}
+                  disabled={isCreating}
+                >
+                  <Plus className="h-4 w-4" />
+                  Agregar Periodo
+                </Button>)}
+            </div>
           </CardHeader>
           <CardContent>
             {isTermsLoading ? (

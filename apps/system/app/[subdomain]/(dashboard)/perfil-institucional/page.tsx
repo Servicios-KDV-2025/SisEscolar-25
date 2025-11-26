@@ -5,6 +5,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@repo/ui/components/shadcn/card";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Input } from "@repo/ui/components/shadcn/input";
@@ -123,49 +124,7 @@ export default function ConfiguracionPage() {
                   Gestión de la información principal de la escuela.
                 </p>
               </div>
-            </div>
-        
-              {isEditing ? (
-                <>
-                <div className="flex max-md:flex-col gap-3 max-md:h-24 max-md:w-full">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="flex-1 gap-2 max-md:text-base "
-                    onClick={handleCancel}
-                    disabled={isSaving}
-                  >
-                    <X className="w-4 h-4" /> Cancelar
-                  </Button>
-                  <Button
-                    size="lg"
-                    className="flex-1 gap-2 max-md:text-base"
-                    onClick={handleSubmit(handleSave)}
-                    disabled={isSaving}
-                  >
-                    {isSaving ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Save className="w-4 h-4" />
-                    )}{" "}
-                    Guardar Cambios
-                  </Button>
-                  </div>
-                </>
-              ) : (
-                canUpdatePerfilInstitucional && (
-                  <div className="flex max-md:w-full">
-                  <Button
-                    size="lg"
-                    className="gap-2 flex-1"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    <Edit className="w-4 h-4" /> Editar Información
-                  </Button>
-                  </div>
-                )
-              )}
-            
+            </div>         
           </div>
         </div>
       </div>
@@ -265,6 +224,48 @@ export default function ConfiguracionPage() {
             />
           </div>
         </CardContent>
+        <CardFooter className="flex justify-end">
+        {isEditing ? (
+                <>
+                <div className="flex max-md:flex-col gap-3 max-md:h-24 max-md:w-full">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="flex-1 gap-2 max-md:text-base "
+                    onClick={handleCancel}
+                    disabled={isSaving}
+                  >
+                    <X className="w-4 h-4" /> Cancelar
+                  </Button>
+                  <Button
+                    size="lg"
+                    className="flex-1 gap-2 max-md:text-base"
+                    onClick={handleSubmit(handleSave)}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}{" "}
+                    Guardar Cambios
+                  </Button>
+                  </div>
+                </>
+              ) : (
+                canUpdatePerfilInstitucional && (
+                  <div className="flex max-md:w-full">
+                  <Button
+                    size="lg"
+                    className="gap-2 flex-1"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    <Edit className="w-4 h-4" /> Editar Información
+                  </Button>
+                  </div>
+                )
+              )}
+        </CardFooter>
       </Card>
     </div>
   );

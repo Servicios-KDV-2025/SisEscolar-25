@@ -388,29 +388,6 @@ export default function RubricDashboard() {
                 </div>
               </div>
             </div>
-            {canCreateRubricPermission &&
-              <Button
-                onClick={() => {
-                  // Resetear el formulario con el ciclo activo antes de abrir
-                  const activeCycleName = schoolCycles?.find(cycle => cycle._id === activeSchoolCycle?._id)?.name || "Ciclo Escolar";
-                  resetForm();
-                  setFormData({
-                    schoolCycle: activeCycleName,
-                    class: "",
-                    term: "",
-                    name: '',
-                    weight: [0],
-                    maxScore: 100
-                  });
-                  openCreate()
-                }}
-                className="gap-2 cursor-pointer"
-                disabled={false}
-              >
-                <Plus className="w-4 h-4" />
-                Agregar Rubrica
-              </Button>
-            }
           </div>
         </div>
       </div>
@@ -562,10 +539,39 @@ export default function RubricDashboard() {
       {/* Rubrics Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <CardTitle>
+            <div className="flex flex-col gap-2">
             <span>Lista de Rubricas</span>
-            <Badge variant="outline">{rubrics.length} rubricas</Badge>
+            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+              {rubrics.length} rubricas
+            </Badge>
+            </div>
           </CardTitle>
+          {canCreateRubricPermission &&
+              <Button
+                onClick={() => {
+                  // Resetear el formulario con el ciclo activo antes de abrir
+                  const activeCycleName = schoolCycles?.find(cycle => cycle._id === activeSchoolCycle?._id)?.name || "Ciclo Escolar";
+                  resetForm();
+                  setFormData({
+                    schoolCycle: activeCycleName,
+                    class: "",
+                    term: "",
+                    name: '',
+                    weight: [0],
+                    maxScore: 100
+                  });
+                  openCreate()
+                }}
+                className="gap-2 cursor-pointer"
+                disabled={false}
+              >
+                <Plus className="w-4 h-4" />
+                Agregar Rubrica
+              </Button>
+            }
+          </div>
         </CardHeader>
         <CardContent>
           {(

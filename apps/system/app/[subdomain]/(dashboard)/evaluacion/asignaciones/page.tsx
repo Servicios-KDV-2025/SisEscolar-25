@@ -308,16 +308,6 @@ export default function TaskManagement() {
                     </div>
                   </div>
                 </div>
-                {canCreateTask &&
-                  <Button
-                    className="cursor-pointer w-full sm:w-auto"
-                    onClick={openCreate}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    <span className="hidden sm:inline">Agregar Asignación</span>
-                    <span className="sm:hidden">Agregar Asignación</span>
-                  </Button>
-                }
               </div>
             </div>
           </div>
@@ -431,13 +421,31 @@ export default function TaskManagement() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Lista de Asignaciones</span>
-                <Badge variant="outline">{filteredTasksList.length} asignaciones</Badge>
-              </CardTitle>
-              <CardDescription>
-                Haz clic en una asignación para acceder al panel de calificación de estudiantes.
-              </CardDescription>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div className="flex flex-col gap-2">
+                <CardTitle className="flex items-center gap-2">
+                  
+                  <span>Lista de Asignaciones</span>
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                    {filteredTasksList.length} asignaciones
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  Haz clic en una asignación para acceder al panel de calificación de estudiantes.
+                </CardDescription>
+                </div>
+                
+                {canCreateTask &&
+                    <Button
+                      className="cursor-pointer w-full sm:w-auto"
+                      onClick={openCreate}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      <span className="hidden sm:inline">Agregar Asignación</span>
+                      <span className="sm:hidden">Agregar Asignación</span>
+                    </Button>
+                  }
+              </div>
             </CardHeader>
             <CardContent>
               <AuthLoading>

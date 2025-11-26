@@ -169,15 +169,6 @@ export default function BillingRulePage() {
                 </div>
               </div>
             </div>
-            <Button
-              size="lg"
-              className="gap-2"
-              onClick={openCreate}
-              disabled={isCreatingBillingRule}
-            >
-              <Plus className="h-4 w-4" />
-              Agregar Política
-            </Button>
           </div>
         </div>
       </div>
@@ -290,12 +281,25 @@ export default function BillingRulePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Lista de Políticas de Cobros</span>
-            <Badge variant="outline">
-              {filteredBillingRules.length} políticas
-            </Badge>
-          </CardTitle>
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <CardTitle>
+              <div className="flex flex-col gap-2">
+                <span>Lista de Políticas de Cobros</span>
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                  {filteredBillingRules.length} políticas
+                </Badge>
+              </div>
+            </CardTitle>
+            <Button
+              size="lg"
+              className="gap-2"
+              onClick={openCreate}
+              disabled={isCreatingBillingRule}
+            >
+              <Plus className="h-4 w-4" />
+              Agregar Política
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (

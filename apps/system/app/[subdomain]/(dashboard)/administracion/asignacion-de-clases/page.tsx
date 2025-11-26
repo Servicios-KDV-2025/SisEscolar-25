@@ -244,28 +244,7 @@ export default function StudentClassesDashboard() {
                   </div>
                 </div>
                 <div className="flex flex-col justify-start items-stretch  gap-2">
-                  {canCreateStudentsClasses && (
-                    <>
-                      <Button
-                        size="lg"
-                        className="gap-2"
-                        onClick={openCreate}
-                        disabled={isLoading || !currentSchool}
-                      >
-                        <Plus className="w-4 h-4" />
-                        Agregar Asignación
-                      </Button>
-                      <Button
-                        size="lg"
-                        className="gap-2"
-                        onClick={() => setIsMassAssignmentOpen(true)}
-                        disabled={isLoading || !currentSchool}
-                      >
-                        <Plus className="w-4 h-4" />
-                        Asignar Clases Masivamente
-                      </Button>
-                    </>
-                  )}
+                  
                 </div>
 
               </div>
@@ -397,24 +376,51 @@ export default function StudentClassesDashboard() {
                 }
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>Lista de Asignaciones</span>
-                      {currentRole !== 'tutor' &&
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs sm:text-sm"
-                          disabled={currentRole === 'auditor'}
-                        >
-                          Exportar
-                        </Button>
-                      }
-                      {currentRole === 'tutor' &&
-                        <Badge variant="outline">
-                          {filteredEnrollments.length} {filteredEnrollments.length > 1 ? 'asignados' : 'asignado'}
-                        </Badge>
-                      }
-                    </CardTitle>
+                    <div className="flex flex-col gap-4">
+                      <CardTitle>
+                        Lista de Asignaciones
+                      </CardTitle>
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div className="flex items-center w-full md:w-auto">
+                          {currentRole === 'tutor' ? (
+                            <Badge variant="outline" className="w-full md:w-auto">
+                              {filteredEnrollments.length} {filteredEnrollments.length > 1 ? 'asignados' : 'asignado'}
+                            </Badge>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="lg"
+                              className="text-xs sm:text-sm w-full md:w-auto"
+                              disabled={currentRole === 'auditor'}
+                            >
+                              Exportar
+                            </Button>
+                          )}
+                        </div>
+                        {canCreateStudentsClasses && (
+                          <div className="flex gap-2 md:flex-row flex-col items-center w-full md:w-auto">
+                            <Button
+                              size="lg"
+                              className="gap-2 w-full md:w-auto"
+                              onClick={openCreate}
+                              disabled={isLoading || !currentSchool}
+                            >
+                              <Plus className="w-4 h-4" />
+                              Agregar Asignación
+                            </Button>
+                            <Button
+                              size="lg"
+                              className="gap-2 w-full md:w-auto"
+                              onClick={() => setIsMassAssignmentOpen(true)}
+                              disabled={isLoading || !currentSchool}
+                            >
+                              <Plus className="w-4 h-4" />
+                              Asignar Clases Masivamente
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     {isLoading ? (

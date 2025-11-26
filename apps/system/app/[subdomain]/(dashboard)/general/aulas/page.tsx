@@ -362,12 +362,6 @@ export default function ClassroomManagement() {
                     </div>
                   </div>
                 </div>
-                {canCreateClassroom && (
-                  <Button size="lg" className="gap-2" onClick={openCreate}>
-                    <Plus className="h-4 w-4" />
-                    Agregar Aula
-                  </Button>
-                )}
               </div>
             </div>
           </div>
@@ -486,15 +480,26 @@ export default function ClassroomManagement() {
 
           {/* Tabla de Aulas */}
           <Card>
+            
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Lista de Aulas</span>
-                <Badge variant="outline">
-                  {isTableLoading
-                    ? "Cargando..."
-                    : `${filteredAndSortedClassrooms.length} aulas`}
-                </Badge>
-              </CardTitle>
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                <CardTitle>
+                  <div className="flex flex-col gap-2">
+                    <span>Lista de Aulas</span>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                      {isTableLoading
+                        ? "Cargando..."
+                        : `${filteredAndSortedClassrooms.length} aulas`}
+                    </Badge>
+                  </div>
+                </CardTitle>
+                {canCreateClassroom && (
+                    <Button size="lg" className="gap-2" onClick={openCreate}>
+                      <Plus className="h-4 w-4" />
+                      Agregar Aula
+                    </Button>
+                  )}
+              </div>
             </CardHeader>
             <CardContent>
               {(isTableLoading) ? (

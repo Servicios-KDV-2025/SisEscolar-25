@@ -1099,24 +1099,6 @@ export default function HorariosPorClasePage() {
               </p>
             </div>
           </div>
-          {canCreateScheduleAssignament && currentRole !== "teacher" && (
-            <Button
-              size="lg"
-              className="gap-2"
-              onClick={() => {
-                setFormStep(1);
-
-                createForm.reset({
-                  status: "active",
-                  schoolCycleId: activeCycle?._id || "",
-                });
-                setIsCreateDialogOpen(true);
-              }}
-            >
-              <Plus className="h-4 w-4" />
-              Agregar Clase
-            </Button>
-          )}
         </div>
       </div>
 
@@ -1299,10 +1281,33 @@ export default function HorariosPorClasePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Lista de Clases con Horario</span>
-            <Badge variant="outline">{filteredClasses.length} clases</Badge>
-          </CardTitle>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <CardTitle>
+              <div className="flex flex-col gap-2">
+                <span>Lista de Clases con Horario</span>
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                  {filteredClasses.length} clases
+                </Badge>
+              </div>
+            </CardTitle>
+            {canCreateScheduleAssignament && (
+              <Button
+                size="lg"
+                className="gap-2"
+                onClick={() => {
+                  setFormStep(1);
+                  createForm.reset({
+                    status: "active",
+                    schoolCycleId: activeCycle?._id || "",
+                  });
+                  setIsCreateDialogOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4" />
+                Agregar Clase
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (

@@ -198,17 +198,6 @@ export default function SchedulePage() {
                     </div>
                   </div>
                 </div>
-                {canCreateSchedule && (
-                  <Button
-                    size="lg"
-                    className="gap-2"
-                    onClick={openCreate}
-                    disabled={isCreating}
-                  >
-                    <Plus className="h-4 w-4" />
-                    {isCreating ? "Creando..." : "Agregar Horario"}
-                  </Button>
-                )}
               </div>
             </div>
           </div>
@@ -333,12 +322,28 @@ export default function SchedulePage() {
           {/* Tabla de Horarios */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Lista de Horarios</span>
-                <Badge variant="outline">
-                  {filteredSchedules.length} horarios
-                </Badge>
-              </CardTitle>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <CardTitle>
+                  <div className="flex flex-col gap-2">
+                    <span>Lista de Horarios</span>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                      {filteredSchedules.length} horarios
+                    </Badge>
+                  </div>
+                </CardTitle>
+             
+                {canCreateSchedule && (
+                    <Button
+                      size="lg"
+                      className="gap-2"
+                      onClick={openCreate}
+                      disabled={isCreating}
+                    >
+                      <Plus className="h-4 w-4" />
+                      {isCreating ? "Creando..." : "Agregar Horario"}
+                    </Button>
+                  )}
+             </div>
             </CardHeader>
             <CardContent>
               {isDataLoading ? (
