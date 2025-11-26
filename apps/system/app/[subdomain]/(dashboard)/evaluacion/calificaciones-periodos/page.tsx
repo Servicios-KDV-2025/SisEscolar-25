@@ -46,7 +46,7 @@ export default function GradeManagementDashboard() {
     error: schoolError,
   } = useCurrentSchool(currentUser?._id);
 
-  const permissions = usePermissions();
+  const permissions = usePermissions(currentSchool?.school._id);
 
   const {
     canUpdateTermAverage,
@@ -418,12 +418,12 @@ export default function GradeManagementDashboard() {
             </Badge>
             </div>
           </CardTitle>
-          {currentRole !== 'tutor' && (
+          {permissions.currentRole !== 'tutor' && (
               <Button
                 onClick={handleSaveAverages}
                 size="lg"
                 className="gap-2"
-                disabled={!currentSchool || currentRole === 'auditor'}
+                disabled={!currentSchool || permissions.currentRole === 'auditor'}
               >
                 <SaveAll className="w-4 h-4" />
                 Guardar promedios
