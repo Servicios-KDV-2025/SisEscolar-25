@@ -78,7 +78,23 @@ import {
   Filter,
   Pencil,
   LayoutList,
+  Check,
+  ChevronsUpDown,
 } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@repo/ui/components/shadcn/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@repo/ui/components/shadcn/popover";
+import { cn } from "@repo/ui/lib/utils";
 import {
   CrudDialog,
   useCrudDialog,
@@ -363,10 +379,10 @@ export default function HorariosPorClasePage() {
   const { currentSchool, isLoading: schoolLoading } = useCurrentSchool(
     currentUser?._id
   );
-  
+
   // Estado para el estudiante seleccionado (solo para tutores)
   const [selectedStudentId, setSelectedStudentId] = useState<Id<"student"> | "all">("all");
-  
+
   const [formStep, setFormStep] = useState(1);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditingClassDetails, setIsEditingClassDetails] = useState(false);
@@ -380,6 +396,18 @@ export default function HorariosPorClasePage() {
     setFilterByActiveCycle,
     setActiveSchoolCycleId,
   } = useClassScheduleStore();
+
+  const [groupingMode, setGroupingMode] = useState<"none" | "teacher" | "classroom">("none");
+
+  // --- NUEVO ESTADO PARA FILTROS DE HORARIO ---
+  const [scheduleFilters, setScheduleFilters] = useState({
+    studentId: "all",
+    teacherId: "all",
+    groupId: "all",
+    classroomId: "all",
+  });
+  const [openStudentCombo, setOpenStudentCombo] = useState(false);
+  // --- FIN ---
 
   const { subjects } = useSubject(currentSchool?.school._id);
   const { groups } = useGroup(currentSchool?.school._id);
@@ -449,19 +477,29 @@ export default function HorariosPorClasePage() {
       const schoolId = currentSchool?.school._id;
       const classCatalogId = classItem?.classCatalogId;
 
-      // 2. Comprobar las variables (no los accesos)
+      // 2. Determinar IDs de profesor y salón
+      let teacherId: Id<"user"> | undefined;
+      let classroomId: Id<"classroom"> | undefined;
+
+      if (isEditingClassDetails) {
+        teacherId = editWatchedTeacherId as Id<"user">;
+        classroomId = editWatchedClassroomId as Id<"classroom">;
+      } else if (crudDialog.operation === "edit" && classItem) {
+        teacherId = classItem.teacher?._id as Id<"user">;
+        classroomId = classItem.classroom?._id as Id<"classroom">;
+      }
+
+      // 3. Comprobar las variables
       return (
         schoolId &&
-        isEditingClassDetails &&
-        editWatchedTeacherId &&
-        editWatchedClassroomId &&
+        teacherId &&
+        classroomId &&
         classCatalogId
       )
         ? {
-          // 3. Usar las variables seguras
           schoolId: schoolId,
-          teacherId: editWatchedTeacherId as Id<"user">,
-          classroomId: editWatchedClassroomId as Id<"classroom">,
+          teacherId: teacherId,
+          classroomId: classroomId,
           classCatalogIdToExclude: classCatalogId as Id<"classCatalog">,
         }
         : "skip";
@@ -543,36 +581,52 @@ export default function HorariosPorClasePage() {
     api.functions.student.getStudentsByTutor,
     currentRole === "tutor" && currentSchool && currentUser
       ? {
-          schoolId: currentSchool.school._id as Id<"school">,
-          tutorId: currentUser._id as Id<"user">,
-        }
+        schoolId: currentSchool.school._id as Id<"school">,
+        tutorId: currentUser._id as Id<"user">,
+      }
       : "skip"
   );
 
   // Obtener las clases del estudiante seleccionado (solo para tutores)
   const studentClasses = useQuery(
     api.functions.studentsClasses.getStudentClassesByStudentId,
-    currentRole === "tutor" && 
-    currentSchool && 
-    selectedStudentId !== "all" && 
-    typeof selectedStudentId === "string"
+    currentRole === "tutor" &&
+      currentSchool &&
+      selectedStudentId !== "all" &&
+      typeof selectedStudentId === "string"
       ? {
-          schoolId: currentSchool.school._id as Id<"school">,
-          studentId: selectedStudentId as Id<"student">,
-        }
+        schoolId: currentSchool.school._id as Id<"school">,
+        studentId: selectedStudentId as Id<"student">,
+      }
       : "skip"
   );
+
+  // --- NUEVAS QUERIES PARA FILTROS DE ADMIN ---
+  const allStudents = useQuery(
+    api.functions.student.getStudentsWithRoleFilter,
+    (currentRole === "admin" || currentRole === "superadmin") && currentSchool?.school._id
+      ? { schoolId: currentSchool.school._id, canViewAll: true }
+      : "skip"
+  );
+
+  const filteredStudentClasses = useQuery(
+    api.functions.studentsClasses.getStudentClassesByStudentId,
+    scheduleFilters.studentId !== "all" && currentSchool?.school._id
+      ? { schoolId: currentSchool.school._id, studentId: scheduleFilters.studentId as Id<"student"> }
+      : "skip"
+  );
+  // --- FIN ---
 
   // Data Fetching
   const classesRaw = useQuery(
     api.functions.classSchedule.getClassScheduleWithRoleFilter,
     currentSchool && classFilters
       ? {
-          schoolId: currentSchool?.school._id as Id<"school">,
-          canViewAll: classFilters.canViewAll,
-          tutorId: classFilters.tutorId,
-          teacherId: classFilters.teacherId,
-        }
+        schoolId: currentSchool?.school._id as Id<"school">,
+        canViewAll: classFilters.canViewAll,
+        tutorId: classFilters.tutorId,
+        teacherId: classFilters.teacherId,
+      }
       : "skip"
   );
 
@@ -717,8 +771,7 @@ export default function HorariosPorClasePage() {
   };
 
   // Handlers
-  const handleCreateSubmit = async (data: Record<string, unknown>) => {
-    const values = FullClassSchema.parse(data);
+  const handleCreateSubmit = async (values: z.infer<typeof FullClassSchema>) => {
 
     if (!values.selectedScheduleIds || values.selectedScheduleIds.length === 0) {
       toast.error("Horarios requeridos", {
@@ -822,9 +875,8 @@ export default function HorariosPorClasePage() {
     }
   };
 
-  const handleEdit = async (data: Record<string, unknown>) => {
+  const handleEdit = async (formData: z.infer<typeof EditClassFormSchema>) => {
     try {
-      const formData = EditClassFormSchema.parse(data);
 
       if (formData.selectedScheduleIds.length === 0) {
         throw new Error("Debe seleccionar al menos un horario");
@@ -945,124 +997,124 @@ export default function HorariosPorClasePage() {
   };
 
   const handleUpdateClassDetails = async (
-  data: z.infer<typeof FullClassSchema>
-) => {
-  const originalClass = crudDialog.data as ClassItem | null;
+    data: z.infer<typeof FullClassSchema>
+  ) => {
+    const originalClass = crudDialog.data as ClassItem | null;
 
-  if (!originalClass || !currentSchool) {
-    toast.error("No se pudo obtener la información de la clase");
-    return;
-  }
-
-  console.log("Actualizando clase con datos:", data);
-
-  try {
-    // ✅ SI EXISTE UNA CLASE DUPLICADA, COMBINARLAS
-    if (existingClassOnEdit && existingClassOnEdit._id !== originalClass.classCatalogId) {
-
-      if (data.status === 'inactive') {
-        toast.error("Acción no permitida", {
-          description: "Ya existe una clase con estas características. No puede ser combinada como 'inactiva'. Por favor, establécela como 'activa' para continuar.",
-          duration: 5000,
-        });
-        return;
-      }
-
-      console.log(" Clase duplicada encontrada, combinando clases...");
-
-      // ✅ FIX: Usar operador de coalescencia nula
-      const originalScheduleIds = originalClass.selectedScheduleIds ?? [];
-
-      // ✅ FIX: Validar que classesRaw existe y filtrar null
-      const targetClass = classesRaw?.filter((c): c is NonNullable<typeof c> => c !== null).find(
-        c => c.classCatalogId === existingClassOnEdit._id
-      );
-
-      const targetScheduleIds = targetClass?.selectedScheduleIds ?? [];
-
-      // Combinar horarios (sin duplicados)
-      const combinedSchedules = [
-        ...new Set([
-          ...targetScheduleIds,
-          ...originalScheduleIds,
-        ]),
-      ] as Id<"schedule">[];
-
-      // --- INICIO DE LA CORRECCIÓN: Reemplazo de toast.promise ---
-      toast.loading("Combinando clases..."); // 1. Muestra el toast de "cargando"
-
-      try {
-        // 2. Actualizar la clase existente con los horarios combinados
-        await updateClassAndSchedules({
-          oldClassCatalogId: existingClassOnEdit._id as Id<"classCatalog">,
-          newClassCatalogId: existingClassOnEdit._id as Id<"classCatalog">,
-          selectedScheduleIds: combinedSchedules,
-          status: "active",
-        });
-
-        // 3. Eliminar la clase original ya que se fusionó con la existente
-        await deleteClassAndSchedulesAction({
-          classCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
-        });
-
-        // 4. Si AMBAS tienen éxito, actualiza el toast a "éxito"
-        toast.success(
-          `¡Clases combinadas exitosamente! Los horarios se agregaron a "${existingClassOnEdit.name}".`
-        );
-
-        setIsEditingClassDetails(false);
-        crudDialog.close();
-        
-      } catch (err) {
-        // 5. Si CUALQUIERA falla, captura el error
-        const errorMessage = cleanErrorMessage(err); // <-- Tu función se usa aquí
-
-        // 6. Actualiza el toast a "error" con el mensaje limpio
-        toast.error("Error al combinar clases", {
-          description: errorMessage,
-          duration: 8000,
-        });
-        // 7. El error se "captura" y no se propaga a la consola
-      }
-      // --- FIN DE LA CORRECCIÓN ---
-
+    if (!originalClass || !currentSchool) {
+      toast.error("No se pudo obtener la información de la clase");
       return;
     }
 
-    // ✅ SI NO HAY DUPLICADO, ACTUALIZAR NORMALMENTE
-    // (Este toast.promise está bien, pero puedes cambiarlo también si quieres)
-    await toast.promise(
-      updateClassCatalog({
-        classCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
-        schoolId: currentSchool.school._id as Id<"school">,
-        schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
-        subjectId: data.subjectId as Id<"subject">,
-        classroomId: data.classroomId as Id<"classroom">,
-        teacherId: data.teacherId as Id<"user">,
-        groupId: data.groupId as Id<"group">,
-        name: data.name,
-        status: data.status,
-        updatedAt: Date.now(),
-      }),
-      {
-        loading: "Actualizando la información de la clase...",
-        success: () => {
+    console.log("Actualizando clase con datos:", data);
+
+    try {
+      // ✅ SI EXISTE UNA CLASE DUPLICADA, COMBINARLAS
+      if (existingClassOnEdit && existingClassOnEdit._id !== originalClass.classCatalogId) {
+
+        if (data.status === 'inactive') {
+          toast.error("Acción no permitida", {
+            description: "Ya existe una clase con estas características. No puede ser combinada como 'inactiva'. Por favor, establécela como 'activa' para continuar.",
+            duration: 5000,
+          });
+          return;
+        }
+
+        console.log(" Clase duplicada encontrada, combinando clases...");
+
+        // ✅ FIX: Usar operador de coalescencia nula
+        const originalScheduleIds = originalClass.selectedScheduleIds ?? [];
+
+        // ✅ FIX: Validar que classesRaw existe y filtrar null
+        const targetClass = classesRaw?.filter((c): c is NonNullable<typeof c> => c !== null).find(
+          c => c.classCatalogId === existingClassOnEdit._id
+        );
+
+        const targetScheduleIds = targetClass?.selectedScheduleIds ?? [];
+
+        // Combinar horarios (sin duplicados)
+        const combinedSchedules = [
+          ...new Set([
+            ...targetScheduleIds,
+            ...originalScheduleIds,
+          ]),
+        ] as Id<"schedule">[];
+
+        // --- INICIO DE LA CORRECCIÓN: Reemplazo de toast.promise ---
+        toast.loading("Combinando clases..."); // 1. Muestra el toast de "cargando"
+
+        try {
+          // 2. Actualizar la clase existente con los horarios combinados
+          await updateClassAndSchedules({
+            oldClassCatalogId: existingClassOnEdit._id as Id<"classCatalog">,
+            newClassCatalogId: existingClassOnEdit._id as Id<"classCatalog">,
+            selectedScheduleIds: combinedSchedules,
+            status: "active",
+          });
+
+          // 3. Eliminar la clase original ya que se fusionó con la existente
+          await deleteClassAndSchedulesAction({
+            classCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
+          });
+
+          // 4. Si AMBAS tienen éxito, actualiza el toast a "éxito"
+          toast.success(
+            `¡Clases combinadas exitosamente! Los horarios se agregaron a "${existingClassOnEdit.name}".`
+          );
+
           setIsEditingClassDetails(false);
           crudDialog.close();
-          return "Clase actualizada exitosamente.";
-        },
-        error: (error) => {
-          //console.error(" Error al actualizar:", error);
-          return cleanErrorMessage(error);
-        },
+
+        } catch (err) {
+          // 5. Si CUALQUIERA falla, captura el error
+          const errorMessage = cleanErrorMessage(err); // <-- Tu función se usa aquí
+
+          // 6. Actualiza el toast a "error" con el mensaje limpio
+          toast.error("Error al combinar clases", {
+            description: errorMessage,
+            duration: 8000,
+          });
+          // 7. El error se "captura" y no se propaga a la consola
+        }
+        // --- FIN DE LA CORRECCIÓN ---
+
+        return;
       }
-    );
-  } catch (error) {
-    // Este catch es para errores generales ANTES del toast.promise
-    // console.error("Error en la actualizacion de la clase:", error);
-    return cleanErrorMessage(error);
-  }
-};
+
+      // ✅ SI NO HAY DUPLICADO, ACTUALIZAR NORMALMENTE
+      // (Este toast.promise está bien, pero puedes cambiarlo también si quieres)
+      await toast.promise(
+        updateClassCatalog({
+          classCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
+          schoolId: currentSchool.school._id as Id<"school">,
+          schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
+          subjectId: data.subjectId as Id<"subject">,
+          classroomId: data.classroomId as Id<"classroom">,
+          teacherId: data.teacherId as Id<"user">,
+          groupId: data.groupId as Id<"group">,
+          name: data.name,
+          status: data.status,
+          updatedAt: Date.now(),
+        }),
+        {
+          loading: "Actualizando la información de la clase...",
+          success: () => {
+            setIsEditingClassDetails(false);
+            crudDialog.close();
+            return "Clase actualizada exitosamente.";
+          },
+          error: (error) => {
+            //console.error(" Error al actualizar:", error);
+            return cleanErrorMessage(error);
+          },
+        }
+      );
+    } catch (error) {
+      // Este catch es para errores generales ANTES del toast.promise
+      // console.error("Error en la actualizacion de la clase:", error);
+      return cleanErrorMessage(error);
+    }
+  };
 
   const handleDelete = async (id: string) => {
     try {
@@ -1122,7 +1174,7 @@ export default function HorariosPorClasePage() {
   const transformClassesForWeeklySchedule = useMemo(() => {
     // Si es tutor y hay un estudiante seleccionado, filtrar por las clases del estudiante
     let classesToTransform = classesRaw;
-    
+
     if (currentRole === "tutor" && selectedStudentId !== "all" && studentClasses) {
       // Obtener los IDs de las clases del estudiante
       const studentClassIds = new Set(
@@ -1130,9 +1182,20 @@ export default function HorariosPorClasePage() {
           .filter((sc): sc is NonNullable<typeof sc> => sc !== null && sc.class?._id !== undefined)
           .map((sc) => sc.class._id)
       );
-      
+
       // Filtrar las clases que están en las inscripciones del estudiante
-      classesToTransform = classesRaw?.filter((c) => 
+      classesToTransform = classesRaw?.filter((c) =>
+        c && c.classCatalogId && studentClassIds.has(c.classCatalogId)
+      );
+    } else if ((currentRole === "admin" || currentRole === "superadmin") && scheduleFilters.studentId !== "all" && filteredStudentClasses) {
+      // Lógica para Admin filtrando por estudiante
+      const studentClassIds = new Set(
+        filteredStudentClasses
+          .filter((sc): sc is NonNullable<typeof sc> => sc !== null && sc.class?._id !== undefined)
+          .map((sc) => sc.class._id)
+      );
+
+      classesToTransform = classesRaw?.filter((c) =>
         c && c.classCatalogId && studentClassIds.has(c.classCatalogId)
       );
     }
@@ -1148,7 +1211,18 @@ export default function HorariosPorClasePage() {
     };
 
     const transformed = classesToTransform
-      .filter((c): c is NonNullable<typeof c> => c !== null && c.status === "active")
+      .filter((c): c is NonNullable<typeof c> => {
+        if (c === null || c.status !== "active") return false;
+
+        // Aplicar filtros adicionales de Admin (Teacher, Group, Classroom)
+        if (currentRole === "admin" || currentRole === "superadmin") {
+          if (scheduleFilters.teacherId !== "all" && c.teacher?._id !== scheduleFilters.teacherId) return false;
+          if (scheduleFilters.groupId !== "all" && c.group?._id !== scheduleFilters.groupId) return false;
+          if (scheduleFilters.classroomId !== "all" && c.classroom?._id !== scheduleFilters.classroomId) return false;
+        }
+
+        return true;
+      })
       .map((classItem) => {
         // Obtener nombre del profesor
         const teacherName = classItem.teacher
@@ -1178,13 +1252,66 @@ export default function HorariosPorClasePage() {
       })
       .filter((c) => c.schedules.length > 0);
 
-    
+
 
     return transformed;
-  }, [classesRaw, currentRole, selectedStudentId, studentClasses]);
+  }, [classesRaw, currentRole, selectedStudentId, studentClasses, scheduleFilters, filteredStudentClasses]);
 
   // Si el rol es tutor o teacher, solo mostrar el WeeklySchedule
   const isTutorOrTeacher = currentRole === "tutor" || currentRole === "teacher";
+
+  // Calcular el título del horario para la descarga
+  const scheduleTitle = useMemo(() => {
+    if (currentRole === "tutor" && selectedStudentId !== "all" && tutorStudents) {
+      const student = tutorStudents.find((s) => s._id === selectedStudentId);
+      return student ? `${student.name} ${student.lastName}` : undefined;
+    }
+
+    if (currentRole === "admin" || currentRole === "superadmin") {
+      if (scheduleFilters.studentId !== "all" && allStudents) {
+        const student = allStudents.find((s) => s._id === scheduleFilters.studentId);
+        return student ? `${student.name} ${student.lastName}` : undefined;
+      }
+      if (scheduleFilters.teacherId !== "all" && teachersData) {
+        const teacher = teachersData.find((t) => t._id === scheduleFilters.teacherId);
+        return teacher ? `Prof. ${teacher.name} ${teacher.lastName}` : undefined;
+      }
+      if (scheduleFilters.groupId !== "all" && groups) {
+        const group = groups.find((g) => g._id === scheduleFilters.groupId);
+        return group ? `Grupo ${group.grade} ${group.name}` : undefined;
+      }
+      if (scheduleFilters.classroomId !== "all" && classrooms) {
+        const classroom = classrooms.find((c) => c.id === scheduleFilters.classroomId);
+        return classroom ? `Salón ${classroom.name}` : undefined;
+      }
+    }
+
+    return undefined;
+  }, [
+    currentRole,
+    selectedStudentId,
+    tutorStudents,
+    scheduleFilters,
+    allStudents,
+    teachersData,
+    groups,
+    classrooms,
+  ]);
+
+  // Verificar si hay algún filtro activo
+  const hasActiveFilter = useMemo(() => {
+    if (currentRole === "teacher") return true; // Los maestros siempre ven su horario
+    if (currentRole === "tutor") return selectedStudentId !== "all";
+    if (currentRole === "admin" || currentRole === "superadmin" || currentRole === "auditor") {
+      return (
+        scheduleFilters.studentId !== "all" ||
+        scheduleFilters.teacherId !== "all" ||
+        scheduleFilters.groupId !== "all" ||
+        scheduleFilters.classroomId !== "all"
+      );
+    }
+    return false;
+  }, [currentRole, selectedStudentId, scheduleFilters]);
 
   return (
     <div className="space-y-8 p-6">
@@ -1269,16 +1396,16 @@ export default function HorariosPorClasePage() {
               </div>
             </Card>
           ) : (
-            <WeeklySchedule 
-              classes={transformClassesForWeeklySchedule} 
+            <WeeklySchedule
+              classes={transformClassesForWeeklySchedule}
               studentName={
-                currentRole === "tutor" && 
-                selectedStudentId !== "all" && 
-                tutorStudents
+                currentRole === "tutor" &&
+                  selectedStudentId !== "all" &&
+                  tutorStudents
                   ? (() => {
-                      const student = tutorStudents.find((s) => s._id === selectedStudentId);
-                      return student ? `${student.name} ${student.lastName || ""}`.trim() : undefined;
-                    })()
+                    const student = tutorStudents.find((s) => s._id === selectedStudentId);
+                    return student ? `${student.name} ${student.lastName || ""}`.trim() : undefined;
+                  })()
                   : undefined
               }
             />
@@ -1289,839 +1416,1041 @@ export default function HorariosPorClasePage() {
           {(currentRole === "superadmin" ||
             currentRole === "admin" ||
             currentRole === "auditor") && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {stats.map((stat, index) => (
-              <Card
-                key={index}
-                className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {stats.map((stat, index) => (
+                  <Card
+                    key={index}
+                    className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
+                  >
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                        {stat.title}
+                      </CardTitle>
+                      <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                        <stat.icon className="h-4 w-4 text-primary" />
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="text-3xl font-bold">{stat.value}</div>
+                      <p className="text-xs text-muted-foreground">{stat.trend}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+          <Tabs defaultValue="list" className="space-y-4 md:space-y-6">
+            <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 gap-2 md:gap-6 h-auto cursor-pointer">
+              <TabsTrigger value="list"
+                className="flex items-center justify-center gap-2 p-3 md:p-2 h-auto md:h-10 text-sm md:text-base  cursor-pointer"
+
               >
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {stat.title}
-                  </CardTitle>
-                  <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                    <stat.icon className="h-4 w-4 text-primary" />
+                <LayoutList className="h-4 w-4 md:h-4 md:w-4 flex-shrink-0" />
+                Vista de Lista</TabsTrigger>
+              <TabsTrigger value="schedules"
+                className="flex items-center justify-center gap-2 p-3 md:p-2 h-auto md:h-10 text-sm md:text-base cursor-pointer"
+
+              >
+                <Clock className="h-4 w-4 md:h-4 md:w-4 flex-shrink-0" />
+                Vista Horario Semanal</TabsTrigger>
+            </TabsList>
+            <TabsContent value="list">
+
+              <Card className="mb-6 mt-6">
+                <CardHeader>
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Filter className="h-5 w-5" />
+                        Filtros y Búsqueda
+                      </CardTitle>
+                      <CardDescription>
+                        Encuentra las clases y filtra por estado
+                      </CardDescription>
+                    </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="text-3xl font-bold">{stat.value}</div>
-                  <p className="text-xs text-muted-foreground">{stat.trend}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-
-       <Tabs defaultValue="list" className="space-y-4 md:space-y-6">
-        <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 gap-2 md:gap-6 h-auto cursor-pointer">
-          <TabsTrigger value="list"
-           className="flex items-center justify-center gap-2 p-3 md:p-2 h-auto md:h-10 text-sm md:text-base  cursor-pointer"
-
-          >
-          <LayoutList className="h-4 w-4 md:h-4 md:w-4 flex-shrink-0"  />
-          Vista de Lista</TabsTrigger>
-          <TabsTrigger value="schedules"
-          className="flex items-center justify-center gap-2 p-3 md:p-2 h-auto md:h-10 text-sm md:text-base cursor-pointer"
-
-          >
-          <Clock className="h-4 w-4 md:h-4 md:w-4 flex-shrink-0"  />
-          Vista Horario Semanal</TabsTrigger>
-        </TabsList>
-        <TabsContent value="list">
-
-          <Card className="mb-6 mt-6">
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Filter className="h-5 w-5" />
-                Filtros y Búsqueda
-              </CardTitle>
-              <CardDescription>
-                Encuentra las clases y filtra por estado
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por clase, materia, profesor..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            {(currentRole === "superadmin" ||
-              currentRole === "admin" ||
-              currentRole === "auditor") && (
-                <div className="flex flex-col md:flex-row gap-4 md:items-center">
-                  <Select
-                    onValueChange={(v) =>
-                      setFilter(v as "all" | "active" | "inactive")
-                    }
-                    value={filter || "all"}
-                  >
-                    <SelectTrigger className="w-full md:w-[160px]">
-                      <SelectValue placeholder="Filtrar estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="active">Activos</SelectItem>
-                      <SelectItem value="inactive">Inactivos</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  {/* --- CHECKBOX AÑADIDO --- */}
-                  <div className="flex items-center space-x-2 pt-2 md:pt-0">
-                    <Checkbox
-                      id="filter-active-cycle"
-                      checked={filterByActiveCycle}
-                      onCheckedChange={(checked) =>
-                        setFilterByActiveCycle(checked as boolean)
-                      }
-                      disabled={!activeCycle}
-                    />
-                    <label
-                      htmlFor="filter-active-cycle"
-                      className={`text-sm font-medium leading-none cursor-pointer ${!activeCycle ? "text-muted-foreground opacity-70" : ""
-                        }`}
-                    >
-                      Mostrar solo ciclo activo
-                    </label>
-                  </div>
-                  {/* --- FIN DEL CHECKBOX --- */}
-                </div>
-              )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Lista de Clases con Horario</span>
-            <Badge variant="outline">{filteredClasses.length} clases</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-muted-foreground">Cargando clases...</p>
-              </div>
-            </div>
-          ) : filteredClasses.length === 0 ? (
-            <div className="text-center py-12">
-              <ClockPlus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">
-                No se encontraron clases
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                Intenta ajustar los filtros o agrega una nueva clase con horario.
-              </p>
-              {canCreateScheduleAssignament && (
-                <Button
-                  size="lg"
-                  className="gap-2"
-                  onClick={() => {
-                    setFormStep(1);
-                    createForm.reset();
-                    setIsCreateDialogOpen(true);
-                  }}
-                >
-                  <Plus className="h-4 w-4" />
-                  Agregar Clase
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-9">
-              {filteredClasses.map((classItem) => (
-                <Card
-                  key={classItem._id}
-                  className="w-full max-w-md hover:shadow-lg transition-shadow duration-200 flex flex-col h-full"
-                >
-                  <CardHeader className="flex items-center gap-2 justify-between">
-                    <CardTitle className="text-lg font-semibold leading-tight text-center md:text-left line-clamp-2 break-words flex-1 min-w-0">
-                      {classItem.name}
-                    </CardTitle>
-                    <Badge
-                      variant={
-                        classItem?.status === "active" ? "default" : "secondary"
-                      }
-                      className={
-                        classItem?.status === "active"
-                          ? "bg-green-600 text-white flex-shrink-0 ml-2"
-                          : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"
-                      }
-                    >
-                      {classItem?.status === "active" ? "Activa" : "Inactiva"}
-                    </Badge>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {classItem.subject && (
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 flex justify-center">
-                          <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {classItem.subject.name}
-                          </p>
-                          {classItem.subject.credits && (
-                            <p className="text-xs text-muted-foreground">
-                              {classItem.subject.credits}{" "}
-                              {classItem.subject.credits === 1
-                                ? "Crédito"
-                                : "Créditos"}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    {classItem.classroom && (
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 flex justify-center">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {classItem.classroom.name}
-                          </p>
-                          {classItem.classroom.location && (
-                            <p className="text-xs text-muted-foreground truncate">
-                              {classItem.classroom.location}
-                            </p>
-                          )}
-                          <p className="text-xs text-muted-foreground">
-                            Capacidad: {classItem.classroom.capacity}{" "}
-                            estudiantes
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {classItem.teacher && (
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 flex justify-center">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {classItem.teacher.name}{" "}
-                            {classItem.teacher.lastName}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {classItem.teacher.email}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {classItem.group && (
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 flex justify-center">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-
-                            {classItem.group.grade} {classItem.group.name}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="w-5 flex justify-center">
-                          <Clock className="h-4 w-4" />
-                        </span>
-                        <span>
-                          {classItem.schedules.length} horario
-                          {classItem.schedules.length !== 1 ? "s" : ""}
-                        </span>
+                <CardContent>
+                  <div className="flex flex-col md:flex-row gap-4">
+                    <div className="flex-1">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Buscar por clase, materia, profesor..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10"
+                        />
                       </div>
                     </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-end gap-2 pt-2 border-t mt-auto">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => crudDialog.openView(classItem)}
-                      className="hover:scale-105 transition-transform cursor-pointer"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    {canUpdateScheduleAssignament && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => crudDialog.openEdit(classItem)}
-                        className="hover:scale-105 transition-transform cursor-pointer"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {canDeleteScheduleAssignament && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => crudDialog.openDelete(classItem)}
-                        className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive bg-white"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    {(currentRole === "superadmin" ||
+                      currentRole === "admin" ||
+                      currentRole === "auditor") && (
+                        <div className="flex flex-col md:flex-row gap-4 md:items-center">
+                          <Select
+                            onValueChange={(v) =>
+                              setFilter(v as "all" | "active" | "inactive")
+                            }
+                            value={filter || "all"}
+                          >
+                            <SelectTrigger className="w-full md:w-[160px]">
+                              <SelectValue placeholder="Filtrar estado" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Todos</SelectItem>
+                              <SelectItem value="active">Activos</SelectItem>
+                              <SelectItem value="inactive">Inactivos</SelectItem>
+                            </SelectContent>
+                          </Select>
 
-      {/* Dialogo para Editar/Ver/Eliminar */}
-      <CrudDialog
-        key={(crudDialog.data as ClassItem)?._id || "crud-dialog-new"}
-        operation={crudDialog.operation}
-        title={
-          isEditingClassDetails
-            ? "Editar Clase"
-            : crudDialog.operation === "edit"
-              ? "Editar Asignación de Horario"
-              : "Ver Asignación de Horario"
-        }
-        schema={EditClassFormSchema}
-        defaultValues={(() => {
-          // ✅ CORRECCIÓN: Construir defaultValues correctamente
-          const item = crudDialog.data as ClassItem | null;
-          if (!item) {
-            return {
-              classCatalogId: "",
-              selectedScheduleIds: [],
-              status: "active",
-            };
-          }
+                          <Select
+                            value={groupingMode}
+                            onValueChange={(v) => setGroupingMode(v as "none" | "teacher" | "classroom")}
+                          >
+                            <SelectTrigger className="w-full md:w-[180px]">
+                              <SelectValue placeholder="Agrupar por..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Todos</SelectItem>
+                              <SelectItem value="teacher">Por Maestro</SelectItem>
+                              <SelectItem value="classroom">Por Salón</SelectItem>
+                            </SelectContent>
+                          </Select>
 
-          // ✅ IMPORTANTE: Retornar los valores correctos
-          return {
-            _id: item._id,
-            classCatalogId: item.classCatalogId,
-            selectedScheduleIds: item.selectedScheduleIds || [],
-            status: item.status,
-          };
-        })()}
-        data={crudDialog.data}
-        isOpen={crudDialog.isOpen}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            setIsEditingClassDetails(false);
-          }
-          crudDialog.close();
-        }}
-        onSubmit={(data) => {
-          if (isEditingClassDetails) {
-            return editClassForm.handleSubmit(handleUpdateClassDetails)();
-          } else {
-            return handleEdit(data);
-          }
-        }}
-        submitButtonText={
-          crudDialog.operation === "view"
-            ? undefined
-            : isEditingClassDetails
-              ? (existingClassOnEdit && existingClassOnEdit._id !== (crudDialog.data as ClassItem)?.classCatalogId
-                ? "Combinar con clase existente"
-                : "Actualizar Clase")
-              : "Guardar Cambios"
-        }
-        onDelete={handleDelete}
-      >
-        {/*
+                          {/* --- CHECKBOX AÑADIDO --- */}
+                          <div className="flex items-center space-x-2 pt-2 md:pt-0">
+                            <Checkbox
+                              id="filter-active-cycle"
+                              checked={filterByActiveCycle}
+                              onCheckedChange={(checked) =>
+                                setFilterByActiveCycle(checked as boolean)
+                              }
+                              disabled={!activeCycle}
+                            />
+                            <label
+                              htmlFor="filter-active-cycle"
+                              className={`text-sm font-medium leading-none cursor-pointer ${!activeCycle ? "text-muted-foreground opacity-70" : ""
+                                }`}
+                            >
+                              Mostrar solo ciclo activo
+                            </label>
+                          </div>
+                          {/* --- FIN DEL CHECKBOX --- */}
+                        </div>
+                      )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Lista de Clases con Horario</span>
+                    <Badge variant="outline">{filteredClasses.length} clases</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                        <p className="text-muted-foreground">Cargando clases...</p>
+                      </div>
+                    </div>
+                  ) : filteredClasses.length === 0 ? (
+                    <div className="text-center py-12">
+                      <ClockPlus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-medium mb-2">
+                        No se encontraron clases
+                      </h3>
+                      <p className="text-muted-foreground mb-4">
+                        Intenta ajustar los filtros o agrega una nueva clase con horario.
+                      </p>
+                      {canCreateScheduleAssignament && (
+                        <Button
+                          size="lg"
+                          className="gap-2"
+                          onClick={() => {
+                            setFormStep(1);
+                            createForm.reset();
+                            setIsCreateDialogOpen(true);
+                          }}
+                        >
+                          <Plus className="h-4 w-4" />
+                          Agregar Clase
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-8 mb-9">
+                      {Object.entries(
+                        (() => {
+                          if (groupingMode === "none") return { "Todas las clases": filteredClasses };
+                          const groups: Record<string, typeof filteredClasses> = {};
+                          filteredClasses.forEach((classItem) => {
+                            let key = "Sin grupo";
+                            if (groupingMode === "teacher") {
+                              key = classItem.teacher
+                                ? `${classItem.teacher.name} ${classItem.teacher.lastName || ""}`.trim()
+                                : "Sin profesor";
+                            } else if (groupingMode === "classroom") {
+                              key = classItem.classroom ? classItem.classroom.name : "Sin salón";
+                            }
+                            if (!groups[key]) groups[key] = [];
+                            (groups[key] as ClassItem[]).push(classItem);
+                          });
+                          return groups;
+                        })()
+                      ).map(([groupName, classes]) => (
+                        <div key={groupName} className="space-y-4">
+                          {groupingMode !== "none" && (
+                            <h3 className="text-xl font-semibold flex items-center gap-2 px-1">
+                              {groupingMode === "teacher" ? (
+                                <User className="h-5 w-5 text-primary" />
+                              ) : (
+                                <MapPin className="h-5 w-5 text-primary" />
+                              )}
+                              {groupName}
+                              <Badge variant="secondary" className="ml-2">
+                                {classes.length}
+                              </Badge>
+                            </h3>
+                          )}
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {classes.map((classItem) => (
+                              <Card
+                                key={classItem._id}
+                                className="w-full max-w-md hover:shadow-lg transition-shadow duration-200 flex flex-col h-full"
+                              >
+                                <CardHeader className="flex items-center gap-2 justify-between">
+                                  <CardTitle className="text-lg font-semibold leading-tight text-center md:text-left line-clamp-2 break-words flex-1 min-w-0">
+                                    {classItem.name}
+                                  </CardTitle>
+                                  <Badge
+                                    variant={
+                                      classItem?.status === "active" ? "default" : "secondary"
+                                    }
+                                    className={
+                                      classItem?.status === "active"
+                                        ? "bg-green-600 text-white flex-shrink-0 ml-2"
+                                        : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"
+                                    }
+                                  >
+                                    {classItem?.status === "active" ? "Activa" : "Inactiva"}
+                                  </Badge>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                  {classItem.subject && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="w-5 flex justify-center">
+                                        <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                                      </span>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">
+                                          {classItem.subject.name}
+                                        </p>
+                                        {classItem.subject.credits && (
+                                          <p className="text-xs text-muted-foreground">
+                                            {classItem.subject.credits}{" "}
+                                            {classItem.subject.credits === 1
+                                              ? "Crédito"
+                                              : "Créditos"}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {classItem.classroom && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="w-5 flex justify-center">
+                                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                                      </span>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">
+                                          {classItem.classroom.name}
+                                        </p>
+                                        {classItem.classroom.location && (
+                                          <p className="text-xs text-muted-foreground truncate">
+                                            {classItem.classroom.location}
+                                          </p>
+                                        )}
+                                        <p className="text-xs text-muted-foreground">
+                                          Capacidad: {classItem.classroom.capacity}{" "}
+                                          estudiantes
+                                        </p>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {classItem.teacher && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="w-5 flex justify-center">
+                                        <User className="h-4 w-4 text-muted-foreground" />
+                                      </span>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">
+                                          {classItem.teacher.name}{" "}
+                                          {classItem.teacher.lastName}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground truncate">
+                                          {classItem.teacher.email}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {classItem.group && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="w-5 flex justify-center">
+                                        <Users className="h-4 w-4 text-muted-foreground" />
+                                      </span>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">
+                                          {classItem.group.grade} {classItem.group.name}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  )}
+                                  <div className="space-y-2">
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                      <span className="w-5 flex justify-center">
+                                        <Clock className="h-4 w-4" />
+                                      </span>
+                                      <span>
+                                        {classItem.schedules.length} horario
+                                        {classItem.schedules.length !== 1 ? "s" : ""}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                                <CardFooter className="flex justify-end gap-2 pt-2 border-t mt-auto">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => crudDialog.openView(classItem)}
+                                    className="hover:scale-105 transition-transform cursor-pointer"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  {canUpdateScheduleAssignament && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => crudDialog.openEdit(classItem)}
+                                      className="hover:scale-105 transition-transform cursor-pointer"
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                  {canDeleteScheduleAssignament && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => crudDialog.openDelete(classItem)}
+                                      className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive bg-white"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </CardFooter>
+                              </Card>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Dialogo para Editar/Ver/Eliminar */}
+              <CrudDialog
+                key={(crudDialog.data as ClassItem)?._id || "crud-dialog-new"}
+                operation={crudDialog.operation}
+                title={
+                  isEditingClassDetails
+                    ? "Editar Clase"
+                    : crudDialog.operation === "edit"
+                      ? "Editar Asignación de Horario"
+                      : "Ver Asignación de Horario"
+                }
+                schema={EditClassFormSchema}
+                defaultValues={(() => {
+                  // ✅ CORRECCIÓN: Construir defaultValues correctamente
+                  const item = crudDialog.data as ClassItem | null;
+                  if (!item) {
+                    return {
+                      classCatalogId: "",
+                      selectedScheduleIds: [],
+                      status: "active",
+                    };
+                  }
+
+                  // ✅ IMPORTANTE: Retornar los valores correctos
+                  return {
+                    _id: item._id,
+                    classCatalogId: item.classCatalogId,
+                    selectedScheduleIds: item.selectedScheduleIds || [],
+                    status: item.status,
+                  };
+                })()}
+                data={crudDialog.data}
+                isOpen={crudDialog.isOpen}
+                onOpenChange={(isOpen) => {
+                  if (!isOpen) {
+                    setIsEditingClassDetails(false);
+                  }
+                  crudDialog.close();
+                }}
+                onSubmit={(data) => {
+                  if (isEditingClassDetails) {
+                    return editClassForm.handleSubmit(handleUpdateClassDetails)();
+                  } else {
+                    return handleEdit(data as z.infer<typeof EditClassFormSchema>);
+                  }
+                }}
+                submitButtonText={
+                  crudDialog.operation === "view"
+                    ? undefined
+                    : isEditingClassDetails
+                      ? (existingClassOnEdit && existingClassOnEdit._id !== (crudDialog.data as ClassItem)?.classCatalogId
+                        ? "Combinar con clase existente"
+                        : "Actualizar Clase")
+                      : "Guardar Cambios"
+                }
+                onDelete={handleDelete}
+              >
+                {/*
           *
           * 👇 PRIMERA CORRECCIÓN AQUÍ (Línea 1039 original)
           * Se cambia 'operation' por '_operation' para no usarla.
           *
           */}
-        {(form) => {
-          // ✅ CORRECCIÓN: Verificar que los datos existan antes de renderizar
-          const currentClassItem = crudDialog.data as ClassItem | null;
+                {(form) => {
+                  // ✅ CORRECCIÓN: Verificar que los datos existan antes de renderizar
+                  const currentClassItem = crudDialog.data as ClassItem | null;
 
 
-          if (!currentClassItem && crudDialog.operation !== "create") {
-            return (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Cargando datos...</p>
-              </div>
-            );
-          }
+                  if (!currentClassItem && crudDialog.operation !== "create") {
+                    return (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">Cargando datos...</p>
+                      </div>
+                    );
+                  }
 
-          return (
-            <div>
-              {isEditingClassDetails ? (
-                <>
-                  <ClassCatalogForm
-                    form={editClassForm}
-                    operation="edit"
-                    subjects={subjects}
-                    groups={groups}
-                    schoolCycles={schoolCycles}
-                    classrooms={classrooms}
-                    teachers={teachersData}
-                    activeSchoolCycleId={activeCycle?._id}
-                    existingClassWarning={existingClassOnEdit} // ← AGREGAR ESTA PROP
-                  />
+                  return (
+                    <div>
+                      {isEditingClassDetails ? (
+                        <>
+                          <ClassCatalogForm
+                            form={editClassForm}
+                            operation="edit"
+                            subjects={subjects}
+                            groups={groups}
+                            schoolCycles={schoolCycles}
+                            classrooms={classrooms}
+                            teachers={teachersData}
+                            activeSchoolCycleId={activeCycle?._id}
+                            existingClassWarning={existingClassOnEdit} // ← AGREGAR ESTA PROP
+                          />
 
-                  <div className="flex justify-end gap-2 pt-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsEditingClassDetails(false)}
-                    >
-                      Volver a Horarios
-                    </Button>
+                          <div className="flex justify-end gap-2 pt-4">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setIsEditingClassDetails(false)}
+                            >
+                              Volver a Horarios
+                            </Button>
 
-                  </div>
-                </>
-              ) : (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="classCatalogId"
-                      render={() => (
-                        <FormItem>
-                          <FormLabel>Clase</FormLabel>
-                          <div className="flex h-10 w-full items-center justify-between rounded-md px-3 py-2 text-sm ring-offset-background">
-                            {currentClassItem?.name || "Cargando..."}
                           </div>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="status"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Estado</FormLabel>
-                          <FormControl>
-                            {crudDialog.operation === "view" ? (
-                              <div className="flex h-10 w-full items-center">
-                                <Badge
-                                  variant={field.value === "active" ? "default" : "secondary"}
-                                  className={
-                                    field.value === "active"
-                                      ? "bg-green-600 text-white flex-shrink-0"
-                                      : "bg-gray-600/70 text-white flex-shrink-0"
+                        </>
+                      ) : (
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="classCatalogId"
+                              render={() => (
+                                <FormItem>
+                                  <FormLabel>Clase</FormLabel>
+                                  <div className="flex h-10 w-full items-center justify-between rounded-md px-3 py-2 text-sm ring-offset-background">
+                                    {currentClassItem?.name || "Cargando..."}
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="status"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Estado</FormLabel>
+                                  <FormControl>
+                                    {crudDialog.operation === "view" ? (
+                                      <div className="flex h-10 w-full items-center">
+                                        <Badge
+                                          variant={field.value === "active" ? "default" : "secondary"}
+                                          className={
+                                            field.value === "active"
+                                              ? "bg-green-600 text-white flex-shrink-0"
+                                              : "bg-gray-600/70 text-white flex-shrink-0"
+                                          }
+                                        >
+                                          {field.value === "active" ? "Activa" : "Inactiva"}
+                                        </Badge>
+                                      </div>
+                                    ) : (
+                                      <Select
+                                        onValueChange={field.onChange}
+                                        value={field.value as "active" | "inactive"}
+
+                                      >
+                                        <FormControl>
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="Selecciona un estado" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          <SelectItem value="active">Activo</SelectItem>
+                                          <SelectItem value="inactive">Inactivo</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    )}
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          {/* ✅ CORRECCIÓN: Verificar que currentClassItem exista */}
+                          {currentClassItem && (
+                            <Card>
+                              <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2 justify-between">
+                                  <div>Información de la Clase</div>
+                                  {crudDialog.operation === "edit" && (
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => setIsEditingClassDetails(true)}
+                                      className="cursor-pointer"
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                      Editar Clase
+                                    </Button>
+                                  )}
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent className="space-y-2">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <span className="text-sm font-medium text-muted-foreground">
+                                      Materia:
+                                    </span>
+                                    <p className="text-sm">
+                                      {currentClassItem.subject?.name || "N/A"}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <span className="text-sm font-medium text-muted-foreground">
+                                      Aula:
+                                    </span>
+                                    <p className="text-sm">
+                                      {currentClassItem.classroom?.name || "N/A"}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <span className="text-sm font-medium text-muted-foreground">
+                                      Profesor:
+                                    </span>
+                                    <p className="text-sm">
+                                      {currentClassItem.teacher?.name || "N/A"}{" "}
+                                      {currentClassItem.teacher?.lastName || ""}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <span className="text-sm font-medium text-muted-foreground">
+                                      Grupo:
+                                    </span>
+                                    <p className="text-sm">
+                                      {currentClassItem.group?.grade || ""}{" "}
+                                      {currentClassItem.group?.name || "N/A"}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <span className="text-sm font-medium text-muted-foreground">
+                                      Ciclo Escolar:
+                                    </span>
+                                    <p className="text-sm">
+                                      {currentClassItem.schoolCycle?.name || "N/A"}
+                                    </p>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          )}
+
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h3 className="text-lg font-medium">
+                                {crudDialog.operation === "view" // <--- Corrección aquí también
+                                  ? "Horarios Asignados"
+                                  : "Horarios Disponibles"}
+                              </h3>
+                              {crudDialog.operation !== "view" && ( // <--- Corrección aquí también
+                                <span className="text-sm text-muted-foreground">
+                                  {Array.isArray(form.watch("selectedScheduleIds"))
+                                    ? (form.watch("selectedScheduleIds") as string[]).length
+                                    : 0}{" "}
+                                  seleccionados
+                                </span>
+                              )}
+                            </div>
+                            {crudDialog.operation === "view" || crudDialog.operation === "delete" ? (
+                              <div className="space-y-2">
+                                {(() => {
+                                  // ✅ CORRECCIÓN: Usar currentClassItem en lugar de form.watch
+                                  const selectedScheduleIds = currentClassItem?.selectedScheduleIds || [];
+                                  const selectedSchedules = schedules?.filter((schedule) =>
+                                    selectedScheduleIds.includes(schedule._id)
+                                  ) || [];
+
+                                  if (selectedSchedules.length === 0) {
+                                    return (
+                                      <div className="text-center py-8 text-muted-foreground">
+                                        <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                        <p>No hay horarios asignados</p>
+                                      </div>
+                                    );
                                   }
-                                >
-                                  {field.value === "active" ? "Activa" : "Inactiva"}
-                                </Badge>
+
+                                  const schedulesByDay = selectedSchedules.reduce(
+                                    (acc, schedule) => {
+                                      const day = schedule.day;
+                                      if (!acc[day]) {
+                                        acc[day] = [];
+                                      }
+                                      acc[day].push(schedule);
+                                      return acc;
+                                    },
+                                    {} as Record<string, typeof selectedSchedules>
+                                  );
+
+                                  const sortedDays = [
+                                    "lun.",
+                                    "mar.",
+                                    "mié.",
+                                    "jue.",
+                                    "vie.",
+                                  ].filter((day) => schedulesByDay[day]);
+
+                                  return (
+                                    <Accordion
+                                      type="multiple"
+                                      className="w-full"
+                                      defaultValue={sortedDays}
+                                    >
+                                      {sortedDays.map((day) => (
+                                        <AccordionItem key={day} value={day}>
+                                          <AccordionTrigger className="hover:no-underline">
+                                            <div className="flex items-center gap-2">
+                                              <span className="font-medium">
+                                                {getDayName(day)}
+                                              </span>
+                                              <Badge variant="secondary" className="text-xs">
+                                                {schedulesByDay[day]?.length} horario
+                                                {schedulesByDay[day]?.length !== 1 ? "s" : ""}
+                                              </Badge>
+                                            </div>
+                                          </AccordionTrigger>
+                                          <AccordionContent>
+                                            <div className="space-y-2 pt-2">
+                                              {schedulesByDay[day]?.map((schedule) => (
+                                                <div
+                                                  key={schedule._id}
+                                                  className="flex items-center justify-between p-3 bg-muted/50 rounded-md"
+                                                >
+                                                  <div className="flex items-center gap-3">
+                                                    <Clock className="h-4 w-4 text-muted-foreground" />
+                                                    <span className="font-medium">
+                                                      {formatTime(schedule.startTime)} -{" "}
+                                                      {formatTime(schedule.endTime)}
+                                                    </span>
+                                                  </div>
+                                                  <div className="text-sm text-muted-foreground">
+                                                    {schedule.name}
+                                                  </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </AccordionContent>
+                                        </AccordionItem>
+                                      ))}
+                                    </Accordion>
+                                  );
+                                })()}
                               </div>
                             ) : (
-                              <Select
-                                onValueChange={field.onChange}
-                                value={field.value as "active" | "inactive"}
+                              // Sección de edición de horarios (sin cambios)
+                              <FormField
+                                control={form.control}
+                                name="selectedScheduleIds"
+                                render={({ field }) => {
+                                  const activeConflicts = isEditingClassDetails
+                                    ? (editConflictScheduleIds || [])
+                                    : (editScheduleConflicts || []);
 
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Selecciona un estado" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="active">Activo</SelectItem>
-                                  <SelectItem value="inactive">Inactivo</SelectItem>
-                                </SelectContent>
-                              </Select>
+                                  return (
+                                    <FormItem>
+                                      <FormLabel>Seleccionar Horarios</FormLabel>
+                                      <FormControl>
+                                        <TooltipProvider>
+                                          <div className="grid gap-2 max-h-60 overflow-y-auto border rounded-md p-4">
+                                            {schedules?.map((schedule) => {
+                                              const isConflict = activeConflicts.includes(schedule._id);
+                                              const isCurrentlySelected = Array.isArray(field.value)
+                                                ? (field.value as string[]).includes(schedule._id)
+                                                : false;
+                                              const belongsToCurrentClass = currentClassItem?.selectedScheduleIds?.includes(schedule._id);
+                                              const isDisabled = isConflict && !isCurrentlySelected && !belongsToCurrentClass;
+
+                                              return (
+                                                <Tooltip key={schedule._id}>
+                                                  <TooltipTrigger asChild>
+                                                    <div className="flex items-center space-x-2">
+                                                      <Checkbox
+                                                        id={`edit-${schedule._id}`}
+                                                        checked={isCurrentlySelected}
+                                                        disabled={isDisabled || crudDialog.operation === "view" || crudDialog.operation === "delete"} // <--- Corrección aquí también
+                                                        onCheckedChange={(checked) => {
+                                                          const currentIds = Array.isArray(field.value)
+                                                            ? (field.value as string[])
+                                                            : [];
+                                                          if (checked) {
+                                                            field.onChange([...currentIds, schedule._id]);
+                                                          } else {
+                                                            field.onChange(
+                                                              currentIds.filter((id: string) => id !== schedule._id)
+                                                            );
+                                                          }
+                                                        }}
+                                                      />
+                                                      <label
+                                                        htmlFor={`edit-${schedule._id}`}
+                                                        className={`text-sm font-medium leading-none flex-1 cursor-pointer ${isDisabled
+                                                          ? "text-muted-foreground opacity-50 cursor-not-allowed"
+                                                          : ""
+                                                          } ${isCurrentlySelected && !isDisabled
+                                                            ? "text-primary"
+                                                            : ""
+                                                          }`}
+                                                      >
+                                                        <div className="flex items-center justify-between">
+                                                          <span className="font-medium flex items-center gap-2">
+                                                            {getDayName(schedule.day)}
+                                                            {isCurrentlySelected && (
+                                                              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                                                Asignado
+                                                              </span>
+                                                            )}
+                                                          </span>
+                                                          <span className="text-muted-foreground">
+                                                            {formatTime(schedule.startTime)} -{" "}
+                                                            {formatTime(schedule.endTime)}
+                                                          </span>
+                                                        </div>
+                                                        <div className="text-xs text-muted-foreground">
+                                                          {schedule.name}
+                                                        </div>
+                                                      </label>
+                                                    </div>
+                                                  </TooltipTrigger>
+                                                  {isDisabled && (
+                                                    <TooltipContent side="right" className="max-w-xs">
+                                                      <p className="text-xs">
+                                                        ⚠️ Este horario ya está ocupado por otra clase
+                                                      </p>
+                                                    </TooltipContent>
+                                                  )}
+                                                </Tooltip>
+                                              );
+                                            })}
+                                          </div>
+                                        </TooltipProvider>
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  );
+                                }}
+                              />
                             )}
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  {/* ✅ CORRECCIÓN: Verificar que currentClassItem exista */}
-                  {currentClassItem && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg flex items-center gap-2 justify-between">
-                          <div>Información de la Clase</div>
-                          {crudDialog.operation === "edit" && (
-                            <Button
-                              variant="outline"
-                              onClick={() => setIsEditingClassDetails(true)}
-                              className="cursor-pointer"
-                            >
-                              <Pencil className="h-4 w-4" />
-                              Editar Clase
-                            </Button>
-                          )}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <span className="text-sm font-medium text-muted-foreground">
-                              Materia:
-                            </span>
-                            <p className="text-sm">
-                              {currentClassItem.subject?.name || "N/A"}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-muted-foreground">
-                              Aula:
-                            </span>
-                            <p className="text-sm">
-                              {currentClassItem.classroom?.name || "N/A"}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-muted-foreground">
-                              Profesor:
-                            </span>
-                            <p className="text-sm">
-                              {currentClassItem.teacher?.name || "N/A"}{" "}
-                              {currentClassItem.teacher?.lastName || ""}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-muted-foreground">
-                              Grupo:
-                            </span>
-                            <p className="text-sm">
-                              {currentClassItem.group?.grade || ""}{" "}
-                              {currentClassItem.group?.name || "N/A"}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-muted-foreground">
-                              Ciclo Escolar:
-                            </span>
-                            <p className="text-sm">
-                              {currentClassItem.schoolCycle?.name || "N/A"}
-                            </p>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-medium">
-                        {crudDialog.operation === "view" // <--- Corrección aquí también
-                          ? "Horarios Asignados"
-                          : "Horarios Disponibles"}
-                      </h3>
-                      {crudDialog.operation !== "view" && ( // <--- Corrección aquí también
-                        <span className="text-sm text-muted-foreground">
-                          {Array.isArray(form.watch("selectedScheduleIds"))
-                            ? (form.watch("selectedScheduleIds") as string[]).length
-                            : 0}{" "}
-                          seleccionados
-                        </span>
                       )}
                     </div>
-                    {crudDialog.operation === "view" || crudDialog.operation === "delete" ? (
+                  );
+                }}
+              </CrudDialog>
+
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogContent className="sm:max-w-[625px]">
+                  <DialogHeader>
+                    <DialogTitle>Crear Nueva Clase</DialogTitle>
+                    <DialogDescription>
+                      Completa la información de la clase y asigna horarios.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Form {...createForm}>
+                    <form
+                      onSubmit={createForm.handleSubmit(
+                        handleCreateSubmit,
+                        () => {
+                          toast.error("Por favor, revisa el formulario", {
+                            description:
+                              "Algunos campos tienen errores o están incompletos.",
+                          });
+                        }
+                      )}
+                    >
+                      {formStep === 1 && (
+                        <StepOneContent
+                          form={createForm}
+                          setFormStep={setFormStep}
+                          subjects={subjects}
+                          groups={groups}
+                          teachers={teachersData}
+                          classrooms={classrooms}
+                          schoolCycles={schoolCycles}
+                          closeDialog={() => setIsCreateDialogOpen(false)}
+                          activeSchoolCycleId={activeCycle?._id}
+                        />
+                      )}
+                      {formStep === 2 && (
+                        <StepTwoContent
+                          form={createForm}
+                          setFormStep={setFormStep}
+                          schedules={schedules}
+                          getDayName={getDayName}
+                          formatTime={formatTime}
+                          conflictScheduleIds={conflictScheduleIds || []}
+                          existingClass={existingClass}
+                        />
+                      )}
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+            </TabsContent>
+            <TabsContent value="schedules">
+              {/* --- FILTROS DE HORARIO --- */}
+              {(currentRole === "admin" || currentRole === "auditor" || currentRole === "superadmin") && (
+                <Card className="mb-6">
+                  <CardContent className="pt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      {/* Filtro de Estudiante (Combobox) */}
                       <div className="space-y-2">
-                        {(() => {
-                          // ✅ CORRECCIÓN: Usar currentClassItem en lugar de form.watch
-                          const selectedScheduleIds = currentClassItem?.selectedScheduleIds || [];
-                          const selectedSchedules = schedules?.filter((schedule) =>
-                            selectedScheduleIds.includes(schedule._id)
-                          ) || [];
-
-                          if (selectedSchedules.length === 0) {
-                            return (
-                              <div className="text-center py-8 text-muted-foreground">
-                                <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                <p>No hay horarios asignados</p>
-                              </div>
-                            );
-                          }
-
-                          const schedulesByDay = selectedSchedules.reduce(
-                            (acc, schedule) => {
-                              const day = schedule.day;
-                              if (!acc[day]) {
-                                acc[day] = [];
-                              }
-                              acc[day].push(schedule);
-                              return acc;
-                            },
-                            {} as Record<string, typeof selectedSchedules>
-                          );
-
-                          const sortedDays = [
-                            "lun.",
-                            "mar.",
-                            "mié.",
-                            "jue.",
-                            "vie.",
-                          ].filter((day) => schedulesByDay[day]);
-
-                          return (
-                            <Accordion
-                              type="multiple"
-                              className="w-full"
-                              defaultValue={sortedDays}
+                        <label className="text-sm font-medium">Estudiante</label>
+                        <Popover open={openStudentCombo} onOpenChange={setOpenStudentCombo}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={openStudentCombo}
+                              className="w-full justify-between"
                             >
-                              {sortedDays.map((day) => (
-                                <AccordionItem key={day} value={day}>
-                                  <AccordionTrigger className="hover:no-underline">
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-medium">
-                                        {getDayName(day)}
-                                      </span>
-                                      <Badge variant="secondary" className="text-xs">
-                                        {schedulesByDay[day]?.length} horario
-                                        {schedulesByDay[day]?.length !== 1 ? "s" : ""}
-                                      </Badge>
-                                    </div>
-                                  </AccordionTrigger>
-                                  <AccordionContent>
-                                    <div className="space-y-2 pt-2">
-                                      {schedulesByDay[day]?.map((schedule) => (
-                                        <div
-                                          key={schedule._id}
-                                          className="flex items-center justify-between p-3 bg-muted/50 rounded-md"
-                                        >
-                                          <div className="flex items-center gap-3">
-                                            <Clock className="h-4 w-4 text-muted-foreground" />
-                                            <span className="font-medium">
-                                              {formatTime(schedule.startTime)} -{" "}
-                                              {formatTime(schedule.endTime)}
-                                            </span>
-                                          </div>
-                                          <div className="text-sm text-muted-foreground">
-                                            {schedule.name}
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </AccordionContent>
-                                </AccordionItem>
-                              ))}
-                            </Accordion>
-                          );
-                        })()}
+                              {scheduleFilters.studentId !== "all"
+                                ? allStudents?.find((student) => student._id === scheduleFilters.studentId)?.name
+                                : "Todos los estudiantes"}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[200px] p-0">
+                            <Command>
+                              <CommandInput placeholder="Buscar estudiante..." />
+                              <CommandList>
+                                <CommandEmpty>No se encontró estudiante.</CommandEmpty>
+                                <CommandGroup>
+                                  <CommandItem
+                                    value="all"
+                                    onSelect={() => {
+                                      setScheduleFilters({
+                                        studentId: "all",
+                                        teacherId: "all",
+                                        groupId: "all",
+                                        classroomId: "all",
+                                      });
+                                      setOpenStudentCombo(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        scheduleFilters.studentId === "all" ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    Todos los estudiantes
+                                  </CommandItem>
+                                  {allStudents?.map((student) => (
+                                    <CommandItem
+                                      key={student._id}
+                                      value={student.name}
+                                      onSelect={() => {
+                                        setScheduleFilters({
+                                          studentId: student._id,
+                                          teacherId: "all",
+                                          groupId: "all",
+                                          classroomId: "all",
+                                        });
+                                        setOpenStudentCombo(false);
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          scheduleFilters.studentId === student._id ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      {student.name} {student.lastName}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                       </div>
-                    ) : (
-                      // Sección de edición de horarios (sin cambios)
-                      <FormField
-                        control={form.control}
-                        name="selectedScheduleIds"
-                        render={({ field }) => {
-                          const activeConflicts = isEditingClassDetails
-                            ? (editConflictScheduleIds || [])
-                            : (editScheduleConflicts || []);
 
-                          return (
-                            <FormItem>
-                              <FormLabel>Seleccionar Horarios</FormLabel>
-                              <FormControl>
-                                <TooltipProvider>
-                                  <div className="grid gap-2 max-h-60 overflow-y-auto border rounded-md p-4">
-                                    {schedules?.map((schedule) => {
-                                      const isConflict = activeConflicts.includes(schedule._id);
-                                      const isCurrentlySelected = Array.isArray(field.value)
-                                        ? (field.value as string[]).includes(schedule._id)
-                                        : false;
-                                      const belongsToCurrentClass = currentClassItem?.selectedScheduleIds?.includes(schedule._id);
-                                      const isDisabled = isConflict && !isCurrentlySelected && !belongsToCurrentClass;
+                      {/* Filtro de Maestro */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Maestro</label>
+                        <Select
+                          value={scheduleFilters.teacherId}
+                          onValueChange={(value) =>
+                            setScheduleFilters({
+                              teacherId: value,
+                              studentId: "all",
+                              groupId: "all",
+                              classroomId: "all",
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Todos los maestros" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos los maestros</SelectItem>
+                            {teachersData?.map((teacher) => (
+                              <SelectItem key={teacher._id} value={teacher._id}>
+                                {teacher.name} {teacher.lastName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                                      return (
-                                        <Tooltip key={schedule._id}>
-                                          <TooltipTrigger asChild>
-                                            <div className="flex items-center space-x-2">
-                                              <Checkbox
-                                                id={`edit-${schedule._id}`}
-                                                checked={isCurrentlySelected}
-                                                disabled={isDisabled || crudDialog.operation === "view" || crudDialog.operation === "delete"} // <--- Corrección aquí también
-                                                onCheckedChange={(checked) => {
-                                                  const currentIds = Array.isArray(field.value)
-                                                    ? (field.value as string[])
-                                                    : [];
-                                                  if (checked) {
-                                                    field.onChange([...currentIds, schedule._id]);
-                                                  } else {
-                                                    field.onChange(
-                                                      currentIds.filter((id: string) => id !== schedule._id)
-                                                    );
-                                                  }
-                                                }}
-                                              />
-                                              <label
-                                                htmlFor={`edit-${schedule._id}`}
-                                                className={`text-sm font-medium leading-none flex-1 cursor-pointer ${isDisabled
-                                                  ? "text-muted-foreground opacity-50 cursor-not-allowed"
-                                                  : ""
-                                                  } ${isCurrentlySelected && !isDisabled
-                                                    ? "text-primary"
-                                                    : ""
-                                                  }`}
-                                              >
-                                                <div className="flex items-center justify-between">
-                                                  <span className="font-medium flex items-center gap-2">
-                                                    {getDayName(schedule.day)}
-                                                    {isCurrentlySelected && (
-                                                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                                                        Asignado
-                                                      </span>
-                                                    )}
-                                                  </span>
-                                                  <span className="text-muted-foreground">
-                                                    {formatTime(schedule.startTime)} -{" "}
-                                                    {formatTime(schedule.endTime)}
-                                                  </span>
-                                                </div>
-                                                <div className="text-xs text-muted-foreground">
-                                                  {schedule.name}
-                                                </div>
-                                              </label>
-                                            </div>
-                                          </TooltipTrigger>
-                                          {isDisabled && (
-                                            <TooltipContent side="right" className="max-w-xs">
-                                              <p className="text-xs">
-                                                ⚠️ Este horario ya está ocupado por otra clase
-                                              </p>
-                                            </TooltipContent>
-                                          )}
-                                        </Tooltip>
-                                      );
-                                    })}
-                                  </div>
-                                </TooltipProvider>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          );
-                        }}
-                      />
-                    )}
+                      {/* Filtro de Grupo */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Grupo</label>
+                        <Select
+                          value={scheduleFilters.groupId}
+                          onValueChange={(value) =>
+                            setScheduleFilters({
+                              groupId: value,
+                              studentId: "all",
+                              teacherId: "all",
+                              classroomId: "all",
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Todos los grupos" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos los grupos</SelectItem>
+                            {groups?.map((group) => (
+                              <SelectItem key={group._id} value={group._id}>
+                                {group.grade} {group.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Filtro de Salón */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Salón</label>
+                        <Select
+                          value={scheduleFilters.classroomId}
+                          onValueChange={(value) =>
+                            setScheduleFilters({
+                              classroomId: value,
+                              studentId: "all",
+                              teacherId: "all",
+                              groupId: "all",
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Todos los salones" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos los salones</SelectItem>
+                            {classrooms?.map((classroom) => (
+                              <SelectItem key={classroom.id} value={classroom.id}>
+                                {classroom.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Filtro para Tutor (si tiene más de 1 estudiante) */}
+              {(currentRole as string) === "tutor" && tutorStudents && tutorStudents.length > 1 && (
+                <Card className="mb-6">
+                  <CardContent className="pt-6">
+                    <div className="max-w-md">
+                      <label className="text-sm font-medium mb-2 block">Ver horario de:</label>
+                      <Select
+                        value={selectedStudentId === "all" ? "all" : selectedStudentId}
+                        onValueChange={(value) => setSelectedStudentId(value as Id<"student"> | "all")}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar estudiante" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {tutorStudents.map((student) => (
+                            <SelectItem key={student._id} value={student._id}>
+                              {student.name} {student.lastName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {hasActiveFilter ? (
+                <WeeklySchedule classes={transformClassesForWeeklySchedule} studentName={scheduleTitle} />
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="rounded-full bg-muted p-4 mb-4">
+                    <Filter className="h-8 w-8 text-muted-foreground" />
                   </div>
+                  <h3 className="text-lg font-semibold">Seleccione un filtro</h3>
+                  <p className="text-sm text-muted-foreground max-w-sm mt-2">
+                    Para visualizar el horario, por favor seleccione un estudiante, maestro, grupo o salón.
+                  </p>
                 </div>
               )}
-            </div>
-          );
-        }}
-      </CrudDialog>
-
-      {/* Dialogo para Creación (multi-paso) */}
-      {/* <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[625px]">
-          <DialogHeader>
-            <DialogTitle>Crear Nueva Clase</DialogTitle>
-            <DialogDescription>
-              Completa la información de la clase y asigna horarios.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...createForm}>
-            <form
-              onSubmit={createForm.handleSubmit(
-                handleCreateSubmit,
-                (errors) => {
-                  console.error("Validation errors:", errors);
-                  toast.error("Por favor, revisa el formulario", {
-                    description:
-                      "Algunos campos tienen errores o están incompletos.",
-                  });
-                }
-              )}
-            >
-              {formStep === 1 && (
-                <StepOneContent
-                  form={createForm}
-                  setFormStep={setFormStep}
-                  subjects={subjects}
-                  groups={groups}
-                  teachers={teachersData}
-                  classrooms={classrooms}
-                  schoolCycles={schoolCycles}
-                  closeDialog={() => setIsCreateDialogOpen(false)}
-                  activeSchoolCycleId={activeCycle?._id}
-                />
-              )}
-              {formStep === 2 && (
-                <StepTwoContent
-                  form={createForm}
-                  setFormStep={setFormStep}
-                  schedules={schedules}
-                  getDayName={getDayName}
-                  formatTime={formatTime}
-                  conflictScheduleIds={conflictScheduleIds || []}
-                  existingClass={existingClass} // ← AGREGAR ESTA LÍNEA
-                />
-              )}
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog> */}
-      </TabsContent>
-      <TabsContent value="schedules">
-        <WeeklySchedule classes={transformClassesForWeeklySchedule} />
-      </TabsContent>
-      </Tabs>
+            </TabsContent>
+          </Tabs>
         </>
-        
       )}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[625px]">
-          <DialogHeader>
-            <DialogTitle>Crear Nueva Clase</DialogTitle>
-            <DialogDescription>
-              Completa la información de la clase y asigna horarios.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...createForm}>
-            <form
-              onSubmit={createForm.handleSubmit(
-                handleCreateSubmit,
-                () => {
-                  //console.error("Validation errors:", errors);
-                  toast.error("Por favor, revisa el formulario", {
-                    description:
-                      "Algunos campos tienen errores o están incompletos.",
-                  });
-                }
-              )}
-            >
-              {formStep === 1 && (
-                <StepOneContent
-                  form={createForm}
-                  setFormStep={setFormStep}
-                  subjects={subjects}
-                  groups={groups}
-                  teachers={teachersData}
-                  classrooms={classrooms}
-                  schoolCycles={schoolCycles}
-                  closeDialog={() => setIsCreateDialogOpen(false)}
-                  activeSchoolCycleId={activeCycle?._id}
-                />
-              )}
-              {formStep === 2 && (
-                <StepTwoContent
-                  form={createForm}
-                  setFormStep={setFormStep}
-                  schedules={schedules}
-                  getDayName={getDayName}
-                  formatTime={formatTime}
-                  conflictScheduleIds={conflictScheduleIds || []}
-                  existingClass={existingClass} // ← AGREGAR ESTA LÍNEA
-                />
-              )}
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
