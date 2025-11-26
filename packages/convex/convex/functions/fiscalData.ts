@@ -1,21 +1,20 @@
 import { internalQuery, mutation, query } from '../_generated/server';
 import { v } from 'convex/values';
 
-// CREATE - Crear datos fiscales para un usuario
 export const createFiscalData = mutation({
   args: {
     userId: v.id('user'),
     legalName: v.string(),
     taxId: v.string(),
     taxSystem: v.union(
-      v.literal('605'), // Sueldos y Salarios
-      v.literal('606'), // Arrendamiento
-      v.literal('612'), // Actividades Empresariales y Profesionales
-      v.literal("616"), // Régimen Simplificado de Confianza
+      v.literal('605'),
+      v.literal('606'),
+      v.literal('612'),
+      v.literal("616"),
     ),
     cfdiUse: v.union(
-      v.literal('G03'), // Gastos en general
-      v.literal('D10'), // Pagos por servicios educativos
+      v.literal('G03'),
+      v.literal('D10'),
     ),
     street: v.string(),
     exteriorNumber: v.string(),
@@ -32,13 +31,11 @@ export const createFiscalData = mutation({
   handler: async (ctx, args) => {
     const now = Date.now();
 
-    // Verificar que el usuario existe
     const user = await ctx.db.get(args.userId);
     if (!user) {
       throw new Error('Usuario no encontrado');
     }
 
-    // Verificar que no existan datos fiscales para este usuario
     const existingFiscalData = await ctx.db
       .query('fiscalData')
       .withIndex('by_userId', (q) => q.eq('userId', args.userId))
@@ -48,7 +45,6 @@ export const createFiscalData = mutation({
       throw new Error('Ya existen datos fiscales para este usuario');
     }
 
-    // Verificar que el RFC no esté duplicado
     const existingTaxId = await ctx.db
       .query('fiscalData')
       .withIndex('by_taxId', (q) => q.eq('taxId', args.taxId))
@@ -69,7 +65,6 @@ export const createFiscalData = mutation({
   },
 });
 
-// READ - Obtener datos fiscales por userId
 export const getFiscalDataByUserId = query({
   args: { userId: v.id('user') },
   handler: async (ctx, args) => {
@@ -94,35 +89,20 @@ export const getFiscalDataByUserIdInternal = internalQuery({
   },
 });
 
-
-// READ - Obtener datos fiscales por taxId
-export const getFiscalDataByTaxId = query({
-  args: { taxId: v.string() },
-  handler: async (ctx, args) => {
-    const fiscalData = await ctx.db
-      .query('fiscalData')
-      .withIndex('by_taxId', (q) => q.eq('taxId', args.taxId))
-      .unique();
-
-    return fiscalData;
-  },
-});
-
-// UPDATE - Actualizar datos fiscales
 export const updateFiscalData = mutation({
   args: {
     id: v.id('fiscalData'),
     legalName: v.optional(v.string()),
     taxId: v.optional(v.string()),
     taxSystem: v.optional(v.union(
-      v.literal('605'), // Sueldos y Salarios
-      v.literal('606'), // Arrendamiento
-      v.literal('612'), // Actividades Empresariales y Profesionales
-      v.literal("616"), // Régimen Simplificado de Confianza
+      v.literal('605'),
+      v.literal('606'),
+      v.literal('612'),
+      v.literal("616"),
     )),
     cfdiUse: v.optional(v.union(
-      v.literal('G03'), // Gastos en general
-      v.literal('D10'), // Pagos por servicios educativos
+      v.literal('G03'),
+      v.literal('D10'),
     )),
     street: v.optional(v.string()),
     exteriorNumber: v.optional(v.string()),
@@ -139,13 +119,11 @@ export const updateFiscalData = mutation({
   handler: async (ctx, args) => {
     const { id, updatedBy, ...updateData } = args;
 
-    // Verificar que el registro existe
     const existingFiscalData = await ctx.db.get(id);
     if (!existingFiscalData) {
       throw new Error('Datos fiscales no encontrados');
     }
 
-    // Si se está actualizando el RFC, verificar que no esté duplicado
     if (updateData.taxId && updateData.taxId !== existingFiscalData.taxId) {
       const taxIdToCheck = updateData.taxId as string;
       const existingTaxId = await ctx.db
@@ -158,7 +136,6 @@ export const updateFiscalData = mutation({
       }
     }
 
-    // Actualizar registro
     await ctx.db.patch(id, {
       ...updateData,
       updatedAt: Date.now(),
@@ -169,7 +146,6 @@ export const updateFiscalData = mutation({
   },
 });
 
-// DELETE - Eliminar datos fiscales
 export const deleteFiscalData = mutation({
   args: { id: v.id('fiscalData') },
   handler: async (ctx, args) => {
@@ -183,7 +159,6 @@ export const deleteFiscalData = mutation({
   },
 });
 
-// READ - Obtener todos los datos fiscales (para admin)
 export const getAllFiscalData = query({
   args: {
     limit: v.optional(v.number()),

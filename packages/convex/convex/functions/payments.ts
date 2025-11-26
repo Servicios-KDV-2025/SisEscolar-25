@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { query, mutation, internalQuery, internalMutation } from "../_generated/server";
-import { internal } from "../_generated/api";
 
 // Obtener historial de pagos por escuela y ciclo escolar
 export const getPaymentHistory = query({
@@ -37,15 +36,10 @@ export const getPaymentHistory = query({
         // Obtener el usuario que creó el pago
         const createdByUser = await ctx.db.get(payment.createdBy);
 
-        // Obtener la URL del archivo de factura si existe
-        let invoiceUrl = null;
-        if (payment) {
-          invoiceUrl = await ctx.storage.getUrl(payment.facturapiInvoiceId as any);
-        }
-
         return {
           id: payment._id,
           paymentId: payment._id,
+          tutorId: createdByUser?._id,
           studentId: student._id,
           studentName: `${student.name} ${student.lastName || ""}`,
           studentEnrollment: student.enrollment,
@@ -65,13 +59,11 @@ export const getPaymentHistory = query({
                 ? "Tarjeta"
                 : "Otro",
           billingAmount: billing.amount,
-          billingDeposit: payment.amount, // El monto de este pago específico
-          // Calcular el remanente correctamente
+          billingDeposit: payment.amount, 
           billingRemaining: Math.max(0, (billing.totalAmount || billing.amount) - payment.amount),
           paidAt: payment.createdAt,
           createdBy: createdByUser ? `${createdByUser.name} ${createdByUser.lastName || ""}` : "N/A",
           createdAt: payment.createdAt,
-          invoiceUrl: invoiceUrl,
           facturapiInvoiceId: payment.facturapiInvoiceId || null,
           facturapiInvoiceNumber: payment.facturapiInvoiceNumber || null,
           facturapiInvoiceStatus: payment.facturapiInvoiceStatus || null,
@@ -79,7 +71,6 @@ export const getPaymentHistory = query({
       })
     );
 
-    // Filtrar nulls y ordenar por fecha de pago (más reciente primero)
     return paymentsWithDetails
       .filter((p) => p !== null)
       .sort((a, b) => b!.paidAt - a!.paidAt);
@@ -278,13 +269,13 @@ export const confirmPayment = internalMutation({
     const billing = await ctx.db.get(args.billingId);
 
     if (!billing) {
-      console.error("❌ Registro de cobro no encontrado:", args.billingId);
+      console.error("Registro de cobro no encontrado:", args.billingId);
       throw new Error("Registro de cobro no encontrado");
     };
 
     const student = await ctx.db.get(args.studentId);
     if (!student) {
-      console.error("❌ Estudiante no encontrado:", args.studentId);
+      console.error("Estudiante no encontrado:", args.studentId);
       throw new Error("Estudiante no encontrado");
     }
     const existingPayment = await ctx.db
@@ -293,7 +284,7 @@ export const confirmPayment = internalMutation({
       .first();
 
     if (existingPayment) {
-      console.log("⚠️ Ya existe un pago con este Payment Intent:", existingPayment._id);
+      console.log("Ya existe un pago con este Payment Intent:", existingPayment._id);
       return {
         success: true,
         paymentId: existingPayment._id,

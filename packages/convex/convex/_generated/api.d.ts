@@ -29,7 +29,7 @@ import type * as functions_classCatalog from "../functions/classCatalog.js";
 import type * as functions_classSchedule from "../functions/classSchedule.js";
 import type * as functions_classroom from "../functions/classroom.js";
 import type * as functions_eventType from "../functions/eventType.js";
-import type * as functions_facturapiQueries from "../functions/facturapiQueries.js";
+import type * as functions_facturapi from "../functions/facturapi.js";
 import type * as functions_fiscalData from "../functions/fiscalData.js";
 import type * as functions_gradeRubrics from "../functions/gradeRubrics.js";
 import type * as functions_grades from "../functions/grades.js";
@@ -48,7 +48,6 @@ import type * as functions_userSchool from "../functions/userSchool.js";
 import type * as functions_users from "../functions/users.js";
 import type * as http from "../http.js";
 import type * as templates_paymentSuccess from "../templates/paymentSuccess.js";
-import type * as utils_dateUtils from "../utils/dateUtils.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -75,7 +74,7 @@ declare const fullApi: ApiFromModules<{
   "functions/classSchedule": typeof functions_classSchedule;
   "functions/classroom": typeof functions_classroom;
   "functions/eventType": typeof functions_eventType;
-  "functions/facturapiQueries": typeof functions_facturapiQueries;
+  "functions/facturapi": typeof functions_facturapi;
   "functions/fiscalData": typeof functions_fiscalData;
   "functions/gradeRubrics": typeof functions_gradeRubrics;
   "functions/grades": typeof functions_grades;
@@ -94,7 +93,6 @@ declare const fullApi: ApiFromModules<{
   "functions/users": typeof functions_users;
   http: typeof http;
   "templates/paymentSuccess": typeof templates_paymentSuccess;
-  "utils/dateUtils": typeof utils_dateUtils;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,
