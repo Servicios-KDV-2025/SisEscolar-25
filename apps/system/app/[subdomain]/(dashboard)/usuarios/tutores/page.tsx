@@ -1480,44 +1480,6 @@ export default function TutorPage() {
                 </FormItem>
               )}
             />
-
-            {currentOperation === "view" && data && (
-              <div className="md:col-span-2 space-y-4 pt-4 border-t">
-                <h3 className="font-medium text-sm text-muted-foreground">
-                  Información adicional
-                </h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">
-                      ID de Usuario:
-                    </span>
-                    <p className="font-mono">{data._id as string}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">
-                      Fecha de Creación:
-                    </span>
-                    <p>{formatDate(data.createdAt as number)}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">
-                      Última Actualización:
-                    </span>
-                    <p>{formatDate(data.updatedAt as number)}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Clerk ID:</span>
-                    <p className="font-mono">{data.clerkId as string}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-muted-foreground">Rol:</span>
-                    <p className="text-sm">
-                      Tutor - Acceso a información de alumnos
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </CrudDialog>

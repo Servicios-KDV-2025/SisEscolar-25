@@ -524,6 +524,9 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
                                   <FileX className="h-4 w-4 text-primary" />
                                 </Button>
                               </TooltipTrigger>
+                              <TooltipContent>
+                                Generar factura
+                              </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
                         )}
@@ -549,244 +552,244 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
         cancelButtonText="Cerrar"
       >
         {() => selectedPayment && (
-            <div className="flex flex-col mt-2">
-              <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 text-white">
-                <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10" />
-                <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white/5" />
+          <div className="flex flex-col mt-2">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 text-white">
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10" />
+              <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white/5" />
 
-                <div className="relative">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
-                        <Receipt className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-emerald-100">Monto Pagado</p>
-                        <p className="text-2xl md:text-3xl font-bold tracking-tight">
-                          ${selectedPayment?.amount.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
-                        </p>
-                      </div>
+              <div className="relative">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
+                      <Receipt className="h-5 w-5" />
                     </div>
-                    <div className="hidden sm:flex items-center justify-end md:justify-end">
-                      <div className="bg-white/90 rounded-md px-2 py-1">
-                        {selectedPayment?.billingStatus ? getPaymentStatusBadge(selectedPayment.billingStatus) : null}
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator className="mt-6 mb-2 bg-white/20" />
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-emerald-200">Concepto</p>
-                      <p className="font-semibold">{PAYMENT_TYPES[selectedPayment?.paymentType as keyof typeof PAYMENT_TYPES]}</p>
-                    </div>
-                    <div className="text-left md:text-right">
-                      <p className="text-emerald-200">Monto Total del Cobro</p>
-                      <p className="font-semibold">
-                        ${selectedPayment?.billingAmount.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                      <p className="text-sm font-medium text-emerald-100">Monto Pagado</p>
+                      <p className="text-2xl md:text-3xl font-bold tracking-tight">
+                        ${selectedPayment?.amount.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                       </p>
                     </div>
                   </div>
+                  <div className="hidden sm:flex items-center justify-end md:justify-end">
+                    <div className="bg-white/90 rounded-md px-2 py-1">
+                      {selectedPayment?.billingStatus ? getPaymentStatusBadge(selectedPayment.billingStatus) : null}
+                    </div>
+                  </div>
+                </div>
+
+                <Separator className="mt-6 mb-2 bg-white/20" />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-emerald-200">Concepto</p>
+                    <p className="font-semibold">{PAYMENT_TYPES[selectedPayment?.paymentType as keyof typeof PAYMENT_TYPES]}</p>
+                  </div>
+                  <div className="text-left md:text-right">
+                    <p className="text-emerald-200">Monto Total del Cobro</p>
+                    <p className="font-semibold">
+                      ${selectedPayment?.billingAmount.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
                 </div>
               </div>
+            </div>
 
-              <section className="my-4">
-                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">Detalles del Pago</h3>
+            <section className="my-4">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">Detalles del Pago</h3>
+              <div className="rounded-lg border bg-card">
+                <div className="grid divide-y">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Fecha</span>
+                    </div>
+                    <span className="text-sm font-medium mt-1 sm:mt-0">
+                      {new Date(selectedPayment?.paidAt ?? selectedPayment?.createdAt ?? Date.now()).toLocaleDateString("es-MX", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Hora</span>
+                    </div>
+                    <span className="text-sm font-medium">
+                      {new Date(selectedPayment?.paidAt ?? selectedPayment?.createdAt ?? Date.now()).toLocaleTimeString("es-MX", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <Wallet className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Método de pago</span>
+                    </div>
+                    <span className="text-sm font-medium mt-1 sm:mt-0">{selectedPayment.methodLabel}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Registrado por</span>
+                    </div>
+                    <span className="text-sm font-medium mt-1 sm:mt-0">{selectedPayment.createdBy}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <CreditCard className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Monto del cobro</span>
+                    </div>
+                    <span className="text-sm font-medium mt-1 sm:mt-0">
+                      ${selectedPayment.billingAmount.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="my-4">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
+                Datos Fiscales del Emisor
+              </h3>
+              {tutorFiscalData ? (
                 <div className="rounded-lg border bg-card">
+                  <div className="px-4 py-4 border-b bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">RFC</p>
+                        <p className="font-mono text-lg font-semibold tracking-wider">
+                          {tutorFiscalData.taxId || "No registrado"}
+                        </p>
+                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                if (tutorFiscalData?.taxId) {
+                                  navigator.clipboard.writeText(tutorFiscalData.taxId);
+                                  setRfcCopied(true);
+                                  setTimeout(() => setRfcCopied(false), 2000);
+                                }
+                              }}
+                            >
+                              {rfcCopied ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Copiar RFC</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </div>
+
                   <div className="grid divide-y">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Fecha</span>
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Razón Social</span>
                       </div>
-                      <span className="text-sm font-medium mt-1 sm:mt-0">
-                        {new Date(selectedPayment?.paidAt ?? selectedPayment?.createdAt ?? Date.now()).toLocaleDateString("es-MX", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })}
+                      <span className="text-sm font-medium text-left md:text-right max-w-full md:max-w-[200px] truncate mt-1 sm:mt-0">
+                        {tutorFiscalData.legalName || "No registrado"}
                       </span>
                     </div>
                     <div className="flex items-center justify-between px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Hora</span>
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Régimen Fiscal</span>
                       </div>
-                      <span className="text-sm font-medium">
-                        {new Date(selectedPayment?.paidAt ?? selectedPayment?.createdAt ?? Date.now()).toLocaleTimeString("es-MX", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                      <span className="text-sm font-medium text-left md:text-right max-w-full md:max-w-[200px]">
+                        {tutorFiscalData.taxSystem || "No especificado"}
                       </span>
                     </div>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3">
+                    <div className="flex items-center justify-between px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <Wallet className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Método de pago</span>
+                        <Receipt className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Uso de CFDI</span>
                       </div>
-                      <span className="text-sm font-medium mt-1 sm:mt-0">{selectedPayment.methodLabel}</span>
+                      <span className="text-sm font-medium text-left md:text-right">{tutorFiscalData.cfdiUse || "No especificado"}</span>
                     </div>
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Registrado por</span>
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Correo Fiscal</span>
                       </div>
-                      <span className="text-sm font-medium mt-1 sm:mt-0">{selectedPayment.createdBy}</span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <CreditCard className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Monto del cobro</span>
-                      </div>
-                      <span className="text-sm font-medium mt-1 sm:mt-0">
-                        ${selectedPayment.billingAmount.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
-                      </span>
+                      <span className="text-sm font-medium text-left md:text-right mt-1 sm:mt-0">{tutorFiscalData.email || "No registrado"}</span>
                     </div>
                   </div>
                 </div>
-              </section>
+              ) : (
+                <div className="flex items-center justify-center py-8 text-muted-foreground rounded-lg border">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <span className="text-sm">Cargando información fiscal...</span>
+                </div>
+              )}
+            </section>
 
-              <section className="my-4">
-                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
-                  Datos Fiscales del Emisor
-                </h3>
-                {tutorFiscalData ? (
-                  <div className="rounded-lg border bg-card">
-                    <div className="px-4 py-4 border-b bg-muted/30">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">RFC</p>
-                          <p className="font-mono text-lg font-semibold tracking-wider">
-                            {tutorFiscalData.taxId || "No registrado"}
-                          </p>
-                        </div>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  e.preventDefault();
-                                  if (tutorFiscalData?.taxId) {
-                                    navigator.clipboard.writeText(tutorFiscalData.taxId);
-                                    setRfcCopied(true);
-                                    setTimeout(() => setRfcCopied(false), 2000);
-                                  }
-                                }}
-                              >
-                                {rfcCopied ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Copiar RFC</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
+            <section className="my-4">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">Factura Electrónica</h3>
+              <div className={`rounded-lg border bg-card overflow-hidden ${selectedPayment ? "border-emerald-200" : ""}`}>
+                <div className="px-4 py-5">
+                  <div className="flex items-start gap-4">
+                    <div
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${selectedPayment ? "bg-emerald-100 text-emerald-600" : "bg-muted text-muted-foreground"
+                        }`}
+                    >
+                      {selectedPayment ? <BadgeCheck className="h-6 w-6" /> : <Clock className="h-6 w-6" />}
                     </div>
 
-                    <div className="grid divide-y">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <Building2 className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Razón Social</span>
-                        </div>
-                        <span className="text-sm font-medium text-left md:text-right max-w-full md:max-w-[200px] truncate mt-1 sm:mt-0">
-                          {tutorFiscalData.legalName || "No registrado"}
-                        </span>
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between min-w-0 w-full gap-2">
+                      <div className="flex flex-row items-center gap-2">
+                        <p className="text-md text-muted-foreground">Folio Fiscal: </p>
+                        <p className="font-mono text-lg md:text-xl font-semibold tracking-wide break-all">
+                          {selectedPayment.facturapiInvoiceNumber || "Pendiente de generación"}
+                        </p>
                       </div>
-                      <div className="flex items-center justify-between px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Régimen Fiscal</span>
-                        </div>
-                        <span className="text-sm font-medium text-left md:text-right max-w-full md:max-w-[200px]">
-                          {tutorFiscalData.taxSystem || "No especificado"}
-                        </span>
+                      <div className="flex items-center justify-start md:justify-end">
+                        <Badge
+                          variant={selectedPayment.facturapiInvoiceStatus === 'valid' ? "default" : "secondary"}
+                          className={selectedPayment.facturapiInvoiceStatus === 'valid' ? "bg-emerald-600 hover:bg-emerald-700" : ""}
+                        >
+                          {selectedPayment.facturapiInvoiceStatus === 'valid' ? "Valido" : selectedPayment.facturapiInvoiceStatus || "Pendiente"}
+                        </Badge>
                       </div>
-                      <div className="flex items-center justify-between px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <Receipt className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Uso de CFDI</span>
-                        </div>
-                        <span className="text-sm font-medium text-left md:text-right">{tutorFiscalData.cfdiUse || "No especificado"}</span>
-                      </div>
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Correo Fiscal</span>
-                        </div>
-                        <span className="text-sm font-medium text-left md:text-right mt-1 sm:mt-0">{tutorFiscalData.email || "No registrado"}</span>
-                      </div>
+
                     </div>
                   </div>
-                ) : (
-                  <div className="flex items-center justify-center py-8 text-muted-foreground rounded-lg border">
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    <span className="text-sm">Cargando información fiscal...</span>
+                </div>
+
+                <div className="px-4 py-3 border-t bg-muted/30">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Fecha de emisión</span>
+                    <span className="font-medium">
+                      {new Date(selectedPayment.createdAt).toLocaleDateString("es-MX", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                </div>
+
+                {selectedPayment && (
+                  <div className="px-4 py-3 border-t bg-emerald-50 flex items-center gap-2 text-emerald-700">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span className="text-sm font-medium">Validada ante el SAT</span>
                   </div>
                 )}
-              </section>
-
-              <section className="my-4">
-                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">Factura Electrónica</h3>
-                <div className={`rounded-lg border bg-card overflow-hidden ${selectedPayment ? "border-emerald-200" : ""}`}>
-                  <div className="px-4 py-5">
-                    <div className="flex items-start gap-4">
-                      <div
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${selectedPayment ? "bg-emerald-100 text-emerald-600" : "bg-muted text-muted-foreground"
-                          }`}
-                      >
-                        {selectedPayment ? <BadgeCheck className="h-6 w-6" /> : <Clock className="h-6 w-6" />}
-                      </div>
-
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between min-w-0 w-full gap-2">
-                        <div className="flex flex-row items-center gap-2">
-                          <p className="text-md text-muted-foreground">Folio Fiscal: </p>
-                          <p className="font-mono text-lg md:text-xl font-semibold tracking-wide break-all">
-                            {selectedPayment.facturapiInvoiceNumber || "Pendiente de generación"}
-                          </p>
-                        </div>
-                        <div className="flex items-center justify-start md:justify-end">
-                          <Badge
-                            variant={selectedPayment.facturapiInvoiceStatus === 'valid' ? "default" : "secondary"}
-                            className={selectedPayment.facturapiInvoiceStatus === 'valid' ? "bg-emerald-600 hover:bg-emerald-700" : ""}
-                          >
-                            {selectedPayment.facturapiInvoiceStatus === 'valid' ? "Valido" : selectedPayment.facturapiInvoiceStatus || "Pendiente"}
-                          </Badge>
-                        </div>
-
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="px-4 py-3 border-t bg-muted/30">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Fecha de emisión</span>
-                      <span className="font-medium">
-                        {new Date(selectedPayment.createdAt).toLocaleDateString("es-MX", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })}
-                      </span>
-                    </div>
-                  </div>
-
-                  {selectedPayment && (
-                    <div className="px-4 py-3 border-t bg-emerald-50 flex items-center gap-2 text-emerald-700">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span className="text-sm font-medium">Validada ante el SAT</span>
-                    </div>
-                  )}
-                </div>
-              </section>
-            </div>
+              </div>
+            </section>
+          </div>
 
         )}
       </CrudDialog>
