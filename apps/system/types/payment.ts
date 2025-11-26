@@ -16,3 +16,30 @@ export interface Payment {
   stripeTransferId?: string
   stripeChargeId?: string
 }
+
+export interface PaymentHistoryItem {
+  id: Id<"payments">;
+  paymentId: Id<"payments">;
+  tutorId: Id<"user"> | undefined;
+  studentId: Id<"student">;
+  studentName: string;
+  studentEnrollment: string;
+  studentGrade: string;
+  studentGroup: string;
+  billingId: Id<"billing">;
+  billingConfigId: Id<"billingConfig">;
+  paymentType: string;
+  billingStatus: string | undefined;
+  amount: number;
+  method: string;
+  methodLabel: string;
+  billingAmount: number;
+  billingDeposit: number;
+  billingRemaining: number;
+  paidAt: number;
+  createdBy: string;
+  createdAt: number;
+  facturapiInvoiceId: string | null;
+  facturapiInvoiceNumber: string | null;
+  facturapiInvoiceStatus: string | null;
+}

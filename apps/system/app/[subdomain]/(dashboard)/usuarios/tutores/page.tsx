@@ -161,10 +161,10 @@ export default function TutorPage() {
     api.functions.schools.getUsersBySchoolAndRoles,
     currentSchool?.school?._id
       ? {
-          schoolId: currentSchool.school._id,
-          roles: ["tutor"],
-          status: "active",
-        }
+        schoolId: currentSchool.school._id,
+        roles: ["tutor"],
+        status: "active",
+      }
       : "skip"
   );
 
@@ -172,10 +172,10 @@ export default function TutorPage() {
     api.functions.schools.getUsersBySchoolAndRoles,
     currentSchool?.school?._id
       ? {
-          schoolId: currentSchool.school._id,
-          roles: ["tutor"],
-          status: "inactive",
-        }
+        schoolId: currentSchool.school._id,
+        roles: ["tutor"],
+        status: "inactive",
+      }
       : "skip"
   );
 
@@ -216,10 +216,10 @@ export default function TutorPage() {
     api.functions.users.searchUsers,
     searchEmail
       ? {
-          searchTerm: searchEmail,
-          status: "active",
-          limit: 1,
-        }
+        searchTerm: searchEmail,
+        status: "active",
+        limit: 1,
+      }
       : "skip"
   );
 
@@ -264,8 +264,6 @@ export default function TutorPage() {
     data: fiscalData,
     openCreate: openFiscalCreate,
     openEdit: openFiscalEdit,
-    openView: openFiscalView,
-    openDelete: openFiscalDelete,
     close: closeFiscal,
   } = useCrudDialog(fiscalDataSchema, {});
 
@@ -356,7 +354,7 @@ export default function TutorPage() {
 
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    
+
     return sortedData.slice(startIndex, endIndex);
 
   }, [filteredUsers, currentPage, itemsPerPage]);
@@ -387,7 +385,13 @@ export default function TutorPage() {
       country: "MXN" as const,
     };
 
-    await createFiscalData(fiscalDataToCreate);
+    try {
+      await createFiscalData(fiscalDataToCreate);
+      toast.success("Datos fiscales creados exitosamente");
+    } catch (error) {
+      toast.error(`Error al crear datos fiscales: ${error instanceof Error ? error.message : "Error desconocido"}`);
+      throw error;
+    }
   };
 
   const handleFiscalUpdate = async (formData: Record<string, unknown>) => {
@@ -405,7 +409,13 @@ export default function TutorPage() {
       updatedBy: currentUser._id,
     };
 
-    await updateFiscalData(fiscalDataToUpdate);
+    try {
+      await updateFiscalData(fiscalDataToUpdate);
+      toast.success("Datos fiscales actualizados exitosamente");
+    } catch (error) {
+      toast.error(`Error al actualizar datos fiscales: ${error instanceof Error ? error.message : "Error desconocido"}`);
+      throw error;
+    }
   };
 
   const handleFiscalDelete = async (deleteData: Record<string, unknown>) => {
@@ -413,7 +423,13 @@ export default function TutorPage() {
       throw new Error("ID de datos fiscales no disponible");
     }
 
-    await deleteFiscalData({ id: deleteData._id as Id<"fiscalData"> });
+    try {
+      await deleteFiscalData({ id: deleteData._id as Id<"fiscalData"> });
+      toast.success("Datos fiscales eliminados exitosamente");
+    } catch (error) {
+      toast.error(`Error al eliminar datos fiscales: ${error instanceof Error ? error.message : "Error desconocido"}`);
+      throw error;
+    }
   };
 
   // Funciones CRUD para tutores
@@ -533,8 +549,11 @@ export default function TutorPage() {
       }
     } catch (error) {
       console.error("❌ Error en handleCreate:", error);
+      toast.error(`Error al crear tutor: ${error instanceof Error ? error.message : "Error desconocido"}`);
       throw error;
     }
+
+    toast.success("Tutor creado exitosamente");
   };
 
   const handleUpdate = async (formData: Record<string, unknown>) => {
@@ -582,7 +601,7 @@ export default function TutorPage() {
         );
         throw new Error(
           userResult.error ||
-            "Error al actualizar información básica del usuario"
+          "Error al actualizar información básica del usuario"
         );
       }
 
@@ -593,8 +612,11 @@ export default function TutorPage() {
         department: null,
         status: (combinedData.status as "active" | "inactive") || "active",
       });
+
+      toast.success("Tutor actualizado exitosamente");
     } catch (error) {
       console.error("Error en handleUpdate:", error);
+      toast.error(`Error al actualizar tutor: ${error instanceof Error ? error.message : "Error desconocido"}`);
       throw error;
     }
   };
@@ -613,11 +635,12 @@ export default function TutorPage() {
       await deactivateUserInSchool({
         userSchoolId: targetData.userSchoolId as Id<"userSchool">,
       });
+
+      toast.success("Tutor desactivado exitosamente");
     } catch (error) {
       console.error("Error al desactivar tutor:", error);
-      throw new Error(
-        `Error al desactivar tutor: ${error instanceof Error ? error.message : "Error desconocido"}`
-      );
+      toast.error(`Error al desactivar tutor: ${error instanceof Error ? error.message : "Error desconocido"}`);
+      throw error;
     }
   };
 
@@ -1283,6 +1306,16 @@ export default function TutorPage() {
                 : undefined
         }
         schema={getSchemaForOperation(operation)}
+        defaultValues={{
+          name: "",
+          lastName: "",
+          email: "",
+          password: "",
+          address: "",
+          phone: "",
+          status: "active"
+
+        }}
         data={data}
         isOpen={isOpen}
         onOpenChange={close}
@@ -1301,7 +1334,7 @@ export default function TutorPage() {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nombre *</FormLabel>
+                  <FormLabel>Nombre</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -1338,21 +1371,23 @@ export default function TutorPage() {
               control={form.control}
               name="email"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email *</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      value={(field.value as string) || ""}
-                      type="email"
-                      placeholder="email@escuela.edu.mx"
-                      disabled={
-                        currentOperation === "view" ||
-                        currentOperation === "edit"
-                      }
-                    />
-                  </FormControl>
-                  <FormMessage />
+                <FormItem className="items-start">
+                  <div>
+                    <FormLabel>Correo</FormLabel>
+                    <FormControl className="mt-2">
+                      <Input
+                        {...field}
+                        value={(field.value as string) || ""}
+                        type="email"
+                        placeholder="correo@escuela.edu.mx"
+                        disabled={
+                          currentOperation === "view" ||
+                          currentOperation === "edit"
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage className="mt-2"/>
+                  </div>
                 </FormItem>
               )}
             />
@@ -1363,44 +1398,21 @@ export default function TutorPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Contraseña Temporal (opcional)</FormLabel>
+                    <FormLabel>Contraseña</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
                         value={(field.value as string) || ""}
                         type="password"
-                        placeholder="Dejar vacío si el usuario ya existe"
+                        placeholder="Contraseña"
                         disabled={false}
                       />
                     </FormControl>
                     <FormMessage />
-                    <p className="text-xs text-muted-foreground">
-                      💡 Si el email ya existe en el sistema, se asignará el
-                      usuario existente automáticamente
-                    </p>
                   </FormItem>
                 )}
               />
             )}
-
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Teléfono</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      value={(field.value as string) || ""}
-                      placeholder="555 1234567"
-                      disabled={currentOperation === "view"}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <FormField
               control={form.control}
@@ -1423,26 +1435,48 @@ export default function TutorPage() {
 
             <FormField
               control={form.control}
-              name="status"
+              name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Estado</FormLabel>
+                  <FormLabel>Teléfono</FormLabel>
                   <FormControl>
-                    <Select
-                      value={field.value as string}
-                      onValueChange={field.onChange}
+                    <Input
+                      {...field}
+                      type="number"
+                      value={(field.value as string) || ""}
+                      placeholder="555 1234567"
                       disabled={currentOperation === "view"}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar estado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Activo</SelectItem>
-                        <SelectItem value="inactive">Inactivo</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem className="items-start">
+                  <div>
+                    <FormLabel>Estado</FormLabel>
+                    <FormControl>
+                      <Select
+                        value={field.value as string}
+                        onValueChange={field.onChange}
+                        disabled={currentOperation === "view"}
+                      >
+                        <SelectTrigger className="w-full mt-2">
+                          <SelectValue placeholder="Seleccionar estado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Activo</SelectItem>
+                          <SelectItem value="inactive">Inactivo</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </div>
                 </FormItem>
               )}
             />
@@ -1525,9 +1559,12 @@ export default function TutorPage() {
           country: "MXN",
           email: "",
           phone: "",
-          
+
         }}
         data={fiscalData}
+        confirmOnSubmit
+        submitConfirmationTitle={operation === "create" ? "Confirmar creación de la información fiscal del tutor" : "Confirmar actualización de la información fiscal del tutor"}
+        submitConfirmationDescription={operation === "create" ? "Estás a punto de registrar la información fiscal del tutor. Por favor revisa los datos antes de continuar." : "Se aplicarán cambios a la la información fiscal del tutor seleccionado. Revisa la información para asegurarte de que sea correcta antes de continuar."}
         isOpen={isFiscalOpen}
         onOpenChange={closeFiscal}
         onSubmit={fiscalOperation === "create" ? handleFiscalCreate : handleFiscalUpdate}
@@ -1545,7 +1582,7 @@ export default function TutorPage() {
               name="legalName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nombre o Razón Social *</FormLabel>
+                  <FormLabel>Nombre o Razón Social</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -1564,7 +1601,7 @@ export default function TutorPage() {
               name="taxId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>RFC *</FormLabel>
+                  <FormLabel>RFC</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -1583,15 +1620,15 @@ export default function TutorPage() {
               control={form.control}
               name="taxSystem"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Régimen Fiscal *</FormLabel>
+                <FormItem className="md:col-span-2">
+                  <FormLabel>Régimen Fiscal</FormLabel>
                   <FormControl>
                     <Select
                       value={field.value as string}
                       onValueChange={field.onChange}
                       disabled={currentOperation === "view"}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Seleccionar régimen fiscal" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1611,15 +1648,15 @@ export default function TutorPage() {
               control={form.control}
               name="cfdiUse"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Uso de CFDI *</FormLabel>
+                <FormItem className="md:col-span-2">
+                  <FormLabel>Uso de CFDI</FormLabel>
                   <FormControl>
                     <Select
                       value={field.value as string}
                       onValueChange={field.onChange}
                       disabled={currentOperation === "view"}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Seleccionar uso de CFDI" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1638,7 +1675,7 @@ export default function TutorPage() {
               name="street"
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
-                  <FormLabel>Calle *</FormLabel>
+                  <FormLabel>Calle</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -1657,7 +1694,7 @@ export default function TutorPage() {
               name="exteriorNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Número Exterior *</FormLabel>
+                  <FormLabel>Número Exterior</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -1695,7 +1732,7 @@ export default function TutorPage() {
               name="neighborhood"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Colonia *</FormLabel>
+                  <FormLabel>Colonia</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -1714,7 +1751,7 @@ export default function TutorPage() {
               name="city"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Ciudad *</FormLabel>
+                  <FormLabel>Ciudad</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -1733,7 +1770,7 @@ export default function TutorPage() {
               name="state"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Estado *</FormLabel>
+                  <FormLabel>Estado</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -1752,7 +1789,7 @@ export default function TutorPage() {
               name="zip"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Código Postal *</FormLabel>
+                  <FormLabel>Código Postal</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -1772,13 +1809,13 @@ export default function TutorPage() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email Fiscal *</FormLabel>
+                  <FormLabel>Correo Fiscal</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
                       value={(field.value as string) || ""}
                       type="email"
-                      placeholder="email@fiscal.com"
+                      placeholder="correo@fiscal.com"
                       disabled={currentOperation === "view"}
                     />
                   </FormControl>
@@ -1805,32 +1842,6 @@ export default function TutorPage() {
                 </FormItem>
               )}
             />
-
-            {currentOperation === "view" && fiscalData && (
-              <div className="md:col-span-2 space-y-4 pt-4 border-t">
-                <h3 className="font-medium text-sm text-muted-foreground">
-                  Información adicional
-                </h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">
-                      Fecha de Creación:
-                    </span>
-                    <p>{formatDate(fiscalData.createdAt as number)}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">
-                      Última Actualización:
-                    </span>
-                    <p>{formatDate(fiscalData.updatedAt as number)}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">País:</span>
-                    <p>México (MXN)</p>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </CrudDialog>
