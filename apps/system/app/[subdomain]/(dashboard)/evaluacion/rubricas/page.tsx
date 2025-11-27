@@ -883,7 +883,7 @@ export default function RubricDashboard() {
                         items={terms ?? []}
                         value={field.value as string}
                         onChange={field.onChange}
-                        placeholder="Selecciona una clase"
+                        placeholder="Selecciona un periodo"
                         getKey={(t: Term) => t._id}
                         getLabel={(t: Term) => t.name}
                         renderItem={(t: Term) => (
