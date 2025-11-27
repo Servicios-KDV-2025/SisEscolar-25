@@ -24,6 +24,7 @@ import { useUserWithConvex } from "../../../../../stores/userStore";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
@@ -193,6 +194,9 @@ export default function AlumnosPage() {
     openDelete,
     close,
   } = useCrudDialog(studentSchema, defaultValues);
+
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Alumno");
 
   // Aplicar filtros cuando cambien
   useEffect(() => {
@@ -1050,9 +1054,10 @@ export default function AlumnosPage() {
         onDelete={handleDelete}
         deleteConfirmationTitle="¿Eliminar alumno?"
         deleteConfirmationDescription="Esta acción eliminará permanentemente al alumno del sistema. Esta acción no se puede deshacer."
+        toastMessages={toastMessages}
+        disableDefaultToasts={false}
         onError={() => {
-          // Evitar que el CrudDialog muestre su propio toast de error
-          // ya que nosotros mostramos el error específico dentro del dialog
+          // El error se muestra dentro del dialog y también se maneja con toasts
         }}
       >
         {(form, currentOperation) => (

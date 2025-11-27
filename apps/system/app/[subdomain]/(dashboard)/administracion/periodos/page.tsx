@@ -20,6 +20,7 @@ import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialo
 import { FormControl, FormField,FormDescription, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 
 // Icons
 import {
@@ -260,6 +261,9 @@ export default function PeriodsManagement() {
   // CRUD Dialog
   const { isOpen, operation, data, openCreate, openEdit, openView, openDelete, close } = useCrudDialog(termSchema);
 
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Periodo");
+
   // Set active cycle as initial value when component loads
   useEffect(() => {
     if (activeSchoolCycle && schoolCycleFilter === "current") {
@@ -334,7 +338,7 @@ export default function PeriodsManagement() {
           schoolCycleId: formValues.schoolCycleId,
           schoolId: currentSchool.school._id,
         });
-        toast.success('Periodo creado correctamente');
+        //   Los toasts ahora los maneja el CrudDialog automáticamente
       } else if (operation === 'edit' && data?._id) {
         await updateTerm({
           termId: data._id,
@@ -346,26 +350,19 @@ export default function PeriodsManagement() {
             status: formValues.status as "active" | "inactive" | "closed",
           },
         });
-        toast.success('Periodo actualizado correctamente');
+        //   Los toasts ahora los maneja el CrudDialog automáticamente
       }
 
       close();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      toast.error('Error', {
-        description: `No se pudo ${operation === 'create' ? 'crear' : 'actualizar'} el periodo: ${errorMessage}`
-      });
+      // Re-lanzar el error para que el CrudDialog lo maneje
+      throw error;
     }
   };
 
   const handleDelete = async (id: string) => {
-    try {
-      await deleteTerm(id);
-      toast.success('Periodo eliminado correctamente');
-    } catch (error) {
-      console.error('Error al eliminar periodo:', error);
-      throw error;
-    }
+    await deleteTerm(id);
+    //   Los toasts ahora los maneja el CrudDialog automáticamente
   };
 
   // Get cycle name for display
@@ -746,6 +743,8 @@ export default function PeriodsManagement() {
           onOpenChange={close}
           onSubmit={handleSubmit}
           onDelete={handleDelete}
+          toastMessages={toastMessages}
+          disableDefaultToasts={false}
         >
           {(form, operation) => (
             <TermForm

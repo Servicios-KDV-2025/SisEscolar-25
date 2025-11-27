@@ -42,17 +42,31 @@ export function StripeConnectOnboarding ({ schoolId, schoolEmail }: StripeConnec
         email: schoolEmail,
       })
       
-      toast.success("Cuenta creada", {
-        description: result.message,
-      })
+      toast.success(
+        <span style={{ color: '#16a34a', fontWeight: 600 }}>
+          Cuenta creada exitosamente
+        </span>,
+        {
+          className: 'bg-white border border-green-200',
+          unstyled: false,
+          description: <span style={{ color: '#374151' }}>{result.message}</span>,
+        }
+      )
 
       // Abrir el onboarding
       await handleStartOnboarding()
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Error desconocido"
-      toast.error("Error al crear cuenta", {
-        description: errorMessage,
-      })
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          Error al crear cuenta
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: <span style={{ color: '#374151' }}>{errorMessage}</span>,
+        }
+      )
     } finally {
       setIsCreating(false)
     }
@@ -70,9 +84,16 @@ export function StripeConnectOnboarding ({ schoolId, schoolEmail }: StripeConnec
       window.open(result.url, "_blank")
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Error desconocido"
-      toast.error("Error al crear link de onboarding", {
-        description: errorMessage,
-      })
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          Error al crear link de onboarding
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: <span style={{ color: '#374151' }}>{errorMessage}</span>,
+        }
+      )
     }
   }
 
@@ -83,19 +104,40 @@ export function StripeConnectOnboarding ({ schoolId, schoolEmail }: StripeConnec
       setAccountStatus(status)
       
       if (status.isComplete) {
-        toast.success("¡Cuenta verificada!", {
-          description: "Tu cuenta de Stripe está lista para recibir pagos.",
-        })
+        toast.success(
+          <span style={{ color: '#16a34a', fontWeight: 600 }}>
+            ¡Cuenta verificada!
+          </span>,
+          {
+            className: 'bg-white border border-green-200',
+            unstyled: false,
+            description: <span style={{ color: '#374151' }}>Tu cuenta de Stripe está lista para recibir pagos.</span>,
+          }
+        )
       } else if (status.hasAccount) {
-        toast.info("Configuración pendiente", {
-          description: "Necesitas completar la configuración de tu cuenta.",
-        })
+        toast.info(
+          <span style={{ color: '#2563eb', fontWeight: 600 }}>
+            Configuración pendiente
+          </span>,
+          {
+            className: 'bg-white border border-blue-200',
+            unstyled: false,
+            description: <span style={{ color: '#374151' }}>Necesitas completar la configuración de tu cuenta.</span>,
+          }
+        )
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Error desconocido"
-      toast.error("Error al verificar estado", {
-        description: errorMessage,
-      })
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          Error al verificar estado
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: <span style={{ color: '#374151' }}>{errorMessage}</span>,
+        }
+      )
     } finally {
       setIsCheckingStatus(false)
     }
@@ -107,9 +149,16 @@ export function StripeConnectOnboarding ({ schoolId, schoolEmail }: StripeConnec
       window.open(result.url, "_blank")
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Error desconocido"
-      toast.error("Error al abrir dashboard", {
-        description: errorMessage,
-      })
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          Error al abrir dashboard
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: <span style={{ color: '#374151' }}>{errorMessage}</span>,
+        }
+      )
     }
   }
 

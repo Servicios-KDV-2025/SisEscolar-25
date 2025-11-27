@@ -79,6 +79,7 @@ import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { useUserActionsWithConvex } from "../../../../../stores/userActionsStore";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 
 // Tipo para los usuarios que vienen de Convex
 type UserFromConvex = {
@@ -241,6 +242,9 @@ export default function TutorPage() {
     status: "active",
     admissionDate: Date.now(),
   });
+
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Tutor");
 
   // Funciones wrapper para abrir diálogos con limpieza de errores
   const handleOpenCreate = () => {
@@ -1185,6 +1189,8 @@ export default function TutorPage() {
         isLoading={isLoading}
         isSubmitting={userActions.isCreating || userActions.isUpdating}
         isDeleting={userActions.isDeleting}
+        toastMessages={toastMessages}
+        disableDefaultToasts={false}
       >
         {(form, currentOperation) => (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

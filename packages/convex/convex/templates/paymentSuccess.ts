@@ -312,7 +312,7 @@ export function paymentSuccessTemplate({
         }
 
         .next-steps li::before {
-            content: '✨';
+            content: ' ';
             position: absolute;
             left: 0;
             top: 8px;

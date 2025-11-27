@@ -48,7 +48,7 @@ import {
 import { GroupCard } from "../../../../../components/GroupCard";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
-import { toast } from '@repo/ui/sonner'
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 
 export default function GroupPage() {
   const { user: clerkUser, isLoaded } = useUser();
@@ -95,6 +95,9 @@ export default function GroupPage() {
     status: "",
   });
 
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Grupo");
+
   const filteredGroups = groups.filter((group) => {
     const matchesSearch =
       group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -116,7 +119,7 @@ export default function GroupPage() {
         grade: values.grade as string,
         status: values.status as "active" | "inactive",
       })
-      toast.success("Grupo creado exitosamente");
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
     } else if (operation === "edit" && data?._id) {
       await updateGroup({
         _id: data._id as Id<"subject">,
@@ -127,13 +130,13 @@ export default function GroupPage() {
         updatedAt: new Date().getTime(),
         updatedBy: currentUser._id,
       })
-      toast.info("Grupo actualizado exitosamente");
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
     }
   };
 
   const handleDelete = async (id: string) => {
     await deleteGroup(id, currentSchool?.school._id)
-    toast.success("Grupo eliminado exitosamente")
+    //   Los toasts ahora los maneja el CrudDialog automáticamente
   };
 
   const { canCreateGroup, canReadGroup } = usePermissions(
@@ -421,6 +424,8 @@ export default function GroupPage() {
             onOpenChange={close}
             onSubmit={handleSubmit}
             onDelete={handleDelete}
+            toastMessages={toastMessages}
+            disableDefaultToasts={false}
           >
             {(form, operation) => (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

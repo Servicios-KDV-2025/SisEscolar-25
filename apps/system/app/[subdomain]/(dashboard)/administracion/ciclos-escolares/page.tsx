@@ -52,6 +52,7 @@ import {
 } from "@repo/ui/components/shadcn/card";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 
 export default function SchoolCyclesPage() {
   const { user: clerkUser, isLoaded } = useUser();
@@ -110,6 +111,9 @@ export default function SchoolCyclesPage() {
     endDate: "",
     status: "inactive",
   });
+
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Ciclo Escolar");
 
   const validateUniqueName = (name: string, currentId?: string) => {
     const normalizedName = name.trim().toLowerCase();
@@ -518,6 +522,8 @@ export default function SchoolCyclesPage() {
             onOpenChange={handleClose}
             onSubmit={handleSubmit}
             onDelete={handleDelete}
+            toastMessages={toastMessages}
+            disableDefaultToasts={false}
           >
             {(form, operation) => (
               <div className="grid gap-4">

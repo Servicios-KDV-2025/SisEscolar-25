@@ -55,7 +55,7 @@ import { CrudDialog, useCrudDialog } from '@repo/ui/components/dialog/crud-dialo
 import { TaskForm } from 'components/tasks/TaskForm';
 import { UseFormReturn } from 'react-hook-form';
 import NotAuth from "../../../../../components/NotAuth";
-import { toast } from "@repo/ui/sonner";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 
 export default function TaskManagement() {
   const { user: clerkUser } = useUser();
@@ -185,6 +185,9 @@ export default function TaskManagement() {
     gradeRubricId: '',
   });
 
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Asignación");
+
   const handleViewDetails = (taskId: string) => {
     setSelectedTaskForDetails(taskId);
     setDetailsDialogOpen(true);
@@ -226,7 +229,7 @@ export default function TaskManagement() {
           dueDate: dueTimestamp,
           maxScore: parseInt(values.maxScore as string),
         })
-        toast.success('Asignación creada exitosamente')
+        //   Los toasts ahora los maneja el CrudDialog automáticamente
       } else if (operation === "edit" && data?._id) {
         await updateTask({
           id: data._id as Id<"assignment">,
@@ -240,24 +243,20 @@ export default function TaskManagement() {
             maxScore: parseInt(values.maxScore as string),
           },
         })
-        toast.info('Asignación actualizada exitosamente')
+        //   Los toasts ahora los maneja el CrudDialog automáticamente
       }
 
       close();
     } catch (error) {
-      toast.error('Error al procesar la asignación')
+      //   Los toasts de error los maneja el CrudDialog automáticamente
       console.error('Error al procesar la tarea:', error);
+      throw error; // Re-lanzar el error para que el CrudDialog lo maneje
     }
   };
 
   const handleDelete = async (taskId: string) => {
-    try {
-      await deleteTask(taskId)
-      toast.success('Asignación eliminada exitosamente')
-    } catch (error) {
-      console.error("Error al eliminar la asignación:", error);
-      toast.error('Error al eliminar la asignación')
-    }
+    await deleteTask(taskId)
+    //   Los toasts ahora los maneja el CrudDialog automáticamente
   };
 
   const uniqueRubrics =
@@ -868,6 +867,8 @@ export default function TaskManagement() {
             onOpenChange={close}
             onSubmit={handleSubmit}
             onDelete={handleDelete}
+            toastMessages={toastMessages}
+            disableDefaultToasts={false}
           >
             {(form, operation) => (
               <TaskForm

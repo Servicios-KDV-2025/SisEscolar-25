@@ -30,6 +30,7 @@ import { Input } from "@repo/ui/components/shadcn/input";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { BookCheck } from "lucide-react";
 import { usePermissions } from 'hooks/usePermissions';
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 
 export default function GradeManagementDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -51,6 +52,9 @@ export default function GradeManagementDashboard() {
   const {
     canUpdateTermAverage,
   } = permissions;
+
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Calificación");
 
   // Fetch data with Convex
   const schoolCycles = useQuery(
@@ -88,7 +92,7 @@ export default function GradeManagementDashboard() {
       }
       : "skip"
   );
-  // ✨ Este es el cambio clave: ahora obtienes promedios de todos los términos del ciclo escolar
+  //   Este es el cambio clave: ahora obtienes promedios de todos los términos del ciclo escolar
   const allTermAverages = useQuery(
     api.functions.termAverages.getAnnualAveragesForStudents,
     selectedSchoolCycle && selectedClass
@@ -151,11 +155,19 @@ export default function GradeManagementDashboard() {
 
   const handleSaveAverages = async () => {
     if (!students || !currentSchool) {
-      toast.error("Faltan datos de estudiantes o del colegio para guardar.");
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          Faltan datos de estudiantes o del colegio para guardar.
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+        }
+      );
       return;
     }
 
-    toast.info("Guardando promedios finales...");
+    const loadingToast = toast.loading("Guardando promedios finales...");
 
     // Recorre cada estudiante para calcular y guardar su promedio final
     for (const student of students) {
@@ -179,14 +191,28 @@ export default function GradeManagementDashboard() {
             error
           );
           toast.error(
-            `Error al guardar el promedio para ${student.student?.name}.`
+            <span style={{ color: '#dc2626' }}>
+              Error al guardar el promedio para {student.student?.name}.
+            </span>,
+            {
+              className: 'bg-white border border-red-200',
+              unstyled: false,
+              description: error instanceof Error ? error.message : undefined
+            }
           );
         }
       }
     }
 
+    toast.dismiss(loadingToast);
     toast.success(
-      "¡Promedios finales de todos los alumnos guardados en su inscripción!"
+      <span style={{ color: '#16a34a', fontWeight: 600 }}>
+        ¡Promedios finales de todos los alumnos guardados en su inscripción!
+      </span>,
+      {
+        className: 'bg-white border border-green-200',
+        unstyled: false,
+      }
     );
   };
 
@@ -264,10 +290,27 @@ export default function GradeManagementDashboard() {
         comments: comment,
         registeredById: currentUser._id as Id<"user">,
       });
-      toast.success("Promedio actualizado correctamente.");
+      toast.success(
+        <span style={{ color: '#16a34a', fontWeight: 600 }}>
+          {toastMessages.editSuccess}
+        </span>,
+        {
+          className: 'bg-white border border-green-200',
+          unstyled: false,
+        }
+      );
     } catch (error) {
       console.error("Error al actualizar la calificación:", error);
-      toast.error("Hubo un error al actualizar el promedio.");
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.editError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: error instanceof Error ? error.message : undefined
+        }
+      );
     }
   };
 
@@ -302,7 +345,7 @@ export default function GradeManagementDashboard() {
   //   );
   // }
 
-  // ✨ Transformar los datos de los promedios en un Map antes de pasarlos al componente
+  //   Transformar los datos de los promedios en un Map antes de pasarlos al componente
   const averagesMap = new Map();
   if (allTermAverages) {
     Object.entries(allTermAverages).forEach(([studentClassId, avgArray]) => {

@@ -41,11 +41,12 @@ import {
   X,
   Trash2,
 } from "@repo/ui/icons";
-import { toast } from "sonner";
+import { toast } from "@repo/ui/sonner";
 import { EventType } from "@/types/eventType";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { EventTypeFormData, EventTypeSchema } from "schema/eventType";
 import { api } from "@repo/convex/convex/_generated/api";
+import { useCrudToastMessages } from "../../hooks/useCrudToastMessages";
 
 interface TipoEventoDialogProps {
   isOpen: boolean;
@@ -107,6 +108,8 @@ export default function EventTypeDialog({
     api.functions.eventType.deleteEventType
   );
 
+  const toastMessages = useCrudToastMessages("Tipo de Evento");
+
   const form = useForm<EventTypeFormData>({
     resolver: zodResolver(EventTypeSchema),
     defaultValues: {
@@ -152,15 +155,37 @@ export default function EventTypeDialog({
   const handleEliminar = async () => {
     if (!tipoEventoEditar) return;
     try {
+      setIsLoading(true);
       await eliminarTipoEvento({
         schoolId: escuelaId,
         eventTypeId: tipoEventoEditar._id,
       });
-      toast.success("Evento eliminado");
+      // Toast de eliminación personalizado con icono de bote de basura
+      toast(
+        <span style={{ color: '#dc2626', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Trash2 className="h-4 w-4" style={{ color: '#dc2626' }} />
+          {toastMessages.deleteSuccess}
+        </span>,
+        {
+          className: 'bg-white border border-red-200 toast-red-text',
+          duration: 3000,
+        }
+      );
       onOpenChange(false);
     } catch (error) {
-      toast.error("Error al eliminar" + error);
-      toast.error("Error al eliminar" + error);
+      // Toast de error personalizado
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.deleteError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: error instanceof Error ? error.message : undefined
+        }
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -179,7 +204,16 @@ export default function EventTypeDialog({
           icon: data.icon,
           status: data.status || "active",
         });
-        toast.success("¡Tipo de Evento editado exitosamente!");
+        // Toast personalizado con fondo blanco y texto verde
+        toast.success(
+          <span style={{ color: '#16a34a', fontWeight: 600 }}>
+            {toastMessages.editSuccess}
+          </span>,
+          {
+            className: 'bg-white border border-green-200',
+            unstyled: false,
+          }
+        );
       } else {
         await crearTipoEvento({
           schoolId: escuelaId,
@@ -189,12 +223,35 @@ export default function EventTypeDialog({
           color: data.color || undefined,
           icon: data.icon || undefined,
         });
-        toast.success("Tipo de evento creado exitosamente");
+        // Toast personalizado con fondo blanco y texto verde
+        toast.success(
+          <span style={{ color: '#16a34a', fontWeight: 600 }}>
+            {toastMessages.createSuccess}
+          </span>,
+          {
+            className: 'bg-white border border-green-200',
+            unstyled: false,
+          }
+        );
       }
       form.reset();
       onOpenChange(false);
     } catch (error) {
-      toast.error("Error al crear el tipo de evento" + error);
+      // Toast de error personalizado - distingue entre crear y editar
+      const errorMessage = tipoEventoEditar 
+        ? toastMessages.editError 
+        : toastMessages.createError;
+      
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {errorMessage}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: error instanceof Error ? error.message : undefined
+        }
+      );
     } finally {
       setIsLoading(false);
     }

@@ -93,6 +93,7 @@ import { ClassCatalogForm } from "../../../../../components/ClassCatalogForm";
 import { usePermissions } from "hooks/usePermissions";
 import { Subject as SubjectType } from "stores/subjectStore";
 import { Group as GroupType } from "stores/groupStore";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import {
   ClassroomType,
   SchoolCycleType,
@@ -383,6 +384,9 @@ export default function HorariosPorClasePage() {
 
   const { subjects } = useSubject(currentSchool?.school._id);
   const { groups } = useGroup(currentSchool?.school._id);
+
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Clase");
 
   const crudDialog = useCrudDialog(EditClassFormSchema, {
     classCatalogId: "",
@@ -721,9 +725,16 @@ export default function HorariosPorClasePage() {
     const values = FullClassSchema.parse(data);
 
     if (!values.selectedScheduleIds || values.selectedScheduleIds.length === 0) {
-      toast.error("Horarios requeridos", {
-        description: "Debes asignar al menos un horario a la clase.",
-      });
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          Horarios requeridos
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: "Debes asignar al menos un horario a la clase.",
+        }
+      );
       return;
     }
 
@@ -737,10 +748,17 @@ export default function HorariosPorClasePage() {
       if (existingClass && existingClass._id) {
 
         if (values.status === 'inactive') {
-          toast.error("Acción no permitida", {
-            description: "Ya existe una clase con estas características. No puede ser creada o combinada como 'inactiva'. Por favor, establécela como 'activa' para continuar.",
-            duration: 5000,
-          });
+          toast.error(
+            <span style={{ color: '#dc2626' }}>
+              Acción no permitida
+            </span>,
+            {
+              className: 'bg-white border border-red-200',
+              unstyled: false,
+              description: "Ya existe una clase con estas características. No puede ser creada o combinada como 'inactiva'. Por favor, establécela como 'activa' para continuar.",
+              duration: 5000,
+            }
+          );
           return;
         }
 
@@ -759,34 +777,53 @@ export default function HorariosPorClasePage() {
           ]),
         ] as Id<"schedule">[];
 
-        await toast.promise(
-          updateClassAndSchedules({
+        const loadingToast = toast.loading("Asignando horarios a la clase existente...");
+        try {
+          await updateClassAndSchedules({
             oldClassCatalogId: existingClass._id as Id<"classCatalog">,
             newClassCatalogId: existingClass._id as Id<"classCatalog">,
             selectedScheduleIds: combinedSchedules,
             status: "active"
-          }),
-          {
-            loading: "Asignando horarios a la clase existente...",
-            success: () => {
-              setIsCreateDialogOpen(false);
-              createForm.reset({
-                status: "active",
-                schoolCycleId: activeCycle?._id || "",
-              });
-              return "¡Horarios asignados exitosamente a la clase existente!";
-            },
-            error: (err) => cleanErrorMessage(err),
-          }
-        );
+          });
+          toast.dismiss(loadingToast);
+          setIsCreateDialogOpen(false);
+          createForm.reset({
+            status: "active",
+            schoolCycleId: activeCycle?._id || "",
+          });
+          // Toast personalizado con fondo blanco y texto verde
+          toast.success(
+            <span style={{ color: '#16a34a', fontWeight: 600 }}>
+              ¡Horarios asignados exitosamente a la clase existente!
+            </span>,
+            {
+              className: 'bg-white border border-green-200',
+              unstyled: false,
+            }
+          );
+        } catch (err) {
+          toast.dismiss(loadingToast);
+          const errorMessage = cleanErrorMessage(err);
+          toast.error(
+            <span style={{ color: '#dc2626' }}>
+              Error al asignar horarios
+            </span>,
+            {
+              className: 'bg-white border border-red-200',
+              unstyled: false,
+              description: typeof errorMessage === 'string' ? errorMessage : undefined
+            }
+          );
+        }
 
         return;
       }
       // ✅ FIN DE LA VALIDACIÓN
 
       // Si no existe, crear nueva clase
-      await toast.promise(
-        createClassWithSchedule({
+      const loadingToast = toast.loading("Creando nueva clase...");
+      try {
+        await createClassWithSchedule({
           classData: {
             name: values.name,
             schoolCycleId: values.schoolCycleId as Id<"schoolCycle">,
@@ -799,26 +836,50 @@ export default function HorariosPorClasePage() {
             createdBy: currentUser._id,
           },
           selectedScheduleIds: values.selectedScheduleIds as Id<"schedule">[],
-        }),
-        {
-          loading: "Creando nueva clase...",
-          success: () => {
-            setIsCreateDialogOpen(false);
-            createForm.reset({
-              status: "active",
-              schoolCycleId: activeCycle?._id || "",
-            });
-            return "¡Clase creada exitosamente!";
-          },
-          error: (err) => cleanErrorMessage(err),
-        }
-      );
+        });
+        toast.dismiss(loadingToast);
+        setIsCreateDialogOpen(false);
+        createForm.reset({
+          status: "active",
+          schoolCycleId: activeCycle?._id || "",
+        });
+        // Toast personalizado con fondo blanco y texto verde
+        toast.success(
+          <span style={{ color: '#16a34a', fontWeight: 600 }}>
+            {toastMessages.createSuccess}
+          </span>,
+          {
+            className: 'bg-white border border-green-200',
+            unstyled: false,
+          }
+        );
+      } catch (err) {
+        toast.dismiss(loadingToast);
+        const errorMessage = cleanErrorMessage(err);
+        toast.error(
+          <span style={{ color: '#dc2626' }}>
+            {toastMessages.createError}
+          </span>,
+          {
+            className: 'bg-white border border-red-200',
+            unstyled: false,
+            description: typeof errorMessage === 'string' ? errorMessage : undefined
+          }
+        );
+      }
     } catch (error) {
       //console.error("Error al crear la clase:", error);
       const message = cleanErrorMessage(error);
-      toast.error("Error al crear la clase", {
-        description: message,
-      });
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.createError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: typeof message === 'string' ? message : undefined
+        }
+      );
     }
   };
 
@@ -839,10 +900,17 @@ export default function HorariosPorClasePage() {
       if (existingClassOnEdit && existingClassOnEdit._id && existingClassOnEdit._id !== originalClass.classCatalogId) {
 
         if (formData.status === 'inactive') {
-          toast.error("Acción no permitida", {
-            description: "Ya existe una clase con estas características. No puede ser combinada como 'inactiva'. Por favor, establécela como 'activa' para continuar.",
-            duration: 5000,
-          });
+          toast.error(
+            <span style={{ color: '#dc2626' }}>
+              Acción no permitida
+            </span>,
+            {
+              className: 'bg-white border border-red-200',
+              unstyled: false,
+              description: "Ya existe una clase con estas características. No puede ser combinada como 'inactiva'. Por favor, establécela como 'activa' para continuar.",
+              duration: 5000,
+            }
+          );
           return;
         }
 
@@ -894,7 +962,16 @@ export default function HorariosPorClasePage() {
         });
 
         crudDialog.close();
-        toast.success(`¡Clases combinadas exitosamente! Los horarios se agregaron a "${existingClassOnEdit.name}".`);
+        // Toast personalizado con fondo blanco y texto verde
+        toast.success(
+          <span style={{ color: '#16a34a', fontWeight: 600 }}>
+            {`¡Clases combinadas exitosamente! Los horarios se agregaron a "${existingClassOnEdit.name}".`}
+          </span>,
+          {
+            className: 'bg-white border border-green-200',
+            unstyled: false,
+          }
+        );
 
         return;
       }
@@ -910,7 +987,15 @@ export default function HorariosPorClasePage() {
 
       // Si no hay cambios en los horarios, solo actualizar el estado
       if (sameSchedules && formData.status === originalClass.status) {
-        toast.info("No se detectaron cambios en los horarios o estado.");
+        toast.info(
+          <span style={{ color: '#2563eb' }}>
+            No se detectaron cambios en los horarios o estado.
+          </span>,
+          {
+            className: 'bg-white border border-blue-200',
+            unstyled: false,
+          }
+        );
         crudDialog.close();
         return;
       }
@@ -933,14 +1018,30 @@ export default function HorariosPorClasePage() {
       if (result === null) return;
 
       crudDialog.close();
-      toast.success("Horarios actualizados exitosamente.");
+      // Toast personalizado con fondo blanco y texto verde
+      toast.success(
+        <span style={{ color: '#16a34a', fontWeight: 600 }}>
+          {toastMessages.editSuccess}
+        </span>,
+        {
+          className: 'bg-white border border-green-200',
+          unstyled: false,
+        }
+      );
 
     } catch (error) {
       // ✅ CAPTURAR ERRORES DE VALIDACIÓN
       const errorMessage = cleanErrorMessage(error);
-      toast.error("Error de validación", {
-        description: errorMessage,
-      });
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.editError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: typeof errorMessage === 'string' ? errorMessage : undefined
+        }
+      );
     }
   };
 
@@ -960,11 +1061,18 @@ export default function HorariosPorClasePage() {
     // ✅ SI EXISTE UNA CLASE DUPLICADA, COMBINARLAS
     if (existingClassOnEdit && existingClassOnEdit._id !== originalClass.classCatalogId) {
 
-      if (data.status === 'inactive') {
-        toast.error("Acción no permitida", {
-          description: "Ya existe una clase con estas características. No puede ser combinada como 'inactiva'. Por favor, establécela como 'activa' para continuar.",
-          duration: 5000,
-        });
+        if (data.status === 'inactive') {
+        toast.error(
+          <span style={{ color: '#dc2626' }}>
+            Acción no permitida
+          </span>,
+          {
+            className: 'bg-white border border-red-200',
+            unstyled: false,
+            description: "Ya existe una clase con estas características. No puede ser combinada como 'inactiva'. Por favor, establécela como 'activa' para continuar.",
+            duration: 5000,
+          }
+        );
         return;
       }
 
@@ -1007,7 +1115,13 @@ export default function HorariosPorClasePage() {
 
         // 4. Si AMBAS tienen éxito, actualiza el toast a "éxito"
         toast.success(
-          `¡Clases combinadas exitosamente! Los horarios se agregaron a "${existingClassOnEdit.name}".`
+          <span style={{ color: '#16a34a', fontWeight: 600 }}>
+            {`¡Clases combinadas exitosamente! Los horarios se agregaron a "${existingClassOnEdit.name}".`}
+          </span>,
+          {
+            className: 'bg-white border border-green-200',
+            unstyled: false,
+          }
         );
 
         setIsEditingClassDetails(false);
@@ -1018,10 +1132,17 @@ export default function HorariosPorClasePage() {
         const errorMessage = cleanErrorMessage(err); // <-- Tu función se usa aquí
 
         // 6. Actualiza el toast a "error" con el mensaje limpio
-        toast.error("Error al combinar clases", {
-          description: errorMessage,
-          duration: 8000,
-        });
+        toast.error(
+          <span style={{ color: '#dc2626' }}>
+            {toastMessages.editError}
+          </span>,
+          {
+            className: 'bg-white border border-red-200',
+            unstyled: false,
+            description: typeof errorMessage === 'string' ? errorMessage : undefined,
+            duration: 8000,
+          }
+        );
         // 7. El error se "captura" y no se propaga a la consola
       }
       // --- FIN DE LA CORRECCIÓN ---
@@ -1030,9 +1151,9 @@ export default function HorariosPorClasePage() {
     }
 
     // ✅ SI NO HAY DUPLICADO, ACTUALIZAR NORMALMENTE
-    // (Este toast.promise está bien, pero puedes cambiarlo también si quieres)
-    await toast.promise(
-      updateClassCatalog({
+    const loadingToast = toast.loading("Actualizando la información de la clase...");
+    try {
+      await updateClassCatalog({
         classCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
         schoolId: currentSchool.school._id as Id<"school">,
         schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
@@ -1043,20 +1164,35 @@ export default function HorariosPorClasePage() {
         name: data.name,
         status: data.status,
         updatedAt: Date.now(),
-      }),
-      {
-        loading: "Actualizando la información de la clase...",
-        success: () => {
-          setIsEditingClassDetails(false);
-          crudDialog.close();
-          return "Clase actualizada exitosamente.";
-        },
-        error: (error) => {
-          //console.error(" Error al actualizar:", error);
-          return cleanErrorMessage(error);
-        },
-      }
-    );
+      });
+      toast.dismiss(loadingToast);
+      setIsEditingClassDetails(false);
+      crudDialog.close();
+      // Toast personalizado con fondo blanco y texto verde
+      toast.success(
+        <span style={{ color: '#16a34a', fontWeight: 600 }}>
+          {toastMessages.editSuccess}
+        </span>,
+        {
+          className: 'bg-white border border-green-200',
+          unstyled: false,
+        }
+      );
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      //console.error(" Error al actualizar:", error);
+      const errorMessage = cleanErrorMessage(error);
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.editError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: typeof errorMessage === 'string' ? errorMessage : undefined
+        }
+      );
+    }
   } catch (error) {
     // Este catch es para errores generales ANTES del toast.promise
     // console.error("Error en la actualizacion de la clase:", error);
@@ -1065,23 +1201,37 @@ export default function HorariosPorClasePage() {
 };
 
   const handleDelete = async (id: string) => {
+    const loadingToast = toast.loading("Eliminando clase y horarios asociados...");
     try {
-      await toast.promise(
-        deleteClassAndSchedulesAction({
-          classCatalogId: id as Id<"classCatalog">,
-        }),
+      await deleteClassAndSchedulesAction({
+        classCatalogId: id as Id<"classCatalog">,
+      });
+      toast.dismiss(loadingToast);
+      // Toast de eliminación personalizado con icono de bote de basura
+      toast(
+        <span style={{ color: '#dc2626', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Trash2 className="h-4 w-4" style={{ color: '#dc2626' }} />
+          {toastMessages.deleteSuccess}
+        </span>,
         {
-          loading: "Eliminando clase y horarios asociados...",
-          success: "Clase y horarios eliminados exitosamente.",
-          error: "No se pudo completar la eliminación.",
+          className: 'bg-white border border-red-200 toast-red-text',
+          duration: 3000,
         }
       );
     } catch (error) {
+      toast.dismiss(loadingToast);
       // Mostrar el mensaje limpio en un toast y no retornar nada para mantener la firma Promise<void>
       const message = cleanErrorMessage(error);
-      toast.error("Error al eliminar la clase y sus horarios", {
-        description: message,
-      });
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.deleteError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: typeof message === 'string' ? message : undefined
+        }
+      );
     }
   };
 
@@ -2035,10 +2185,16 @@ export default function HorariosPorClasePage() {
                 handleCreateSubmit,
                 (errors) => {
                   console.error("Validation errors:", errors);
-                  toast.error("Por favor, revisa el formulario", {
-                    description:
-                      "Algunos campos tienen errores o están incompletos.",
-                  });
+                  toast.error(
+                    <span style={{ color: '#dc2626' }}>
+                      Por favor, revisa el formulario
+                    </span>,
+                    {
+                      className: 'bg-white border border-red-200',
+                      unstyled: false,
+                      description: "Algunos campos tienen errores o están incompletos.",
+                    }
+                  );
                 }
               )}
             >
@@ -2092,10 +2248,16 @@ export default function HorariosPorClasePage() {
                 handleCreateSubmit,
                 () => {
                   //console.error("Validation errors:", errors);
-                  toast.error("Por favor, revisa el formulario", {
-                    description:
-                      "Algunos campos tienen errores o están incompletos.",
-                  });
+                  toast.error(
+                    <span style={{ color: '#dc2626' }}>
+                      Por favor, revisa el formulario
+                    </span>,
+                    {
+                      className: 'bg-white border border-red-200',
+                      unstyled: false,
+                      description: "Algunos campos tienen errores o están incompletos.",
+                    }
+                  );
                 }
               )}
             >

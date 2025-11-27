@@ -86,6 +86,7 @@ import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { useUserActionsWithConvex } from "../../../../../stores/userActionsStore";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 
 
 // Tipo para los usuarios que vienen de Convex
@@ -300,6 +301,9 @@ export default function PersonalPage() {
     role: "teacher", // Valor por defecto
   });
 
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Personal");
+
   // Funciones wrapper para abrir diálogos con limpieza de errores
   const handleOpenCreate = () => {
     userActions.clearErrors();
@@ -513,7 +517,7 @@ export default function PersonalPage() {
             department: undefined,
           });
 
-          toast.success("Usuario creado exitosamente");
+          //   El toast de asignación se mantiene manual, pero el de creación lo maneja CrudDialog
         } catch (error) {
           console.error("Error al asignar usuario:", error);
           throw new Error(
@@ -610,7 +614,7 @@ export default function PersonalPage() {
       });
 
       console.log("✅ Actualización completada exitosamente");
-      toast.success("Usuario actualizado exitosamente");
+      // Los toasts ahora los maneja el CrudDialog automáticamente
 
     } catch (error) {
       console.error("❌ Error en handleUpdate:", error);
@@ -1346,6 +1350,8 @@ export default function PersonalPage() {
         isLoading={isLoading}
         isSubmitting={userActions.isCreating || userActions.isUpdating}
         isDeleting={userActions.isDeleting}
+        toastMessages={toastMessages}
+        disableDefaultToasts={false}
       >
         {(form, currentOperation) => (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -10,6 +10,7 @@ import {
   School,
   Calendar as CalendarIcon,
 } from "@repo/ui/icons";
+import { Trash2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -38,6 +39,7 @@ import { EventType } from "@/types/eventType";
 import EventTypeDialog from "components/dialog/EventTypeDialog";
 import { usePermissions } from "hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 
 interface TipoEventoConfig {
   id: GenericId<"eventType">;
@@ -131,6 +133,9 @@ export default function CalendarioEscolar() {
     canDeleteCalendar,
   } = usePermissions(currentSchool?.school._id);
 
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Evento");
+
   const handleEventAdd = async (event: CalendarEvent) => {
     // Estas IDs vienen del 'handleSave' en el modal (que arreglaremos en el Paso 3)
     const { title, description, start, end, allDay, location, eventTypeId } =
@@ -139,7 +144,15 @@ export default function CalendarioEscolar() {
     const schoolCycleId = filtroCicloEscolarId; // Tomamos el ciclo del filtro
 
     if (!schoolId || !schoolCycleId || !eventTypeId) {
-      toast.error("Faltan datos para crear el evento (escuela, ciclo o tipo).");
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          Faltan datos para crear el evento (escuela, ciclo o tipo).
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+        }
+      );
       return;
     }
 
@@ -155,9 +168,28 @@ export default function CalendarioEscolar() {
         location,
         eventTypeId: eventTypeId as Id<"eventType">,
       });
-      toast.success(`Evento "${title}" creado`);
+      // Toast personalizado con fondo blanco y texto verde
+      toast.success(
+        <span style={{ color: '#16a34a', fontWeight: 600 }}>
+          {toastMessages.createSuccess}
+        </span>,
+        {
+          className: 'bg-white border border-green-200',
+          unstyled: false,
+        }
+      );
     } catch (error) {
-      toast.error("Error al crear el evento.");
+      // Toast de error personalizado
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.createError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: error instanceof Error ? error.message : undefined
+        }
+      );
       console.error(error);
     }
   };
@@ -184,9 +216,28 @@ export default function CalendarioEscolar() {
         schoolCycleId: originalEvent.schoolCycleId,
         status: originalEvent.status,
       });
-      toast.info(`Evento "${event.title}" actualizado`);
+      // Toast personalizado con fondo blanco y texto verde
+      toast.success(
+        <span style={{ color: '#16a34a', fontWeight: 600 }}>
+          {toastMessages.editSuccess}
+        </span>,
+        {
+          className: 'bg-white border border-green-200',
+          unstyled: false,
+        }
+      );
     } catch (error) {
-      toast.error("Error al actualizar el evento.");
+      // Toast de error personalizado
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.editError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: error instanceof Error ? error.message : undefined
+        }
+      );
       console.error(error);
     }
   };
@@ -200,9 +251,29 @@ export default function CalendarioEscolar() {
         schoolId: schoolId as Id<"school">,
         eventId: eventId as Id<"calendar">,
       });
-      toast.success("Evento eliminado");
+      // Toast de eliminación personalizado con icono de bote de basura
+      toast(
+        <span style={{ color: '#dc2626', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Trash2 className="h-4 w-4" style={{ color: '#dc2626' }} />
+          {toastMessages.deleteSuccess}
+        </span>,
+        {
+          className: 'bg-white border border-red-200 toast-red-text',
+          duration: 3000,
+        }
+      );
     } catch (error) {
-      toast.error("Error al eliminar el evento.");
+      // Toast de error personalizado
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.deleteError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: error instanceof Error ? error.message : undefined
+        }
+      );
       console.error(error);
     }
   };

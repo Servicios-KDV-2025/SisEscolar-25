@@ -17,7 +17,8 @@ import { useUser } from "@clerk/nextjs";
 import { useCurrentSchool } from "stores/userSchoolsStore";
 import { useMutation } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
-import { toast } from "sonner";
+import { toast } from "@repo/ui/sonner";
+import { useCrudToastMessages } from "../../../../hooks/useCrudToastMessages";
 import { useForm, UseFormRegister, FieldError } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
@@ -45,6 +46,9 @@ export default function ConfiguracionPage() {
     canUpdatePerfilInstitucional,
     isLoading: permissionsLoading
   } = usePermissions(currentSchool?.school._id);
+
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Perfil Institucional");
 
   const {
     register,
@@ -74,9 +78,28 @@ export default function ConfiguracionPage() {
         ...data,
       });
       setIsEditing(false);
-      toast.success("Perfil de la institución actualizado con éxito.");
+      // Toast personalizado con fondo blanco y texto verde
+      toast.success(
+        <span style={{ color: '#16a34a', fontWeight: 600 }}>
+          {toastMessages.editSuccess}
+        </span>,
+        {
+          className: 'bg-white border border-green-200',
+          unstyled: false,
+        }
+      );
     } catch (err) {
-      toast.error("Error al guardar los cambios." + err);
+      // Toast de error personalizado
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.editError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: err instanceof Error ? err.message : undefined
+        }
+      );
     } finally {
       setIsSaving(false);
     }

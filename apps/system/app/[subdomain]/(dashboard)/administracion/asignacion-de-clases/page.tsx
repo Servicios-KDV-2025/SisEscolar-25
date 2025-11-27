@@ -22,7 +22,6 @@ import { useUserWithConvex } from "stores/userStore"
 import { useCurrentSchool } from "stores/userSchoolsStore"
 import { StudentClassDto, studentClassSchema } from "schema/studentClassSchema"
 import { StudentClasses } from "@/types/studentClass"
-import { parseConvexErrorMessage } from "lib/parseConvexErrorMessage"
 import { SelectPopover } from "../../../../../components/selectPopover"
 import { Student } from "@/types/student"
 import { usePermissions } from 'hooks/usePermissions'
@@ -30,6 +29,7 @@ import { type ClassCatalogWithDetails, useClassCatalogWithPermissions } from 'st
 import { useCicloEscolarWithConvex } from 'stores/useSchoolCiclesStore'
 import { ChartNoAxesCombined } from 'lucide-react'
 import MassAssignmentStudets from "components/classAssignment/MassAssignmentStudents"
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 
 export default function StudentClassesDashboard() {
   const { user: clerkUser } = useUser();
@@ -112,6 +112,9 @@ export default function StudentClassesDashboard() {
     averageScore: 0,
   });
 
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Asignación de Clase");
+
   useEffect(() => {
     const activeSchoolYear = schoolYears?.find(year => year.status === "active");
     setSchoolYearFilter(activeSchoolYear?.name || "all");
@@ -161,47 +164,36 @@ export default function StudentClassesDashboard() {
 
     const validatedValues = values as StudentClassDto
 
-    try {
-      if (operation === 'create') {
-        await createEnrollment({
-          schoolId: currentSchool?.school._id as Id<"school">,
-          classCatalogId: validatedValues.classCatalogId as Id<"classCatalog">,
-          studentId: validatedValues.studentId as Id<"student">,
-          enrollmentDate: new Date(validatedValues.enrollmentDate).getTime(),
-          status: "active",
-          averageScore: validatedValues.averageScore
-        })
-        toast.success("Creado correctamente")
-      } else if (operation === 'edit') {
-        await updateEnrollment({
-          _id: validatedValues._id as Id<"studentClass">,
-          schoolId: currentSchool?.school._id as Id<"school">,
-          classCatalogId: validatedValues.classCatalogId as Id<"classCatalog">,
-          studentId: validatedValues.studentId as Id<"student">,
-          enrollmentDate: new Date(validatedValues.enrollmentDate as string).getTime(),
-          status: validatedValues.status,
-          averageScore: validatedValues.averageScore || 0
-        })
-        toast.info("Actualizado correctamente")
-      } else {
-        throw new Error('Operación no válida')
-      }
-      close()
-    } catch (err) {
-      const cleanMessage = parseConvexErrorMessage(err)
-      toast.error("Error", { description: cleanMessage })
+    if (operation === 'create') {
+      await createEnrollment({
+        schoolId: currentSchool?.school._id as Id<"school">,
+        classCatalogId: validatedValues.classCatalogId as Id<"classCatalog">,
+        studentId: validatedValues.studentId as Id<"student">,
+        enrollmentDate: new Date(validatedValues.enrollmentDate).getTime(),
+        status: "active",
+        averageScore: validatedValues.averageScore
+      })
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
+    } else if (operation === 'edit') {
+      await updateEnrollment({
+        _id: validatedValues._id as Id<"studentClass">,
+        schoolId: currentSchool?.school._id as Id<"school">,
+        classCatalogId: validatedValues.classCatalogId as Id<"classCatalog">,
+        studentId: validatedValues.studentId as Id<"student">,
+        enrollmentDate: new Date(validatedValues.enrollmentDate as string).getTime(),
+        status: validatedValues.status,
+        averageScore: validatedValues.averageScore || 0
+      })
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
+    } else {
+      throw new Error('Operación no válida')
     }
+    close()
   }
 
   const handleDelete = async (id: string) => {
-    try {
-      await deleteEnrollment({ id: id as Id<"studentClass">, schoolId: currentSchool?.school?._id as Id<"school"> })
-      toast.success('Eliminado correctamente')
-      close()
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al eliminar la asignación'
-      toast.error(errorMessage)
-    }
+    await deleteEnrollment({ id: id as Id<"studentClass">, schoolId: currentSchool?.school?._id as Id<"school"> })
+    //   Los toasts ahora los maneja el CrudDialog automáticamente
   }
 
   function mapEnrollmentToFormValues(enrollment: StudentClasses) {
@@ -809,6 +801,8 @@ export default function StudentClassesDashboard() {
               onOpenChange={close}
               onSubmit={handleSubmit}
               onDelete={handleDelete}
+              toastMessages={toastMessages}
+              disableDefaultToasts={false}
             >
               {(form, operation) => (
                 <div className="space-y-6">

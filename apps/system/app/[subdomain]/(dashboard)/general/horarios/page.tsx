@@ -50,6 +50,7 @@ import {
 import { useState, useMemo } from "react";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 
 type FilterType = "all" | "active" | "inactive";
 
@@ -113,6 +114,9 @@ export default function SchedulePage() {
     status: "active",
   });
 
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Horario");
+
   // Ejemplo: crear un horario rapido
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!currentSchool?.school._id) {
@@ -122,36 +126,29 @@ export default function SchedulePage() {
 
     const value = values as ScheduleFormData;
 
-    try {
-      if (operation === "create") {
-        await createSchedule({
-          schoolId: currentSchool.school._id,
-          name: value.name as string,
-          day: value.day as "lun." | "mar." | "mié." | "jue." | "vie.",
-          startTime: value.startTime as string,
-          endTime: value.endTime as string,
-          status: value.status as "active" | "inactive",
-          updatedAt: Date.now(),
-        });
-        toast.success("Horario creado exitosamente");
-      } else if (operation === "edit" && data?._id) {
-        await updateSchedule({
-          id: data._id,
-          schoolId: currentSchool.school._id,
-          name: value.name as string,
-          day: value.day as "lun." | "mar." | "mié." | "jue." | "vie.",
-          startTime: value.startTime as string,
-          endTime: value.endTime as string,
-          status: value.status as "active" | "inactive",
-          updatedAt: Date.now(),
-        });
-        toast.info("Horario actualizado exitosamente");
-      }
-    } catch (error) {
-      console.error("Error en operación CRUD:", error);
-
-      close();
-      throw error;
+    if (operation === "create") {
+      await createSchedule({
+        schoolId: currentSchool.school._id,
+        name: value.name as string,
+        day: value.day as "lun." | "mar." | "mié." | "jue." | "vie.",
+        startTime: value.startTime as string,
+        endTime: value.endTime as string,
+        status: value.status as "active" | "inactive",
+        updatedAt: Date.now(),
+      });
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
+    } else if (operation === "edit" && data?._id) {
+      await updateSchedule({
+        id: data._id,
+        schoolId: currentSchool.school._id,
+        name: value.name as string,
+        day: value.day as "lun." | "mar." | "mié." | "jue." | "vie.",
+        startTime: value.startTime as string,
+        endTime: value.endTime as string,
+        status: value.status as "active" | "inactive",
+        updatedAt: Date.now(),
+      });
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
     }
   };
 
@@ -161,13 +158,8 @@ export default function SchedulePage() {
       return;
     }
 
-    try {
-      await deleteSchedule(id, currentSchool.school._id);
-      toast.success("Eliminado correctamente");
-    } catch (error) {
-      console.error("Error al eliminar horario:", error);
-      throw error;
-    }
+    await deleteSchedule(id, currentSchool.school._id);
+    //   Los toasts ahora los maneja el CrudDialog automáticamente
   };
 
   if (isLoading) {
@@ -488,6 +480,8 @@ export default function SchedulePage() {
             onDelete={handleDelete}
             deleteConfirmationTitle="¿Eliminar periodo?"
             deleteConfirmationDescription="Esta acción no se puede deshacer. El periodo será eliminado permanentemente."
+            toastMessages={toastMessages}
+            disableDefaultToasts={false}
           >
             {(form, operation) => (
               <div className="space-y-4">
