@@ -569,7 +569,7 @@ export const countryOptions = [
   },
   {
     label: 'Mexico',
-    value: 'MX',
+    value: 'MXN',
   },
   {
     label: 'Micronesia, Federated States of',

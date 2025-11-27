@@ -1,12 +1,13 @@
+"use node";
+
 import { v } from "convex/values";
-import { action, internalMutation, internalQuery } from "../_generated/server";
-import { internal } from "../_generated/api";
-import { Id } from "../_generated/dataModel";
+import { action} from "../../_generated/server";
+import { internal } from "../../_generated/api";
+import { Id } from "../../_generated/dataModel";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  // apiVersion: "2025-07-30.basil",
-  apiVersion: "2025-09-30.clover",
+  apiVersion: "2025-10-29.clover",
 });
 
 // Crear una Checkout Session para pago con tarjeta
@@ -24,7 +25,7 @@ export const createCheckoutSession = action({
   },
   handler: async (ctx, args): Promise<{ sessionId: string; url: string | null }> => {
     // Obtener la escuela y su cuenta conectada
-    const school = await ctx.runQuery(internal.functions.stripeConnect.getSchoolForConnect, {
+    const school = await ctx.runQuery(internal.functions.schools.getSchoolForConnect, {
       schoolId: args.schoolId,
     });
 
@@ -95,7 +96,7 @@ export const createDirectTransfer = action({
     description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const school = await ctx.runQuery(internal.functions.stripeConnect.getSchoolForConnect, {
+    const school = await ctx.runQuery(internal.functions.schools.getSchoolForConnect, {
       schoolId: args.schoolId,
     });
 
@@ -124,154 +125,6 @@ export const createDirectTransfer = action({
   },
 });
 
-// Confirmar un pago después de que se complete
-export const confirmPayment = internalMutation({
-  args: {
-    paymentIntentId: v.string(),
-    billingId: v.id("billing"),
-    studentId: v.id("student"),
-    amount: v.number(),
-    createdBy: v.id("user"),
-    stripeChargeId: v.optional(v.string()),
-    stripeTransferId: v.optional(v.string()),
-    paymentMethod: v.optional(v.union(v.literal("cash"), v.literal("bank_transfer"), v.literal("card"), v.literal("other"))),
-  },
-  handler: async (ctx, args) => {
-    console.log("💾 confirmPayment - Iniciando...");
-    console.log("   paymentIntentId:", args.paymentIntentId);
-    console.log("   billingId:", args.billingId);
-    console.log("   studentId:", args.studentId);
-    console.log("   amount:", args.amount);
-    console.log("   createdBy:", args.createdBy);
-    console.log("   paymentMethod:", args.paymentMethod || "card (default)");
-
-    const now = Date.now();
-
-    // Obtener el billing actual
-    console.log("🔍 Buscando billing...");
-    const billing = await ctx.db.get(args.billingId);
-    if (!billing) {
-      console.error("❌ Registro de cobro no encontrado:", args.billingId);
-      throw new Error("Registro de cobro no encontrado");
-    }
-    console.log("✅ Billing encontrado:", billing._id);
-    console.log("   Status actual:", billing.status);
-    console.log("   Amount:", billing.amount);
-    console.log("   Total amount:", billing.totalAmount);
-
-    // Obtener el estudiante
-    console.log("🔍 Buscando estudiante...");
-    const student = await ctx.db.get(args.studentId);
-    if (!student) {
-      console.error("❌ Estudiante no encontrado:", args.studentId);
-      throw new Error("Estudiante no encontrado");
-    }
-    console.log("✅ Estudiante encontrado:", student._id);
-    console.log("   Credit actual:", student.credit || 0);
-
-    // 🚨 NUEVA VERIFICACIÓN: Verificar si ya existe un pago con este Payment Intent
-    console.log("🔍 Verificando si ya existe un pago con este Payment Intent...");
-    const existingPayment = await ctx.db
-      .query("payments")
-      .filter((q) => q.eq(q.field("stripePaymentIntentId"), args.paymentIntentId))
-      .first();
-
-    if (existingPayment) {
-      console.log("⚠️ Ya existe un pago con este Payment Intent:", existingPayment._id);
-      console.log("   Payment Intent ID:", args.paymentIntentId);
-      console.log("   Pago existente ID:", existingPayment._id);
-      console.log("   Monto existente:", existingPayment.amount);
-      console.log("   Fecha existente:", new Date(existingPayment.createdAt).toISOString());
-      
-      // Retornar el pago existente sin crear uno nuevo
-      return {
-        success: true,
-        paymentId: existingPayment._id,
-        newStatus: billing.status, // Status actual del billing
-        message: "Pago ya procesado anteriormente"
-      };
-    }
-
-    console.log("✅ No existe pago previo, procediendo a crear nuevo registro");
-
-    // Crear el registro de pago con información de Stripe
-    console.log("💳 Creando registro de pago...");
-    const paymentId = await ctx.db.insert("payments", {
-      billingId: args.billingId,
-      studentId: args.studentId,
-      method: args.paymentMethod || "card", // Usar el método detectado o default a card
-      amount: args.amount,
-      createdBy: args.createdBy,
-      stripePaymentIntentId: args.paymentIntentId,
-      stripeChargeId: args.stripeChargeId,
-      stripeTransferId: args.stripeTransferId,
-      createdAt: now,
-      updatedAt: now,
-    });
-    console.log("✅ Pago registrado con ID:", paymentId);
-
-    // Actualizar el billing (misma lógica que processPayment existente)
-    const previousTotalAmount = billing.totalAmount || billing.amount;
-    const newTotalAmount = previousTotalAmount - args.amount;
-    console.log("📊 Calculando nuevo total:");
-    console.log("   Previous total:", previousTotalAmount);
-    console.log("   Pago:", args.amount);
-    console.log("   New total:", newTotalAmount);
-
-    let newStatus: typeof billing.status;
-    let paidAt: number | undefined;
-    let creditToAdd = 0;
-
-    if (newTotalAmount === 0) {
-      newStatus = "Pago cumplido";
-      paidAt = now;
-      console.log("✅ Pago completado exacto");
-    } else if (newTotalAmount < 0) {
-      newStatus = "Pago cumplido";
-      paidAt = now;
-      creditToAdd = Math.abs(newTotalAmount);
-      console.log("✅ Pago completado con crédito extra:", creditToAdd);
-    } else {
-      newStatus = "Pago parcial";
-      paidAt = undefined;
-      console.log("⚠️ Pago parcial, falta:", newTotalAmount);
-    }
-
-    console.log("📝 Actualizando billing...");
-    await ctx.db.patch(args.billingId, {
-      status: newStatus,
-      totalAmount: Math.max(0, newTotalAmount),
-      paidAt: paidAt,
-      updatedAt: now,
-    });
-    console.log("✅ Billing actualizado - Nuevo status:", newStatus);
-
-    // Actualizar el credit del estudiante
-    const currentCredit = student.credit || 0;
-    const newCredit = currentCredit + creditToAdd;
-
-    if (creditToAdd > 0) {
-      console.log("💰 Actualizando crédito del estudiante:");
-      console.log("   Crédito anterior:", currentCredit);
-      console.log("   Crédito a agregar:", creditToAdd);
-      console.log("   Nuevo crédito:", newCredit);
-      
-      await ctx.db.patch(args.studentId, {
-        credit: newCredit,
-        updatedAt: now,
-      });
-      console.log("✅ Crédito actualizado");
-    }
-
-    console.log("✅ confirmPayment - Completado exitosamente");
-    return {
-      success: true,
-      paymentId,
-      newStatus,
-    };
-  },
-});
-
 // Crear un Payment Intent para pagos con tarjeta directos
 export const createPaymentIntent = action({
   args: {
@@ -288,7 +141,7 @@ export const createPaymentIntent = action({
   },
   handler: async (ctx, args) => {
     // Obtener la escuela y su cuenta conectada
-    const school = await ctx.runQuery(internal.functions.stripeConnect.getSchoolForConnect, {
+    const school = await ctx.runQuery(internal.functions.schools.getSchoolForConnect, {
       schoolId: args.schoolId,
     });
 
@@ -337,7 +190,7 @@ export const createPaymentIntentWithSPEI = action({
     customerName: v.string(),
   },
   handler : async (ctx, args) => {
-    const school = await ctx.runQuery(internal.functions.stripeConnect.getSchoolForConnect, {
+    const school = await ctx.runQuery(internal.functions.schools.getSchoolForConnect, {
       schoolId: args.schoolId,
     });
 
@@ -418,7 +271,7 @@ export const createPaymentIntentWithOXXO = action({
     customerName: v.string(),
   },
   handler: async (ctx, args) => {
-    const school = await ctx.runQuery(internal.functions.stripeConnect.getSchoolForConnect, {
+    const school = await ctx.runQuery(internal.functions.schools.getSchoolForConnect, {
       schoolId: args.schoolId,
     });
 
@@ -487,29 +340,6 @@ export const createPaymentIntentWithOXXO = action({
   }
 });
 
-// Internal queries para acceder a la DB desde actions
-export const getStudentWithTutor = internalQuery({
-  args: { studentId: v.id("student") },
-  handler: async (ctx, args) => {
-    const student = await ctx.db.get(args.studentId);
-    if (!student) return null;
-    
-    const tutor = await ctx.db.get(student.tutorId);
-    return { student, tutor };
-  },
-});
-
-export const getBillingWithConfig = internalQuery({
-  args: { billingId: v.id("billing") },
-  handler: async (ctx, args) => {
-    const billing = await ctx.db.get(args.billingId);
-    if (!billing) return null;
-    
-    const billingConfig = await ctx.db.get(billing.billingConfigId);
-    return { billing, billingConfig };
-  },
-});
-
 // Registrar pago en efectivo usando Stripe Invoices (sin comisión)
 export const registerCashPaymentWithInvoice = action({
   args: {
@@ -533,7 +363,7 @@ export const registerCashPaymentWithInvoice = action({
     console.log("💵 registerCashPaymentWithInvoice - Iniciando...");
 
     // Obtener la escuela y su cuenta conectada
-    const school = await ctx.runQuery(internal.functions.stripeConnect.getSchoolForConnect, {
+    const school = await ctx.runQuery(internal.functions.schools.getSchoolForConnect, {
       schoolId: args.schoolId,
     });
 
@@ -546,7 +376,7 @@ export const registerCashPaymentWithInvoice = action({
     }
 
     // Obtener información del estudiante y tutor
-    const studentData = await ctx.runQuery(internal.functions.stripePayments.getStudentWithTutor, {
+    const studentData = await ctx.runQuery(internal.functions.payments.getStudentWithTutor, {
       studentId: args.studentId,
     });
     if (!studentData) {
@@ -555,7 +385,7 @@ export const registerCashPaymentWithInvoice = action({
     const { student, tutor } = studentData;
 
     // Obtener información del billing y config
-    const billingData = await ctx.runQuery(internal.functions.stripePayments.getBillingWithConfig, {
+    const billingData = await ctx.runQuery(internal.functions.payments.getBillingWithConfig, {
       billingId: args.billingId,
     });
     if (!billingData) {
@@ -704,7 +534,7 @@ export const registerCashPaymentWithInvoice = action({
     }
 
     // 6. Registrar en la base de datos
-    const result = await ctx.runMutation(internal.functions.stripePayments.confirmPayment, {
+    const result = await ctx.runMutation(internal.functions.payments.confirmPayment, {
       paymentIntentId: paidInvoice.id, // Usar el invoice ID
       billingId: args.billingId,
       studentId: args.studentId,

@@ -31,8 +31,10 @@
   "dependencies": {
     "@clerk/backend": "^2.6.0",
     "convex": "^1.25.4",
+    "date-fns-tz": "^3.2.0",
+    "facturapi": "^4.10.0",
     "resend": "^6.0.1",
-    "stripe": "^19.1.0",
+    "stripe": "^19.3.0",
     "svix": "^1.69.0"
   }
 }

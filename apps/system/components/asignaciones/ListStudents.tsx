@@ -86,23 +86,23 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
   const students = useQuery(
     api.functions.student.getStudentWithClasses,
     assignmentDetails?.classCatalog._id && currentUser
-      ? { 
-          classCatalogId: assignmentDetails?.classCatalog._id as Id<"classCatalog">,
-          canViewAll: true,
-          teacherId: currentUser._id
-        }
+      ? {
+        classCatalogId: assignmentDetails?.classCatalog._id as Id<"classCatalog">,
+        canViewAll: true,
+        teacherId: currentUser._id
+      }
       : "skip"
   )
 
   const grades = useQuery(
     api.functions.grades.getGradesByAssignment,
-    assignmentDetails?.assignment._id 
-      ? {assignmentId: assignmentDetails.assignment._id as Id<'assignment'>}
+    assignmentDetails?.assignment._id
+      ? { assignmentId: assignmentDetails.assignment._id as Id<'assignment'> }
       : 'skip'
   )
 
   useEffect(() => {
-    if(open && students && grades && !isInitialized) {
+    if (open && students && grades && !isInitialized) {
       const initialData: Record<string, GradeData> = {}
       const initialEditState: Record<string, EditState> = {}
 
@@ -130,7 +130,7 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
   }, [open, students, grades, isInitialized])
 
   useEffect(() => {
-    if(!open) {
+    if (!open) {
       setIsInitialized(false)
       setGradesData({})
       setEditingState({})
@@ -145,7 +145,7 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
     setGradesData(prev => {
       const currentStudentData = prev[studentClassId] || createEmptyGradeData(studentClassId)
 
-      if(!currentStudentData) {
+      if (!currentStudentData) {
         return {
           ...prev,
           [studentClassId]: {
@@ -174,7 +174,7 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
   }
 
   // Funcion para abrir el modal de comentarios
-  const openCommentsModal = (studentClassId: Id<'studentClass'>, studentName: string, currentComments: string ) => {
+  const openCommentsModal = (studentClassId: Id<'studentClass'>, studentName: string, currentComments: string) => {
     setCommentModal({
       isOpen: true,
       studentClassId,
@@ -195,7 +195,7 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
 
   // Función para guardar comentarios desde el modal
   const handleSaveComments = () => {
-    if(commentsModal.studentClassId) {
+    if (commentsModal.studentClassId) {
       handleGradeChange(commentsModal.studentClassId, 'comments', commentsModal.currentComments)
     }
     closeCommentsModal()
@@ -244,28 +244,28 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
   }
 
   const handleSaveGrades = async () => {
-    if(!currentUser || !assignmentDetails) return
+    if (!currentUser || !assignmentDetails) return
 
     setIsSaving(true)
-    try{
+    try {
       const gradesToSave = Object.values(gradesData).filter(gradeData => gradeData.score.trim() !== '')
 
-      if(gradesToSave.length === 0) {
+      if (gradesToSave.length === 0) {
         toast.info('No hay calificaciones para guardar')
         return
       }
 
       const promises = gradesToSave.map(async (gradeData) => {
         const score = parseFloat(gradeData.score)
-        if(isNaN(score)) {
+        if (isNaN(score)) {
           console.warn('Calificación invalida')
           toast.warning(`Calificación invalida para estudiante: ${gradeData.score}`)
-          return  
+          return undefined
         }
 
         if (score > assignmentDetails.assignment.maxScore) {
           toast.error(`La calificación ${score} excede el máximo permitido (${assignmentDetails.assignment.maxScore})`)
-          return
+          return undefined
         }
 
         await upsertGrade({
@@ -275,17 +275,18 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
           comments: gradeData.comments,
           registeredById: currentUser._id
         })
+        return true
       })
 
       const result = await Promise.all(promises)
       const successfullSeves = result.filter(result => result !== undefined).length
-      if(successfullSeves) {
+      if (successfullSeves) {
         toast.success(`calificación(es) guardada(s) correctamente`)
       }
-      
+
       close(false) // Cerrar el dialog despies de guardar
-    } catch (error){
-      console.error('Error al guaradar las calificaciones: ',error)
+    } catch (error) {
+      console.error('Error al guaradar las calificaciones: ', error)
       toast.error('Error al guardar las calificaciones')
     } finally {
       setIsSaving(false)
@@ -304,8 +305,8 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
     const isEditing = editingState[studentClassId]?.score || false
     const existingGrade = getGrade(studentClassId)
 
-    if(isEditing) {
-      return(
+    if (isEditing) {
+      return (
         <div className="flex items-center ">
           <Input
             type="number"
@@ -370,6 +371,29 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
     )
   }
 
+  const renderStatusField = (studentClassId: Id<'studentClass'>) => {
+    const status = getSubmissionStatus(studentClassId)
+
+    return (
+      <Tooltip>
+        <TooltipTrigger>
+          <span className={`px-2 py-1 rounded-full text-xs ${status === 'Entregado'
+            ? 'bg-green-100 text-green-800'
+            : 'bg-red-100 text-red-800'
+            }`}>
+            {status}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          {status === 'Entregado'
+            ? 'El estudiante ha entregado la asignación'
+            : 'El estudiante no ha entregado la asignación'
+          }
+        </TooltipContent>
+      </Tooltip>
+    )
+  }
+
   return (
     <>
       <Dialog open={open} onOpenChange={close}>
@@ -408,8 +432,6 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
             </TableHeader>
             <TableBody>
               {students?.map((student) => {
-                const status = getSubmissionStatus(student._id)
-
                 const currentScore = getSafeValue(student._id, 'score')
                 const currentComments = getSafeValue(student._id, 'comments')
                 const studentName = `${student.student?.name} ${student.student?.lastName || ''}`.trim()
@@ -420,20 +442,14 @@ export default function ListStudents({ open, close, assignmentDetails }: DialogP
                   >
                     <TableCell>
                       <div className="font-medium">
-                        {student.student?.name} {student.student?.lastName || ''} 
+                        {student.student?.name} {student.student?.lastName || ''}
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {student.student?.enrollment}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        status === 'Entregado'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                      }`}>
-                        {status}
-                      </span>
+                      {renderStatusField(student._id)}
                     </TableCell>
                     <TableCell>
                       {renderScoreField(student._id, currentScore)}
