@@ -24,6 +24,7 @@ import { useUserWithConvex } from "../../../../../stores/userStore";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
@@ -193,6 +194,9 @@ export default function AlumnosPage() {
     openDelete,
     close,
   } = useCrudDialog(studentSchema, defaultValues);
+
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Alumno");
 
   // Aplicar filtros cuando cambien
   useEffect(() => {
@@ -583,40 +587,6 @@ export default function AlumnosPage() {
   ) : (
     <div className="space-y-8 p-6">
 
-        {/* Mostrar alerta cuando no hay datos necesarios para crear estudiantes */}
-        {canCreateUsersAlumnos && (!groups?.length || !tutors?.length || !activeCycle) && (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {/*Oct30: Se muestra mensaje de alerta para distintos escenarios (se agrega el del ciclo escolar activo) */}
-              {!groups?.length && !tutors?.length && !activeCycle
-                ? "No se pueden crear estudiantes porque no hay grupos, tutores disponibles ni un ciclo escolar activo. Debes crear grupos, asignar tutores y activar un ciclo escolar primero."
-                : !groups?.length && !tutors?.length
-                  ? "No se pueden crear estudiantes porque no hay grupos ni tutores disponibles. Debes crear grupos y asignar tutores primero."
-                  : !groups?.length && !activeCycle
-                    ? "No se pueden crear estudiantes porque no hay grupos disponibles ni un ciclo escolar activo. Debes crear grupos y activar un ciclo escolar primero."
-                    : !tutors?.length && !activeCycle
-                      ? "No se pueden crear estudiantes porque no hay tutores disponibles ni un ciclo escolar activo. Debes asignar tutores y activar un ciclo escolar primero."
-                      : !groups?.length
-                        ? "No se pueden crear estudiantes porque no hay grupos disponibles. Debes crear grupos primero."
-                        : !tutors?.length
-                          ? "No se pueden crear estudiantes porque no hay tutores disponibles. Debes asignar tutores a esta escuela primero."
-                          : "No se pueden crear estudiantes porque no hay un ciclo escolar activo. Debes activar un ciclo escolar primero."
-              }
-            </AlertDescription>
-          </Alert>
-        )}
-
-      {/* Información de permisos */}
-      {(isTutor || isTeacher) && !isSuperAdmin && !isAdmin && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {isTutor && "Como tutor, solo puedes ver los estudiantes que tienes asignados."}
-            {isTeacher && "Como maestro, solo puedes ver los estudiantes de las materias que impartes."}
-          </AlertDescription>
-        </Alert>
-      )}
 
         {/* Header */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-background border">
@@ -636,27 +606,6 @@ export default function AlumnosPage() {
                   </div>
                 </div>
               </div>
-              {canCreateUsersAlumnos && (
-                <Button
-                  size="lg"
-                  className="gap-2 bg-blue-600 hover:bg-blue-700"
-                  onClick={openCreate}
-                  disabled={isCreating || !currentSchool || !groups?.length || !tutors?.length || !activeCycle}
-                  title={
-                    !groups?.length ? "No hay grupos disponibles" :
-                      !tutors?.length ? "No hay tutores disponibles" :
-                        !activeCycle ? "No hay un ciclo escolar activo" :
-                          !currentSchool ? "No hay escuela seleccionada" : ""
-                  }
-                >
-                  {isCreating ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Plus className="w-4 h-4" />
-                  )}
-                  {isCreating ? "Creando..." : "Agregar Alumno"}
-                </Button>
-              )}
             </div>
           </div>
         </div>
@@ -739,18 +688,80 @@ export default function AlumnosPage() {
           </div>
         </CardContent>
       </Card>
+                    {/* Mostrar alerta cuando no hay datos necesarios para crear estudiantes */}
+        {canCreateUsersAlumnos && (!groups?.length || !tutors?.length || !activeCycle) && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {/*Oct30: Se muestra mensaje de alerta para distintos escenarios (se agrega el del ciclo escolar activo) */}
+              {!groups?.length && !tutors?.length && !activeCycle
+                ? "No se pueden crear estudiantes porque no hay grupos, tutores disponibles ni un ciclo escolar activo. Debes crear grupos, asignar tutores y activar un ciclo escolar primero."
+                : !groups?.length && !tutors?.length
+                  ? "No se pueden crear estudiantes porque no hay grupos ni tutores disponibles. Debes crear grupos y asignar tutores primero."
+                  : !groups?.length && !activeCycle
+                    ? "No se pueden crear estudiantes porque no hay grupos disponibles ni un ciclo escolar activo. Debes crear grupos y activar un ciclo escolar primero."
+                    : !tutors?.length && !activeCycle
+                      ? "No se pueden crear estudiantes porque no hay tutores disponibles ni un ciclo escolar activo. Debes asignar tutores y activar un ciclo escolar primero."
+                      : !groups?.length
+                        ? "No se pueden crear estudiantes porque no hay grupos disponibles. Debes crear grupos primero."
+                        : !tutors?.length
+                          ? "No se pueden crear estudiantes porque no hay tutores disponibles. Debes asignar tutores a esta escuela primero."
+                          : "No se pueden crear estudiantes porque no hay un ciclo escolar activo. Debes activar un ciclo escolar primero."
+              }
+            </AlertDescription>
+          </Alert>
+        )}
+
+      {/* Información de permisos */}
+      {(isTutor || isTeacher) && !isSuperAdmin && !isAdmin && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {isTutor && "Como tutor, solo puedes ver los estudiantes que tienes asignados."}
+            {isTeacher && "Como maestro, solo puedes ver los estudiantes de las materias que impartes."}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Tabla de Alumnos */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Lista de Alumnos</span>
-            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-              {filteredStudents.length > 0 ? filteredStudents.length : students.length} estudiantes
-            </Badge>
-          </CardTitle>
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <CardTitle>
+              <div className="flex flex-col gap-2">
+                <span>Lista de Alumnos</span>
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 w-fit">
+                  {filteredStudents.length > 0 ? filteredStudents.length : students.length} estudiantes
+                </Badge>
+              </div>
+            </CardTitle>
+            
+            {canCreateUsersAlumnos && (
+              <div className="w-full md:w-auto">
+                <Button
+                  size="lg"
+                  className="gap-2 bg-blue-600 hover:bg-blue-700 w-full md:w-auto"
+                  onClick={openCreate}
+                  disabled={isCreating || !currentSchool || !groups?.length || !tutors?.length || !activeCycle}
+                  title={
+                    !groups?.length ? "No hay grupos disponibles" :
+                      !tutors?.length ? "No hay tutores disponibles" :
+                        !activeCycle ? "No hay un ciclo escolar activo" :
+                          !currentSchool ? "No hay escuela seleccionada" : ""
+                  }
+                >
+                  {isCreating ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4" />
+                  )}
+                  {isCreating ? "Creando..." : "Agregar Alumno"}
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
-
+        
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -1043,9 +1054,10 @@ export default function AlumnosPage() {
         onDelete={handleDelete}
         deleteConfirmationTitle="¿Eliminar alumno?"
         deleteConfirmationDescription="Esta acción eliminará permanentemente al alumno del sistema. Esta acción no se puede deshacer."
+        toastMessages={toastMessages}
+        disableDefaultToasts={false}
         onError={() => {
-          // Evitar que el CrudDialog muestre su propio toast de error
-          // ya que nosotros mostramos el error específico dentro del dialog
+          // El error se muestra dentro del dialog y también se maneja con toasts
         }}
       >
         {(form, currentOperation) => (

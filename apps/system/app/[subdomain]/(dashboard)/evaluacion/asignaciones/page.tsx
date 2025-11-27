@@ -55,7 +55,7 @@ import { CrudDialog, useCrudDialog } from '@repo/ui/components/dialog/crud-dialo
 import { TaskForm } from 'components/tasks/TaskForm';
 import { UseFormReturn } from 'react-hook-form';
 import NotAuth from "../../../../../components/NotAuth";
-import { toast } from "@repo/ui/sonner";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 
 export default function TaskManagement() {
   const { user: clerkUser } = useUser();
@@ -185,6 +185,9 @@ export default function TaskManagement() {
     gradeRubricId: '',
   });
 
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Asignación");
+
   const handleViewDetails = (taskId: string) => {
     setSelectedTaskForDetails(taskId);
     setDetailsDialogOpen(true);
@@ -226,7 +229,7 @@ export default function TaskManagement() {
           dueDate: dueTimestamp,
           maxScore: parseInt(values.maxScore as string),
         })
-        toast.success('Asignación creada exitosamente')
+        //   Los toasts ahora los maneja el CrudDialog automáticamente
       } else if (operation === "edit" && data?._id) {
         await updateTask({
           id: data._id as Id<"assignment">,
@@ -240,24 +243,20 @@ export default function TaskManagement() {
             maxScore: parseInt(values.maxScore as string),
           },
         })
-        toast.info('Asignación actualizada exitosamente')
+        //   Los toasts ahora los maneja el CrudDialog automáticamente
       }
 
       close();
     } catch (error) {
-      toast.error('Error al procesar la asignación')
+      //   Los toasts de error los maneja el CrudDialog automáticamente
       console.error('Error al procesar la tarea:', error);
+      throw error; // Re-lanzar el error para que el CrudDialog lo maneje
     }
   };
 
   const handleDelete = async (taskId: string) => {
-    try {
-      await deleteTask(taskId)
-      toast.success('Asignación eliminada exitosamente')
-    } catch (error) {
-      console.error("Error al eliminar la asignación:", error);
-      toast.error('Error al eliminar la asignación')
-    }
+    await deleteTask(taskId)
+    //   Los toasts ahora los maneja el CrudDialog automáticamente
   };
 
   const uniqueRubrics =
@@ -361,15 +360,6 @@ export default function TaskManagement() {
                     </div>
                   </div>
                 </div>
-                {canCreateTask &&
-                  <Button
-                    className="cursor-pointer w-full sm:w-auto"
-                    onClick={openCreate}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    <span>Agregar Asignación</span>
-                  </Button>
-                }
               </div>
             </div>
           </div>
@@ -478,13 +468,31 @@ export default function TaskManagement() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Lista de Asignaciones</span>
-                <Badge variant="outline">{filteredTasksList.length} asignaciones</Badge>
-              </CardTitle>
-              <CardDescription>
-                Haz clic en una asignación para acceder al panel de calificación de estudiantes.
-              </CardDescription>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div className="flex flex-col gap-2">
+                <CardTitle className="flex items-center gap-2">
+                  
+                  <span>Lista de Asignaciones</span>
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                    {filteredTasksList.length} asignaciones
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  Haz clic en una asignación para acceder al panel de calificación de estudiantes.
+                </CardDescription>
+                </div>
+                
+                {canCreateTask &&
+                    <Button
+                      className="cursor-pointer w-full sm:w-auto"
+                      onClick={openCreate}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      <span className="hidden sm:inline">Agregar Asignación</span>
+                      <span className="sm:hidden">Agregar Asignación</span>
+                    </Button>
+                  }
+              </div>
             </CardHeader>
             <CardContent>
               <AuthLoading>
@@ -859,6 +867,8 @@ export default function TaskManagement() {
             onOpenChange={close}
             onSubmit={handleSubmit}
             onDelete={handleDelete}
+            toastMessages={toastMessages}
+            disableDefaultToasts={false}
           >
             {(form, operation) => (
               <TaskForm

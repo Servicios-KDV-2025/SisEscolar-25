@@ -9,8 +9,8 @@ import { Button } from "@repo/ui/components/shadcn/button"
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog"
 import { useQuery } from "convex/react"
 import { api } from "@repo/convex/convex/_generated/api"
-import { toast } from "@repo/ui/sonner"
 import { useUser } from "@clerk/nextjs"
+import { useCrudToastMessages } from "../../hooks/useCrudToastMessages";
 import { useUserWithConvex } from "stores/userStore"
 import { useCurrentSchool } from "stores/userSchoolsStore"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
@@ -84,6 +84,9 @@ export default function BillingConfigPage() {
     startDate: "",
     endDate: "",
   })
+
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Configuración de Cobro");
 
   useEffect(() => {
     if (schoolCycles?.length && schoolCycleFilter === "all") {
@@ -173,7 +176,7 @@ export default function BillingConfigPage() {
         } else {
           setResultData(null);
         }
-        toast.success("Configuración creada exitosamente")
+        //   Los toasts ahora los maneja el CrudDialog automáticamente
       } else if (operation === "edit") {
         const result = await updateBillingConfig({
           _id: validatedValues._id as Id<'billingConfig'>,
@@ -198,26 +201,21 @@ export default function BillingConfigPage() {
         } else {
           setResultData(null);
         }
-        toast.success("Configuración actualizada exitosamente")
+        //   Los toasts ahora los maneja el CrudDialog automáticamente
       }
       close()
     } catch (err) {
       console.error(err)
-      toast.error("Error al guardar la configuración")
+      // Re-lanzar el error para que el CrudDialog lo maneje
+      throw err;
     } finally {
       setIsTransitioning(false)
     }
   }
 
   const handleDelete = async (id: string) => {
-    try {
-      await deleteBillingConfig(id)
-      toast.success("Configuración inactiva")
-      close()
-    } catch (err) {
-      console.error(err)
-      toast.error("Error al eliminar la configuración")
-    }
+    await deleteBillingConfig(id)
+    //   Los toasts ahora los maneja el CrudDialog automáticamente
   }
 
   if (schoolLoading) {
@@ -461,6 +459,8 @@ export default function BillingConfigPage() {
         onOpenChange={close}
         onSubmit={handleSubmit}
         onDelete={handleDelete}
+        toastMessages={toastMessages}
+        disableDefaultToasts={false}
       >
         {(form, operation) => (
 

@@ -30,7 +30,7 @@ export default function RootLayout({
         <ClerkProvider>
           <ConvexClientProvider>
             {children}
-            <Toaster richColors />
+            <Toaster />
           </ConvexClientProvider>
         </ClerkProvider>
       </body>

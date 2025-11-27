@@ -261,8 +261,8 @@ const applicationTable = defineSchema({
   })
     .index("by_classCatalogId", ["classCatalogId"])
     .index("by_classCatalogId_term", ["classCatalogId", "termId"])
-    .index("by_term", ["termId"]) // ✨ Para el tutor y el admin
-    .index("by_createdBy", ["createdBy"]) // ✨ Para el maestro
+    .index("by_term", ["termId"]) //   Para el tutor y el admin
+    .index("by_createdBy", ["createdBy"]) //   Para el maestro
     .index("by_rubric", ["gradeRubricId"]),
 
   //Calificaciones Individuales

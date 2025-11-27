@@ -23,11 +23,12 @@ import {  useGradeRubricStore } from "../../../../../stores/gradeRubricStore";
 import { usePermissions } from 'hooks/usePermissions';
 import { CrudDialog, useCrudDialog, WithId } from "@repo/ui/components/dialog/crud-dialog";
 import { RubricFormValues, rubricSchema } from "schema/rubric"
-import { toast } from "@repo/ui/sonner"
 import { FormField, FormLabel } from "@repo/ui/components/shadcn/form";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import { SelectPopover } from "components/selectPopover";
 import { ClassCatalog, useClassCatalogWithPermissions } from "stores/classCatalogStore";
 import { Term } from "stores/termStore";
+import { toast } from "@repo/ui/sonner";
 // Tipo para rúbricas con datos extendidos
 type RubricWithDetails = {
   classCatalogName: string;
@@ -135,6 +136,9 @@ export default function RubricDashboard() {
     term: "",
     }
   );
+
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Rúbrica");
 
   const { classCatalogs } = useClassCatalogWithPermissions(
     currentSchool?.school._id,
@@ -301,7 +305,16 @@ export default function RubricDashboard() {
     const termId = formData.term as Id<"term">
     // Aseguramos que los IDs de clase y periodo existan antes de guardar
     if (!classCatalogId || !termId) {
-      toast.error("Clase y Periodo son obligatorios.");
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.createError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: "Clase y Periodo son obligatorios.",
+        }
+      );
       return;
     }
 
@@ -321,7 +334,7 @@ export default function RubricDashboard() {
             termId,
           },
         });
-        toast.info('Rúbrica actualizada correctamente')
+        //   Los toasts ahora los maneja el CrudDialog automáticamente
       } else if (operation === 'create') {
         await createGradeRubric({
           classCatalogId,
@@ -332,7 +345,7 @@ export default function RubricDashboard() {
           status: true,
           createdBy: currentUser!._id,
         })
-        toast.success('Rúbrica creada correctamente')
+        //   Los toasts ahora los maneja el CrudDialog automáticamente
       } else {
         throw new Error('Operación no valida')
       }
@@ -340,19 +353,14 @@ export default function RubricDashboard() {
       resetForm()
     } catch (error) {
       console.log('Error al guardar la rúbrica:', error)
-      toast.error('Ocurrió un error al guardar la rúbrica. Por favor, intenta de nuevo.')
+      // Re-lanzar el error para que el CrudDialog lo maneje
+      throw error;
     }
   }
 
   const handleDeleteRubric = async (id: string) => {
-    try {
-      await deleteGradeRubric({ gradeRubricId: id as Id<'gradeRubric'>})
-      toast.success('Rúbrica eliminada correctamente')
-      close()
-    } catch (error) {
-      console.error('Error al eliminar la rúbrica:', error)
-      toast.error('Error al eliminar rúbrica')
-    }
+    await deleteGradeRubric({ gradeRubricId: id as Id<'gradeRubric'>})
+    //   Los toasts ahora los maneja el CrudDialog automáticamente
   }
   // Usar las funciones del store
   const totalWeight = getTotalWeight();
@@ -388,29 +396,6 @@ export default function RubricDashboard() {
                 </div>
               </div>
             </div>
-            {canCreateRubricPermission &&
-              <Button
-                onClick={() => {
-                  // Resetear el formulario con el ciclo activo antes de abrir
-                  const activeCycleName = schoolCycles?.find(cycle => cycle._id === activeSchoolCycle?._id)?.name || "Ciclo Escolar";
-                  resetForm();
-                  setFormData({
-                    schoolCycle: activeCycleName,
-                    class: "",
-                    term: "",
-                    name: '',
-                    weight: [0],
-                    maxScore: 100
-                  });
-                  openCreate()
-                }}
-                className="gap-2 cursor-pointer"
-                disabled={false}
-              >
-                <Plus className="w-4 h-4" />
-                Agregar Rubrica
-              </Button>
-            }
           </div>
         </div>
       </div>
@@ -562,10 +547,39 @@ export default function RubricDashboard() {
       {/* Rubrics Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <CardTitle>
+            <div className="flex flex-col gap-2">
             <span>Lista de Rubricas</span>
-            <Badge variant="outline">{rubrics.length} rubricas</Badge>
+            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+              {rubrics.length} rubricas
+            </Badge>
+            </div>
           </CardTitle>
+          {canCreateRubricPermission &&
+              <Button
+                onClick={() => {
+                  // Resetear el formulario con el ciclo activo antes de abrir
+                  const activeCycleName = schoolCycles?.find(cycle => cycle._id === activeSchoolCycle?._id)?.name || "Ciclo Escolar";
+                  resetForm();
+                  setFormData({
+                    schoolCycle: activeCycleName,
+                    class: "",
+                    term: "",
+                    name: '',
+                    weight: [0],
+                    maxScore: 100
+                  });
+                  openCreate()
+                }}
+                className="gap-2 cursor-pointer"
+                disabled={false}
+              >
+                <Plus className="w-4 h-4" />
+                Agregar Rubrica
+              </Button>
+            }
+          </div>
         </CardHeader>
         <CardContent>
           {(
@@ -770,6 +784,8 @@ export default function RubricDashboard() {
         submitButtonText={operation === 'create' ? 'Crear Rúbrica' : 'Actualizar Rúbrica'}
         deleteConfirmationTitle="¿Estas seguro de eliminar esta rúbrica?"
         deleteConfirmationDescription="Esta acción no se puede deshacer. Se eliminarán todos los datos asociados a esta rúbrica."
+        toastMessages={toastMessages}
+        disableDefaultToasts={false}
       >
         {(form, operation) => {
           return(

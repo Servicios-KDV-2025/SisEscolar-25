@@ -52,6 +52,7 @@ import {
 } from "@repo/ui/components/shadcn/card";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 
 export default function SchoolCyclesPage() {
   const { user: clerkUser, isLoaded } = useUser();
@@ -110,6 +111,9 @@ export default function SchoolCyclesPage() {
     endDate: "",
     status: "inactive",
   });
+
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Ciclo Escolar");
 
   const validateUniqueName = (name: string, currentId?: string) => {
     const normalizedName = name.trim().toLowerCase();
@@ -261,17 +265,6 @@ export default function SchoolCyclesPage() {
                     </div>
                   </div>
                 </div>
-                {canCreateSchoolCycle && (
-                  <Button
-                    size="lg"
-                    className="gap-2"
-                    onClick={openCreate}
-                    disabled={isCreating}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Agregar Ciclo Escolar
-                  </Button>
-                )}
               </div>
             </div>
           </div>
@@ -429,12 +422,27 @@ export default function SchoolCyclesPage() {
           {/* Tabla de Ciclos Escolares */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Lista de los grupos</span>
-                <Badge variant="outline">
-                  {filteredCycles.length} ciclos escolares
-                </Badge>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <CardTitle>
+                <div className="flex flex-col gap-2">
+                  <span>Lista de los grupos</span>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                      {filteredCycles.length} ciclos escolares
+                    </Badge>
+                </div>
               </CardTitle>
+              {canCreateSchoolCycle && (
+                  <Button
+                    size="lg"
+                    className="gap-2"
+                    onClick={openCreate}
+                    disabled={isCreating}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Agregar Ciclo Escolar
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -514,6 +522,8 @@ export default function SchoolCyclesPage() {
             onOpenChange={handleClose}
             onSubmit={handleSubmit}
             onDelete={handleDelete}
+            toastMessages={toastMessages}
+            disableDefaultToasts={false}
           >
             {(form, operation) => (
               <div className="grid gap-4">
