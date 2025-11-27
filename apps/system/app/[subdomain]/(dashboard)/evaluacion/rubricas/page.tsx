@@ -28,6 +28,7 @@ import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages"
 import { SelectPopover } from "components/selectPopover";
 import { ClassCatalog, useClassCatalogWithPermissions } from "stores/classCatalogStore";
 import { Term } from "stores/termStore";
+import { toast } from "@repo/ui/sonner";
 // Tipo para rúbricas con datos extendidos
 type RubricWithDetails = {
   classCatalogName: string;
@@ -304,7 +305,16 @@ export default function RubricDashboard() {
     const termId = formData.term as Id<"term">
     // Aseguramos que los IDs de clase y periodo existan antes de guardar
     if (!classCatalogId || !termId) {
-      toast.error("Clase y Periodo son obligatorios.");
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.createError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: "Clase y Periodo son obligatorios.",
+        }
+      );
       return;
     }
 

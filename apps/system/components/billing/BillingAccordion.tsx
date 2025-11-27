@@ -190,7 +190,7 @@ export function BillingAccordion({
                                     </div>
                                     <div className="space-y-3">
                                         {studentBillings.map((pago) => {
-                                            const isBillingSelected = pago?.id && selectedBillings?.includes(pago.id)
+                                            const isBillingSelected = !!(pago?.id && selectedBillings?.includes(pago.id))
                                             const isPaid = pago.estado === "Pagado"
                                             const statusConfig = getBillingStatusConfig(pago.estado)
                                             const config = getEstadoBillingConfig(pago.statusBilling)

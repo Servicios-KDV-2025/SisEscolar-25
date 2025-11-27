@@ -57,14 +57,6 @@ import type * as templates_paymentSuccess from "../templates/paymentSuccess.js";
  * const myFunctionReference = api.myModule.myFunction;
  * ```
  */
-/**
- * A utility for referencing Convex functions in your app's API.
- *
- * Usage:
- * ```js
- * const myFunctionReference = api.myModule.myFunction;
- * ```
- */
 declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   "functions/actions/actionsclassSchedule": typeof functions_actions_actionsclassSchedule;

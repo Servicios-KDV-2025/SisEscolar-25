@@ -299,65 +299,60 @@ export default function PeriodsManagement() {
       return;
     }
 
-    try {
-      const formValues = values as TermFormValues;
+    const formValues = values as TermFormValues;
 
-      if (!formValues.startDate || !formValues.endDate) {
-        toast.error('Error', { description: 'Las fechas de inicio y fin son requeridas' });
-        return;
-      }
+    if (!formValues.startDate || !formValues.endDate) {
+      toast.error('Error', { description: 'Las fechas de inicio y fin son requeridas' });
+      return;
+    }
 
-      const startDateTimestamp = new Date(formValues.startDate as string).getTime();
-      const endDateTimestamp = new Date(formValues.endDate as string).getTime();
+    const startDateTimestamp = new Date(formValues.startDate as string).getTime();
+    const endDateTimestamp = new Date(formValues.endDate as string).getTime();
 
-      if (isNaN(startDateTimestamp) || isNaN(endDateTimestamp)) {
-        toast.error('Error', { description: 'Las fechas proporcionadas no son válidas' });
-        return;
-      }
+    if (isNaN(startDateTimestamp) || isNaN(endDateTimestamp)) {
+      toast.error('Error', { description: 'Las fechas proporcionadas no son válidas' });
+      return;
+    }
 
-      if (startDateTimestamp >= endDateTimestamp) {
-        toast.error('Error', { description: 'La fecha de inicio debe ser anterior a la fecha de fin' });
-        return;
-      }
+    if (startDateTimestamp >= endDateTimestamp) {
+      toast.error('Error', { description: 'La fecha de inicio debe ser anterior a la fecha de fin' });
+      return;
+    }
 
-      const isDuplicateKey = terms.some((term: Term) =>
-        term.key === formValues.key && term._id !== data?._id
-      );
+    const isDuplicateKey = terms.some((term: Term) =>
+      term.key === formValues.key && term._id !== data?._id
+    );
 
-      if (isDuplicateKey) {
-        toast.error('Error', { description: 'La clave del periodo ya existe' });
-        return;
-      }
+    if (isDuplicateKey) {
+      toast.error('Error', { description: 'La clave del periodo ya existe' });
+      return;
+    }
 
-      if (operation === 'create') {
-        await createTerm({
+    if (operation === 'create') {
+      await createTerm({
+        name: formValues.name,
+        key: formValues.key,
+        startDate: startDateTimestamp,
+        endDate: endDateTimestamp,
+        schoolCycleId: formValues.schoolCycleId,
+        schoolId: currentSchool.school._id,
+      });
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
+    } else if (operation === 'edit' && data?._id) {
+      await updateTerm({
+        termId: data._id,
+        data: {
           name: formValues.name,
           key: formValues.key,
           startDate: startDateTimestamp,
           endDate: endDateTimestamp,
-          schoolCycleId: formValues.schoolCycleId,
-          schoolId: currentSchool.school._id,
-        });
-        //   Los toasts ahora los maneja el CrudDialog automáticamente
-      } else if (operation === 'edit' && data?._id) {
-        await updateTerm({
-          termId: data._id,
-          data: {
-            name: formValues.name,
-            key: formValues.key,
-            startDate: startDateTimestamp,
-            endDate: endDateTimestamp,
-            status: formValues.status as "active" | "inactive" | "closed",
-          },
-        });
-        //   Los toasts ahora los maneja el CrudDialog automáticamente
-      }
-
-      close();
-    } catch (error) {
-      // Re-lanzar el error para que el CrudDialog lo maneje
-      throw error;
+          status: formValues.status as "active" | "inactive" | "closed",
+        },
+      });
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
     }
+
+    close();
   };
 
   const handleDelete = async (id: string) => {
