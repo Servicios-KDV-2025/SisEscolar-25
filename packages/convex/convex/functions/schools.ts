@@ -1,4 +1,5 @@
-import { query, mutation, internalQuery } from '../_generated/server';
+import { Doc } from '../_generated/dataModel';
+import { query, mutation, internalQuery, internalMutation } from '../_generated/server';
 import { v } from 'convex/values';
 
 /*
@@ -898,5 +899,53 @@ export const updateSchoolDetails = mutation({
     await ctx.db.patch(schoolId, { ...rest, updatedAt: Date.now() });
 
     return { success: true };
+  },
+});
+
+// Query Interna para obtener información de la escuela
+export const getSchoolForConnect = internalQuery({
+  args: {
+    schoolId: v.id("school"),
+  },
+  handler: async (ctx, args): Promise<Doc<"school">> => {
+    const school = await ctx.db.get(args.schoolId);
+    if (!school) {
+      throw new Error("La escuela no existe");
+    }
+    return school;
+  },
+});
+
+// Mutation Interna para guardar el ID de la cuenta de Stripe
+export const saveStripeAccountId = internalMutation({
+  args: {
+    schoolId: v.id("school"),
+    stripeAccountId: v.string(),
+    stripeAccountStatus: v.union(v.literal("pending"), v.literal("enabled"), v.literal("disabled")),
+    stripeOnboardingComplete: v.boolean(),
+  },
+  handler: async (ctx, args): Promise<void> => {
+    await ctx.db.patch(args.schoolId, {
+      stripeAccountId: args.stripeAccountId,
+      stripeAccountStatus: args.stripeAccountStatus,
+      stripeOnboardingComplete: args.stripeOnboardingComplete,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+// Mutacion interna para actualizar el estado de la cuenta de Stripe
+export const updateAccountStatus = internalMutation({
+  args: {
+    schoolId: v.id("school"),
+    stripeAccountStatus: v.union(v.literal("pending"), v.literal("enabled"), v.literal("disabled")),
+    stripeOnboardingComplete: v.boolean(),
+  },
+  handler: async (ctx, args): Promise<void> => {
+    await ctx.db.patch(args.schoolId, {
+      stripeAccountStatus: args.stripeAccountStatus,
+      stripeOnboardingComplete: args.stripeOnboardingComplete,
+      updatedAt: Date.now(),
+    });
   },
 });

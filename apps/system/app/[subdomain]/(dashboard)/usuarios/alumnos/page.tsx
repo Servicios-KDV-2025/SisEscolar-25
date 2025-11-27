@@ -1448,31 +1448,6 @@ export default function AlumnosPage() {
                     )
                   }}
                 />)}
-
-
-              {currentOperation === "view" && data && (
-                <div className="md:col-span-2 space-y-4 pt-4 border-t">
-                  <h3 className="font-medium text-sm text-muted-foreground">Información adicional</h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">ID de Estudiante:</span>
-                      <p className="font-mono">{data._id as string}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Fecha de Creación:</span>
-                      <p>{formatDate(data.createdAt as number)}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Última Actualización:</span>
-                      <p>{formatDate(data.updatedAt as number)}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">ID de Escuela:</span>
-                      <p className="font-mono">{data.schoolId as string}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         )}

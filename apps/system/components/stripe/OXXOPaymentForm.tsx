@@ -50,7 +50,7 @@ export function OXXOPaymentForm({
   const [isProcessing, setIsProcessing] = useState(false)
   const [oxxoDetails, setOxxoDetails] = useState<OXXODetails | null>(null)
 
-  const createPaymentIntent = useAction(api.functions.stripePayments.createPaymentIntentWithOXXO)
+  const createPaymentIntent = useAction(api.functions.actions.stripePayments.createPaymentIntentWithOXXO)
 
   const handleGenerateOXXO = async () => {
     setIsProcessing(true)

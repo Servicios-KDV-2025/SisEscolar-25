@@ -19,10 +19,10 @@ export function StripeConnectOnboarding ({ schoolId, schoolEmail }: StripeConnec
   const [isCreating, setIsCreating] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   
-  const createAccount = useAction(api.functions.stripeConnect.createConnectedAccount)
-  const createOnboardingLink = useAction(api.functions.stripeConnect.createAccountLink)
-  const checkStatus = useAction(api.functions.stripeConnect.checkAccountStatus)
-  const createDashboardLink = useAction(api.functions.stripeConnect.createLoginLink)
+  const createAccount = useAction(api.functions.actions.stripeConnect.createConnectedAccount)
+  const createOnboardingLink = useAction(api.functions.actions.stripeConnect.createAccountLink)
+  const checkStatus = useAction(api.functions.actions.stripeConnect.checkAccountStatus)
+  const createDashboardLink = useAction(api.functions.actions.stripeConnect.createLoginLink)
 
   const [accountStatus, setAccountStatus] = useState<{
     hasAccount: boolean
@@ -74,10 +74,13 @@ export function StripeConnectOnboarding ({ schoolId, schoolEmail }: StripeConnec
 
   const handleStartOnboarding = async () => {
     try {
+      // Forzar HTTPS para las URLs de redirección en modo live de Stripe
+      const origin = window.location.origin.replace(/^http:/, 'https:');
+
       const result = await createOnboardingLink({
         schoolId,
-        returnUrl: `${window.location.origin}/configuracion/pagos?success=true`,
-        refreshUrl: `${window.location.origin}/configuracion/pagos`,
+        returnUrl: `${origin}/pagos?success=true`,
+        refreshUrl: `${origin}/pagos`,
       })
 
       // Abrir en nueva ventana
