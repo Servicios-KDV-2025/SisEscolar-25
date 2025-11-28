@@ -140,112 +140,6 @@ export default function CalendarioEscolar() {
   //   Mensajes de toast personalizados
   const toastMessages = useCrudToastMessages("Evento");
 
-  const handleEventAdd = async (event: CalendarEvent) => {
-    // Estas IDs vienen del 'handleSave' en el modal (que arreglaremos en el Paso 3)
-    const { title, description, start, end, allDay, location, eventTypeId } =
-      event;
-    const schoolId = currentSchool?.school._id;
-    const schoolCycleId = filtroCicloEscolarId; // Tomamos el ciclo del filtro
-
-    if (!schoolId || !schoolCycleId || !eventTypeId) {
-      toast.error(
-        <span style={{ color: '#dc2626' }}>
-          Faltan datos para crear el evento (escuela, ciclo o tipo).
-        </span>,
-        {
-          className: 'bg-white border border-red-200',
-          unstyled: false,
-        }
-      );
-      return;
-    }
-
-    try {
-      await crearEvento({
-        schoolId: schoolId as Id<"school">,
-        schoolCycleId: schoolCycleId as Id<"schoolCycle">,
-        title,
-        description,
-        startDate: start.getTime(),
-        endDate: end.getTime(),
-        allDay: allDay || false,
-        location,
-        eventTypeId: eventTypeId as Id<"eventType">,
-      });
-      // Toast personalizado con fondo blanco y texto verde
-      toast.success(
-        <span style={{ color: '#16a34a', fontWeight: 600 }}>
-          {toastMessages.createSuccess}
-        </span>,
-        {
-          className: 'bg-white border border-green-200',
-          unstyled: false,
-        }
-      );
-    } catch (error) {
-      // Toast de error personalizado
-      toast.error(
-        <span style={{ color: '#dc2626' }}>
-          {toastMessages.createError}
-        </span>,
-        {
-          className: 'bg-white border border-red-200',
-          unstyled: false,
-          description: error instanceof Error ? error.message : undefined
-        }
-      );
-      console.error(error);
-    }
-  };
-
-  const handleEventUpdate = async (event: CalendarEvent) => {
-    // (Esta es la misma lógica que usamos para el Drag-n-Drop)
-    const originalEvent = eventos?.find((e) => e._id === event.id);
-    const schoolId = currentSchool?.school._id;
-
-    if (!originalEvent || !schoolId) return;
-
-    try {
-      await editarEvento({
-        schoolId: schoolId as Id<"school">,
-        eventId: event.id as Id<"calendar">,
-        startDate: event.start.getTime(),
-        endDate: event.end.getTime(),
-        title: event.title,
-        description: event.description,
-        allDay: event.allDay ?? false,
-        location: event.location,
-        eventTypeId: (event.eventTypeId ||
-          originalEvent.eventTypeId) as Id<"eventType">,
-        schoolCycleId: originalEvent.schoolCycleId,
-        status: originalEvent.status,
-      });
-      // Toast personalizado con fondo blanco y texto verde
-      toast.success(
-        <span style={{ color: '#16a34a', fontWeight: 600 }}>
-          {toastMessages.editSuccess}
-        </span>,
-        {
-          className: 'bg-white border border-green-200',
-          unstyled: false,
-        }
-      );
-    } catch (error) {
-      // Toast de error personalizado
-      toast.error(
-        <span style={{ color: '#dc2626' }}>
-          {toastMessages.editError}
-        </span>,
-        {
-          className: 'bg-white border border-red-200',
-          unstyled: false,
-          description: error instanceof Error ? error.message : undefined
-        }
-      );
-      console.error(error);
-    }
-  };
-
   const handleEventDelete = async (eventId: string) => {
     const schoolId = currentSchool?.school._id;
     if (!schoolId) return;
@@ -281,11 +175,6 @@ export default function CalendarioEscolar() {
       console.error(error);
     }
   };
-  // Tipos de eventos
-  const [modalAbiertoT, setModalAbiertoT] = useState(false);
-  const [tipoDeEventoEditar, setTipoDeEventoEditar] =
-    useState<EventType | null>(null);
-
   useEffect(() => {
     if (
       Array.isArray(ciclosEscolares) &&
@@ -543,22 +432,6 @@ export default function CalendarioEscolar() {
       toast.info(`Evento "${event.title}" actualizado`);
     } catch (error) {
       toast.error("Error al actualizar el evento.");
-      console.error(error);
-    }
-  };
-
-  const handleEventDelete = async (eventId: string) => {
-    const schoolId = currentSchool?.school._id;
-    if (!schoolId) return;
-
-    try {
-      await eliminarEvento({
-        schoolId: schoolId as Id<"school">,
-        eventId: eventId as Id<"calendar">,
-      });
-      toast.success("Evento eliminado");
-    } catch (error) {
-      toast.error("Error al eliminar el evento.");
       console.error(error);
     }
   };
