@@ -1,9 +1,9 @@
 "use node"; 
 
-import { action } from "../_generated/server";
+import { action } from "../../_generated/server";
 import { v } from "convex/values";
-import { api, internal } from "../_generated/api";
-import { Id } from "../_generated/dataModel";
+import { api, internal } from "../../_generated/api";
+import { Id } from "../../_generated/dataModel";
 
 export const createClassWithSchedule = action({
   args: {

@@ -40,7 +40,7 @@ export function SPEIPaymentForm({
   const [isProcessing, setIsProcessing] = useState(false)
   const [transferInstructions, setTransferInstructions] = useState<Stripe.PaymentIntent.NextAction.DisplayBankTransferInstructions | null>(null)
 
-  const createPaymentIntent = useAction(api.functions.stripePayments.createPaymentIntentWithSPEI)
+  const createPaymentIntent = useAction(api.functions.actions.stripePayments.createPaymentIntentWithSPEI)
 
   const handleGenerateInstructions = async () => {
     setIsProcessing(true)

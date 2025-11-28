@@ -1,12 +1,13 @@
+"use node";
+
 import { v } from "convex/values";
-import { action, internalQuery, internalMutation } from "../_generated/server";
-import { Doc } from "../_generated/dataModel";
+import { action } from "../../_generated/server";
 import Stripe from "stripe";
-import { internal } from "../_generated/api";
+import { internal } from "../../_generated/api";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   // apiVersion: "2025-07-30.basil",
-  apiVersion: "2025-09-30.clover",
+  apiVersion: "2025-10-29.clover",
 });
 
 // Crear una cuenta conectada para una escuela
@@ -16,7 +17,7 @@ export const createConnectedAccount = action({
     email: v.string(),
   },
   handler: async (ctx, args): Promise<{ accountId: string, message: string }> => {
-    const school = await ctx.runQuery(internal.functions.stripeConnect.getSchoolForConnect, {
+    const school = await ctx.runQuery(internal.functions.schools.getSchoolForConnect, {
       schoolId: args.schoolId,
     });
 
@@ -47,7 +48,7 @@ export const createConnectedAccount = action({
     });
 
     // Guardar el ID de la cuenta conectada en la base de datos
-    await ctx.runMutation(internal.functions.stripeConnect.saveStripeAccountId, {
+    await ctx.runMutation(internal.functions.schools.saveStripeAccountId, {
       schoolId: args.schoolId,
       stripeAccountId: account.id,
       stripeAccountStatus: "pending",
@@ -69,7 +70,7 @@ export const createAccountLink = action({
     refreshUrl: v.string(),
   },
   handler: async (ctx, args): Promise<{ url: string }> => {
-    const school = await ctx.runQuery(internal.functions.stripeConnect.getSchoolForConnect, {
+    const school = await ctx.runQuery(internal.functions.schools.getSchoolForConnect, {
       schoolId: args.schoolId,
     });
 
@@ -84,6 +85,7 @@ export const createAccountLink = action({
       return_url: args.returnUrl,
       type: "account_onboarding",
     });
+    console.log(accountLink.url)
 
     return {
       url: accountLink.url,
@@ -97,7 +99,7 @@ export const createLoginLink = action({
     schoolId: v.id("school"),
   },
   handler: async (ctx, args): Promise<{ url: string }> => {
-    const school = await ctx.runQuery(internal.functions.stripeConnect.getSchoolForConnect, {
+    const school = await ctx.runQuery(internal.functions.schools.getSchoolForConnect, {
       schoolId: args.schoolId,
     });
 
@@ -124,7 +126,7 @@ export const checkAccountStatus = action({
     schoolId: v.id("school"),
   },
   handler: async (ctx, args): Promise<{ hasAccount: boolean, isComplete: boolean, chargesEnabled: boolean, payoutsEnabled: boolean, detailsSubmitted: boolean, requireAction: boolean, hasExternalAccount: boolean }> => {
-    const school = await ctx.runQuery(internal.functions.stripeConnect.getSchoolForConnect, {
+    const school = await ctx.runQuery(internal.functions.schools.getSchoolForConnect, {
       schoolId: args.schoolId,
     });
 
@@ -144,7 +146,7 @@ export const checkAccountStatus = action({
 
     const isComplete = account.charges_enabled && account.payouts_enabled;
 
-    await ctx.runMutation(internal.functions.stripeConnect.updateAccountStatus, {
+    await ctx.runMutation(internal.functions.schools.updateAccountStatus, {
       schoolId: args.schoolId,
       stripeAccountStatus: isComplete ? "enabled" : account.charges_enabled ? "pending" : "disabled",
       stripeOnboardingComplete: isComplete,
@@ -168,7 +170,7 @@ export const getAccountBalance = action({
     schoolId: v.id("school"),
   },
   handler: async (ctx, args): Promise<{ available: number, pending: number, currency: string }> => {
-    const school = await ctx.runQuery(internal.functions.stripeConnect.getSchoolForConnect, {
+    const school = await ctx.runQuery(internal.functions.schools.getSchoolForConnect, {
       schoolId: args.schoolId,
     });
 
@@ -189,51 +191,4 @@ export const getAccountBalance = action({
   },
 });
 
-// Query Interna para obtener información de la escuela
-export const getSchoolForConnect = internalQuery({
-  args: {
-    schoolId: v.id("school"),
-  },
-  handler: async (ctx, args): Promise<Doc<"school">> => {
-    const school = await ctx.db.get(args.schoolId);
-    if (!school) {
-      throw new Error("La escuela no existe");
-    }
-    return school;
-  },
-});
-
-// Mutation Interna para guardar el ID de la cuenta de Stripe
-export const saveStripeAccountId = internalMutation({
-  args: {
-    schoolId: v.id("school"),
-    stripeAccountId: v.string(),
-    stripeAccountStatus: v.union(v.literal("pending"), v.literal("enabled"), v.literal("disabled")),
-    stripeOnboardingComplete: v.boolean(),
-  },
-  handler: async (ctx, args): Promise<void> => {
-    await ctx.db.patch(args.schoolId, {
-      stripeAccountId: args.stripeAccountId,
-      stripeAccountStatus: args.stripeAccountStatus,
-      stripeOnboardingComplete: args.stripeOnboardingComplete,
-      updatedAt: Date.now(),
-    });
-  },
-});
-
-// Mutacion interna para actualizar el estado de la cuenta de Stripe
-export const updateAccountStatus = internalMutation({
-  args: {
-    schoolId: v.id("school"),
-    stripeAccountStatus: v.union(v.literal("pending"), v.literal("enabled"), v.literal("disabled")),
-    stripeOnboardingComplete: v.boolean(),
-  },
-  handler: async (ctx, args): Promise<void> => {
-    await ctx.db.patch(args.schoolId, {
-      stripeAccountStatus: args.stripeAccountStatus,
-      stripeOnboardingComplete: args.stripeOnboardingComplete,
-      updatedAt: Date.now(),
-    });
-  },
-});
 

@@ -32,7 +32,7 @@ export function StripeCheckoutButton({
 }: StripeCheckoutButtonProps) {
   const [isProcessing, setIsProcessing] = useState(false)
 
-  const createCheckoutSession = useAction(api.functions.stripePayments.createCheckoutSession)
+  const createCheckoutSession = useAction(api.functions.actions.stripePayments.createCheckoutSession)
 
   const handleCheckout = async () => {
     setIsProcessing(true)

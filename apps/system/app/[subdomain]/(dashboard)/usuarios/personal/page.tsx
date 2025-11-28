@@ -390,7 +390,7 @@ export default function PersonalPage() {
   }, [allUsers, searchTerm, statusFilter, roleFilter, departmentFilter]);
 
   const paginatedUsers = useMemo(() => {
-     const sortedData = [...filteredUsers].sort((a, b) => {
+    const sortedData = [...filteredUsers].sort((a, b) => {
       const nameA = `${a.name} ${a.lastName || ''}`.toLowerCase().trim();
       const nameB = `${b.name} ${b.lastName || ''}`.toLowerCase().trim();
       return nameA.localeCompare(nameB);
@@ -1340,6 +1340,16 @@ export default function PersonalPage() {
         schema={getSchemaForOperation(operation)}
         data={data}
         isOpen={isOpen}
+        defaultValues={{
+          name: "",
+          lastName: "",
+          email: "",
+          password: "",
+          address: "",
+          phone: "",
+          status: "active"
+
+        }}
         onOpenChange={close}
         onSubmit={operation === "create" ? handleCreate : handleUpdate}
         onDelete={() => handleDelete(data || {})}
@@ -1356,7 +1366,7 @@ export default function PersonalPage() {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nombre *</FormLabel>
+                  <FormLabel>Nombre</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -1394,13 +1404,13 @@ export default function PersonalPage() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email *</FormLabel>
+                  <FormLabel>Correo</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
                       value={(field.value as string) || ""}
                       type="email"
-                      placeholder="email@escuela.edu.mx"
+                      placeholder="correo@escuela.edu.mx"
                       disabled={
                         currentOperation === "view" ||
                         currentOperation === "edit"
@@ -1411,6 +1421,119 @@ export default function PersonalPage() {
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Teléfono</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      value={(field.value as string) || ""}
+                      placeholder="+52 555 1234567"
+                      disabled={currentOperation === "view"}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem className="md:col-span-2">
+                  <FormLabel>Dirección</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      value={(field.value as string) || ""}
+                      placeholder="Dirección completa"
+                      disabled={currentOperation === "view"}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {currentOperation === "create" && (
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contraseña</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        value={(field.value as string) || ""}
+                        type="password"
+                        placeholder="Contraseña"
+                        disabled={false}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem className="items-start">
+                  <div>
+                    <FormLabel>Estado</FormLabel>
+                    <FormControl>
+                      <Select
+                        value={field.value as string}
+                        onValueChange={field.onChange}
+                        disabled={currentOperation === "view"}
+                      >
+                        <SelectTrigger className="w-full mt-2">
+                          <SelectValue placeholder="Seleccionar estado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Activo</SelectItem>
+                          <SelectItem value="inactive">Inactivo</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </div>
+
+                </FormItem>
+              )}
+            />
+
+            {(operation === "create" || operation === "edit") && (
+              <FormField
+                control={form.control}
+                name="isTutor"
+                render={({ field }) => (
+                  <FormItem className="md:col-span-2 flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
+                    <FormControl>
+                      <Checkbox
+                        checked={!!field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>¿Es también Tutor?</FormLabel>
+                      <p className="text-sm text-muted-foreground">
+                        Marque esta casilla si el usuario también debe tener
+                        permisos de tutor.
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
@@ -1453,7 +1576,7 @@ export default function PersonalPage() {
 
                 return (
                   <FormItem className="md:col-span-2">
-                    <FormLabel>Roles *</FormLabel>
+                    <FormLabel>Roles</FormLabel>
                     <FormControl>
                       <div className="space-y-3">
                         {/* Roles seleccionados */}
@@ -1490,75 +1613,58 @@ export default function PersonalPage() {
 
                         {/* Selector para agregar roles */}
                         {currentOperation !== "view" && availableRoles.length > 0 && (
-                          <Select
-                            value=""
-                            onValueChange={(value) => {
-                              handleAddRole(value);
-                              // Solo limpiar departamento si después de agregar el rol, ya no tiene admin
-                              const newRoles = selectedRoles.includes(value)
-                                ? selectedRoles
-                                : [...selectedRoles, value];
-                              const stillHasAdmin = newRoles.includes("admin");
+                          <div className="flex flex-col">
+                            <Select
+                              value=""
+                              onValueChange={(value) => {
+                                handleAddRole(value);
+                                // Solo limpiar departamento si después de agregar el rol, ya no tiene admin
+                                const newRoles = selectedRoles.includes(value)
+                                  ? selectedRoles
+                                  : [...selectedRoles, value];
+                                const stillHasAdmin = newRoles.includes("admin");
 
-                              if (!stillHasAdmin) {
-                                form.setValue("department", undefined);
-                              }
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="+ Agregar rol" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableRoles.map((role) => {
-                                const roleInfo = roleConfig[role as keyof typeof roleConfig];
-                                return (
-                                  <SelectItem key={role} value={role}>
-                                    <div className="flex items-center gap-2">
-                                      <roleInfo.icon className="h-4 w-4" />
-                                      {roleInfo.label}
-                                    </div>
-                                  </SelectItem>
-                                );
-                              })}
-                            </SelectContent>
-                          </Select>
+                                if (!stillHasAdmin) {
+                                  form.setValue("department", undefined);
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="w-full md:w-66">
+                                <SelectValue placeholder="+ Agregar rol" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableRoles.map((role) => {
+                                  const roleInfo = roleConfig[role as keyof typeof roleConfig];
+                                  return (
+                                    <SelectItem key={role} value={role}>
+                                      <div className="flex items-center gap-2">
+                                        <roleInfo.icon className="h-4 w-4" />
+                                        {roleInfo.label}
+                                      </div>
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground m-2">
+                              Puedes asignar múltiples roles. Haz clic en la X para eliminar un rol.
+                            </p>
+
+                          </div>
                         )}
+
                       </div>
                     </FormControl>
                     <FormMessage />
                     <p className="text-xs text-muted-foreground">
                       {currentOperation === "view"
                         ? "Roles asignados al usuario en esta escuela"
-                        : "Puedes asignar múltiples roles. Haz clic en la X para eliminar un rol."}
+                        : ""}
                     </p>
                   </FormItem>
                 );
               }}
             />
-
-            {(operation === "create" || operation === "edit") && (
-              <FormField
-                control={form.control}
-                name="isTutor"
-                render={({ field }) => (
-                  <FormItem className="md:col-span-2 flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
-                    <FormControl>
-                      <Checkbox
-                        checked={!!field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>¿Es también Tutor?</FormLabel>
-                      <p className="text-sm text-muted-foreground">
-                        Marque esta casilla si el usuario también debe tener
-                        permisos de tutor.
-                      </p>
-                    </div>
-                  </FormItem>
-                )}
-              />
-            )}
 
             {/* Campo de departamento solo visible si tiene rol de administrador */}
             {(() => {
@@ -1573,7 +1679,7 @@ export default function PersonalPage() {
                   name="department"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Departamento *</FormLabel>
+                      <FormLabel>Departamento</FormLabel>
                       <FormControl>
                         <Select
                           value={(field.value as string) || undefined}
@@ -1582,7 +1688,7 @@ export default function PersonalPage() {
                           }
                           disabled={currentOperation === "view"}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Seleccionar departamento" />
                           </SelectTrigger>
                           <SelectContent>
