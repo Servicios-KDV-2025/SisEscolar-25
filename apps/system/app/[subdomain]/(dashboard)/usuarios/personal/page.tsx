@@ -86,6 +86,7 @@ import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { useUserActionsWithConvex } from "../../../../../stores/userActionsStore";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
 
 
 // Tipo para los usuarios que vienen de Convex
@@ -661,12 +662,14 @@ export default function PersonalPage() {
     return first + last;
   };
 
-
-
   // Loading y error states
   const isLoading = schoolLoading || allUsers === undefined;
   const isCrudLoading =
     userActions.isCreating || userActions.isUpdating || userActions.isDeleting;
+
+  if (isLoading) {
+    return <GeneralDashboardSkeleton />;
+  }
 
   // Verificar error de permisos o falta de permiso de lectura
   if ((permissionsError || !canReadUsersPersonal) && !permissionsLoading && !isLoading) {

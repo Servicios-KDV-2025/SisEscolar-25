@@ -50,6 +50,7 @@ import { toast } from "@repo/ui/sonner";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
 
 export default function SubjectPage() {
   const { user: clerkUser, isLoaded } = useUser();
@@ -114,13 +115,15 @@ export default function SubjectPage() {
       description: values.description as string | undefined,
       credits: values.credits as number | undefined,
       status: values.status as "active" | "inactive",
-      
+
     };
 
     if (operation === "create") {
-      await createSubject({...baseData,
+      await createSubject({
+        ...baseData,
         updatedAt: new Date().getTime(),
-        updatedBy: currentUser._id,}
+        updatedBy: currentUser._id,
+      }
       );
     } else if (operation === "edit" && data?._id) {
       await updateSubject({
@@ -149,6 +152,9 @@ export default function SubjectPage() {
     canReadSubject,
   } = usePermissions(currentSchool?.school._id);
 
+  if (isLoading) {
+    return <GeneralDashboardSkeleton nc={3} />;
+  }
   return (
     <>
       {canReadSubject ? (
@@ -329,16 +335,7 @@ export default function SubjectPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-muted-foreground">
-                      Cargando materias...
-                    </p>
-                  </div>
-                </div>
-              ) : filteredSubjects.length === 0 ? (
+              {filteredSubjects.length === 0 ? (
                 <div className="text-center py-12">
                   <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">
@@ -347,7 +344,7 @@ export default function SubjectPage() {
                   <p className="text-muted-foreground mb-4">
                     Intenta ajustar los filtros o no hay materias registradas.
                   </p>
-                    {canCreateSubject && (<Button
+                  {canCreateSubject && (<Button
                     size="lg"
                     className="gap-2"
                     onClick={openCreate}

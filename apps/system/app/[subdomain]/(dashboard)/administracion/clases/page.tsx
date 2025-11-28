@@ -116,6 +116,7 @@ import {
 } from "@/types/temporalSchema";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@repo/ui/components/shadcn/tabs";
 import { WeeklySchedule } from "../../../../../components/clase/horario-semanal";
+import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
 
 // Tipos para los props de los componentes de pasos
 type FullClassForm = UseFormReturn<z.infer<typeof FullClassSchema>>;
@@ -1312,6 +1313,10 @@ export default function HorariosPorClasePage() {
     }
     return false;
   }, [currentRole, selectedStudentId, scheduleFilters]);
+
+  if (isLoading) {
+    return <GeneralDashboardSkeleton />;
+  }
 
   return (
     <div className="space-y-8 p-6">

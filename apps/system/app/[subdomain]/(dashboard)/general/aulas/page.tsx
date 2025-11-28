@@ -56,7 +56,8 @@ import {
 } from "@repo/ui/components/dialog/crud-dialog";
 import { UseFormReturn } from "react-hook-form";
 import { usePermissions } from "../../../../../hooks/usePermissions";
-import  NotAuth  from "../../../../../components/NotAuth";
+import NotAuth from "../../../../../components/NotAuth";
+import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
 
 interface Classroom extends Record<string, unknown> {
   _id: Id<"classroom">;
@@ -146,7 +147,7 @@ export default function ClassroomManagement() {
     canReadClassroom,
     canUpdateClassroom,
     canDeleteClassroom,
-    
+
   } = usePermissions(currentSchool?.school._id);
 
   const classrooms = useQuery(
@@ -171,6 +172,7 @@ export default function ClassroomManagement() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   // Estado de carga específico para la tabla
+  const isLoading = classrooms === undefined;
   const isTableLoading = classrooms === undefined;
 
   // Esta sección es para filtrar, buscar y ordenar las aulas
@@ -240,7 +242,7 @@ export default function ClassroomManagement() {
       // si hay errores, los mostramos y detenemos la función
       toast.error(
         "Por favor revisa los campos: " +
-          result.error.issues.map((e) => e.message).join(", ")
+        result.error.issues.map((e) => e.message).join(", ")
       );
       return;
     }
@@ -297,7 +299,7 @@ export default function ClassroomManagement() {
     } catch (error) {
       toast.error(
         "Error al guardar el aula: " +
-          (error instanceof Error ? error.message : "Error desconocido")
+        (error instanceof Error ? error.message : "Error desconocido")
       );
     }
   };
@@ -321,7 +323,7 @@ export default function ClassroomManagement() {
     } catch (error) {
       toast.error(
         "Error al eliminar el aula: " +
-          (error instanceof Error ? error.message : "Error desconocido")
+        (error instanceof Error ? error.message : "Error desconocido")
       );
     }
   };
@@ -336,10 +338,12 @@ export default function ClassroomManagement() {
       setSortOrder("asc");
     }
   };
-
+  if (isLoading) {
+    return <GeneralDashboardSkeleton nc={3} />;
+  }
   return (
     <>
-      {canReadClassroom  ? (
+      {canReadClassroom ? (
         <div className="space-y-8 p-6">
           {/* Header */}
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
@@ -507,15 +511,15 @@ export default function ClassroomManagement() {
                   <GraduationCap className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">
                     {searchTerm ||
-                    locationFilter !== "all" ||
-                    statusFilter !== "all"
+                      locationFilter !== "all" ||
+                      statusFilter !== "all"
                       ? "No se encontraron aulas"
                       : "No hay aulas registradas"}
                   </h3>
                   <p className="text-muted-foreground mb-4">
                     {searchTerm ||
-                    locationFilter !== "all" ||
-                    statusFilter !== "all"
+                      locationFilter !== "all" ||
+                      statusFilter !== "all"
                       ? "Intenta ajustar los filtros de búsqueda."
                       : "Comienza creando tu primera aula."}
                   </p>
@@ -620,7 +624,7 @@ export default function ClassroomManagement() {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                          {canUpdateClassroom && (  <Button
+                            {canUpdateClassroom && (<Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleEdit(classroom)}

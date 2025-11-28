@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
-import { FormControl, FormField,FormDescription, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
+import { FormControl, FormField, FormDescription, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
 
@@ -32,6 +32,7 @@ import { termSchema, TermFormValues } from "schema/terms";
 import { useTerm, Term } from "stores/termStore";
 import { useCurrentSchool } from "stores/userSchoolsStore";
 import { useUserWithConvex } from "stores/userStore";
+import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
 
 // Form Component
 function TermForm({
@@ -102,7 +103,7 @@ function TermForm({
                 disabled={operation === "view"}
               />
             </FormControl>
-            
+
             {/* --- MENSAJE DE ADVERTENCIA --- */}
             {operation !== "view" && (
               <FormDescription className="flex items-center gap-1.5 text-orange-600">
@@ -110,7 +111,7 @@ function TermForm({
                 El sistema tomará un día antes de la fecha seleccionada.
               </FormDescription>
             )}
-            
+
             <FormMessage />
           </FormItem>
         )}
@@ -130,7 +131,7 @@ function TermForm({
                 disabled={operation === "view"}
               />
             </FormControl>
-            
+
             {/* --- MENSAJE DE ADVERTENCIA --- */}
             {operation !== "view" && (
               <FormDescription className="flex items-center gap-1.5 text-orange-600">
@@ -212,8 +213,8 @@ export default function PeriodsManagement() {
 
   // User and school data
   const { user: clerkUser } = useUser();
-  const { currentUser } = useUserWithConvex(clerkUser?.id);
-  const { currentSchool } = useCurrentSchool(currentUser?._id);
+  const { currentUser, isLoading: userLoading } = useUserWithConvex(clerkUser?.id);
+  const { currentSchool, isLoading: schoolLoading } = useCurrentSchool(currentUser?._id);
 
   // School cycles query
   const schoolCycles = useQuery(
@@ -239,6 +240,7 @@ export default function PeriodsManagement() {
     canReadTerm,
     canUpdateTerm,
     canDeleteTerm,
+    isLoading: permissionsLoading,
 
   } = usePermissions(currentSchool?.school._id);
   // Terms data from store
@@ -377,7 +379,17 @@ export default function PeriodsManagement() {
   const isActiveCycle = (cycleId: string) => {
     return cycleId === activeSchoolCycle?._id;
   };
+  const isLoading =
+    userLoading ||
+    schoolLoading ||
+    permissionsLoading ||
+    activeSchoolCycle === undefined ||
+    schoolCycles === undefined ||
+    filteredTerms === undefined;
 
+  if (isLoading) {
+    return <GeneralDashboardSkeleton nc={3} />;
+  }
   return (
     <>
       {canReadTerm ? (<div className="space-y-8 p-6">
@@ -585,12 +597,7 @@ export default function PeriodsManagement() {
           </CardHeader>
           <CardContent>
             {isTermsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                  <p className="text-muted-foreground">Cargando periodos...</p>
-                </div>
-              </div>
+              <GeneralDashboardSkeleton nc={3} />
             ) : filteredTerms.length === 0 ? (
               <div className="text-center py-12">
                 <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />

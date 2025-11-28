@@ -27,6 +27,7 @@ import NotAuth from "../../../../../components/NotAuth";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
+import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
 
 // Tipos para los datos de grupos y tutores
 interface Group {
@@ -165,7 +166,7 @@ export default function AlumnosPage() {
       // Combinamos nombre y apellido para un ordenado completo
       const nameA = `${a.name} ${a.lastName || ''}`.toLowerCase().trim();
       const nameB = `${b.name} ${b.lastName || ''}`.toLowerCase().trim();
-      
+
       // localeCompare es la forma correcta de ordenar alfabéticamente (maneja acentos)
       return nameA.localeCompare(nameB);
     });
@@ -173,11 +174,11 @@ export default function AlumnosPage() {
     // 3. Pagina la lista ya ordenada
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    
+
     return sortedData.slice(startIndex, endIndex);
 
   }, [filteredStudents, students, currentPage, itemsPerPage]); // Las dependencias siguen igual
-  
+
   const totalPages = Math.ceil(
     (filteredStudents.length > 0 ? filteredStudents.length : students.length) / itemsPerPage
   );
@@ -495,7 +496,9 @@ export default function AlumnosPage() {
       trend: "Estado inactivo"
     },
   ];
-
+  if (isLoading) {
+    return <GeneralDashboardSkeleton />;
+  }
   // Mostrar loading screen para carga inicial
   // if (isLoading) {
   //   return (
@@ -583,29 +586,29 @@ export default function AlumnosPage() {
   ) : (
     <div className="space-y-8 p-6">
 
-        {/* Mostrar alerta cuando no hay datos necesarios para crear estudiantes */}
-        {canCreateUsersAlumnos && (!groups?.length || !tutors?.length || !activeCycle) && (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {/*Oct30: Se muestra mensaje de alerta para distintos escenarios (se agrega el del ciclo escolar activo) */}
-              {!groups?.length && !tutors?.length && !activeCycle
-                ? "No se pueden crear estudiantes porque no hay grupos, tutores disponibles ni un ciclo escolar activo. Debes crear grupos, asignar tutores y activar un ciclo escolar primero."
-                : !groups?.length && !tutors?.length
-                  ? "No se pueden crear estudiantes porque no hay grupos ni tutores disponibles. Debes crear grupos y asignar tutores primero."
-                  : !groups?.length && !activeCycle
-                    ? "No se pueden crear estudiantes porque no hay grupos disponibles ni un ciclo escolar activo. Debes crear grupos y activar un ciclo escolar primero."
-                    : !tutors?.length && !activeCycle
-                      ? "No se pueden crear estudiantes porque no hay tutores disponibles ni un ciclo escolar activo. Debes asignar tutores y activar un ciclo escolar primero."
-                      : !groups?.length
-                        ? "No se pueden crear estudiantes porque no hay grupos disponibles. Debes crear grupos primero."
-                        : !tutors?.length
-                          ? "No se pueden crear estudiantes porque no hay tutores disponibles. Debes asignar tutores a esta escuela primero."
-                          : "No se pueden crear estudiantes porque no hay un ciclo escolar activo. Debes activar un ciclo escolar primero."
-              }
-            </AlertDescription>
-          </Alert>
-        )}
+      {/* Mostrar alerta cuando no hay datos necesarios para crear estudiantes */}
+      {canCreateUsersAlumnos && (!groups?.length || !tutors?.length || !activeCycle) && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {/*Oct30: Se muestra mensaje de alerta para distintos escenarios (se agrega el del ciclo escolar activo) */}
+            {!groups?.length && !tutors?.length && !activeCycle
+              ? "No se pueden crear estudiantes porque no hay grupos, tutores disponibles ni un ciclo escolar activo. Debes crear grupos, asignar tutores y activar un ciclo escolar primero."
+              : !groups?.length && !tutors?.length
+                ? "No se pueden crear estudiantes porque no hay grupos ni tutores disponibles. Debes crear grupos y asignar tutores primero."
+                : !groups?.length && !activeCycle
+                  ? "No se pueden crear estudiantes porque no hay grupos disponibles ni un ciclo escolar activo. Debes crear grupos y activar un ciclo escolar primero."
+                  : !tutors?.length && !activeCycle
+                    ? "No se pueden crear estudiantes porque no hay tutores disponibles ni un ciclo escolar activo. Debes asignar tutores y activar un ciclo escolar primero."
+                    : !groups?.length
+                      ? "No se pueden crear estudiantes porque no hay grupos disponibles. Debes crear grupos primero."
+                      : !tutors?.length
+                        ? "No se pueden crear estudiantes porque no hay tutores disponibles. Debes asignar tutores a esta escuela primero."
+                        : "No se pueden crear estudiantes porque no hay un ciclo escolar activo. Debes activar un ciclo escolar primero."
+            }
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Información de permisos */}
       {(isTutor || isTeacher) && !isSuperAdmin && !isAdmin && (
@@ -618,48 +621,48 @@ export default function AlumnosPage() {
         </Alert>
       )}
 
-        {/* Header */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-background border">
-          <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
-          <div className="relative p-8">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-indigo-500/10 rounded-xl">
-                    <GraduationCap className="h-8 w-8 text-indigo-600" />
-                  </div>
-                  <div>
-                    <h1 className="text-4xl font-bold tracking-tight">Alumnos</h1>
-                    <p className="text-lg text-muted-foreground">
-                      Gestión de estudiantes del sistema escolar
-                    </p>
-                  </div>
+      {/* Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-background border">
+        <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
+        <div className="relative p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-indigo-500/10 rounded-xl">
+                  <GraduationCap className="h-8 w-8 text-indigo-600" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold tracking-tight">Alumnos</h1>
+                  <p className="text-lg text-muted-foreground">
+                    Gestión de estudiantes del sistema escolar
+                  </p>
                 </div>
               </div>
-              {canCreateUsersAlumnos && (
-                <Button
-                  size="lg"
-                  className="gap-2 bg-blue-600 hover:bg-blue-700"
-                  onClick={openCreate}
-                  disabled={isCreating || !currentSchool || !groups?.length || !tutors?.length || !activeCycle}
-                  title={
-                    !groups?.length ? "No hay grupos disponibles" :
-                      !tutors?.length ? "No hay tutores disponibles" :
-                        !activeCycle ? "No hay un ciclo escolar activo" :
-                          !currentSchool ? "No hay escuela seleccionada" : ""
-                  }
-                >
-                  {isCreating ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Plus className="w-4 h-4" />
-                  )}
-                  {isCreating ? "Creando..." : "Agregar Alumno"}
-                </Button>
-              )}
             </div>
+            {canCreateUsersAlumnos && (
+              <Button
+                size="lg"
+                className="gap-2 bg-blue-600 hover:bg-blue-700"
+                onClick={openCreate}
+                disabled={isCreating || !currentSchool || !groups?.length || !tutors?.length || !activeCycle}
+                title={
+                  !groups?.length ? "No hay grupos disponibles" :
+                    !tutors?.length ? "No hay tutores disponibles" :
+                      !activeCycle ? "No hay un ciclo escolar activo" :
+                        !currentSchool ? "No hay escuela seleccionada" : ""
+                }
+              >
+                {isCreating ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
+                {isCreating ? "Creando..." : "Agregar Alumno"}
+              </Button>
+            )}
           </div>
         </div>
+      </div>
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
