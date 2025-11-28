@@ -2,3 +2,80 @@
 @import '@repo/ui/styles/default.css';
 @source '../../../packages/ui';
 
+/* Estilos personalizados para toasts con fondo blanco */
+[data-sonner-toast] {
+  background-color: white !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-sonner-toast][data-type="success"] {
+  border-color: #86efac !important;
+}
+
+/* Aplicar color verde a los toasts de éxito (create/edit) */
+[data-sonner-toast][data-type="success"]:not(.toast-red-text) [data-title],
+[data-sonner-toast][data-type="success"]:not(.toast-red-text) > div > div:first-child,
+[data-sonner-toast].toast-green-text [data-title] {
+  color: #16a34a !important;
+}
+
+[data-sonner-toast][data-type="error"] {
+  border-color: #fca5a5 !important;
+}
+
+[data-sonner-toast][data-type="error"] [data-title] {
+  color: #dc2626 !important;
+}
+
+/* Aplicar color rojo cuando se usa toast-red-text (delete) - Máxima especificidad */
+[data-sonner-toast].toast-red-text {
+  --toast-color: #dc2626 !important;
+}
+
+/* Forzar color rojo en todos los elementos del toast rojo */
+[data-sonner-toast].toast-red-text,
+[data-sonner-toast].toast-red-text[data-type="success"],
+[data-sonner-toast].toast-red-text[data-type="success"] [data-title],
+[data-sonner-toast].toast-red-text [data-title],
+[data-sonner-toast].toast-red-text > div,
+[data-sonner-toast].toast-red-text > div > div,
+[data-sonner-toast].toast-red-text > div > div > div,
+[data-sonner-toast].toast-red-text > div > div > div > div,
+[data-sonner-toast].toast-red-text span,
+[data-sonner-toast].toast-red-text p,
+[data-sonner-toast].toast-red-text *:not([data-icon]):not([data-close-button]):not(button) {
+  color: #dc2626 !important;
+}
+
+/* Forzar el color incluso en elementos anidados */
+[data-sonner-toast].toast-red-text *,
+[data-sonner-toast].toast-red-text * * {
+  color: #dc2626 !important;
+}
+
+[data-sonner-toast][data-type="info"] {
+  border-color: #93c5fd !important;
+}
+
+[data-sonner-toast][data-type="info"] [data-title] {
+  color: #2563eb !important;
+}
+
+[data-sonner-toast][data-type="warning"] {
+  border-color: #fde047 !important;
+}
+
+[data-sonner-toast][data-type="warning"] [data-title] {
+  color: #ca8a04 !important;
+}
+
+/* Asegurar que las descripciones tengan texto negro/gris oscuro */
+[data-sonner-toast] [data-description] {
+  color: #374151 !important;
+}
+
+[data-sonner-toast] [data-description] * {
+  color: #374151 !important;
+}
+

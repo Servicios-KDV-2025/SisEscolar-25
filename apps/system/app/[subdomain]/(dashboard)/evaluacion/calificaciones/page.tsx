@@ -10,7 +10,7 @@ import {
 } from "@repo/ui/components/shadcn/card";
 import {
   Select,
-  SelectContent,
+  SelectContent,  
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -36,6 +36,7 @@ import { TaskForm } from 'components/tasks/TaskForm';
 import { UseFormReturn } from 'react-hook-form';
 import { TaskFormData, taskFormSchema } from '@/types/form/taskSchema';
 import { useTask } from 'stores/taskStore';
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 
 export default function GradeManagementDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -54,6 +55,10 @@ export default function GradeManagementDashboard() {
   } = useCurrentSchool(currentUser?._id);
 
   const { createTask } = useTask(currentSchool?.school._id);
+
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Calificación");
+  const toastMessagesAsignacion = useCrudToastMessages("Asignación");
 
   const {
     isOpen,
@@ -243,11 +248,28 @@ export default function GradeManagementDashboard() {
             `Error guardando promedio para ${student.student.name}:`,
             error
           );
-          toast.error(`Error guardando promedio para ${student.student.name}`);
+          toast.error(
+            <span style={{ color: '#dc2626' }}>
+              Error guardando promedio para {student.student.name}
+            </span>,
+            {
+              className: 'bg-white border border-red-200',
+              unstyled: false,
+              description: error instanceof Error ? error.message : undefined
+            }
+          );
         }
       }
     }
-    toast.success("¡Promedios de todos los alumnos guardados!");
+    toast.success(
+      <span style={{ color: '#16a34a', fontWeight: 600 }}>
+        ¡Promedios de todos los alumnos guardados!
+      </span>,
+      {
+        className: 'bg-white border border-green-200',
+        unstyled: false,
+      }
+    );
   };
 
   // Handle loading state
@@ -280,10 +302,25 @@ export default function GradeManagementDashboard() {
         comments: comments,
         registeredById: currentUser._id as Id<"user">,
       });
-      toast.success("Calificación de asignación actualizada.");
+      toast.success(
+        <span style={{ color: '#16a34a', fontWeight: 600 }}>
+          {toastMessages.editSuccess}
+        </span>,
+        {
+          className: 'bg-white border border-green-200',
+          unstyled: false,
+        }
+      );
     } catch (error) {
       toast.error(
-        "Error al actualizar la calificación:" + (error as Error).message
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.editError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: error instanceof Error ? error.message : undefined
+        }
       );
     }
   };
@@ -353,27 +390,21 @@ export default function GradeManagementDashboard() {
       return;
     }
 
-    try {
-      // Combinar fecha y hora para crear el timestamp
-      const dueDateTime = new Date(`${values.dueDate}T${values.dueTime}`);
-      const dueTimestamp = dueDateTime.getTime();
+    // Combinar fecha y hora para crear el timestamp
+    const dueDateTime = new Date(`${values.dueDate}T${values.dueTime}`);
+    const dueTimestamp = dueDateTime.getTime();
 
-      // Aquí necesitarías la función createTask - puede que necesites importarla o crearla
-      await createTask({
-        classCatalogId: values.classCatalogId as Id<"classCatalog">,
-        termId: values.termId as Id<"term">,
-        gradeRubricId: values.gradeRubricId as Id<"gradeRubric">,
-        name: values.name as string,
-        description: values.description as string,
-        dueDate: dueTimestamp,
-        maxScore: parseInt(values.maxScore as string),
-      });
-      toast.success('Asignación creada exitosamente')
-      close();
-    } catch (error) {
-      toast.error('Error al crear la asignación')
-      console.error('Error al procesar la tarea:', error);
-    }
+    // Aquí necesitarías la función createTask - puede que necesites importarla o crearla
+    await createTask({
+      classCatalogId: values.classCatalogId as Id<"classCatalog">,
+      termId: values.termId as Id<"term">,
+      gradeRubricId: values.gradeRubricId as Id<"gradeRubric">,
+      name: values.name as string,
+      description: values.description as string,
+      dueDate: dueTimestamp,
+      maxScore: parseInt(values.maxScore as string),
+    });
+    //   Los toasts ahora los maneja el CrudDialog automáticamente
   }
 
 
@@ -400,34 +431,7 @@ export default function GradeManagementDashboard() {
                 </div>
               </div>
             </div>
-            <div className="flex flex-col gap-4 sm:flex-col sm:items-center sm:gap-8 lg:gap-2">
-              {canCreateAssignance &&
-                <Button
-                  className="cursor-pointer"
-                  onClick={openCreate}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Agregar Asignación
-                </Button>
-              }
-              {currentRole !== 'tutor' && (
-                <Button
-                  onClick={handleSaveAverages}
-                  size="lg"
-                  className="gap-2"
-                  disabled={
-                    isDataLoading ||
-                    !currentSchool ||
-                    !students ||
-                    students.length === 0 ||
-                    currentRole === 'auditor'
-                  }
-                >
-                  <SaveAll className="w-4 h-4" />
-                  Guardar Promedios
-                </Button>
-              )}
-            </div>
+         
           </div>
         </div>
       </div>
@@ -553,15 +557,48 @@ export default function GradeManagementDashboard() {
       {/* Grade Matrix */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <CardTitle>
+            <div className="flex flex-col gap-2">
             <span>Calificaciones</span>
             <Badge
               variant="outline"
-              className="bg-black-50 text-black-700 border-black-200"
+              className="bg-black-50 text-black-700 border-black-200 w-fit"
             >
               {assignments?.length} asignaciones
             </Badge>
+            </div>
           </CardTitle>
+          <div className="flex flex-col gap-2 md:flex-row">
+          {canCreateAssignance &&
+                <Button
+                  className="cursor-pointer"
+                  onClick={openCreate}
+                  size="lg"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Agregar Asignación
+                </Button>
+              }
+              {currentRole !== 'tutor' && (
+                <Button
+                  onClick={handleSaveAverages}
+                  size="lg"
+                  className="gap-2"
+                  disabled={
+                    isDataLoading ||
+                    !currentSchool ||
+                    !students ||
+                    students.length === 0 ||
+                    currentRole === 'auditor'
+                  }
+                >
+                  <SaveAll className="w-4 h-4" />
+                  Guardar Promedios
+                </Button>
+              )}
+          </div>
+          </div>
         </CardHeader>
         <CardContent className="w-full">
           {(
@@ -690,6 +727,8 @@ export default function GradeManagementDashboard() {
         isOpen={isOpen}
         onOpenChange={close}
         onSubmit={handleSubmit}
+        toastMessages={toastMessagesAsignacion}
+        disableDefaultToasts={false}
       >
         {(form, operation) => (
           <TaskForm
