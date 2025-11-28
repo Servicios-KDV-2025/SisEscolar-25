@@ -190,7 +190,7 @@ export default function EscuelaHome() {
 
   // Show loading screen for initial load
   if (isLoading || (currentUser && !currentSchool && !schoolError)) {
-    return <GeneralDashboardSkeleton role={currentRole ?? undefined} />;
+    return <GeneralDashboardSkeleton nc={2} />;
   }
 
   return (

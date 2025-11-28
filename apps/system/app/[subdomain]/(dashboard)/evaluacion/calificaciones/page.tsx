@@ -52,7 +52,7 @@ export default function GradeManagementDashboard() {
   const {
     currentSchool,
     isLoading: schoolLoading,
-    error: schoolError,
+    
   } = useCurrentSchool(currentUser?._id);
 
   const { createTask } = useTask(currentSchool?.school._id);

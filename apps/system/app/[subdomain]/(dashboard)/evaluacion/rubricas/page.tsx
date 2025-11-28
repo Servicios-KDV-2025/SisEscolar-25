@@ -382,6 +382,7 @@ export default function RubricDashboard() {
     userLoading ||
     schoolLoading ||
     permissionsLoading ||
+    gradeRubricLoading ||
     classCatalogLoading;
 
   if (isLoading) {

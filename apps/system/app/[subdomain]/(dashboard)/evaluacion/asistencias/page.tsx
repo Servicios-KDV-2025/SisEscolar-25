@@ -47,6 +47,7 @@ export default function AttendancePage() {
     userLoading ||
     schoolLoading ||
     permissionsLoading ||
+    clasCatLoading ||
     classCatalogLoading;
 
   useEffect(() => {

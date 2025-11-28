@@ -38,14 +38,14 @@ export default function GradeManagementDashboard() {
   const [selectedSchoolCycle, setSelectedSchoolCycle] = useState<string>("");
   const [selectedClass, setSelectedClass] = useState<string>("");
 
-  const { user: clerkUser, isLoaded } = useUser();
+  const { user: clerkUser } = useUser();
   const { currentUser, isLoading: userLoading } = useUserWithConvex(
     clerkUser?.id
   );
   const {
     currentSchool,
     isLoading: schoolLoading,
-    error: schoolError,
+    
   } = useCurrentSchool(currentUser?._id);
 
   const permissions = usePermissions(currentSchool?.school._id);
