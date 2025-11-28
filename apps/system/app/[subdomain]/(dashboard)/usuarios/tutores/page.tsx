@@ -83,6 +83,7 @@ import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { useUserActionsWithConvex } from "../../../../../stores/userActionsStore";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
 
 // Tipo para los usuarios que vienen de Convex
@@ -257,6 +258,9 @@ export default function TutorPage() {
     status: "active",
     admissionDate: Date.now(),
   });
+
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Tutor");
 
   // Hook del CRUD Dialog para datos fiscales
   const {
@@ -861,17 +865,6 @@ export default function TutorPage() {
                 </div>
               </div>
             </div>
-            {canCreateUsersTutores && (
-              <Button
-                size="lg"
-                className="gap-2 bg-orange-600 hover:bg-orange-700"
-                onClick={handleOpenCreate}
-                disabled={isLoading || !currentSchool || isCrudLoading}
-              >
-                <Plus className="w-4 h-4" />
-                Agregar Tutor
-              </Button>
-            )}
           </div>
         </div>
       </div>
@@ -985,15 +978,30 @@ export default function TutorPage() {
       {/* Tabla de Tutores */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Lista de Tutores</span>
-            <Badge
-              variant="outline"
-              className="bg-orange-50 text-orange-700 border-orange-200"
-            >
-              {filteredUsers.length} tutores
-            </Badge>
-          </CardTitle>
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <CardTitle>
+              <div className="flex flex-col gap-2">
+              <span>Lista de Tutores</span>
+                <Badge
+                  variant="outline"
+                  className="bg-orange-50 text-orange-700 border-orange-200 w-fit"
+                >
+                  {filteredUsers.length} tutores
+                </Badge>
+              </div>
+            </CardTitle>
+            {canCreateUsersTutores && (
+              <Button
+                size="lg"
+                className="gap-2 bg-orange-600 hover:bg-orange-700"
+                onClick={handleOpenCreate}
+                disabled={isLoading || !currentSchool || isCrudLoading}
+              >
+                <Plus className="w-4 h-4" />
+                Agregar Tutor
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -1331,6 +1339,8 @@ export default function TutorPage() {
         isLoading={isLoading}
         isSubmitting={userActions.isCreating || userActions.isUpdating}
         isDeleting={userActions.isDeleting}
+        toastMessages={toastMessages}
+        disableDefaultToasts={false}
       >
         {(form, currentOperation) => (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

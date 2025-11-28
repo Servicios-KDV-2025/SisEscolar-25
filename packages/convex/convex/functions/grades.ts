@@ -5,7 +5,7 @@ import { v } from "convex/values";
 export const upsertGrade = mutation({
   args: {
     studentClassId: v.id("studentClass"),
-    assignmentId: v.id("assignment"), // ✨ CAMBIO CLAVE
+    assignmentId: v.id("assignment"), //   CAMBIO CLAVE
     score: v.number(),
     comments: v.optional(v.string()),
     registeredById: v.id("user"),

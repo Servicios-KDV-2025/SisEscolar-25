@@ -46,10 +46,10 @@ import {
   CardTitle,
 } from "@repo/ui/components/shadcn/card";
 import { Search } from "lucide-react";
-import { toast } from "@repo/ui/sonner";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
 
 export default function SubjectPage() {
@@ -96,6 +96,9 @@ export default function SubjectPage() {
     status: "",
   });
 
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Materia");
+
   const filteredSubjects = subjects.filter((subject) => {
     const matchesSearch = subject.name
       .toLowerCase()
@@ -137,14 +140,7 @@ export default function SubjectPage() {
 
   const handleDelete = async (id: string) => {
     await deleteSubject(id);
-    try {
-      toast.success("Eliminado correctamente");
-    } catch (error) {
-      toast.error("Error al eliminar materia", {
-        description: (error as Error).message,
-      });
-      throw error;
-    }
+    //   Los toasts ahora los maneja el CrudDialog automáticamente
   };
 
   const {
@@ -179,15 +175,6 @@ export default function SubjectPage() {
                     </div>
                   </div>
                 </div>
-                {canCreateSubject && (<Button
-                  size="lg"
-                  className="gap-2"
-                  onClick={openCreate}
-                  disabled={isCreatingSubject}
-                >
-                  <Plus className="h-4 w-4" />
-                  Agregar Materia
-                </Button>)}
               </div>
             </div>
           </div>
@@ -327,12 +314,25 @@ export default function SubjectPage() {
           {/* Tabla de Materias */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Lista de Materias</span>
-                <Badge variant="outline">
-                  {filteredSubjects.length} materias
-                </Badge>
-              </CardTitle>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <CardTitle>
+                  <div className="flex flex-col gap-2">
+                    <span>Lista de Materias</span>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                      {filteredSubjects.length} materias
+                    </Badge>
+                  </div>
+                </CardTitle>
+                {canCreateSubject && (<Button
+                  size="lg"
+                  className="gap-2"
+                  onClick={openCreate}
+                  disabled={isCreatingSubject}
+                >
+                  <Plus className="h-4 w-4" />
+                  Agregar Materia
+                </Button>)}
+              </div>
             </CardHeader>
             <CardContent>
               {filteredSubjects.length === 0 ? (
@@ -404,6 +404,8 @@ export default function SubjectPage() {
             onDelete={handleDelete}
             isSubmitting={isCreatingSubject || isUpdatingSubject}
             isDeleting={isDeletingSubject}
+            toastMessages={toastMessages}
+            disableDefaultToasts={false}
           >
             {(form, operation) => {
               const nameValue = (form.watch("name") as string) || "";

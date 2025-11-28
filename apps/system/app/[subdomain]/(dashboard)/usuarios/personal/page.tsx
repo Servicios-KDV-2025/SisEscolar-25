@@ -86,6 +86,7 @@ import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { useUserActionsWithConvex } from "../../../../../stores/userActionsStore";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
 
 
@@ -301,6 +302,9 @@ export default function PersonalPage() {
     role: "teacher", // Valor por defecto
   });
 
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Personal");
+
   // Funciones wrapper para abrir diálogos con limpieza de errores
   const handleOpenCreate = () => {
     userActions.clearErrors();
@@ -514,7 +518,7 @@ export default function PersonalPage() {
             department: undefined,
           });
 
-          toast.success("Usuario creado exitosamente");
+          //   El toast de asignación se mantiene manual, pero el de creación lo maneja CrudDialog
         } catch (error) {
           console.error("Error al asignar usuario:", error);
           throw new Error(
@@ -611,7 +615,7 @@ export default function PersonalPage() {
       });
 
       console.log("✅ Actualización completada exitosamente");
-      toast.success("Usuario actualizado exitosamente");
+      // Los toasts ahora los maneja el CrudDialog automáticamente
 
     } catch (error) {
       console.error("❌ Error en handleUpdate:", error);
@@ -862,18 +866,6 @@ export default function PersonalPage() {
                 </div>
               </div>
             </div>
-            {canCreateUsersPersonal && (
-              <Button
-                size="lg"
-                className="gap-2"
-                onClick={handleOpenCreate}
-                disabled={isLoading || !currentSchool || isCrudLoading}
-              >
-                <Plus className="w-4 h-4" />
-                Agregar Personal
-              </Button>
-            )}
-
           </div>
         </div>
       </div>
@@ -1014,27 +1006,37 @@ export default function PersonalPage() {
       {/* Tabla de Personal */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Lista de Personal</span>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(roleConfig).map(([roleKey, roleInfo]) => (
-                <Badge
-                  key={roleKey}
-                  variant="outline"
-                  className={`${roleInfo.color} text-xs m-x-2 space-x-2`}
-                >
-                  <roleInfo.icon className="h-4 w-4 mr-1" />
-                  {roleInfo.label}
-                </Badge>
-              ))}
-            </div>
-            <Badge variant="outline">{filteredUsers.length} usuarios</Badge>
-          </CardTitle>
-
-          <CardDescription className="space-x-1">
-
-
-          </CardDescription>
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <CardTitle>
+              <div className="flex flex-col gap-2">
+                <span>Lista de Personal</span>
+                <div className="flex flex-wrap gap-2 items-center">
+                  {Object.entries(roleConfig).map(([roleKey, roleInfo]) => (
+                    <Badge
+                      key={roleKey}
+                      variant="outline"
+                      className={`${roleInfo.color} text-xs m-x-2 space-x-2`}
+                    >
+                      <roleInfo.icon className="h-4 w-4 mr-1" />
+                      {roleInfo.label}
+                    </Badge>
+                  ))}
+                </div>
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">{filteredUsers.length} usuarios</Badge>
+              </div>
+            </CardTitle>
+            {canCreateUsersPersonal && (
+              <Button
+                size="lg"
+                className="gap-2"
+                onClick={handleOpenCreate}
+                disabled={isLoading || !currentSchool || isCrudLoading}
+              >
+                <Plus className="w-4 h-4" />
+                Agregar Personal
+              </Button>
+            )}
+          </div>
         </CardHeader>
 
         <CardContent>
@@ -1361,6 +1363,8 @@ export default function PersonalPage() {
         isLoading={isLoading}
         isSubmitting={userActions.isCreating || userActions.isUpdating}
         isDeleting={userActions.isDeleting}
+        toastMessages={toastMessages}
+        disableDefaultToasts={false}
       >
         {(form, currentOperation) => (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

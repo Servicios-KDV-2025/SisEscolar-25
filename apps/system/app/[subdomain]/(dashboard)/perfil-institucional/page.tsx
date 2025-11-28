@@ -5,6 +5,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@repo/ui/components/shadcn/card";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Input } from "@repo/ui/components/shadcn/input";
@@ -16,7 +17,8 @@ import { useUser } from "@clerk/nextjs";
 import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
 import { useMutation } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
-import { toast } from "sonner";
+import { toast } from "@repo/ui/sonner";
+import { useCrudToastMessages } from "../../../../hooks/useCrudToastMessages";
 import { useForm, UseFormRegister, FieldError } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
@@ -46,6 +48,9 @@ export default function ConfiguracionPage() {
     isLoading: permissionsLoading
   } = usePermissions(currentSchool?.school._id);
 
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Perfil Institucional");
+
   const {
     register,
     handleSubmit,
@@ -74,9 +79,28 @@ export default function ConfiguracionPage() {
         ...data,
       });
       setIsEditing(false);
-      toast.success("Perfil de la institución actualizado con éxito.");
+      // Toast personalizado con fondo blanco y texto verde
+      toast.success(
+        <span style={{ color: '#16a34a', fontWeight: 600 }}>
+          {toastMessages.editSuccess}
+        </span>,
+        {
+          className: 'bg-white border border-green-200',
+          unstyled: false,
+        }
+      );
     } catch (err) {
-      toast.error("Error al guardar los cambios." + err);
+      // Toast de error personalizado
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.editError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: err instanceof Error ? err.message : undefined
+        }
+      );
     } finally {
       setIsSaving(false);
     }
@@ -119,49 +143,7 @@ export default function ConfiguracionPage() {
                   Gestión de la información principal de la escuela.
                 </p>
               </div>
-            </div>
-
-            {isEditing ? (
-              <>
-                <div className="flex max-md:flex-col gap-3 max-md:h-24 max-md:w-full">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="flex-1 gap-2 max-md:text-base "
-                    onClick={handleCancel}
-                    disabled={isSaving}
-                  >
-                    <X className="w-4 h-4" /> Cancelar
-                  </Button>
-                  <Button
-                    size="lg"
-                    className="flex-1 gap-2 max-md:text-base"
-                    onClick={handleSubmit(handleSave)}
-                    disabled={isSaving}
-                  >
-                    {isSaving ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Save className="w-4 h-4" />
-                    )}{" "}
-                    Guardar Cambios
-                  </Button>
-                </div>
-              </>
-            ) : (
-              canUpdatePerfilInstitucional && (
-                <div className="flex max-md:w-full">
-                  <Button
-                    size="lg"
-                    className="gap-2 flex-1"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    <Edit className="w-4 h-4" /> Editar Información
-                  </Button>
-                </div>
-              )
-            )}
-
+            </div>         
           </div>
         </div>
       </div>
@@ -261,6 +243,48 @@ export default function ConfiguracionPage() {
             />
           </div>
         </CardContent>
+        <CardFooter className="flex justify-end">
+        {isEditing ? (
+                <>
+                <div className="flex max-md:flex-col gap-3 max-md:h-24 max-md:w-full">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="flex-1 gap-2 max-md:text-base "
+                    onClick={handleCancel}
+                    disabled={isSaving}
+                  >
+                    <X className="w-4 h-4" /> Cancelar
+                  </Button>
+                  <Button
+                    size="lg"
+                    className="flex-1 gap-2 max-md:text-base"
+                    onClick={handleSubmit(handleSave)}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}{" "}
+                    Guardar Cambios
+                  </Button>
+                  </div>
+                </>
+              ) : (
+                canUpdatePerfilInstitucional && (
+                  <div className="flex max-md:w-full">
+                  <Button
+                    size="lg"
+                    className="gap-2 flex-1"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    <Edit className="w-4 h-4" /> Editar Información
+                  </Button>
+                  </div>
+                )
+              )}
+        </CardFooter>
       </Card>
     </div>
   );

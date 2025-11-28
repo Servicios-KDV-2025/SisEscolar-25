@@ -10,6 +10,7 @@ import {
   School,
   Calendar as CalendarIcon,
 } from "@repo/ui/icons";
+import { Trash2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -38,6 +39,7 @@ import { EventType } from "@/types/eventType";
 import EventTypeDialog from "components/dialog/EventTypeDialog";
 import { usePermissions } from "hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import { CalendarSkeleton } from "../../../../../components/skeletons/CalendarSkeleton";
 
 interface TipoEventoConfig {
@@ -134,6 +136,181 @@ export default function CalendarioEscolar() {
     canDeleteCalendar,
     isLoading: permissionsLoading,
   } = usePermissions(currentSchool?.school._id);
+
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Evento");
+
+  const handleEventAdd = async (event: CalendarEvent) => {
+    // Estas IDs vienen del 'handleSave' en el modal (que arreglaremos en el Paso 3)
+    const { title, description, start, end, allDay, location, eventTypeId } =
+      event;
+    const schoolId = currentSchool?.school._id;
+    const schoolCycleId = filtroCicloEscolarId; // Tomamos el ciclo del filtro
+
+    if (!schoolId || !schoolCycleId || !eventTypeId) {
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          Faltan datos para crear el evento (escuela, ciclo o tipo).
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+        }
+      );
+      return;
+    }
+
+    try {
+      await crearEvento({
+        schoolId: schoolId as Id<"school">,
+        schoolCycleId: schoolCycleId as Id<"schoolCycle">,
+        title,
+        description,
+        startDate: start.getTime(),
+        endDate: end.getTime(),
+        allDay: allDay || false,
+        location,
+        eventTypeId: eventTypeId as Id<"eventType">,
+      });
+      // Toast personalizado con fondo blanco y texto verde
+      toast.success(
+        <span style={{ color: '#16a34a', fontWeight: 600 }}>
+          {toastMessages.createSuccess}
+        </span>,
+        {
+          className: 'bg-white border border-green-200',
+          unstyled: false,
+        }
+      );
+    } catch (error) {
+      // Toast de error personalizado
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.createError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: error instanceof Error ? error.message : undefined
+        }
+      );
+      console.error(error);
+    }
+  };
+
+  const handleEventUpdate = async (event: CalendarEvent) => {
+    // (Esta es la misma lógica que usamos para el Drag-n-Drop)
+    const originalEvent = eventos?.find((e) => e._id === event.id);
+    const schoolId = currentSchool?.school._id;
+
+    if (!originalEvent || !schoolId) return;
+
+    try {
+      await editarEvento({
+        schoolId: schoolId as Id<"school">,
+        eventId: event.id as Id<"calendar">,
+        startDate: event.start.getTime(),
+        endDate: event.end.getTime(),
+        title: event.title,
+        description: event.description,
+        allDay: event.allDay ?? false,
+        location: event.location,
+        eventTypeId: (event.eventTypeId ||
+          originalEvent.eventTypeId) as Id<"eventType">,
+        schoolCycleId: originalEvent.schoolCycleId,
+        status: originalEvent.status,
+      });
+      // Toast personalizado con fondo blanco y texto verde
+      toast.success(
+        <span style={{ color: '#16a34a', fontWeight: 600 }}>
+          {toastMessages.editSuccess}
+        </span>,
+        {
+          className: 'bg-white border border-green-200',
+          unstyled: false,
+        }
+      );
+    } catch (error) {
+      // Toast de error personalizado
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.editError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: error instanceof Error ? error.message : undefined
+        }
+      );
+      console.error(error);
+    }
+  };
+
+  const handleEventDelete = async (eventId: string) => {
+    const schoolId = currentSchool?.school._id;
+    if (!schoolId) return;
+
+    try {
+      await eliminarEvento({
+        schoolId: schoolId as Id<"school">,
+        eventId: eventId as Id<"calendar">,
+      });
+      // Toast de eliminación personalizado con icono de bote de basura
+      toast(
+        <span style={{ color: '#dc2626', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Trash2 className="h-4 w-4" style={{ color: '#dc2626' }} />
+          {toastMessages.deleteSuccess}
+        </span>,
+        {
+          className: 'bg-white border border-red-200 toast-red-text',
+          duration: 3000,
+        }
+      );
+    } catch (error) {
+      // Toast de error personalizado
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.deleteError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: error instanceof Error ? error.message : undefined
+        }
+      );
+      console.error(error);
+    }
+  };
+  // Tipos de eventos
+  const [modalAbiertoT, setModalAbiertoT] = useState(false);
+  const [tipoDeEventoEditar, setTipoDeEventoEditar] =
+    useState<EventType | null>(null);
+
+  useEffect(() => {
+    if (
+      Array.isArray(ciclosEscolares) &&
+      ciclosEscolares.length > 0 &&
+      !filtroCicloEscolarId
+    ) {
+      // const ultimoCiclo = ciclosEscolares[ciclosEscolares.length - 1];
+      // if (ultimoCiclo && ultimoCiclo._id) {
+      //   setFiltroCicloEscolarId(ultimoCiclo._id);
+
+      // Nov 4: Busca el ciclo ACTIVO
+      const cicloActivo = ciclosEscolares.find((ciclo) => ciclo.status === "active");
+
+      if (cicloActivo) {
+        // Nov 4: Selecciona el ciclo activo
+        setFiltroCicloEscolarId(cicloActivo._id);
+      } else {
+        // Nov 4: Si no hay activo, usa el último como respaldo
+        const ultimoCiclo = ciclosEscolares[ciclosEscolares.length - 1];
+        if (ultimoCiclo && ultimoCiclo._id) {
+          setFiltroCicloEscolarId(ultimoCiclo._id);
+        }
+      }
+    }
+  }, [ciclosEscolares, filtroCicloEscolarId]);
 
   const convertirColorAClases = useCallback((color: string | undefined) => {
     // 1. Define el mapa de colores AQUÍ ADENTRO
