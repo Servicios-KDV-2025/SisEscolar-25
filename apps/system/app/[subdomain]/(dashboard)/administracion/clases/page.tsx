@@ -2405,7 +2405,7 @@ export default function HorariosPorClasePage() {
               {/* --- FILTROS DE HORARIO --- */}
               {(currentRole === "admin" || currentRole === "auditor" || currentRole === "superadmin") && (
                 <Card className="mb-6">
-                  <CardContent className="pt-6">
+                  <CardContent className="pt-1">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       {/* Filtro de Estudiante (Combobox) */}
                       <div className="space-y-2">
