@@ -46,10 +46,11 @@ import {
   CardTitle,
 } from "@repo/ui/components/shadcn/card";
 import { Search } from "lucide-react";
-import { toast } from "@repo/ui/sonner";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
+import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
 
 export default function SubjectPage() {
   const { user: clerkUser, isLoaded } = useUser();
@@ -95,6 +96,9 @@ export default function SubjectPage() {
     status: "",
   });
 
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Materia");
+
   const filteredSubjects = subjects.filter((subject) => {
     const matchesSearch = subject.name
       .toLowerCase()
@@ -114,13 +118,15 @@ export default function SubjectPage() {
       description: values.description as string | undefined,
       credits: values.credits as number | undefined,
       status: values.status as "active" | "inactive",
-      
+
     };
 
     if (operation === "create") {
-      await createSubject({...baseData,
+      await createSubject({
+        ...baseData,
         updatedAt: new Date().getTime(),
-        updatedBy: currentUser._id,}
+        updatedBy: currentUser._id,
+      }
       );
     } else if (operation === "edit" && data?._id) {
       await updateSubject({
@@ -134,14 +140,7 @@ export default function SubjectPage() {
 
   const handleDelete = async (id: string) => {
     await deleteSubject(id);
-    try {
-      toast.success("Eliminado correctamente");
-    } catch (error) {
-      toast.error("Error al eliminar materia", {
-        description: (error as Error).message,
-      });
-      throw error;
-    }
+    //   Los toasts ahora los maneja el CrudDialog automáticamente
   };
 
   const {
@@ -149,6 +148,9 @@ export default function SubjectPage() {
     canReadSubject,
   } = usePermissions(currentSchool?.school._id);
 
+  if (isLoading) {
+    return <GeneralDashboardSkeleton nc={3} />;
+  }
   return (
     <>
       {canReadSubject ? (
@@ -173,15 +175,6 @@ export default function SubjectPage() {
                     </div>
                   </div>
                 </div>
-                {canCreateSubject && (<Button
-                  size="lg"
-                  className="gap-2"
-                  onClick={openCreate}
-                  disabled={isCreatingSubject}
-                >
-                  <Plus className="h-4 w-4" />
-                  Agregar Materia
-                </Button>)}
               </div>
             </div>
           </div>
@@ -321,24 +314,28 @@ export default function SubjectPage() {
           {/* Tabla de Materias */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Lista de Materias</span>
-                <Badge variant="outline">
-                  {filteredSubjects.length} materias
-                </Badge>
-              </CardTitle>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <CardTitle>
+                  <div className="flex flex-col gap-2">
+                    <span>Lista de Materias</span>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                      {filteredSubjects.length} materias
+                    </Badge>
+                  </div>
+                </CardTitle>
+                {canCreateSubject && (<Button
+                  size="lg"
+                  className="gap-2"
+                  onClick={openCreate}
+                  disabled={isCreatingSubject}
+                >
+                  <Plus className="h-4 w-4" />
+                  Agregar Materia
+                </Button>)}
+              </div>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-muted-foreground">
-                      Cargando materias...
-                    </p>
-                  </div>
-                </div>
-              ) : filteredSubjects.length === 0 ? (
+              {filteredSubjects.length === 0 ? (
                 <div className="text-center py-12">
                   <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">
@@ -347,7 +344,7 @@ export default function SubjectPage() {
                   <p className="text-muted-foreground mb-4">
                     Intenta ajustar los filtros o no hay materias registradas.
                   </p>
-                    {canCreateSubject && (<Button
+                  {canCreateSubject && (<Button
                     size="lg"
                     className="gap-2"
                     onClick={openCreate}
@@ -407,6 +404,8 @@ export default function SubjectPage() {
             onDelete={handleDelete}
             isSubmitting={isCreatingSubject || isUpdatingSubject}
             isDeleting={isDeletingSubject}
+            toastMessages={toastMessages}
+            disableDefaultToasts={false}
           >
             {(form, operation) => {
               const nameValue = (form.watch("name") as string) || "";

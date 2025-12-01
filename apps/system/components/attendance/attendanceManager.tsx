@@ -14,6 +14,7 @@ import { useState, useMemo } from "react"
 import { toast } from "@repo/ui/sonner"
 import { ClassCatalog } from "stores/classCatalogStore"
 import { User } from "stores/userStore"
+import { useCrudToastMessages } from "../../hooks/useCrudToastMessages"
 
 type AttendanceState = "present" | "absent" | "justified" | "unjustified";
 
@@ -56,6 +57,9 @@ type AttendanceManagerProps = {
 }
 
 export default function AttendanceManager({ currentUser, currentSchool, classCatalogs, isLoading }: AttendanceManagerProps) {
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Asistencia");
+
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -226,9 +230,28 @@ export default function AttendanceManager({ currentUser, currentSchool, classCat
 
       await Promise.all(savePromises);
 
-      toast.success("Se registro exitosamente"); // Agregar una notificación de exito
-    } catch {
-      toast.error("Error al guardar la asistencia"); // Agregar una notificación de error
+     
+      toast.success(
+        <span style={{ color: '#16a34a', fontWeight: 600 }}>
+          {toastMessages.createSuccess}
+        </span>,
+        {
+          className: 'bg-white border border-green-200',
+          unstyled: false,
+        }
+      );
+    } catch (error) {
+      // Toast de error personalizado
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.createError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: error instanceof Error ? error.message : undefined
+        }
+      );
     } finally {
       setIsSaving(false);
     }

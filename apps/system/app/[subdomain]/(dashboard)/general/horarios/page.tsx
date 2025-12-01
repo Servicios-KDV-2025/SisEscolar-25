@@ -50,6 +50,8 @@ import {
 import { useState, useMemo } from "react";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
+import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
 
 type FilterType = "all" | "active" | "inactive";
 
@@ -113,6 +115,9 @@ export default function SchedulePage() {
     status: "active",
   });
 
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Horario");
+
   // Ejemplo: crear un horario rapido
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!currentSchool?.school._id) {
@@ -122,36 +127,29 @@ export default function SchedulePage() {
 
     const value = values as ScheduleFormData;
 
-    try {
-      if (operation === "create") {
-        await createSchedule({
-          schoolId: currentSchool.school._id,
-          name: value.name as string,
-          day: value.day as "lun." | "mar." | "mié." | "jue." | "vie.",
-          startTime: value.startTime as string,
-          endTime: value.endTime as string,
-          status: value.status as "active" | "inactive",
-          updatedAt: Date.now(),
-        });
-        toast.success("Horario creado exitosamente");
-      } else if (operation === "edit" && data?._id) {
-        await updateSchedule({
-          id: data._id,
-          schoolId: currentSchool.school._id,
-          name: value.name as string,
-          day: value.day as "lun." | "mar." | "mié." | "jue." | "vie.",
-          startTime: value.startTime as string,
-          endTime: value.endTime as string,
-          status: value.status as "active" | "inactive",
-          updatedAt: Date.now(),
-        });
-        toast.info("Horario actualizado exitosamente");
-      }
-    } catch (error) {
-      console.error("Error en operación CRUD:", error);
-
-      close();
-      throw error;
+    if (operation === "create") {
+      await createSchedule({
+        schoolId: currentSchool.school._id,
+        name: value.name as string,
+        day: value.day as "lun." | "mar." | "mié." | "jue." | "vie.",
+        startTime: value.startTime as string,
+        endTime: value.endTime as string,
+        status: value.status as "active" | "inactive",
+        updatedAt: Date.now(),
+      });
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
+    } else if (operation === "edit" && data?._id) {
+      await updateSchedule({
+        id: data._id,
+        schoolId: currentSchool.school._id,
+        name: value.name as string,
+        day: value.day as "lun." | "mar." | "mié." | "jue." | "vie.",
+        startTime: value.startTime as string,
+        endTime: value.endTime as string,
+        status: value.status as "active" | "inactive",
+        updatedAt: Date.now(),
+      });
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
     }
   };
 
@@ -161,17 +159,12 @@ export default function SchedulePage() {
       return;
     }
 
-    try {
-      await deleteSchedule(id, currentSchool.school._id);
-      toast.success("Eliminado correctamente");
-    } catch (error) {
-      console.error("Error al eliminar horario:", error);
-      throw error;
-    }
+    await deleteSchedule(id, currentSchool.school._id);
+    //   Los toasts ahora los maneja el CrudDialog automáticamente
   };
 
-  if (isLoading) {
-    return <div className="text-center py-10">Cargando escuela...</div>;
+  if (isLoading   || !currentUser || !currentSchool) {
+    return <GeneralDashboardSkeleton nc={0} />;
   }
 
   return (
@@ -198,17 +191,6 @@ export default function SchedulePage() {
                     </div>
                   </div>
                 </div>
-                {canCreateSchedule && (
-                  <Button
-                    size="lg"
-                    className="gap-2"
-                    onClick={openCreate}
-                    disabled={isCreating}
-                  >
-                    <Plus className="h-4 w-4" />
-                    {isCreating ? "Creando..." : "Agregar Horario"}
-                  </Button>
-                )}
               </div>
             </div>
           </div>
@@ -333,12 +315,28 @@ export default function SchedulePage() {
           {/* Tabla de Horarios */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Lista de Horarios</span>
-                <Badge variant="outline">
-                  {filteredSchedules.length} horarios
-                </Badge>
-              </CardTitle>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <CardTitle>
+                  <div className="flex flex-col gap-2">
+                    <span>Lista de Horarios</span>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                      {filteredSchedules.length} horarios
+                    </Badge>
+                  </div>
+                </CardTitle>
+             
+                {canCreateSchedule && (
+                    <Button
+                      size="lg"
+                      className="gap-2"
+                      onClick={openCreate}
+                      disabled={isCreating}
+                    >
+                      <Plus className="h-4 w-4" />
+                      {isCreating ? "Creando..." : "Agregar Horario"}
+                    </Button>
+                  )}
+             </div>
             </CardHeader>
             <CardContent>
               {isDataLoading ? (
@@ -483,6 +481,8 @@ export default function SchedulePage() {
             onDelete={handleDelete}
             deleteConfirmationTitle="¿Eliminar periodo?"
             deleteConfirmationDescription="Esta acción no se puede deshacer. El periodo será eliminado permanentemente."
+            toastMessages={toastMessages}
+            disableDefaultToasts={false}
           >
             {(form, operation) => (
               <div className="space-y-4">

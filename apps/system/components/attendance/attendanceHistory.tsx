@@ -52,9 +52,10 @@ import {
 import { useQuery, useMutation } from "convex/react";
 import { UserRole } from 'hooks/usePermissions';
 import { useMemo, useState, useEffect } from "react";
-import { toast } from "sonner";
+import { toast } from "@repo/ui/sonner";
 import { ClassCatalog } from 'stores/classCatalogStore';
 import { User } from 'stores/userStore';
+import { useCrudToastMessages } from "../../hooks/useCrudToastMessages";
 
 type AttendanceRecord = NonNullable<ReturnType<
   typeof useQuery<typeof api.functions.attendance.getAttendanceHistory>
@@ -197,6 +198,9 @@ export default function AttendanceHistory({
   currentRole,
   canUpdateAttendance
 }: AttendanceHistoryProps) {
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Asistencia");
+
   const [filterClass, setFilterClass] = useState("all");
   const [filterState, setFilterState] = useState("all");
   const [specificDate, setSpecificDate] = useState("");
@@ -302,9 +306,28 @@ export default function AttendanceHistory({
 
     try {
       await updateState({ recordId, newState, updatedBy: currentUser._id });
-      toast.success("Estado actualizado.");
+    
+      toast.success(
+        <span style={{ color: '#16a34a', fontWeight: 600 }}>
+          {toastMessages.editSuccess}
+        </span>,
+        {
+          className: 'bg-white border border-green-200',
+          unstyled: false,
+        }
+      );
     } catch (error) {
-      toast.error("Error al cambiar el estado. " + error);
+    
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.editError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: error instanceof Error ? error.message : undefined
+        }
+      );
     } finally {
       setPendingChanges((prev) => {
         const next = new Set(prev);
@@ -327,10 +350,29 @@ export default function AttendanceHistory({
     setPendingChanges((prev) => new Set(prev).add(recordId));
     try {
       await updateComment({ recordId, newComment, updatedBy: currentUser._id });
-      toast.success("Comentario guardado.");
+    
+      toast.success(
+        <span style={{ color: '#16a34a', fontWeight: 600 }}>
+          Comentario guardado exitosamente
+        </span>,
+        {
+          className: 'bg-white border border-green-200',
+          unstyled: false,
+        }
+      );
       setIsModalOpen(false);
     } catch (error) {
-      toast.error("Error al guardar el comentario. " + error);
+   
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          Error al guardar el comentario
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: error instanceof Error ? error.message : undefined
+        }
+      );
     } finally {
       setPendingChanges((prev) => {
         const next = new Set(prev);

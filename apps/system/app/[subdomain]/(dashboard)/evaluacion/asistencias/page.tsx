@@ -10,11 +10,12 @@ import { useUserWithConvex } from 'stores/userStore';
 import { useCurrentSchool } from 'stores/userSchoolsStore';
 import { ClassCatalog, useClassCatalogWithPermissions } from 'stores/classCatalogStore';
 import { usePermissions } from 'hooks/usePermissions';
+import { GeneralDashboardSkeleton } from 'components/skeletons/GeneralDashboardSkeleton';
 
 export default function AttendancePage() {
   const { user: clerkUser } = useUser()
-  const { currentUser } = useUserWithConvex(clerkUser?.id)
-  const { currentSchool, isLoading: loadingSchool } = useCurrentSchool(currentUser?._id)
+  const { currentUser, isLoading: userLoading } = useUserWithConvex(clerkUser?.id)
+  const { currentSchool, isLoading: schoolLoading } = useCurrentSchool(currentUser?._id)
   const [clasCat, setClasCat] = useState<ClassCatalog[]>();
   const [clasCatLoading, setClasCatLoading] = useState(false);
 
@@ -26,7 +27,7 @@ export default function AttendancePage() {
     isLoading: permissionsLoading,
   } = usePermissions(currentSchool?.school._id);
 
-  const { classCatalogs } = useClassCatalogWithPermissions(
+  const { classCatalogs, isLoading: classCatalogLoading } = useClassCatalogWithPermissions(
     currentSchool?.school._id,
     getStudentFilters
   );
@@ -42,13 +43,22 @@ export default function AttendancePage() {
 
   const [activeTab, setActiveTab] = useState('register');
 
-  const isLoading = loadingSchool || permissionsLoading || clasCatLoading;
+  const isLoading =
+    userLoading ||
+    schoolLoading ||
+    permissionsLoading ||
+    clasCatLoading ||
+    classCatalogLoading;
 
   useEffect(() => {
     if (currentRole === 'tutor' || currentRole === 'auditor') {
       setActiveTab('history');
     }
   }, [currentRole]);
+
+  if (isLoading) {
+    return <GeneralDashboardSkeleton nc={0} />;
+  }
 
   return (
     <div className="container mx-auto p-6">

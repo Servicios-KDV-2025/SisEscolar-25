@@ -56,7 +56,9 @@ import {
 } from "@repo/ui/components/dialog/crud-dialog";
 import { UseFormReturn } from "react-hook-form";
 import { usePermissions } from "../../../../../hooks/usePermissions";
-import  NotAuth  from "../../../../../components/NotAuth";
+import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
+import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
 
 interface Classroom extends Record<string, unknown> {
   _id: Id<"classroom">;
@@ -146,7 +148,7 @@ export default function ClassroomManagement() {
     canReadClassroom,
     canUpdateClassroom,
     canDeleteClassroom,
-    
+
   } = usePermissions(currentSchool?.school._id);
 
   const classrooms = useQuery(
@@ -159,8 +161,11 @@ export default function ClassroomManagement() {
   const deleteClassroom = useMutation(api.functions.classroom.deleteClassroom);
 
   // Quitar el tipo genérico de useCrudDialog
-  const { isOpen, operation, data, openCreate, openEdit, openView, close } =
+  const { isOpen, operation, data, openCreate, openEdit, openView, openDelete, close } =
     useCrudDialog(classroomFormSchema);
+
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Aula");
 
   const [searchTerm, setSearchTerm] = useState("");
   const [locationFilter, setLocationFilter] = useState<string>("all");
@@ -171,6 +176,7 @@ export default function ClassroomManagement() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   // Estado de carga específico para la tabla
+  const isLoading = classrooms === undefined;
   const isTableLoading = classrooms === undefined;
 
   // Esta sección es para filtrar, buscar y ordenar las aulas
@@ -240,7 +246,7 @@ export default function ClassroomManagement() {
       // si hay errores, los mostramos y detenemos la función
       toast.error(
         "Por favor revisa los campos: " +
-          result.error.issues.map((e) => e.message).join(", ")
+        result.error.issues.map((e) => e.message).join(", ")
       );
       return;
     }
@@ -269,37 +275,30 @@ export default function ClassroomManagement() {
       return;
     }
 
-    try {
-      if (operation === "edit" && data?.id) {
-        await updateClassroom({
-          id: data.id as Id<"classroom">,
-          schoolId: currentSchool.school._id as Id<"school">,
-          name: validData.name,
-          capacity: validData.capacity,
-          location: validData.location,
-          status: validData.status,
-          updatedAt: Date.now(),
-        });
-        toast.info("Aula actualizada correctamente.");
-      } else if (operation === "create") {
-        await createClassroom({
-          schoolId: currentSchool.school._id as Id<"school">,
-          name: validData.name,
-          capacity: validData.capacity,
-          location: validData.location,
-          status: validData.status,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        });
-        toast.success("Aula creada correctamente.");
-      }
-      close();
-    } catch (error) {
-      toast.error(
-        "Error al guardar el aula: " +
-          (error instanceof Error ? error.message : "Error desconocido")
-      );
+    if (operation === "edit" && data?.id) {
+      await updateClassroom({
+        id: data.id as Id<"classroom">,
+        schoolId: currentSchool.school._id as Id<"school">,
+        name: validData.name,
+        capacity: validData.capacity,
+        location: validData.location,
+        status: validData.status,
+        updatedAt: Date.now(),
+      });
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
+    } else if (operation === "create") {
+      await createClassroom({
+        schoolId: currentSchool.school._id as Id<"school">,
+        name: validData.name,
+        capacity: validData.capacity,
+        location: validData.location,
+        status: validData.status,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
     }
+    close();
   };
 
   const handleEdit = (c: Classroom) => {
@@ -311,19 +310,14 @@ export default function ClassroomManagement() {
   };
 
   const handleDelete = async (id: string) => {
-    try {
-      await deleteClassroom({
-        id: id as Id<"classroom">,
-        schoolId: currentSchool?.school._id as Id<"school">,
-      });
-      toast.success("Aula eliminada correctamente.");
-      close();
-    } catch (error) {
-      toast.error(
-        "Error al eliminar el aula: " +
-          (error instanceof Error ? error.message : "Error desconocido")
-      );
+    if (!currentSchool?.school._id) {
+      throw new Error("No se encontró la escuela actual. Refresca e intenta de nuevo.");
     }
+    await deleteClassroom({
+      id: id as Id<"classroom">,
+      schoolId: currentSchool.school._id as Id<"school">,
+    });
+    //   Los toasts ahora los maneja el CrudDialog automáticamente
   };
 
   const handleSort = (
@@ -336,10 +330,12 @@ export default function ClassroomManagement() {
       setSortOrder("asc");
     }
   };
-
+  if (isLoading) {
+    return <GeneralDashboardSkeleton nc={3} />;
+  }
   return (
     <>
-      {canReadClassroom  ? (
+      {canReadClassroom ? (
         <div className="space-y-8 p-6">
           {/* Header */}
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
@@ -362,12 +358,6 @@ export default function ClassroomManagement() {
                     </div>
                   </div>
                 </div>
-                {canCreateClassroom && (
-                  <Button size="lg" className="gap-2" onClick={openCreate}>
-                    <Plus className="h-4 w-4" />
-                    Agregar Aula
-                  </Button>
-                )}
               </div>
             </div>
           </div>
@@ -486,15 +476,26 @@ export default function ClassroomManagement() {
 
           {/* Tabla de Aulas */}
           <Card>
+            
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Lista de Aulas</span>
-                <Badge variant="outline">
-                  {isTableLoading
-                    ? "Cargando..."
-                    : `${filteredAndSortedClassrooms.length} aulas`}
-                </Badge>
-              </CardTitle>
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                <CardTitle>
+                  <div className="flex flex-col gap-2">
+                    <span>Lista de Aulas</span>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                      {isTableLoading
+                        ? "Cargando..."
+                        : `${filteredAndSortedClassrooms.length} aulas`}
+                    </Badge>
+                  </div>
+                </CardTitle>
+                {canCreateClassroom && (
+                    <Button size="lg" className="gap-2" onClick={openCreate}>
+                      <Plus className="h-4 w-4" />
+                      Agregar Aula
+                    </Button>
+                  )}
+              </div>
             </CardHeader>
             <CardContent>
               {(isTableLoading) ? (
@@ -507,15 +508,15 @@ export default function ClassroomManagement() {
                   <GraduationCap className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">
                     {searchTerm ||
-                    locationFilter !== "all" ||
-                    statusFilter !== "all"
+                      locationFilter !== "all" ||
+                      statusFilter !== "all"
                       ? "No se encontraron aulas"
                       : "No hay aulas registradas"}
                   </h3>
                   <p className="text-muted-foreground mb-4">
                     {searchTerm ||
-                    locationFilter !== "all" ||
-                    statusFilter !== "all"
+                      locationFilter !== "all" ||
+                      statusFilter !== "all"
                       ? "Intenta ajustar los filtros de búsqueda."
                       : "Comienza creando tu primera aula."}
                   </p>
@@ -620,7 +621,7 @@ export default function ClassroomManagement() {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                          {canUpdateClassroom && (  <Button
+                            {canUpdateClassroom && (<Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleEdit(classroom)}
@@ -628,22 +629,21 @@ export default function ClassroomManagement() {
                             >
                               <Edit className="h-4 w-4" />
                             </Button>)}
-                            {canDeleteClassroom && (<Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                if (
-                                  confirm(
-                                    "¿Estás seguro de que quieres eliminar esta aula?"
-                                  )
-                                ) {
-                                  handleDelete(classroom.id);
-                                }
-                              }}
-                              className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>)}
+                            {canDeleteClassroom && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  openDelete({
+                                    ...classroom,
+                                    _id: classroom.id, 
+                                  });
+                                }}
+                                className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -662,14 +662,18 @@ export default function ClassroomManagement() {
                 ? "Crear Nueva Aula"
                 : operation === "edit"
                   ? "Editar Aula"
-                  : "Ver Aula"
+                  : operation === "delete"
+                    ? "Eliminar Aula"
+                    : "Ver Aula"
             }
             description={
               operation === "create"
                 ? "Ingresa los detalles para la nueva aula."
                 : operation === "edit"
                   ? "Actualiza la información del aula a continuación."
-                  : "Información detallada del aula."
+                  : operation === "delete"
+                    ? "Confirma la eliminación del aula."
+                    : "Información detallada del aula."
             }
             schema={classroomFormSchema}
             defaultValues={{
@@ -682,7 +686,11 @@ export default function ClassroomManagement() {
             isOpen={isOpen}
             onOpenChange={close}
             onSubmit={handleSubmit}
-            onDelete={handleDelete}
+            onDelete={(id) => handleDelete(id)}
+            toastMessages={toastMessages}
+            disableDefaultToasts={false}
+            deleteConfirmationTitle="¿Estás seguro de eliminar esta aula?"
+            deleteConfirmationDescription="Esta acción no se puede deshacer. Se eliminará permanentemente el aula."
           >
             {(form, operation) => (
               <ClassroomForm

@@ -10,6 +10,7 @@ import {
   School,
   Calendar as CalendarIcon,
 } from "@repo/ui/icons";
+import { Trash2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -38,6 +39,8 @@ import { EventType } from "@/types/eventType";
 import EventTypeDialog from "components/dialog/EventTypeDialog";
 import { usePermissions } from "hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
+import { CalendarSkeleton } from "../../../../../components/skeletons/CalendarSkeleton";
 
 interface TipoEventoConfig {
   id: GenericId<"eventType">;
@@ -52,12 +55,12 @@ interface TipoEventoConfig {
   icono: React.ElementType;
   description: string;
   colorBase: string;
- 
+
 }
 
 export default function CalendarioEscolar() {
   const { user: clerkUser } = useUser();
-  const { currentUser } = useUserWithConvex(clerkUser?.id);
+  const { currentUser, isLoading: userLoading } = useUserWithConvex(clerkUser?.id);
   const { currentSchool, isLoading: schoolLoading } = useCurrentSchool(
     currentUser?._id
   );
@@ -87,6 +90,8 @@ export default function CalendarioEscolar() {
   );
 
   const [filtroCicloEscolarId, setFiltroCicloEscolarId] = useState<string>("");
+  const [modalAbiertoT, setModalAbiertoT] = useState(false);
+  const [tipoDeEventoEditar, setTipoDeEventoEditar] = useState<EventType | null>(null);
 
   const eventos = useQuery(
     api.functions.calendar.getSchoolCycleCalendar,
@@ -129,67 +134,11 @@ export default function CalendarioEscolar() {
     canReadCalendar,
     canUpdateCalendar,
     canDeleteCalendar,
+    isLoading: permissionsLoading,
   } = usePermissions(currentSchool?.school._id);
 
-  const handleEventAdd = async (event: CalendarEvent) => {
-    // Estas IDs vienen del 'handleSave' en el modal (que arreglaremos en el Paso 3)
-    const { title, description, start, end, allDay, location, eventTypeId } =
-      event;
-    const schoolId = currentSchool?.school._id;
-    const schoolCycleId = filtroCicloEscolarId; // Tomamos el ciclo del filtro
-
-    if (!schoolId || !schoolCycleId || !eventTypeId) {
-      toast.error("Faltan datos para crear el evento (escuela, ciclo o tipo).");
-      return;
-    }
-
-    try {
-      await crearEvento({
-        schoolId: schoolId as Id<"school">,
-        schoolCycleId: schoolCycleId as Id<"schoolCycle">,
-        title,
-        description,
-        startDate: start.getTime(),
-        endDate: end.getTime(),
-        allDay: allDay || false,
-        location,
-        eventTypeId: eventTypeId as Id<"eventType">,
-      });
-      toast.success(`Evento "${title}" creado`);
-    } catch (error) {
-      toast.error("Error al crear el evento.");
-      console.error(error);
-    }
-  };
-
-  const handleEventUpdate = async (event: CalendarEvent) => {
-    // (Esta es la misma lógica que usamos para el Drag-n-Drop)
-    const originalEvent = eventos?.find((e) => e._id === event.id);
-    const schoolId = currentSchool?.school._id;
-
-    if (!originalEvent || !schoolId) return;
-
-    try {
-      await editarEvento({
-        schoolId: schoolId as Id<"school">,
-        eventId: event.id as Id<"calendar">,
-        startDate: event.start.getTime(),
-        endDate: event.end.getTime(),
-        title: event.title,
-        description: event.description,
-        allDay: event.allDay ?? false,
-        location: event.location,
-        eventTypeId: (event.eventTypeId ||
-          originalEvent.eventTypeId) as Id<"eventType">,
-        schoolCycleId: originalEvent.schoolCycleId,
-        status: originalEvent.status,
-      });
-      toast.info(`Evento "${event.title}" actualizado`);
-    } catch (error) {
-      toast.error("Error al actualizar el evento.");
-      console.error(error);
-    }
-  };
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Evento");
 
   const handleEventDelete = async (eventId: string) => {
     const schoolId = currentSchool?.school._id;
@@ -200,17 +149,32 @@ export default function CalendarioEscolar() {
         schoolId: schoolId as Id<"school">,
         eventId: eventId as Id<"calendar">,
       });
-      toast.success("Evento eliminado");
+      // Toast de eliminación personalizado con icono de bote de basura
+      toast(
+        <span style={{ color: '#dc2626', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Trash2 className="h-4 w-4" style={{ color: '#dc2626' }} />
+          {toastMessages.deleteSuccess}
+        </span>,
+        {
+          className: 'bg-white border border-red-200 toast-red-text',
+          duration: 3000,
+        }
+      );
     } catch (error) {
-      toast.error("Error al eliminar el evento.");
+      // Toast de error personalizado
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.deleteError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: error instanceof Error ? error.message : undefined
+        }
+      );
       console.error(error);
     }
   };
-  // Tipos de eventos
-  const [modalAbiertoT, setModalAbiertoT] = useState(false);
-  const [tipoDeEventoEditar, setTipoDeEventoEditar] =
-    useState<EventType | null>(null);
-
   useEffect(() => {
     if (
       Array.isArray(ciclosEscolares) &&
@@ -337,14 +301,14 @@ export default function CalendarioEscolar() {
 
     // 3. Busca el color en el mapa local. Si no lo encuentra, devuelve gris.
     return localColorMap[color] || localColorMap.gray;
-  }, []); // <-- El array vacío ahora es correcto, porque no depende de nada externo
+  }, []);
 
   const tipoEventoMap = useMemo(() => {
     if (!tiposDeEventos) return {};
 
     return tiposDeEventos.reduce(
       (acc, tipo) => {
-        
+
         const clases = convertirColorAClases(tipo.color) || {
           color: "bg-gray-500 text-white",
           bgLight: "bg-gray-50",
@@ -369,7 +333,7 @@ export default function CalendarioEscolar() {
           icono: iconMap[tipo.icon || "BookOpen"] || BookOpen,
           description: tipo.description || "Sin descripción",
           colorBase: extractColorBase(clases.color || "bg-gray-500") || "gray",
-          
+
         };
 
         return acc;
@@ -378,16 +342,101 @@ export default function CalendarioEscolar() {
     );
   }, [tiposDeEventos, convertirColorAClases]);
 
-  if (schoolLoading || (currentUser && !currentSchool)) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <School className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500">Cargando información de la escuela...</p>
-        </div>
-      </div>
-    );
+  useEffect(() => {
+    if (
+      Array.isArray(ciclosEscolares) &&
+      ciclosEscolares.length > 0 &&
+      !filtroCicloEscolarId
+    ) {
+      // Nov 4: Busca el ciclo ACTIVO
+      const cicloActivo = ciclosEscolares.find((ciclo) => ciclo.status === "active");
+
+      if (cicloActivo) {
+        // Nov 4: Selecciona el ciclo activo
+        setFiltroCicloEscolarId(cicloActivo._id);
+      } else {
+        // Nov 4: Si no hay activo, usa el último como respaldo
+        const ultimoCiclo = ciclosEscolares[ciclosEscolares.length - 1];
+        if (ultimoCiclo && ultimoCiclo._id) {
+          setFiltroCicloEscolarId(ultimoCiclo._id);
+        }
+      }
+    }
+  }, [ciclosEscolares, filtroCicloEscolarId]);
+
+  const isLoading =
+    userLoading ||
+    schoolLoading ||
+    permissionsLoading ||
+    ciclosEscolares === undefined ||
+    tiposDeEventos === undefined ||
+    (eventos === undefined && (ciclosEscolares?.length ?? 0) > 0);
+
+  if (isLoading || (currentUser && !currentSchool)) {
+    return <CalendarSkeleton />;
   }
+
+  const handleEventAdd = async (event: CalendarEvent) => {
+    // Estas IDs vienen del 'handleSave' en el modal (que arreglaremos en el Paso 3)
+    const { title, description, start, end, allDay, location, eventTypeId } =
+      event;
+    const schoolId = currentSchool?.school._id;
+    const schoolCycleId = filtroCicloEscolarId; // Tomamos el ciclo del filtro
+
+    if (!schoolId || !schoolCycleId || !eventTypeId) {
+      toast.error("Faltan datos para crear el evento (escuela, ciclo o tipo).");
+      return;
+    }
+
+    try {
+      await crearEvento({
+        schoolId: schoolId as Id<"school">,
+        schoolCycleId: schoolCycleId as Id<"schoolCycle">,
+        title,
+        description,
+        startDate: start.getTime(),
+        endDate: end.getTime(),
+        allDay: allDay || false,
+        location,
+        eventTypeId: eventTypeId as Id<"eventType">,
+      });
+      toast.success(`Evento "${title}" creado`);
+    } catch (error) {
+      toast.error("Error al crear el evento.");
+      console.error(error);
+    }
+  };
+
+  const handleEventUpdate = async (event: CalendarEvent) => {
+    // (Esta es la misma lógica que usamos para el Drag-n-Drop)
+    const originalEvent = eventos?.find((e) => e._id === event.id);
+    const schoolId = currentSchool?.school._id;
+
+    if (!originalEvent || !schoolId) return;
+
+    try {
+      await editarEvento({
+        schoolId: schoolId as Id<"school">,
+        eventId: event.id as Id<"calendar">,
+        startDate: event.start.getTime(),
+        endDate: event.end.getTime(),
+        title: event.title,
+        description: event.description,
+        allDay: event.allDay ?? false,
+        location: event.location,
+        eventTypeId: (event.eventTypeId ||
+          originalEvent.eventTypeId) as Id<"eventType">,
+        schoolCycleId: originalEvent.schoolCycleId,
+        status: originalEvent.status,
+      });
+      toast.info(`Evento "${event.title}" actualizado`);
+    } catch (error) {
+      toast.error("Error al actualizar el evento.");
+      console.error(error);
+    }
+  };
+  // Tipos de eventos
+
 
   return (
     <>
@@ -441,130 +490,130 @@ export default function CalendarioEscolar() {
 
           <div className="container mx-auto px-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            <div className="row-span-2 col-span-3 lg:col-span-2 xl:col-span-3">
-              <EventCalendar
-                events={formattedEvents}
-                onEventAdd={handleEventAdd}
-                onEventUpdate={handleEventUpdate}
-                onEventDelete={handleEventDelete}
-                eventTypes={tiposDeEventos}
-                onAddNewEventType={() => {
-                  setModalAbiertoT(false);
-                  setModalAbiertoT(true);
-                }}
-                canCreateCalendar={canCreateCalendar}
-                canUpdateCalendar={canUpdateCalendar}
-                canDeleteCalendar={canDeleteCalendar}
-              />
-            </div>
+              <div className="row-span-2 col-span-3 lg:col-span-2 xl:col-span-3">
+                <EventCalendar
+                  events={formattedEvents}
+                  onEventAdd={handleEventAdd}
+                  onEventUpdate={handleEventUpdate}
+                  onEventDelete={handleEventDelete}
+                  eventTypes={tiposDeEventos}
+                  onAddNewEventType={() => {
+                    setModalAbiertoT(false);
+                    setModalAbiertoT(true);
+                  }}
+                  canCreateCalendar={canCreateCalendar}
+                  canUpdateCalendar={canUpdateCalendar}
+                  canDeleteCalendar={canDeleteCalendar}
+                />
+              </div>
 
-            <div className="col-span-1 xl:col-span-1">
-              <Card className="lg:col-span-1 shadow-xl bg-white/90 backdrop-blur-md">
-                <CardContent className="px-4">
-                  <CardHeader className="flex flex-row justify-between pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-3 bg-gradient-to-r from-amber-500 to-amber-600 rounded-xl shadow-md">
-                        <AlertTriangle className="w-6 h-6 text-white" />
+              <div className="col-span-1 xl:col-span-1">
+                <Card className="lg:col-span-1 shadow-xl bg-white/90 backdrop-blur-md">
+                  <CardContent className="px-4">
+                    <CardHeader className="flex flex-row justify-between pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-3 bg-gradient-to-r from-amber-500 to-amber-600 rounded-xl shadow-md">
+                          <AlertTriangle className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-2xl font-bold text-slate-800">
+                            Eventos / Categoria
+                          </CardTitle>
+                          <p className="text-slate-600 text-sm">
+                            Personaliza tus tipos de eventos
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <CardTitle className="text-2xl font-bold text-slate-800">
-                          Eventos / Categoria
-                        </CardTitle>
-                        <p className="text-slate-600 text-sm">
-                          Personaliza tus tipos de eventos
-                        </p>
-                      </div>
+                    </CardHeader>
+                    <Separator className="bg-black/10" />
+                    <div className="space-y-4 pt-4">
+                      {Object.entries(tipoEventoMap).map(([tipo, config]) => {
+                        const IconComponent = config.icono;
+                        const tipoDeEvento: EventType = {
+                          _id: config.id,
+                          schoolId: currentSchool?.school._id as Id<"school">,
+                          name: config.name,
+                          key: config.key,
+                          description: config.description,
+                          color: config.colorB,
+                          icon: config.icon,
+                          status: config.status,
+                        };
+                        return (
+                          <div
+                            key={tipo}
+                            onClick={() => {
+                              setTipoDeEventoEditar(tipoDeEvento as EventType);
+                              setModalAbiertoT(true);
+                            }}
+                            className={cn(
+                              "p-4 rounded-xl  transition-all duration-200 hover:shadow-md cursor-pointer",
+                              config.bgLight,
+                              config.borderColor.replace("border-l-", "border-")
+                            )}
+                            role="button"
+                            tabIndex={0}
+                          >
+                            <div className="flex items-center gap-3 mb-2">
+                              <div
+                                className={cn(
+                                  "p-2 rounded-lg shadow-sm transition-all duration-200",
+                                  config.color,
+                                  "group-hover:shadow-md"
+                                )}
+                              >
+                                <IconComponent className="w-4 h-4" />
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="font-bold text-slate-800">
+                                  {config.name}
+                                </h3>
+                              </div>
+                              <TrendingUp className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
+                            </div>
+                            {config.description && (
+                              <p className="text-sm text-slate-700 ml-0 sm:ml-11 leading-relaxed break-words">
+                                {(() => {
+                                  const maxWords = 15;
+                                  const maxChars = 80;
+                                  let desc = config.description;
+                                  // Limita palabras
+                                  const words = desc.split(" ");
+                                  if (words.length > maxWords) {
+                                    desc = words.slice(0, maxWords).join(" ");
+                                  }
+                                  // Limita caracteres
+                                  if (desc.length > maxChars) {
+                                    desc = desc.slice(0, maxChars) + "...";
+                                  }
+                                  return desc.endsWith(".") ? desc : desc + ".";
+                                })()}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  </CardHeader>
-                  <Separator className="bg-black/10" />
-                  <div className="space-y-4 pt-4">
-                    {Object.entries(tipoEventoMap).map(([tipo, config]) => {
-                      const IconComponent = config.icono;
-                      const tipoDeEvento: EventType = {
-                        _id: config.id,
-                        schoolId: currentSchool?.school._id as Id<"school">,
-                        name: config.name,
-                        key: config.key,
-                        description: config.description,
-                        color: config.colorB,
-                        icon: config.icon,
-                        status: config.status,
-                      };
-                      return (
-                        <div
-                          key={tipo}
+                    <div className="flex mt-6 pl-1">
+                      {canCreateCalendar && (
+                        <Button
                           onClick={() => {
-                            setTipoDeEventoEditar(tipoDeEvento as EventType);
+                            setTipoDeEventoEditar(null);
                             setModalAbiertoT(true);
                           }}
-                          className={cn(
-                            "p-4 rounded-xl  transition-all duration-200 hover:shadow-md cursor-pointer",
-                            config.bgLight,
-                            config.borderColor.replace("border-l-", "border-")
-                          )}
-                          role="button"
-                          tabIndex={0}
+                          className="bg-amber-600 hover:bg-amber-700 shadow-lg rounded-lg px-4 py-2 flex items-center justify-center transition-transform duration-150 hover:scale-105 "
+                          aria-label="Agregar tipo de evento"
+                          title="Agregar tipo de evento"
                         >
-                          <div className="flex items-center gap-3 mb-2">
-                            <div
-                              className={cn(
-                                "p-2 rounded-lg shadow-sm transition-all duration-200",
-                                config.color,
-                                "group-hover:shadow-md"
-                              )}
-                            >
-                              <IconComponent className="w-4 h-4" />
-                            </div>
-                            <div className="flex-1">
-                              <h3 className="font-bold text-slate-800">
-                                {config.name}
-                              </h3>
-                            </div>
-                            <TrendingUp className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
-                          </div>
-                          {config.description && (
-                            <p className="text-sm text-slate-700 ml-0 sm:ml-11 leading-relaxed break-words">
-                              {(() => {
-                                const maxWords = 15;
-                                const maxChars = 80;
-                                let desc = config.description;
-                                // Limita palabras
-                                const words = desc.split(" ");
-                                if (words.length > maxWords) {
-                                  desc = words.slice(0, maxWords).join(" ");
-                                }
-                                // Limita caracteres
-                                if (desc.length > maxChars) {
-                                  desc = desc.slice(0, maxChars) + "...";
-                                }
-                                return desc.endsWith(".") ? desc : desc + ".";
-                              })()}
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="flex mt-6 pl-1">
-                    {canCreateCalendar && (
-                      <Button
-                        onClick={() => {
-                          setTipoDeEventoEditar(null);
-                          setModalAbiertoT(true);
-                        }}
-                        className="bg-amber-600 hover:bg-amber-700 shadow-lg rounded-lg px-4 py-2 flex items-center justify-center transition-transform duration-150 hover:scale-105 "
-                        aria-label="Agregar tipo de evento"
-                        title="Agregar tipo de evento"
-                      >
-                        Crear nuevo tipo de evento
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                          Crear nuevo tipo de evento
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
-        </div>
 
           <EventTypeDialog
             isOpen={modalAbiertoT}

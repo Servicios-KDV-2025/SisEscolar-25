@@ -48,7 +48,8 @@ import {
 import { GroupCard } from "../../../../../components/GroupCard";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
-import { toast } from '@repo/ui/sonner'
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
+import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
 
 export default function GroupPage() {
   const { user: clerkUser, isLoaded } = useUser();
@@ -95,6 +96,9 @@ export default function GroupPage() {
     status: "",
   });
 
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Grupo");
+
   const filteredGroups = groups.filter((group) => {
     const matchesSearch =
       group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -116,7 +120,7 @@ export default function GroupPage() {
         grade: values.grade as string,
         status: values.status as "active" | "inactive",
       })
-      toast.success("Grupo creado exitosamente");
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
     } else if (operation === "edit" && data?._id) {
       await updateGroup({
         _id: data._id as Id<"subject">,
@@ -127,19 +131,21 @@ export default function GroupPage() {
         updatedAt: new Date().getTime(),
         updatedBy: currentUser._id,
       })
-      toast.info("Grupo actualizado exitosamente");
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
     }
   };
 
   const handleDelete = async (id: string) => {
     await deleteGroup(id, currentSchool?.school._id)
-    toast.success("Grupo eliminado exitosamente")
+    //   Los toasts ahora los maneja el CrudDialog automáticamente
   };
 
   const { canCreateGroup, canReadGroup } = usePermissions(
     currentSchool?.school._id
   );
-
+  if (isLoading) {
+    return <GeneralDashboardSkeleton nc={3} />
+  }
   return (
     <>
       {canReadGroup ? (
@@ -163,17 +169,6 @@ export default function GroupPage() {
                     </div>
                   </div>
                 </div>
-                {canCreateGroup && (
-                  <Button
-                    size="lg"
-                    className="gap-2"
-                    onClick={openCreate}
-                    disabled={isCreatingGroup}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Agregar Grupo
-                  </Button>
-                )}
               </div>
             </div>
           </div>
@@ -335,19 +330,31 @@ export default function GroupPage() {
           {/* Tabla de Personal */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Lista de los grupos</span>
-                <Badge variant="outline">{filteredGroups.length} grupos</Badge>
-              </CardTitle>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <CardTitle>
+                  <div className="flex flex-col gap-2">
+                    <span>Lista de los grupos</span>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                      {filteredGroups.length} grupos
+                    </Badge>
+                  </div>
+                </CardTitle>
+                {canCreateGroup && (
+                  <Button
+                    size="lg"
+                    className="gap-2"
+                    onClick={openCreate}
+                    disabled={isCreatingGroup}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Agregar Grupo
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-muted-foreground">Cargando grupos...</p>
-                  </div>
-                </div>
+                <GeneralDashboardSkeleton nc={3} />
               ) : filteredGroups.length === 0 ? (
                 <div className="text-center py-12">
                   <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -379,7 +386,7 @@ export default function GroupPage() {
                       openView={openView}
                       openDelete={openDelete}
                       canUpdateGroup={canCreateGroup}
-                      canDeleteGroup={canCreateGroup}                      
+                      canDeleteGroup={canCreateGroup}
                     />
                   ))}
                 </div>
@@ -415,6 +422,8 @@ export default function GroupPage() {
             onOpenChange={close}
             onSubmit={handleSubmit}
             onDelete={handleDelete}
+            toastMessages={toastMessages}
+            disableDefaultToasts={false}
           >
             {(form, operation) => (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

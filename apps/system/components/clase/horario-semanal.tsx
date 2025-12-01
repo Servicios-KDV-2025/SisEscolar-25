@@ -2,6 +2,7 @@ import { Card } from "@repo/ui/components/shadcn/card"
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { Button } from "@repo/ui/components/shadcn/button";
+import { toast } from "@repo/ui/sonner";
 
 interface Schedule {
   day: string
@@ -222,7 +223,17 @@ export function WeeklySchedule({ classes, studentName }: WeeklyScheduleProps) {
       doc.save(fileName);
     } catch (error) {
       console.error("Error al generar PDF:", error);
-      alert("Error al generar el PDF. Por favor, contacta a soporte.");
+      const errorMessage = error instanceof Error ? error.message : "Error desconocido";
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          Error al generar el PDF
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: <span style={{ color: '#374151' }}>Por favor, contacta a soporte. {errorMessage !== "Error desconocido" ? errorMessage : ""}</span>,
+        }
+      );
     }
   };
 

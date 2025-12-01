@@ -38,12 +38,12 @@ export function BillingAccordion({
 }: BillingAccordionProps) {
     const estudianteCalculations = useMemo(() =>
         filteredEstudiantes.map((estudiante) => {
-            const studentBillings = estudiante.pagos
+            const studentBillings = estudiante.pagos || []
             const config = getEstadoConfig(estudiante.estado)
             const Icon = config.icon
-            const hasSelectedBillings = studentBillings.some((pago) => selectedBillings.includes(pago.id))
+            const hasSelectedBillings = studentBillings.some((pago) => pago?.id && selectedBillings?.includes(pago.id))
 
-            const selectedBillingsData = studentBillings.filter((p) => selectedBillings.includes(p.id))
+            const selectedBillingsData = studentBillings.filter((p) => p?.id && selectedBillings?.includes(p.id))
             const totalSelected = selectedBillingsData.reduce((sum, p) => sum + p.totalAmount, 0)
             const totalBase = selectedBillingsData.reduce((sum, p) => sum + p.amount, 0)
             const totalDiscounts = selectedBillingsData.reduce((sum, p) => sum + p.totalDiscount, 0)
@@ -67,7 +67,7 @@ export function BillingAccordion({
 
     const globalTotals = useMemo(() => {
         const allSelectedBillings = filteredEstudiantes.flatMap(estudiante =>
-            estudiante.pagos.filter(pago => selectedBillings.includes(pago.id))
+            (estudiante.pagos || []).filter(pago => pago?.id && selectedBillings?.includes(pago.id))
         )
         return {
             totalBase: allSelectedBillings.reduce((sum, p) => sum + p.amount, 0),
@@ -80,7 +80,7 @@ export function BillingAccordion({
     return (
         <>
             <Accordion type="single" collapsible className="space-y-4">
-                {estudianteCalculations.map(({ estudiante, config, Icon, hasSelectedBillings }) => {
+                {estudianteCalculations.map(({ estudiante, studentBillings, config, Icon, hasSelectedBillings }) => {
 
                     return (
                         <AccordionItem
@@ -147,7 +147,7 @@ export function BillingAccordion({
                                                     <div className="flex items-center gap-2">
                                                         <CreditCard className="w-3.5 h-3.5 text-gray-500" />
                                                         <span className="font-semibold text-gray-700">
-                                                            {estudiante.pagos.length} cobro{estudiante.pagos.length > 1 ? "s" : ""}
+                                                            {studentBillings.length} cobro{studentBillings.length > 1 ? "s" : ""}
                                                         </span>
                                                     </div>
                                                     {(estudiante.diasRetraso > 0 || estudiante.credit > 0) && (
@@ -189,15 +189,15 @@ export function BillingAccordion({
                                         <p className="text-sm text-gray-500">Selecciona los pagos que deseas procesar</p>
                                     </div>
                                     <div className="space-y-3">
-                                        {estudiante.pagos.map((pago) => {
-                                            const isBillingSelected = selectedBillings.includes(pago.id)
+                                        {studentBillings.map((pago) => {
+                                            const isBillingSelected = !!(pago?.id && selectedBillings?.includes(pago.id))
                                             const isPaid = pago.estado === "Pagado"
                                             const statusConfig = getBillingStatusConfig(pago.estado)
                                             const config = getEstadoBillingConfig(pago.statusBilling)
                                             const StatusIcon = statusConfig?.icon || CheckCircle
 
                                             const politicas = billingRules.filter(objeto =>
-                                                pago.ruleIds.includes(objeto._id)
+                                                pago.ruleIds && Array.isArray(pago.ruleIds) && pago.ruleIds.includes(objeto._id)
                                             );
                                             return (
                                                 <div

@@ -1,5 +1,5 @@
 "use client"
-
+import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
 import { useState, useMemo, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/shadcn/card";
 import { Badge } from "@repo/ui/components/shadcn/badge";
@@ -339,15 +339,12 @@ export default function SubscriptionsManagement() {
     error: permissionsError,
   } = usePermissions(currentSchool?.school?._id);
 
-
   const SubscriptionsData = useQuery(
     api.functions.schoolSubscriptions.getAllSubscriptions,
     currentSchool ? { schoolId: currentSchool.school._id } : "skip"
   )
 
   const subscriptions = useMemo(() => SubscriptionsData || [], [SubscriptionsData])
-
-
 
   const formatPrice = useCallback((price: number, currency: Currency): string => {
     const symbols = { USD: "$", MXN: "$", EUR: "€" }
@@ -452,8 +449,7 @@ export default function SubscriptionsManagement() {
   }
 
   // Loading y error states
-  const isLoading = schoolLoading;
-
+  const isLoading = schoolLoading || SubscriptionsData === undefined;
 
   // Verificar error de permisos o falta de permiso de lectura
   if ((permissionsError || !canReadSuscripciones) && !permissionsLoading && !isLoading) {
@@ -466,9 +462,13 @@ export default function SubscriptionsManagement() {
     );
   }
 
+  if (isLoading) {
+    return <GeneralDashboardSkeleton />;
+  }
 
   return (
     <div className="space-y-8 p-6">
+
       {/* Header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
