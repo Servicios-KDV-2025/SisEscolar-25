@@ -836,7 +836,7 @@ export default function RubricDashboard() {
                 <div className="text-sm mt-2 text-blue-600 flex flex-row justify-center items-center">
                   <AlertCircle className="h-5 text-blue-600"/>
                   <p className="p-2">
-                    Selecciona una clase y después el período para asignar el porsentaje disponible
+                    Selecciona una clase y después el período para asignar el porcentaje disponible
                   </p>
                 </div>
               )}
