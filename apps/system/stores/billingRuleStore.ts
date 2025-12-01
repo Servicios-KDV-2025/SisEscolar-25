@@ -245,10 +245,12 @@ export const useBillingRule = (schoolId?: string) => {
         }
     }, [billingRulesQuery, setBillingRule]);
 
+    const isQueryLoading = billingRulesQuery === undefined && schoolId !== undefined;
+
     return {
         billingRules,
         selectedBillingRule,
-        isLoading,
+        isLoading: isLoading || isQueryLoading,
         isCreating,
         isUpdating,
         isDeleting,

@@ -14,6 +14,8 @@ import { useUserWithConvex } from "../../../../stores/userStore";
 import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
 import PaymentHistoryComponent from "./payment-history";
 import StripeConfigPage from "./escuela";
+import { GeneralDashboardSkeleton } from "../../../../components/skeletons/GeneralDashboardSkeleton";
+
 import { Button } from "@repo/ui/components/shadcn/button";
 import BillingConfigPage from "components/billingConfigs/BillingConfigPage";
 import BillingPage from "components/billing/BillingPage";
@@ -28,13 +30,15 @@ export default function Colegiaturas() {
   // Hooks para obtener datos del usuario y escuela
   const { user: clerkUser } = useUser();
   const { currentUser } = useUserWithConvex(clerkUser?.id);
-  const { currentSchool } = useCurrentSchool(currentUser?._id);
+  const { currentSchool, isLoading: isSchoolLoading } = useCurrentSchool(currentUser?._id);
 
   // Obtener ciclos escolares
   const schoolCycles = useQuery(
     api.functions.schoolCycles.getAllSchoolCycles,
     currentSchool?.school._id ? { schoolId: currentSchool.school._id } : "skip"
   );
+
+  const isLoading = isSchoolLoading || schoolCycles === undefined;
 
   // Establecer el ciclo activo por defecto cuando se cargan los datos
   useEffect(() => {
@@ -71,12 +75,17 @@ export default function Colegiaturas() {
       setTimeout(() => {
         setButtonText("Ocultar");
         setTextOpacity(1);
-      }, 150); 
+      }, 150);
     }
   };
 
+  if (isLoading) {
+    return <GeneralDashboardSkeleton />;
+  }
+
   return (
     <div className="space-y-4 md:space-y-8 p-4 md:p-6">
+
       {/* Header */}
       <div className="relative overflow-hidden rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
@@ -98,11 +107,10 @@ export default function Colegiaturas() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Button       
+              <Button
                 onClick={handleToggleStripeConfig}
-                className={`transition-all duration-700 ease-in-out hover:scale-105 cursor-pointer ${
-                  showStripeConfig ? "w-[160px]" : "w-[320px]"
-                }`}
+                className={`transition-all duration-700 ease-in-out hover:scale-105 cursor-pointer ${showStripeConfig ? "w-[160px]" : "w-[320px]"
+                  }`}
                 variant="outline"
                 size="lg"
               >
@@ -112,7 +120,7 @@ export default function Colegiaturas() {
       ${showStripeConfig ? "rotate-180" : ""}
     `}
                 />
-                <span 
+                <span
                   className="truncate transition-opacity duration-300"
                   style={{ opacity: textOpacity }}
                 >
@@ -127,11 +135,10 @@ export default function Colegiaturas() {
       {showStripeConfig && (
         <div
           className={`
-    ${
-      isClosing
-        ? "animate-out slide-out-to-top-8 fade-out duration-400 ease-out"
-        : "animate-in slide-in-from-top-8 fade-in duration-400 ease-out"
-    }
+    ${isClosing
+              ? "animate-out slide-out-to-top-8 fade-out duration-400 ease-out"
+              : "animate-in slide-in-from-top-8 fade-in duration-400 ease-out"
+            }
   `}
         >
           <div className="pt-4">
@@ -165,7 +172,7 @@ export default function Colegiaturas() {
         </TabsList>
 
         <TabsContent value="configuracion" className="mt-4 md:mt-6">
-          <BillingConfigPage/>
+          <BillingConfigPage />
         </TabsContent>
 
         <TabsContent value="pagos" className="mt-4 md:mt-6">
