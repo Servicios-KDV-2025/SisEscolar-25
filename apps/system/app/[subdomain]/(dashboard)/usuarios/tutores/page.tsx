@@ -71,7 +71,7 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import { z } from "@repo/zod-config/index";
-import { toast } from "sonner";
+import { toast } from "@repo/ui/sonner";
 import {
   tutorSchema,
   tutorCreateSchema,
@@ -260,6 +260,7 @@ export default function TutorPage() {
 
   //   Mensajes de toast personalizados
   const toastMessages = useCrudToastMessages("Tutor");
+  const toastMessagesFiscal = useCrudToastMessages("Datos Fiscales");
 
   // Hook del CRUD Dialog para datos fiscales
   const {
@@ -389,13 +390,8 @@ export default function TutorPage() {
       country: "MXN" as const,
     };
 
-    try {
-      await createFiscalData(fiscalDataToCreate);
-      toast.success("Datos fiscales creados exitosamente");
-    } catch (error) {
-      toast.error(`Error al crear datos fiscales: ${error instanceof Error ? error.message : "Error desconocido"}`);
-      throw error;
-    }
+    // Los toasts ahora los maneja el CrudDialog automáticamente
+    await createFiscalData(fiscalDataToCreate);
   };
 
   const handleFiscalUpdate = async (formData: Record<string, unknown>) => {
@@ -413,13 +409,8 @@ export default function TutorPage() {
       updatedBy: currentUser._id,
     };
 
-    try {
-      await updateFiscalData(fiscalDataToUpdate);
-      toast.success("Datos fiscales actualizados exitosamente");
-    } catch (error) {
-      toast.error(`Error al actualizar datos fiscales: ${error instanceof Error ? error.message : "Error desconocido"}`);
-      throw error;
-    }
+    // Los toasts ahora los maneja el CrudDialog automáticamente
+    await updateFiscalData(fiscalDataToUpdate);
   };
 
   const handleFiscalDelete = async (deleteData: Record<string, unknown>) => {
@@ -427,13 +418,8 @@ export default function TutorPage() {
       throw new Error("ID de datos fiscales no disponible");
     }
 
-    try {
-      await deleteFiscalData({ id: deleteData._id as Id<"fiscalData"> });
-      toast.success("Datos fiscales eliminados exitosamente");
-    } catch (error) {
-      toast.error(`Error al eliminar datos fiscales: ${error instanceof Error ? error.message : "Error desconocido"}`);
-      throw error;
-    }
+    // Los toasts ahora los maneja el CrudDialog automáticamente
+    await deleteFiscalData({ id: deleteData._id as Id<"fiscalData"> });
   };
 
   // Funciones CRUD para tutores
@@ -1546,6 +1532,8 @@ export default function TutorPage() {
         isLoading={isLoading}
         isSubmitting={false} // TODO: Add loading states for fiscal operations
         isDeleting={false}
+        toastMessages={toastMessagesFiscal}
+        disableDefaultToasts={false}
       >
         {(form, currentOperation) => (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
