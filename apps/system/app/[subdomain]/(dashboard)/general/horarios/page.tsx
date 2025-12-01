@@ -51,6 +51,7 @@ import { useState, useMemo } from "react";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
+import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
 
 type FilterType = "all" | "active" | "inactive";
 
@@ -162,8 +163,8 @@ export default function SchedulePage() {
     //   Los toasts ahora los maneja el CrudDialog automáticamente
   };
 
-  if (isLoading) {
-    return <div className="text-center py-10">Cargando escuela...</div>;
+  if (isLoading   || !currentUser || !currentSchool) {
+    return <GeneralDashboardSkeleton nc={0} />;
   }
 
   return (

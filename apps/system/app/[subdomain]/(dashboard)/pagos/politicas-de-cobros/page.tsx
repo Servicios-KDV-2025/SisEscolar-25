@@ -40,6 +40,7 @@ import { Search } from "lucide-react";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { BillingRulesForm } from "components/billingRules/BillingRulesForm";
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
+import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
 
 export default function BillingRulePage() {
   const { user: clerkUser, isLoaded } = useUser();
@@ -143,7 +144,13 @@ export default function BillingRulePage() {
     await deleteBillingRule(id);
     //   Los toasts ahora los maneja el CrudDialog automáticamente
   };
-
+if (!isLoaded || userLoading || schoolLoading) {
+    return (
+    
+        <GeneralDashboardSkeleton nc={3} />
+      
+    );
+  }
   return (
     <div className="space-y-8 p-6">
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
@@ -299,14 +306,7 @@ export default function BillingRulePage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-muted-foreground">
-                  Cargando políticas...
-                </p>
-              </div>
-            </div>
+            <GeneralDashboardSkeleton nc={3}/>
           ) : filteredBillingRules.length === 0 ? (
             <div className="text-center py-12">
               <Scale className="h-12 w-12 text-muted-foreground mx-auto mb-4" />

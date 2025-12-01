@@ -49,6 +49,7 @@ import { GroupCard } from "../../../../../components/GroupCard";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
+import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
 
 export default function GroupPage() {
   const { user: clerkUser, isLoaded } = useUser();
@@ -142,7 +143,9 @@ export default function GroupPage() {
   const { canCreateGroup, canReadGroup } = usePermissions(
     currentSchool?.school._id
   );
-
+  if (isLoading) {
+    return <GeneralDashboardSkeleton nc={3} />
+  }
   return (
     <>
       {canReadGroup ? (
@@ -351,12 +354,7 @@ export default function GroupPage() {
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-muted-foreground">Cargando grupos...</p>
-                  </div>
-                </div>
+                <GeneralDashboardSkeleton nc={3} />
               ) : filteredGroups.length === 0 ? (
                 <div className="text-center py-12">
                   <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -388,7 +386,7 @@ export default function GroupPage() {
                       openView={openView}
                       openDelete={openDelete}
                       canUpdateGroup={canCreateGroup}
-                      canDeleteGroup={canCreateGroup}                      
+                      canDeleteGroup={canCreateGroup}
                     />
                   ))}
                 </div>
