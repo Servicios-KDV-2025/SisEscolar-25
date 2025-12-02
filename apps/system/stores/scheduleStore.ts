@@ -166,10 +166,11 @@ export const useSchedule = (schoolId?: Id<'school'>) => {
         throw new Error('HORARIO_SUPERPUESTO')
       }
 
-      await createScheduleMutation({
+      const newScheduleId = await createScheduleMutation({
         ...data,
         schoolId: data.schoolId as Id<"school">,
       });
+      return newScheduleId;
     } catch (error) {
       let errorMessage =  'Error al crear horario';
 
