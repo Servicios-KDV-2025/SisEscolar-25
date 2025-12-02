@@ -14,7 +14,7 @@ import { Textarea } from "@repo/ui/components/shadcn/textarea";
 import { useState, useEffect } from "react";
 import { Edit, GraduationCap, Loader2, Save, School, X } from "@repo/ui/icons";
 import { useUser } from "@clerk/nextjs";
-import { useCurrentSchool } from "stores/userSchoolsStore";
+import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
 import { useMutation } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { toast } from "@repo/ui/sonner";
@@ -26,9 +26,10 @@ import { Id } from "@repo/convex/convex/_generated/dataModel";
 import {
   schoolValidationSchema,
   SchoolValidationSchema,
-} from "schema/perfilIns";
-import { useUserWithConvex } from "stores/userStore";
-import { usePermissions } from "hooks/usePermissions";
+} from "../../../../schema/perfilIns";
+import { useUserWithConvex } from "../../../../stores/userStore";
+import { usePermissions } from "../../../../hooks/usePermissions";
+import { ProfileSkeleton } from "../../../../components/skeletons/ProfileSkeleton";
 
 export default function ConfiguracionPage() {
   const [isEditing, setIsEditing] = useState(false);
@@ -112,13 +113,8 @@ export default function ConfiguracionPage() {
     setIsEditing(false);
   };
 
-
   if (isLoading || permissionsLoading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   if (error) {

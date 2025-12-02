@@ -31,26 +31,28 @@ import { Badge } from "@repo/ui/components/shadcn/badge";
 import { BookCheck } from "lucide-react";
 import { usePermissions } from 'hooks/usePermissions';
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
+import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
 
 export default function GradeManagementDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSchoolCycle, setSelectedSchoolCycle] = useState<string>("");
   const [selectedClass, setSelectedClass] = useState<string>("");
 
-  const { user: clerkUser, isLoaded } = useUser();
+  const { user: clerkUser } = useUser();
   const { currentUser, isLoading: userLoading } = useUserWithConvex(
     clerkUser?.id
   );
   const {
     currentSchool,
     isLoading: schoolLoading,
-    error: schoolError,
+    
   } = useCurrentSchool(currentUser?._id);
 
   const permissions = usePermissions(currentSchool?.school._id);
 
   const {
     canUpdateTermAverage,
+    isLoading: permissionsLoading,
   } = permissions;
 
   //   Mensajes de toast personalizados
@@ -252,6 +254,15 @@ export default function GradeManagementDashboard() {
     schoolCycles === undefined ||
     students === undefined ||
     allTermAverages === undefined;
+  const isLoading =
+    userLoading ||
+    schoolLoading ||
+    permissionsLoading ||
+    schoolCycles === undefined ||
+    classes === undefined ||
+    terms === undefined ||
+    students === undefined ||
+    allTermAverages === undefined;
 
   // Show a general loading screen for initial data fetching
   // if (
@@ -351,6 +362,10 @@ export default function GradeManagementDashboard() {
     Object.entries(allTermAverages).forEach(([studentClassId, avgArray]) => {
       averagesMap.set(studentClassId, avgArray);
     });
+  }
+
+  if (isLoading) {
+    return <GeneralDashboardSkeleton nc={0} />;
   }
 
   // Main UI when all data is available
@@ -477,10 +492,7 @@ export default function GradeManagementDashboard() {
         <CardContent>
           {/* Si está cargando */}
           {(
-            !isLoaded ||
-            userLoading ||
-            schoolLoading ||
-            (currentUser && !currentSchool && !schoolError)
+            isLoading
           ) ? (
             <div className="space-y-4 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>

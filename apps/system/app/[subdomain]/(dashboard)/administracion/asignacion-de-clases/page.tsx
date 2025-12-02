@@ -30,10 +30,11 @@ import { useCicloEscolarWithConvex } from 'stores/useSchoolCiclesStore'
 import { ChartNoAxesCombined } from 'lucide-react'
 import MassAssignmentStudets from "components/classAssignment/MassAssignmentStudents"
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
+import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
 
 export default function StudentClassesDashboard() {
   const { user: clerkUser } = useUser();
-  const { currentUser } = useUserWithConvex(clerkUser?.id)
+  const { currentUser, isLoading: userLoading } = useUserWithConvex(clerkUser?.id)
   const {
     currentSchool, isLoading: schoolLoading
   } = useCurrentSchool(currentUser?._id);
@@ -54,13 +55,14 @@ export default function StudentClassesDashboard() {
 
   const {
     classCatalogsWithDetails: ClassCatalog,
-    getClassByTeacher
+    getClassByTeacher,
+    isLoading: classCatalogLoading
   } = useClassCatalogWithPermissions(
     currentSchool?.school._id,
     getStudentFilters
   );
 
-  const { ciclosEscolares: schoolYears } = useCicloEscolarWithConvex(currentSchool?.school._id);
+  const { ciclosEscolares: schoolYears, isLoading: schoolYearsLoading } = useCicloEscolarWithConvex(currentSchool?.school._id);
 
   const studentFilters = useMemo(() => {
     return getStudentFilters?.() || { canViewAll: false };
@@ -92,7 +94,15 @@ export default function StudentClassesDashboard() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [activeTab, setActiveTab] = useState("enrollments")
   const [isMassAssignmentOpen, setIsMassAssignmentOpen] = useState(false)
-
+  const isLoading =
+    userLoading ||
+    schoolLoading ||
+    permissionsLoading ||
+    classCatalogLoading ||
+    schoolYearsLoading ||
+    students === undefined ||
+    enrollments === undefined ||
+    statistics === undefined;
   const {
     isOpen,
     operation,
@@ -121,7 +131,7 @@ export default function StudentClassesDashboard() {
   }, [schoolYears])
 
   const filteredEnrollments = useMemo(() => {
-    
+
     const filtered = (enrollments?.filter(Boolean) || []).filter((enrollment) => {
       const matchesSearch =
         enrollment?.student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -147,12 +157,12 @@ export default function StudentClassesDashboard() {
     });
 
   }, [
-    enrollments, 
-    searchTerm, 
-    schoolYearFilter, 
-    classesByTeacher, 
-    gradeFilter, 
-    groupFilter, 
+    enrollments,
+    searchTerm,
+    schoolYearFilter,
+    classesByTeacher,
+    gradeFilter,
+    groupFilter,
     statusFilter
   ]);
 
@@ -210,7 +220,9 @@ export default function StudentClassesDashboard() {
     }
   }
 
-  const isLoading = schoolLoading || !schoolYears || !students || !ClassCatalog || !enrollments || permissionsLoading;
+  if (isLoading) {
+    return <GeneralDashboardSkeleton nc={0} />;
+  }
 
   return (
     <>

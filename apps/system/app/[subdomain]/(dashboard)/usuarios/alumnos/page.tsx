@@ -28,6 +28,7 @@ import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages"
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
+import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
 
 // Tipos para los datos de grupos y tutores
 interface Group {
@@ -166,7 +167,7 @@ export default function AlumnosPage() {
       // Combinamos nombre y apellido para un ordenado completo
       const nameA = `${a.name} ${a.lastName || ''}`.toLowerCase().trim();
       const nameB = `${b.name} ${b.lastName || ''}`.toLowerCase().trim();
-      
+
       // localeCompare es la forma correcta de ordenar alfabéticamente (maneja acentos)
       return nameA.localeCompare(nameB);
     });
@@ -174,11 +175,11 @@ export default function AlumnosPage() {
     // 3. Pagina la lista ya ordenada
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    
+
     return sortedData.slice(startIndex, endIndex);
 
   }, [filteredStudents, students, currentPage, itemsPerPage]); // Las dependencias siguen igual
-  
+
   const totalPages = Math.ceil(
     (filteredStudents.length > 0 ? filteredStudents.length : students.length) / itemsPerPage
   );
@@ -499,7 +500,9 @@ export default function AlumnosPage() {
       trend: "Estado inactivo"
     },
   ];
-
+  if (isLoading) {
+    return <GeneralDashboardSkeleton />;
+  }
   // Mostrar loading screen para carga inicial
   // if (isLoading) {
   //   return (
