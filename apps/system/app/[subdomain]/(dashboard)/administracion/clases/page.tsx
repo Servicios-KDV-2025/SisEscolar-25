@@ -475,7 +475,6 @@ export default function HorariosPorClasePage() {
     const value = values as ScheduleFormData;
 
     try {
-      // @ts-ignore
       const newScheduleId = await createSchedule({
         schoolId: currentSchool.school._id,
         name: value.name as string,
@@ -489,7 +488,6 @@ export default function HorariosPorClasePage() {
       // Auto-select the new schedule
       if (newScheduleId) {
         const currentSelected = createForm.getValues("selectedScheduleIds") || [];
-        // @ts-ignore
         createForm.setValue("selectedScheduleIds", [...currentSelected, newScheduleId]);
         toast.success("Horario creado y seleccionado");
       }
@@ -503,6 +501,7 @@ export default function HorariosPorClasePage() {
 
   //   Mensajes de toast personalizados
   const toastMessages = useCrudToastMessages("Clase");
+  const scheduleToastMessages = useCrudToastMessages("Horario");
 
   const crudDialog = useCrudDialog(EditClassFormSchema, {
     classCatalogId: "",
@@ -2764,7 +2763,7 @@ export default function HorariosPorClasePage() {
             onDelete={async () => { }}
             deleteConfirmationTitle=""
             deleteConfirmationDescription=""
-            toastMessages={useCrudToastMessages("Horario")}
+            toastMessages={scheduleToastMessages}
             disableDefaultToasts={false}
           >
             {(form, operation) => (
