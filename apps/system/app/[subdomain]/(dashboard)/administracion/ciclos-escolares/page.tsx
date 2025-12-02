@@ -54,6 +54,7 @@ import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
+import CrudFields, { TypeFields } from '@repo/ui/components/dialog/crud-fields';
 
 
 export default function SchoolCyclesPage() {
@@ -248,6 +249,32 @@ export default function SchoolCyclesPage() {
     return <GeneralDashboardSkeleton nc={3} />;
   }
 
+  const crudFields: TypeFields = [
+    {
+      name: 'startDate',
+      label: 'Fecha de Inicio',
+      type: 'date',
+      required: true
+    },
+    {
+      name: 'endDate',
+      label: 'Fecha de Fin',
+      type: 'date',
+      required: true
+    },
+    {
+      name: 'status',
+      label: 'Estado',
+      type: 'select',
+      required: true,
+      options: [
+        { value: 'inactive', label: 'Inactivo' },
+        { value: 'active', label: 'Activo' },
+        { value: 'archived', label: 'Archivado' }
+      ]
+    }
+  ];
+
   return (
     <>
       {canReadSchoolCycle ? (
@@ -429,15 +456,15 @@ export default function SchoolCyclesPage() {
           <Card>
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <CardTitle>
-                <div className="flex flex-col gap-2">
-                  <span>Lista de los grupos</span>
+                <CardTitle>
+                  <div className="flex flex-col gap-2">
+                    <span>Lista de los grupos</span>
                     <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
                       {filteredCycles.length} ciclos escolares
                     </Badge>
-                </div>
-              </CardTitle>
-              {canCreateSchoolCycle && (
+                  </div>
+                </CardTitle>
+                {canCreateSchoolCycle && (
                   <Button
                     size="lg"
                     className="gap-2"
@@ -573,7 +600,7 @@ export default function SchoolCyclesPage() {
                   )}
                 />
 
-                <FormField
+                {/* <FormField
                   control={form.control}
                   name="startDate"
                   render={({ field }) => (
@@ -600,9 +627,9 @@ export default function SchoolCyclesPage() {
                       <FormMessage />
                     </FormItem>
                   )}
-                />
+                /> */}
 
-                <FormField
+                {/* <FormField
                   control={form.control}
                   name="endDate"
                   render={({ field }) => (
@@ -622,7 +649,6 @@ export default function SchoolCyclesPage() {
                           disabled={operation === "view"}
                         />
                       </FormControl>
-                      {/* Solo mostrar el texto de ayuda si no hay errores de validación */}
                       {!form.formState.errors.endDate && (
                         <div className="text-sm text-muted-foreground">
                           El ciclo debe durar mínimo 28 días y máximo 5 años
@@ -631,9 +657,9 @@ export default function SchoolCyclesPage() {
                       <FormMessage />
                     </FormItem>
                   )}
-                />
+                /> */}
 
-                <FormField
+                {/* <FormField
                   control={form.control}
                   name="status"
                   render={({ field }) => (
@@ -664,6 +690,13 @@ export default function SchoolCyclesPage() {
                       <FormMessage />
                     </FormItem>
                   )}
+                /> */}
+
+
+                <CrudFields
+                  fields={crudFields}
+                  operation={operation}
+                  form={form}
                 />
               </div>
             )}

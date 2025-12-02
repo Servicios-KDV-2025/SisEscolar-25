@@ -15,7 +15,7 @@ import { api } from "@repo/convex/convex/_generated/api"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
 import { toast } from "@repo/ui/sonner"
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog"
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form"
+import { FormControl, FormField, FormItem, FormLabel } from "@repo/ui/components/shadcn/form"
 import { Switch } from "@repo/ui/components/shadcn/switch"
 import { useUser } from "@clerk/nextjs"
 import { useUserWithConvex } from "stores/userStore"
@@ -31,6 +31,7 @@ import { ChartNoAxesCombined } from 'lucide-react'
 import MassAssignmentStudets from "components/classAssignment/MassAssignmentStudents"
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
+import CrudFields from '@repo/ui/components/dialog/crud-fields';
 
 export default function StudentClassesDashboard() {
   const { user: clerkUser } = useUser();
@@ -132,6 +133,7 @@ export default function StudentClassesDashboard() {
 
   const filteredEnrollments = useMemo(() => {
 
+
     const filtered = (enrollments?.filter(Boolean) || []).filter((enrollment) => {
       const matchesSearch =
         enrollment?.student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -156,15 +158,7 @@ export default function StudentClassesDashboard() {
       return nameA.localeCompare(nameB);
     });
 
-  }, [
-    enrollments,
-    searchTerm,
-    schoolYearFilter,
-    classesByTeacher,
-    gradeFilter,
-    groupFilter,
-    statusFilter
-  ]);
+  }, [enrollments, searchTerm, schoolYearFilter, classesByTeacher, gradeFilter, groupFilter, statusFilter]);
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!currentSchool?.school?._id) {
@@ -893,8 +887,27 @@ export default function StudentClassesDashboard() {
                     />
                   </div>
 
+                  <CrudFields
+                    fields={[
+                      {
+                        name: 'enrollmentDate',
+                        label: 'Fecha de asignación',
+                        type: 'date',
+                        required: true
+                      },
+                      {
+                        name: 'averageScore',
+                        label: 'Promedio',
+                        type: 'number',
+                        placeholder: 'Promedio final de la clase',
+                        step: '0.1'
+                      }
+                    ]}
+                    form={form}
+                    operation={operation}
+                  />
 
-                  <FormField
+                  {/* <FormField
                     control={form.control}
                     name="enrollmentDate"
                     render={({ field }) => (
@@ -953,7 +966,8 @@ export default function StudentClassesDashboard() {
                         </FormItem>
                       );
                     }}
-                  />
+                  /> */}
+
                   {(operation != 'create') && (
                     <FormField
                       control={form.control}

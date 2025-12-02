@@ -10,7 +10,7 @@
     "./styles/*": "./src/styles/*",
     "./icons": "./src/icons.ts",
     "./sonner": "./src/sonner.ts",
-    "./components/dialog": "./src/components/dialog/crud-dialog.tsx"
+    "./components/dialog": "./src/components/dialog/*.tsx"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
