@@ -2,8 +2,6 @@ import { v } from "convex/values";
 import { internalMutation, mutation, query } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
 
-
-
 // Obtener configuraciones de pago por escuela y ciclo
 export const getPaymentConfigsBySchoolAndCycle = query({
   args: {
@@ -648,9 +646,13 @@ export const getPaymentsPageData = query({
   },
 });
 
-// Procesar un pago
-export const processPayment = mutation({
+/**
+ * Procesa un pago de forma transaccional: registra el movimiento, actualiza
+ * el estado del billing y ajusta el crédito del estudiante.
+ */
+export const processPayment = internalMutation({
   args: {
+    schoolId: v.id("school"),
     billingId: v.id("billing"),
     tutorId: v.id("user"),
     studentId: v.id("student"),
@@ -666,19 +668,12 @@ export const processPayment = mutation({
   handler: async (ctx, args) => {
     const now = Date.now();
 
-    // Obtener el billing actual
     const billing = await ctx.db.get(args.billingId);
-    if (!billing) {
-      throw new Error("Registro de cobro no encontrado");
-    }
+    if (!billing) throw new Error("Registro de cobro no encontrado");
 
-    // Obtener el estudiante
     const student = await ctx.db.get(args.studentId);
-    if (!student) {
-      throw new Error("Estudiante no encontrado");
-    }
-
-    // Crear el registro de pago
+    if (!student) throw new Error("Estudiante no encontrado");
+    
     const paymentId = await ctx.db.insert("payments", {
       billingId: args.billingId,
       studentId: args.studentId,
@@ -689,37 +684,34 @@ export const processPayment = mutation({
       updatedAt: now,
     });
 
-    // totalAmount es el monto RESTANTE por pagar, no lo acumulado
-    const previousTotalAmount = billing.totalAmount || billing.amount; // Si es nuevo, usar amount
-    const newTotalAmount = previousTotalAmount - args.amount; // Restar el pago
+    const payment = await ctx.db.get(paymentId);
+    if (!payment) throw new Error("Error al obtener el pago creado");
+    
+    const previousTotalAmount = billing.totalAmount || billing.amount;
+    const newTotalAmount = previousTotalAmount - args.amount;
 
     let newStatus: typeof billing.status;
     let paidAt: number | undefined;
     let creditToAdd = 0;
 
     if (newTotalAmount === 0) {
-      // Pago exacto - se completó el cobro
       newStatus = "Pago cumplido";
       paidAt = now;
     } else if (newTotalAmount < 0) {
-      // Pago superior al monto requerido - se pagó de más
       newStatus = "Pago cumplido";
       paidAt = now;
-      creditToAdd = Math.abs(newTotalAmount); // El sobrante se convierte en crédito positivo
+      creditToAdd = Math.abs(newTotalAmount); 
     } else {
-      // Pago parcial - aún falta por pagar
       newStatus = "Pago parcial";
       paidAt = undefined;
     }
 
-    // Actualizar el billing
     await ctx.db.patch(args.billingId, {
       status: newStatus,
       paidAt: paidAt,
       updatedAt: now,
     });
 
-    // Actualizar el credit del estudiante
     const currentCredit = student.credit || 0;
     const newCredit = currentCredit + creditToAdd;
 
@@ -727,10 +719,15 @@ export const processPayment = mutation({
       credit: newCredit,
       updatedAt: now,
     });
-
     return {
       success: true,
-      paymentId,
+      payment,
+      metadata: {
+        billingId: payment.billingId,
+        studentId: payment.studentId,
+        tutorId: payment.createdBy,
+        schoolId: args.schoolId,
+      },
       billing: {
         id: billing._id,
         previousStatus: billing.status,
@@ -738,8 +735,8 @@ export const processPayment = mutation({
         previousTotalAmount: previousTotalAmount,
         newTotalAmount: Math.max(0, newTotalAmount),
         amount: billing.amount,
-        remaining: Math.max(0, newTotalAmount), // Monto que aún falta por pagar
-        overpayment: creditToAdd, // Monto pagado de más
+        remaining: Math.max(0, newTotalAmount),
+        overpayment: creditToAdd,
       },
       student: {
         id: student._id,

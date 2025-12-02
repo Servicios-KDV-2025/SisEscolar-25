@@ -47,7 +47,10 @@ import type * as functions_terms from "../functions/terms.js";
 import type * as functions_userSchool from "../functions/userSchool.js";
 import type * as functions_users from "../functions/users.js";
 import type * as http from "../http.js";
+import type * as lib_stripe from "../lib/stripe.js";
 import type * as templates_paymentSuccess from "../templates/paymentSuccess.js";
+import type * as templates_schoolPaymentSuccess from "../templates/schoolPaymentSuccess.js";
+import type * as utils_stripeHelpers from "../utils/stripeHelpers.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -92,7 +95,10 @@ declare const fullApi: ApiFromModules<{
   "functions/userSchool": typeof functions_userSchool;
   "functions/users": typeof functions_users;
   http: typeof http;
+  "lib/stripe": typeof lib_stripe;
   "templates/paymentSuccess": typeof templates_paymentSuccess;
+  "templates/schoolPaymentSuccess": typeof templates_schoolPaymentSuccess;
+  "utils/stripeHelpers": typeof utils_stripeHelpers;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,
