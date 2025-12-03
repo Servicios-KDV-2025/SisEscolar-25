@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { UseFormReturn, useWatch } from "react-hook-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Subject } from "stores/subjectStore";
@@ -9,6 +8,7 @@ import { Group } from "stores/groupStore";
 import { ClassroomType, SchoolCycleType, TeacherType } from '@/types/temporalSchema';
 import { z } from "zod";
 import { FullClassSchema } from "@/types/fullClassSchema";
+import CrudFields, { TypeFields } from "@repo/ui/components/dialog/crud-fields";
 
 interface FormularioCatalogoDeClasesProps {
     form: UseFormReturn<z.infer<typeof FullClassSchema>>;
@@ -31,7 +31,7 @@ export function ClassCatalogForm({
     classrooms,
     teachers,
     activeSchoolCycleId,
-    existingClassWarning, // ← NUEVO PROP
+    existingClassWarning,
 }: FormularioCatalogoDeClasesProps) {
     const [isNombreModificadoManualmente, setIsNombreModificadoManualmente] = useState(false);
 
@@ -42,7 +42,6 @@ export function ClassCatalogForm({
     const selectedCycle = schoolCycles?.find(c => c._id === schoolCycleId);
 
     useEffect(() => {
-        // Se ejecuta solo al crear y si el campo aún no tiene un valor.
         if (operation === 'create' && activeSchoolCycleId && !form.getValues("schoolCycleId")) {
             form.setValue("schoolCycleId", activeSchoolCycleId, { shouldValidate: true });
         }
@@ -58,6 +57,74 @@ export function ClassCatalogForm({
             form.setValue("name", `${materia} - ${grado} ${grupo}`);
         }
     }, [subjectId, groupId, form, groups, isNombreModificadoManualmente, subjects, operation]);
+
+    // Preparar las opciones para CrudFields
+    const subjectOptions = subjects?.map(subject => ({
+        value: subject._id,
+        label: subject.name
+    })) || [];
+
+    const classroomOptions = classrooms?.map(classroom => ({
+        value: classroom.id,
+        label: classroom.name
+    })) || [];
+
+    const teacherOptions = teachers?.map(teacher => ({
+        value: teacher._id,
+        label: `${teacher.name} ${teacher.lastName}`
+    })) || [];
+
+    const groupOptions = groups?.map(group => ({
+        value: group._id,
+        label: `${group.grade} ${group.name}`
+    })) || [];
+
+    // Definir campos para CrudFields
+    const crudFields: TypeFields = [
+        {
+            name: 'subjectId',
+            label: 'Materia',
+            type: 'select',
+            required: true,
+            options: subjectOptions,
+            placeholder: 'Selecciona una Materia'
+        },
+        {
+            name: 'classroomId',
+            label: 'Salón',
+            type: 'select',
+            required: true,
+            options: classroomOptions,
+            placeholder: 'Selecciona un Salón'
+        },
+        {
+            name: 'teacherId',
+            label: 'Maestro',
+            type: 'select',
+            required: true,
+            options: teacherOptions,
+            placeholder: 'Selecciona un Maestro'
+        },
+        {
+            name: 'groupId',
+            label: 'Grupo',
+            type: 'select',
+            required: true,
+            options: groupOptions,
+            placeholder: 'Selecciona un Grupo'
+        },
+        {
+            name: 'status',
+            label: 'Estado',
+            type: 'select',
+            required: true,
+            options: [
+                { value: 'active', label: 'Materia activo' },
+                { value: 'inactive', label: 'Materia inactivo' }
+            ],
+            placeholder: 'Selecciona un estado'
+        }
+    ];
 
     return (
         <div className="space-y-4">
@@ -83,144 +150,26 @@ export function ClassCatalogForm({
                     </div>
                 </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                    control={form.control}
-                    name="schoolCycleId"
-                    render={() => (
-                        <FormItem>
-                            <FormLabel>Ciclo Escolar</FormLabel>
-                            <div className="flex h-10 w-full items-center">
-                                <Badge variant="secondary" className="text-sm font-normal px-3 py-1">
-                                    {selectedCycle?.name || "No seleccionado"}
-                                </Badge>
-                            </div>
-                            <FormMessage />
-                        </FormItem>
-                    )}
+            
+            <div className="space-y-4">
+                {/* Ciclo Escolar - Mantener manual porque es solo lectura */}
+                <div className="space-y-2">
+                    <FormLabel>Ciclo Escolar</FormLabel>
+                    <div className="flex h-10 w-full items-center">
+                        <Badge variant="secondary" className="text-sm font-normal px-3 py-1">
+                            {selectedCycle?.name || "No seleccionado"}
+                        </Badge>
+                    </div>
+                </div>
+
+                {/* Usar CrudFields para los 5 campos de select */}
+                <CrudFields 
+                    fields={crudFields} 
+                    operation={operation} 
+                    form={form as unknown as UseFormReturn<Record<string, unknown>>}
                 />
 
-                {/* materiaId */}
-                <FormField
-                    control={form.control}
-                    name="subjectId"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Materia</FormLabel>
-                            <Select
-                                onValueChange={field.onChange}
-                                value={field.value as string}
-                                disabled={operation === "view"}
-                            >
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecciona una Materia" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {subjects?.map((m) => (
-                                        <SelectItem key={m._id} value={m._id}>
-                                            {m.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                {/* salonId */}
-                <FormField
-                    control={form.control}
-                    name="classroomId"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Salón</FormLabel>
-                            <Select
-                                onValueChange={field.onChange}
-                                value={field.value as string}
-                                disabled={operation === "view"}
-                            >
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecciona un Salón" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {classrooms?.map((c) => (
-                                        <SelectItem key={c.id} value={c.id}>
-                                            {c.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                {/* maestroId */}
-                <FormField
-                    control={form.control}
-                    name="teacherId"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Maestro</FormLabel>
-                            <Select
-                                onValueChange={field.onChange}
-                                value={field.value as string}
-                                disabled={operation === "view"}
-                            >
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecciona un Maestro" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {teachers?.map((m) => (
-                                        <SelectItem key={m._id} value={m._id}>
-                                            {m.name} {m.lastName}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                {/* grupoId */}
-                <FormField
-                    control={form.control}
-                    name="groupId"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Grupo</FormLabel>
-                            <Select
-                                onValueChange={field.onChange}
-                                value={field.value as string}
-                                disabled={operation === "view"}
-                            >
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecciona un Grupo" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {groups?.map((g) => (
-                                        <SelectItem key={g._id} value={g._id}>
-                                            {g.grade} {g.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                {/* nombre */}
+                {/* Nombre - Mantener manual por la lógica especial */}
                 <FormField
                     control={form.control}
                     name="name"
@@ -242,33 +191,6 @@ export function ClassCatalogForm({
                                     maxLength={40}
                                 />
                             </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                        <FormItem className="space-y-2">
-                            <FormLabel>Estado</FormLabel>
-                            <Select
-                                onValueChange={field.onChange}
-                                value={field.value?.toString()}
-                                disabled={operation === "view"}
-                            >
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecciona un estado" />
-                                    </SelectTrigger>
-                                </FormControl>                               
-                                    <SelectContent>
-                                        <SelectItem value="active">Materia activo</SelectItem>
-                                        <SelectItem value="inactive">Materia inactivo</SelectItem>
-                                    </SelectContent>
-                                
-                            </Select>
                             <FormMessage />
                         </FormItem>
                     )}

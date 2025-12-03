@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "convex/react";
 import {
@@ -21,7 +21,7 @@ import {
   FormMessage,
 } from "@repo/ui/components/shadcn/form";
 import { Input } from "@repo/ui/components/shadcn/input";
-import { Textarea } from "@repo/ui/components/shadcn/textarea";
+// import { Textarea } from "@repo/ui/components/shadcn/textarea";
 import { Button } from "@repo/ui/components/shadcn/button";
 import {
   Select,
@@ -47,6 +47,7 @@ import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { EventTypeFormData, EventTypeSchema } from "schema/eventType";
 import { api } from "@repo/convex/convex/_generated/api";
 import { useCrudToastMessages } from "../../hooks/useCrudToastMessages";
+import CrudFields from '@repo/ui/components/dialog/crud-fields';
 
 interface TipoEventoDialogProps {
   isOpen: boolean;
@@ -257,14 +258,21 @@ export default function EventTypeDialog({
     }
   };
 
-  const handleNameChange = (name: string) => {
-    const key = name
-      .toUpperCase()
-      .replace(/[^A-Z0-9\s]/g, "")
-      .replace(/\s+/g, "_")
-      .slice(0, 10);
-    form.setValue("key", key);
-  };
+  const operation = !canUpdateCalendar ? 'view' : tipoEventoEditar ? 'edit' : 'create';
+
+  useEffect(() => {
+    const nameValue = form.getValues('name');
+    if (nameValue && operation === 'create') {
+      const key = nameValue
+        .toUpperCase()
+        .replace(/[^A-Z0-9\s]/g, "")
+        .replace(/\s+/g, "_")
+        .slice(0, 10);
+      form.setValue("key", key);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.watch('name'), operation]);
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -320,29 +328,16 @@ export default function EventTypeDialog({
         ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700">
-                      Nombre del Tipo de Evento
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={!canUpdateCalendar}
-                        {...field}
-                        placeholder="Ej: Reunión de Padres"
-                        className="h-11"
-                        onChange={(e) => {
-                          field.onChange(e);
-                          handleNameChange(e.target.value);
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              <CrudFields
+                fields={[{
+                  name: 'name',
+                  label: 'Nombre del Tipo de Evento',
+                  type: 'text',
+                  required: true,
+                  placeholder: 'Ej: Reunión de Padres',
+                }]}
+                operation={operation}
+                form={form as unknown as UseFormReturn<Record<string, unknown>>}
               />
 
               <FormField
@@ -371,29 +366,16 @@ export default function EventTypeDialog({
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700">
-                      Descripción (Opcional)
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea
-                        disabled={!canUpdateCalendar}
-                        {...field}
-                        placeholder="Descripción breve del tipo de evento..."
-                        className="min-h-[80px] resize-none"
-                        maxLength={200}
-                      />
-                    </FormControl>
-                    <FormDescription className="text-xs text-gray-500">
-                      {field.value?.length || 0}/200 caracteres
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              <CrudFields
+                fields={[{
+                  name: 'description',
+                  label: 'Descripción (Opcional)',
+                  type: 'textarea',
+                  placeholder: 'Descripción breve del tipo de evento...',
+                  maxLength: 200,
+                }]}
+                operation={operation}
+                form={form as unknown as UseFormReturn<Record<string, unknown>>}
               />
 
               <FormField
@@ -414,9 +396,8 @@ export default function EventTypeDialog({
                           <SelectValue>
                             <div className="flex items-center gap-2">
                               <div
-                                className={`w-4 h-4 rounded-full border border-gray-300 ${
-                                colorOptions.find(c => c.value === field.value)?.preview || 'bg-gray-500'
-                              }`}
+                                className={`w-4 h-4 rounded-full border border-gray-300 ${colorOptions.find(c => c.value === field.value)?.preview || 'bg-gray-500'
+                                  }`}
                                 style={{ backgroundColor: selectedColor }}
                               />
                               {colorOptions.find((c) => c.value === selectedColor)?.label}
@@ -494,31 +475,22 @@ export default function EventTypeDialog({
               />
 
               {tipoEventoEditar ? (
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Estado</FormLabel>
-                      <FormControl>
-                        <Select
-                          disabled={!canUpdateCalendar}
-                          onValueChange={(value) => field.onChange(value)}
-                          value={field.value || "active"}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona el estado" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="active">Activo</SelectItem>
-                            <SelectItem value="inactive">Inactivo</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <>
+                  <CrudFields
+                    fields={[{
+                      name: 'status',
+                      label: 'Estado',
+                      type: 'select',
+                      required: true,
+                      options: [
+                        { value: 'active', label: 'Activo' },
+                        { value: 'inactive', label: 'Inactivo' },
+                      ],
+                    }]}
+                    operation={operation}
+                    form={form as unknown as UseFormReturn<Record<string, unknown>>}
+                  />
+                </>
               ) : (
                 ""
               )}

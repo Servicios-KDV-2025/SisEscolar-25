@@ -1,13 +1,10 @@
 import { UseFormReturn, useWatch } from "react-hook-form";
-import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@repo/ui/components/shadcn/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui/components/shadcn/select";
-import { Input } from "@repo/ui/components/shadcn/input";
-import { Textarea } from "@repo/ui/components/shadcn/textarea";
 import { taskFormSchema } from '@/types/form/taskSchema';
 import { z } from "zod";
 import { useQuery } from 'convex/react';
 import { Id } from '@repo/convex/convex/_generated/dataModel';
 import { api } from '@repo/convex/convex/_generated/api';
+import CrudFields, { TypeFields } from '@repo/ui/components/dialog/crud-fields';
 
 type TaskFormData = z.infer<typeof taskFormSchema>;
 
@@ -61,218 +58,165 @@ export function TaskForm({
       : "skip"
   );
 
+  // Campos base que siempre se muestran
+  const baseFields: TypeFields = [{
+    name: 'classCatalogId',
+    label: 'Clase',
+    type: 'select',
+    options: teacherClasses?.map(clase => ({
+      value: clase._id,
+      label: `${clase.name}${clase.subject ? ` - ${clase.subject}` : ''}${clase.group ? ` (${clase.group})` : ''}`
+    })) || [],
+    placeholder: 'Selecciona una clase',
+    required: true
+  },
+  {
+    name: 'termId',
+    label: 'Periodo',
+    type: 'select',
+    options: allTerms?.map(term => ({
+      value: term._id,
+      label: `${term.name} (${term.key})`
+    })) || [],
+    placeholder: 'Selecciona un periodo',
+    required: true
+  },
+  ];
+
+  const baseFields2: TypeFields = [{
+    name: 'name',
+    label: 'Título de la Tarea',
+    type: 'text',
+    placeholder: 'Ej: Ejercicios de Álgebra',
+    required: true
+  },
+  {
+    name: 'description',
+    label: 'Descripción',
+    type: 'textarea',
+    placeholder: 'Describe las instrucciones de la tarea...',
+    required: false,
+    maxLength: 500
+  },];
+
+  // Campos de fecha/hora (se mantienen juntos en una fila)
+  const dateTimeFields: TypeFields = [
+    {
+      name: 'dueDate',
+      label: 'Fecha de Entrega',
+      type: 'date',
+      required: true,
+    },
+    {
+      name: 'dueTime',
+      label: 'Hora Límite',
+      type: 'time',
+      required: true,
+      placeholder: 'HH:MM',
+    },
+  ];
+
+  // Campos adicionales
+  const additionalFields: TypeFields = [
+    {
+      name: 'maxScore',
+      label: 'Puntuación Máxima',
+      type: 'number',
+      placeholder: 'Máxima puntuación 100',
+      required: true,
+      step: '1'
+    },
+  ];
+
+  // Campo condicional para rúbrica
+  const rubricField: TypeFields = classCatalogId && termId ? [
+    {
+      name: 'gradeRubricId',
+      label: 'Rúbrica de Calificación',
+      type: 'select',
+      options: gradeRubrics?.map(rubric => ({
+        value: rubric._id,
+        label: `${rubric.name} (Max: ${rubric.maxScore} pts)`
+      })) || [],
+      placeholder: gradeRubrics?.length
+        ? 'Selecciona una rúbrica'
+        : 'No hay rúbricas disponibles',
+      required: true
+    }
+  ] : [];
+
   return (
     <div className="space-y-4">
-      {/* Selección de Clase */}
-      <FormField
-        control={form.control}
-        name="classCatalogId"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Clase *</FormLabel>
-            <Select
-              onValueChange={field.onChange}
-              value={field.value}
-              disabled={operation === "view"}
-            >
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona una clase" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {teacherClasses?.map((clase) => (
-                  <SelectItem key={clase._id} value={clase._id}>
-                    {clase.name}
-                    {/* Mostrar información adicional solo si está disponible */}
-                    {(clase.subject || clase.group) && (
-                      <span className="text-muted-foreground">
-                        {clase.subject && ` - ${clase.subject}`}
-                        {clase.group && ` (${clase.group})`}
-                      </span>
-                    )}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      {/* Selección de Término */}
-      <FormField
-        control={form.control}
-        name="termId"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Periodo *</FormLabel>
-            <Select
-              onValueChange={field.onChange}
-              value={field.value}
-              disabled={operation === "view"}
-            >
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un periodo" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {allTerms?.map((term) => (
-                  <SelectItem key={term._id} value={term._id}>
-                    {term.name} ({term.key})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
+      {/* Selección de Clase y Selección de Término */}
+      <CrudFields
+        fields={baseFields}
+        operation={operation}
+        form={form as unknown as UseFormReturn<Record<string, unknown>>}
       />
 
       {/* Selección de Rúbrica - SOLO mostrar si hay classCatalogId y termId */}
-      {(classCatalogId && termId) && (
-        <FormField
-          control={form.control}
-          name="gradeRubricId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Rúbrica de Calificación *</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                value={field.value}
-                disabled={operation === "view" || !gradeRubrics?.length}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={
-                        gradeRubrics?.length
-                          ? "Selecciona una rúbrica"
-                          : "No hay rúbricas disponibles"
-                      }
-                    />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {gradeRubrics?.map((rubric) => (
-                    <SelectItem key={rubric._id} value={rubric._id}>
-                      {rubric.name} (Max: {rubric.maxScore} pts)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-              {gradeRubrics && gradeRubrics.length === 0 && (
-                <p className="text-sm text-amber-600">
-                  No hay rúbricas de calificación para esta clase y término.
-                  Primero debes crear una rúbrica en la sección de Calificaciones.
-                </p>
-              )}
-            </FormItem>
+      {rubricField.length > 0 && (
+        <div>
+          <CrudFields
+            fields={rubricField}
+            operation={operation}
+            form={form as unknown as UseFormReturn<Record<string, unknown>>}
+          />
+
+          {gradeRubrics && gradeRubrics.length === 0 && (
+            <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
+              <p className="text-sm text-amber-700">
+                ⚠️ No hay rúbricas de calificación para esta clase y término.
+                Primero debes crear una rúbrica en la sección de Calificaciones.
+              </p>
+            </div>
           )}
-        />
+        </div>
       )}
 
-      {/* Título */}
-      <FormField
-        control={form.control}
-        name="name"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Título de la Tarea *</FormLabel>
-            <FormControl>
-              <Input
-                placeholder="Ej: Ejercicios de Álgebra"
-                {...field}
-                disabled={operation === "view"}
-                required
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      {/* Descripción */}
-      <FormField
-        control={form.control}
-        name="description"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Descripción</FormLabel>
-            <FormControl>
-              <Textarea
-                placeholder="Describe las instrucciones de la tarea..."
-                rows={3}
-                {...field}
-                disabled={operation === "view"}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
+      {/* Título y Descripción */}
+      <CrudFields
+        fields={baseFields2}
+        operation={operation}
+        form={form as unknown as UseFormReturn<Record<string, unknown>>}
       />
 
       {/* Fecha y Hora */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="dueDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Fecha de Entrega *</FormLabel>
-              <FormControl>
-                <Input
-                  type="date"
-                  {...field}
-                  disabled={operation === "view"}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <div className="flex flex-raw">
+        {dateTimeFields.map((field) => {
+          // Renderizar manualmente los campos de fecha/hora para tener más control
+          if (field.name === 'dueDate') {
+            return (
+              <CrudFields
+                key={field.name}
+                fields={[field]}
+                operation={operation}
+                form={form as unknown as UseFormReturn<Record<string, unknown>>}
+              />
+            );
+          }
 
-        <FormField
-          control={form.control}
-          name="dueTime"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Hora Límite *</FormLabel>
-              <FormControl>
-                <Input
-                  type="time"
-                  {...field}
-                  disabled={operation === "view"}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          // Campo de hora personalizado
+          if (field.name === 'dueTime') {
+            return (
+              <CrudFields
+                key={field.name}
+                fields={[{ ...field }]}
+                operation={operation}
+                form={form as unknown as UseFormReturn<Record<string, unknown>>}
+              />
+            );
+          }
+
+          return null;
+        })}
       </div>
 
       {/* Puntuación Máxima */}
-      <FormField
-        control={form.control}
-        name="maxScore"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Puntuación Máxima *</FormLabel>
-            <FormControl>
-              <Input
-                type="number"
-                placeholder="Máxima puntuación 100"
-                {...field}
-                disabled={operation === "view"}
-                min={1}
-                max={100}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
+      <CrudFields
+        fields={additionalFields}
+        operation={operation}
+        form={form as unknown as UseFormReturn<Record<string, unknown>>}
       />
     </div>
   );

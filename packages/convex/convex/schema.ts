@@ -511,6 +511,7 @@ const applicationTable = defineSchema({
       v.literal("cash"),
       v.literal("bank_transfer"),
       v.literal("card"),
+      v.literal("oxxo"),
       v.literal("other")
     ),
     amount: v.number(),
