@@ -1,3 +1,4 @@
+import CrudFields, { TypeFields } from '@repo/ui/components/dialog/crud-fields';
 import {
   FormControl,
   FormField,
@@ -6,13 +7,6 @@ import {
   FormMessage,
 } from "@repo/ui/components/shadcn/form";
 import { Input } from "@repo/ui/components/shadcn/input";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@repo/ui/components/shadcn/select";
 import { UseFormReturn } from "react-hook-form";
 import { ScheduleFormData } from "schema/scheduleSchema";
 
@@ -22,8 +16,68 @@ interface ScheduleFormFieldsProps {
 }
 
 export function ScheduleFormFields({ form, operation }: ScheduleFormFieldsProps) {
+  const scheduleFields: TypeFields = [
+    {
+      name: 'startTime',
+      label: 'Hora inicio',
+      type: 'time', // Usamos text porque CrudFields no tiene tipo 'time'
+      placeholder: 'HH:MM (ej: 07:00)',
+      required: true,
+    },
+    {
+      name: 'endTime',
+      label: 'Hora fin',
+      type: 'time', // Usamos text porque CrudFields no tiene tipo 'time'
+      placeholder: 'HH:MM (ej: 08:00)',
+      required: true,
+    },
+    {
+      name: 'day',
+      label: 'Día de la semana',
+      type: 'select',
+      options: [
+        { value: 'lun.', label: 'Lunes' },
+        { value: 'mar.', label: 'Martes' },
+        { value: 'mié.', label: 'Miércoles' },
+        { value: 'jue.', label: 'Jueves' },
+        { value: 'vie.', label: 'Viernes' },
+      ],
+      placeholder: 'Selecciona un día',
+      required: true
+    },
+    {
+      name: 'status',
+      label: 'Estado',
+      type: 'select',
+      options: [
+        { value: 'active', label: 'Activo' },
+        { value: 'inactive', label: 'Inactivo' },
+      ],
+      placeholder: 'Selecciona un estado',
+      required: true
+    },
+  ];
+
   return (
     <div className="space-y-4">
+      {/* Campo name (generado automáticamente) */}
+      <div className="mb-4 p-3 bg-gray-50 rounded-md">
+        <p className="text-sm font-medium text-gray-700">Nombre del horario</p>
+        <p className="text-base font-semibold text-gray-900">
+          {form.getValues("name") || "Completa los campos para generar el nombre"}
+        </p>
+        <p className="text-xs text-gray-500 mt-1">
+          El nombre se genera automáticamente con base en el día y horario seleccionado
+        </p>
+      </div>
+
+      {/* Campos usando CrudFields */}
+      <CrudFields
+        fields={scheduleFields} // Campo 'day'
+        operation={operation}
+        form={form as unknown as UseFormReturn<Record<string, unknown>>}
+      />
+
       <FormField
         control={form.control}
         name="name"
@@ -68,106 +122,6 @@ export function ScheduleFormFields({ form, operation }: ScheduleFormFieldsProps)
                 disabled={operation === "view"}
                 readOnly={true}
               />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormField
-        control={form.control}
-        name="day"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Dia de la semana</FormLabel>
-            <FormControl>
-              <Select
-                onValueChange={field.onChange}
-                value={
-                  field.value as
-                  | "lun."
-                  | "mar."
-                  | "mié."
-                  | "jue."
-                  | "vie."
-                }
-                disabled={operation === "view"}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un día" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="lun.">Lunes</SelectItem>
-                  <SelectItem value="mar.">Martes</SelectItem>
-                  <SelectItem value="mié.">Miercoles</SelectItem>
-                  <SelectItem value="jue.">Jueves</SelectItem>
-                  <SelectItem value="vie.">Viernes</SelectItem>
-                </SelectContent>
-              </Select>
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormField
-        control={form.control}
-        name="startTime"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Hora inicio</FormLabel>
-            <FormControl>
-              <Input
-                type="time"
-                {...field}
-                value={field.value as string}
-                disabled={operation === "view"}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormField
-        control={form.control}
-        name="endTime"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Hora fin</FormLabel>
-            <FormControl>
-              <Input
-                type="time"
-                {...field}
-                value={field.value as string}
-                disabled={operation === "view"}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormField
-        control={form.control}
-        name="status"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Estado</FormLabel>
-            <FormControl>
-              <Select
-                onValueChange={field.onChange}
-                value={field.value as "active" | "inactive"}
-                disabled={operation === "view"}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un estado" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="active">Activo</SelectItem>
-                  <SelectItem value="inactive">Inactivo</SelectItem>
-                </SelectContent>
-              </Select>
             </FormControl>
             <FormMessage />
           </FormItem>

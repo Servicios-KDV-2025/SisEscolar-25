@@ -343,6 +343,7 @@ function StepTwoContent({
     </div>
   );
 }
+
 const cleanErrorMessage = (error: unknown): React.ReactNode => {
   if (error instanceof Error) {
     let cleanMessage: string | undefined; // 1. Empezamos sin mensaje limpio
@@ -407,7 +408,6 @@ const cleanErrorMessage = (error: unknown): React.ReactNode => {
   // Fallback para errores que no son 'Error'
   return "Ocurrió un error inesperado";
 };
-
 
 export default function HorariosPorClasePage() {
   const { user: clerkUser, isLoaded } = useUser();
