@@ -87,6 +87,7 @@ export default function GradeManagementDashboard() {
     canUpdateRubric,
     currentRole,
     isLoading: permissionsLoading,
+    hasPermissionWithCycleCheck,
   } = permissions;
 
   // Fetch data with Convex
@@ -416,6 +417,14 @@ export default function GradeManagementDashboard() {
   const hasClasses = classes && classes.length > 0;
   const hasTerms = terms && terms.length > 0;
 
+  // Get selected cycle status
+  const selectedCycle = schoolCycles?.find(c => c._id === selectedSchoolCycle);
+  const selectedCycleStatus = selectedCycle?.status;
+
+  // Check permissions with cycle status
+  const canCreateAssignanceWithCycle = hasPermissionWithCycleCheck("create:assignance", selectedCycleStatus);
+  const canUpdateGradesWithCycle = hasPermissionWithCycleCheck("update:termAverages", selectedCycleStatus);
+
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!currentSchool?.school._id || !currentUser?._id) {
       console.error('Missing required IDs');
@@ -641,7 +650,7 @@ export default function GradeManagementDashboard() {
               </div>
             </CardTitle>
             <div className="flex flex-col gap-2 md:flex-row">
-              {canCreateAssignance &&
+              {canCreateAssignanceWithCycle ? (
                 <Button
                   className="cursor-pointer"
                   onClick={openCreate}
@@ -650,23 +659,33 @@ export default function GradeManagementDashboard() {
                   <Plus className="w-4 h-4 mr-2" />
                   Agregar Asignación
                 </Button>
-              }
+              ) : selectedCycleStatus && selectedCycleStatus !== "active" ? (
+                <div className="text-sm text-muted-foreground p-2 bg-muted rounded-md">
+                  No se pueden crear asignaciones en un ciclo {selectedCycleStatus === "archived" ? "archivado" : "inactivo"}.
+                </div>
+              ) : null}
               {currentRole !== 'tutor' && (
-                <Button
-                  onClick={handleSaveAverages}
-                  size="lg"
-                  className="gap-2"
-                  disabled={
-                    isDataLoading ||
-                    !currentSchool ||
-                    !students ||
-                    students.length === 0 ||
-                    currentRole === 'auditor'
-                  }
-                >
-                  <SaveAll className="w-4 h-4" />
-                  Guardar Promedios
-                </Button>
+                canUpdateGradesWithCycle ? (
+                  <Button
+                    onClick={handleSaveAverages}
+                    size="lg"
+                    className="gap-2"
+                    disabled={
+                      isDataLoading ||
+                      !currentSchool ||
+                      !students ||
+                      students.length === 0 ||
+                      currentRole === 'auditor'
+                    }
+                  >
+                    <SaveAll className="w-4 h-4" />
+                    Guardar Promedios
+                  </Button>
+                ) : selectedCycleStatus && selectedCycleStatus !== "active" ? (
+                  <div className="text-sm text-muted-foreground p-2 bg-muted rounded-md">
+                    No se pueden guardar promedios en un ciclo {selectedCycleStatus === "archived" ? "archivado" : "inactivo"}.
+                  </div>
+                ) : null
               )}
             </div>
           </div>
@@ -768,6 +787,7 @@ export default function GradeManagementDashboard() {
                       onGradeUpdate={handleUpdateGrade}
                       calculateAverage={calculateAverage}
                       canUpdateRubric={canUpdateRubric}
+                      canEdit={selectedCycleStatus === "active"}
                     />
                   </div>
                 </div>

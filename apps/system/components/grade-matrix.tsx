@@ -57,6 +57,7 @@ interface GradeMatrixProps {
   ) => void;
   calculateAverage: (studentClassId: string) => number | null;
   canUpdateRubric: boolean;
+  canEdit?: boolean; // New prop to control editing based on cycle status
 }
 
 export function GradeMatrix({
@@ -66,6 +67,7 @@ export function GradeMatrix({
   onGradeUpdate,
   calculateAverage,
   canUpdateRubric,
+  canEdit = true,
 }: GradeMatrixProps) {
   const [editingCell, setEditingCell] = useState<string | null>(null);
   const [tempValue, setTempValue] = useState<string>("");
@@ -118,6 +120,7 @@ export function GradeMatrix({
   };
 
   const handleCellClick = (studentClassId: string, assignmentId: string) => {
+    if (!canEdit) return; // Prevent editing if cycle is not active
     const cellId = `${studentClassId}-${assignmentId}`;
     setEditingCell(cellId);
     const currentGrade = getGrade(studentClassId, assignmentId);
@@ -228,7 +231,7 @@ export function GradeMatrix({
                         className="p-1 text-center"
                       >
                         <div className="flex items-center justify-center space-x-2">
-                          {(isEditing && canUpdateRubric) ? (
+                          {(isEditing && canUpdateRubric && canEdit) ? (
                             <Input
                               type="number"
                               value={tempValue}
@@ -247,7 +250,7 @@ export function GradeMatrix({
                           ) : (
                             <div
                               onClick={() =>
-                                handleCellClick(student._id, assignment._id)
+                                canEdit ? handleCellClick(student._id, assignment._id) : undefined
                               }
                               className={`
             ${grade! > assignment.maxScore * 0.7
@@ -256,7 +259,7 @@ export function GradeMatrix({
                                     ? "text-red-700"
                                     : "text-gray-700"
                                 }
-            cursor-pointer hover:bg-gray-400 hover:text-white rounded px-2 py-1 min-w-[40px
+            ${canEdit ? 'cursor-pointer hover:bg-gray-400 hover:text-white' : 'cursor-not-allowed opacity-60'} rounded px-2 py-1 min-w-[40px]
           `}
                             >
                               {grade !== undefined ? `${grade}` : "-"}

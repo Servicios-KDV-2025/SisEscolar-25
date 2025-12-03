@@ -11,6 +11,17 @@ export const upsertTermAverage = mutation({
     registeredById: v.id("user"),
   },
   handler: async (ctx, args) => {
+    // Validar que el ciclo escolar esté activo
+    const term = await ctx.db.get(args.termId);
+    if (!term) throw new Error("Periodo no encontrado.");
+
+    const schoolCycle = await ctx.db.get(term.schoolCycleId);
+    if (!schoolCycle) throw new Error("Ciclo escolar no encontrado.");
+
+    if (schoolCycle.status !== "active") {
+      throw new Error(`No se pueden guardar promedios en un ciclo ${schoolCycle.status === "archived" ? "archivado" : "inactivo"}.`);
+    }
+
     // Verificar si ya existe un promedio para este estudiante y periodo
     const existing = await ctx.db
       .query("termAverage")
@@ -96,6 +107,21 @@ export const updateTermAverage = mutation({
     updatedBy: v.id("user"),
   },
   handler: async (ctx, args) => {
+    // Obtener el promedio y validar existencia
+    const termAverage = await ctx.db.get(args.termAverageId);
+    if (!termAverage) throw new Error("Promedio no encontrado");
+
+    // Validar que el ciclo escolar esté activo
+    const term = await ctx.db.get(termAverage.termId);
+    if (!term) throw new Error("Periodo no encontrado.");
+
+    const schoolCycle = await ctx.db.get(term.schoolCycleId);
+    if (!schoolCycle) throw new Error("Ciclo escolar no encontrado.");
+
+    if (schoolCycle.status !== "active") {
+      throw new Error(`No se pueden modificar promedios en un ciclo ${schoolCycle.status === "archived" ? "archivado" : "inactivo"}.`);
+    }
+
     await ctx.db.patch(args.termAverageId, {
       ...args.data,
       updatedBy: args.updatedBy,
@@ -109,6 +135,21 @@ export const updateTermAverage = mutation({
 export const deleteTermAverage = mutation({
   args: { termAverageId: v.id("termAverage") },
   handler: async (ctx, args) => {
+    // Obtener el promedio y validar existencia
+    const termAverage = await ctx.db.get(args.termAverageId);
+    if (!termAverage) throw new Error("Promedio no encontrado");
+
+    // Validar que el ciclo escolar esté activo
+    const term = await ctx.db.get(termAverage.termId);
+    if (!term) throw new Error("Periodo no encontrado.");
+
+    const schoolCycle = await ctx.db.get(term.schoolCycleId);
+    if (!schoolCycle) throw new Error("Ciclo escolar no encontrado.");
+
+    if (schoolCycle.status !== "active") {
+      throw new Error(`No se pueden eliminar promedios en un ciclo ${schoolCycle.status === "archived" ? "archivado" : "inactivo"}.`);
+    }
+
     await ctx.db.delete(args.termAverageId);
     return args.termAverageId;
   },

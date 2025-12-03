@@ -805,6 +805,31 @@ export const usePermissions = (schoolId?: string) => {
     return { canViewAll: false, tutorId: undefined, teacherId: undefined };
   }, [currentUser, currentRole]);
 
+  // Función para verificar si se permiten acciones de edición basadas en el estado del ciclo escolar
+  const canEditBasedOnCycleStatus = React.useCallback((cycleStatus?: string) => {
+    // Si no hay ciclo seleccionado o no tiene estado, permitir edición
+    if (!cycleStatus) return true;
+
+    // Solo permitir edición si el ciclo está activo
+    return cycleStatus === "active";
+  }, []);
+
+  // Función para verificar permisos considerando el estado del ciclo
+  const hasPermissionWithCycleCheck = React.useCallback((permission: string, cycleStatus?: string) => {
+    const hasBasePermission = permissions[permission] || false;
+
+    // Si no tiene el permiso base, no permitir
+    if (!hasBasePermission) return false;
+
+    // Para acciones de escritura (create, update, delete), verificar estado del ciclo
+    if (permission.includes('create:') || permission.includes('update:') || permission.includes('delete:')) {
+      return canEditBasedOnCycleStatus(cycleStatus);
+    }
+
+    // Para acciones de lectura, siempre permitir
+    return true;
+  }, [permissions, canEditBasedOnCycleStatus]);
+
   return {
     // Estado
     permissions,
@@ -942,6 +967,10 @@ export const usePermissions = (schoolId?: string) => {
 
     // Filtros para estudiantes
     getStudentFilters,
+
+    // Funciones para control de ciclo escolar
+    canEditBasedOnCycleStatus,
+    hasPermissionWithCycleCheck,
   };
 }
 
