@@ -861,28 +861,6 @@ export default function StudentClassesDashboard() {
                             disabled={operation === "view"}
                           />
                         </div>
-                        // <FormItem>
-                        //   <FormLabel>Clase</FormLabel>
-                        //   <Select
-                        //     onValueChange={field.onChange}
-                        //     value={field.value as string}
-                        //     disabled={operation === 'view'}
-                        //   >
-                        //     <FormControl>
-                        //       <SelectTrigger className="w-full truncate">
-                        //         <SelectValue placeholder="Seleccione una clase" />
-                        //       </SelectTrigger>
-                        //     </FormControl>
-                        //     <SelectContent>
-                        //       {classCatalogsWithDetails?.map((cc) => (
-                        //         <SelectItem key={cc._id} value={cc._id}>
-                        //           {cc.name} - {cc.teacher?.name} {cc.teacher?.lastName}
-                        //         </SelectItem>
-                        //       ))}
-                        //     </SelectContent>
-                        //   </Select>
-                        //   <FormMessage />
-                        // </FormItem>
                       )}
                     />
                   </div>
@@ -906,67 +884,6 @@ export default function StudentClassesDashboard() {
                     form={form}
                     operation={operation}
                   />
-
-                  {/* <FormField
-                    control={form.control}
-                    name="enrollmentDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Fecha de asignación</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="date"
-                            disabled={operation === 'view'}
-                            min={new Date().toISOString().split("T")[0]}
-                            value={
-                              field.value
-                                ? (typeof field.value === 'number'
-                                  ? new Date(field.value).toISOString().split("T")[0]
-                                  : new Date(field.value as string).toISOString().split("T")[0])
-                                : ''
-                            }
-                            onChange={(e) => field.onChange(e.target.value)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="averageScore"
-                    render={({ field }) => {
-                      const inputValue = field.value === null || field.value === undefined
-                        ? ""
-                        : String(field.value);
-
-                      return (
-                        <FormItem>
-                          <FormLabel>Promedio</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type="number"
-                              step="0.1"
-                              placeholder="Promedio final de la clase"
-                              value={inputValue}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                const numValue = value === ""
-                                  ? undefined
-                                  : Number(value);
-                                field.onChange(numValue);
-                              }}
-                              disabled={operation === "view"}
-
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      );
-                    }}
-                  /> */}
 
                   {(operation != 'create') && (
                     <FormField

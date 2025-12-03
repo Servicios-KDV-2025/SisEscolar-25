@@ -201,11 +201,7 @@ export function TaskForm({
             return (
               <CrudFields
                 key={field.name}
-                fields={[{
-                  ...field,
-                  // Convertir el campo de hora a tipo 'time' usando un inputType personalizado
-                  // Esto depende de cómo hayas implementado CrudFields
-                }]}
+                fields={[{ ...field }]}
                 operation={operation}
                 form={form as unknown as UseFormReturn<Record<string, unknown>>}
               />

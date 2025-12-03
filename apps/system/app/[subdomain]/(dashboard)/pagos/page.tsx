@@ -135,11 +135,11 @@ export default function Colegiaturas() {
       {showStripeConfig && (
         <div
           className={`
-    ${isClosing
-              ? "animate-out slide-out-to-top-8 fade-out duration-400 ease-out"
-              : "animate-in slide-in-from-top-8 fade-in duration-400 ease-out"
-            }
-  `}
+                      ${isClosing
+                        ? "animate-out slide-out-to-top-8 fade-out duration-400 ease-out"
+                        : "animate-in slide-in-from-top-8 fade-in duration-400 ease-out"
+                      }
+                    `}
         >
           <div className="pt-4">
             <StripeConfigPage />

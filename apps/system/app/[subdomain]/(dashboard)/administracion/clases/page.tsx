@@ -121,7 +121,6 @@ import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardS
 import { useSchedule } from "stores/scheduleStore";
 import { scheduleSchema, ScheduleFormData } from "schema/scheduleSchema";
 import { ScheduleFormFields } from "components/ScheduleFormFields";
-import CrudFields from '@repo/ui/components/dialog/crud-fields';
 
 // Tipos para los props de los componentes de pasos
 type FullClassForm = UseFormReturn<z.infer<typeof FullClassSchema>>;
@@ -1235,19 +1234,6 @@ export default function HorariosPorClasePage() {
           );
           return;
         }
-          toast.error(
-            <span style={{ color: '#dc2626' }}>
-              Acción no permitida
-            </span>,
-            {
-              className: 'bg-white border border-red-200',
-              unstyled: false,
-              description: "Ya existe una clase con estas características. No puede ser combinada como 'inactiva'. Por favor, establécela como 'activa' para continuar.",
-              duration: 5000,
-            }
-          );
-          return;
-        }
 
         console.log(" Clase duplicada encontrada, combinando clases...");
 
@@ -1296,16 +1282,6 @@ export default function HorariosPorClasePage() {
               unstyled: false,
             }
           );
-          // 4. Si AMBAS tienen éxito, actualiza el toast a "éxito"
-          toast.success(
-            <span style={{ color: '#16a34a', fontWeight: 600 }}>
-              {`¡Clases combinadas exitosamente! Los horarios se agregaron a "${existingClassOnEdit.name}".`}
-            </span>,
-            {
-              className: 'bg-white border border-green-200',
-              unstyled: false,
-            }
-          );
 
           setIsEditingClassDetails(false);
           crudDialog.close();
@@ -1329,74 +1305,10 @@ export default function HorariosPorClasePage() {
           // 7. El error se "captura" y no se propaga a la consola
         }
         // --- FIN DE LA CORRECCIÓN ---
-          // 6. Actualiza el toast a "error" con el mensaje limpio
-          toast.error(
-            <span style={{ color: '#dc2626' }}>
-              {toastMessages.editError}
-            </span>,
-            {
-              className: 'bg-white border border-red-200',
-              unstyled: false,
-              description: typeof errorMessage === 'string' ? errorMessage : undefined,
-              duration: 8000,
-            }
-          );
-          // 7. El error se "captura" y no se propaga a la consola
-        }
-        // --- FIN DE LA CORRECCIÓN ---
 
         return;
       }
 
-      // ✅ SI NO HAY DUPLICADO, ACTUALIZAR NORMALMENTE
-      const loadingToast = toast.loading("Actualizando la información de la clase...");
-      try {
-        await updateClassCatalog({
-          classCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
-          schoolId: currentSchool.school._id as Id<"school">,
-          schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
-          subjectId: data.subjectId as Id<"subject">,
-          classroomId: data.classroomId as Id<"classroom">,
-          teacherId: data.teacherId as Id<"user">,
-          groupId: data.groupId as Id<"group">,
-          name: data.name,
-          status: data.status,
-          updatedAt: Date.now(),
-        });
-        toast.dismiss(loadingToast);
-        setIsEditingClassDetails(false);
-        crudDialog.close();
-        // Toast personalizado con fondo blanco y texto verde
-        toast.success(
-          <span style={{ color: '#16a34a', fontWeight: 600 }}>
-            {toastMessages.editSuccess}
-          </span>,
-          {
-            className: 'bg-white border border-green-200',
-            unstyled: false,
-          }
-        );
-      } catch (error) {
-        toast.dismiss(loadingToast);
-        //console.error(" Error al actualizar:", error);
-        const errorMessage = cleanErrorMessage(error);
-        toast.error(
-          <span style={{ color: '#dc2626' }}>
-            {toastMessages.editError}
-          </span>,
-          {
-            className: 'bg-white border border-red-200',
-            unstyled: false,
-            description: typeof errorMessage === 'string' ? errorMessage : undefined
-          }
-        );
-      }
-    } catch (error) {
-      // Este catch es para errores generales ANTES del toast.promise
-      // console.error("Error en la actualizacion de la clase:", error);
-      return cleanErrorMessage(error);
-    }
-  };
       // ✅ SI NO HAY DUPLICADO, ACTUALIZAR NORMALMENTE
       const loadingToast = toast.loading("Actualizando la información de la clase...");
       try {
@@ -1878,35 +1790,12 @@ export default function HorariosPorClasePage() {
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <CardTitle>
                       <div className="flex flex-col gap-2">
-                    <CardTitle>
-                      <div className="flex flex-col gap-2">
                         <span>Lista de Clases con Horario</span>
                         <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
                           {filteredClasses.length} clases
                         </Badge>
                       </div>
-                          {filteredClasses.length} clases
-                        </Badge>
-                      </div>
                     </CardTitle>
-                    {canCreateScheduleAssignament && (
-                      <Button
-                        size="lg"
-                        className="gap-2"
-                        onClick={() => {
-                          setFormStep(1);
-                          createForm.reset({
-                            status: "active",
-                            schoolCycleId: activeCycle?._id || "",
-                          });
-                          setIsCreateDialogOpen(true);
-                        }}
-                      >
-                        <Plus className="h-4 w-4" />
-                        Agregar Clase
-                      </Button>
-                    )}
-                  </div>
                     {canCreateScheduleAssignament && (
                       <Button
                         size="lg"
@@ -2228,7 +2117,7 @@ export default function HorariosPorClasePage() {
                             classrooms={classrooms}
                             teachers={teachersData}
                             activeSchoolCycleId={activeCycle?._id}
-                            existingClassWarning={existingClassOnEdit}
+                            existingClassWarning={existingClassOnEdit} // ← AGREGAR ESTA PROP
                           />
 
                           <div className="flex justify-end gap-2 pt-4">
@@ -2257,7 +2146,7 @@ export default function HorariosPorClasePage() {
                                 </FormItem>
                               )}
                             />
-                            {/* <FormField
+                            <FormField
                               control={form.control}
                               name="status"
                               render={({ field }) => (
@@ -2298,31 +2187,7 @@ export default function HorariosPorClasePage() {
                                   <FormMessage />
                                 </FormItem>
                               )}
-                            /> */}
-                            {crudDialog.operation === "view" ? (
-                              <div className="space-y-2">
-                                <FormLabel>Estado</FormLabel>
-                                <div className="flex h-10 w-full items-center">
-                                  <Badge variant={form.watch("status") === "active" ? "default" : "secondary"}>
-                                    {form.watch("status") === "active" ? "Activa" : "Inactiva"}
-                                  </Badge>
-                                </div>
-                              </div>
-                            ) : (
-                              <CrudFields
-                                fields={[{
-                                  name: 'status',
-                                  label: 'Estado',
-                                  type: 'select',
-                                  options: [
-                                    { value: 'active', label: 'Activo' },
-                                    { value: 'inactive', label: 'Inactivo' }
-                                  ]
-                                }]}
-                                operation={crudDialog.operation}
-                                form={form}
-                              />
-                            )}
+                            />
                           </div>
 
                           {/* ✅ CORRECCIÓN: Verificar que currentClassItem exista */}

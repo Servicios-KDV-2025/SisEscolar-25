@@ -258,17 +258,6 @@ export default function EventTypeDialog({
     }
   };
 
-  // const handleNameChange = (name: string) => {
-  //   const key = name
-  //     .toUpperCase()
-  //     .replace(/[^A-Z0-9\s]/g, "")
-  //     .replace(/\s+/g, "_")
-  //     .slice(0, 10);
-  //   form.setValue("key", key);
-  // };
-
-  // Determinar la operación
-  
   const operation = !canUpdateCalendar ? 'view' : tipoEventoEditar ? 'edit' : 'create';
 
   useEffect(() => {
@@ -339,32 +328,6 @@ export default function EventTypeDialog({
         ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-
-              {/* <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700">
-                      Nombre del Tipo de Evento
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={!canUpdateCalendar}
-                        {...field}
-                        placeholder="Ej: Reunión de Padres"
-                        className="h-11"
-                        onChange={(e) => {
-                          field.onChange(e);
-                          handleNameChange(e.target.value);
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              /> */}
-
               <CrudFields
                 fields={[{
                   name: 'name',
@@ -414,32 +377,6 @@ export default function EventTypeDialog({
                 operation={operation}
                 form={form as unknown as UseFormReturn<Record<string, unknown>>}
               />
-
-              {/* <FormField
-
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700">
-                      Descripción (Opcional)
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea
-                        disabled={!canUpdateCalendar}
-                        {...field}
-                        placeholder="Descripción breve del tipo de evento..."
-                        className="min-h-[80px] resize-none"
-                        maxLength={200}
-                      />
-                    </FormControl>
-                    <FormDescription className="text-xs text-gray-500">
-                      {field.value?.length || 0}/200 caracteres
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              /> */}
 
               <FormField
                 control={form.control}
@@ -553,31 +490,6 @@ export default function EventTypeDialog({
                     operation={operation}
                     form={form as unknown as UseFormReturn<Record<string, unknown>>}
                   />
-                  {/* <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Estado</FormLabel>
-                        <FormControl>
-                          <Select
-                            disabled={!canUpdateCalendar}
-                            onValueChange={(value) => field.onChange(value)}
-                            value={field.value || "active"}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona el estado" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="active">Activo</SelectItem>
-                              <SelectItem value="inactive">Inactivo</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  /> */}
                 </>
               ) : (
                 ""

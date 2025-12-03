@@ -2,10 +2,7 @@
 
 import { Input } from '../shadcn/input';
 import { Textarea } from '../shadcn/textarea';
-import { Checkbox } from '../shadcn/checkbox';
-import { RadioGroup, RadioGroupItem } from '../shadcn/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../shadcn/select';
-import { Label } from '../shadcn/label';
 import { Button } from '../shadcn/button';
 import { Eye, EyeClosed } from 'lucide-react';
 import type { UseFormReturn } from 'react-hook-form';
@@ -15,13 +12,21 @@ import { useState } from 'react';
 export type TypeFields = {
     name: string
     label: string
-    type: 'text' | 'textarea' | 'date' | 'number' | 'select' | 'radio' | 'checkbox' | 'password' | 'time'
+    type: 'text' | 'textarea' | 'date' | 'number' | 'select' | 'password' | 'time' | 'email' | 'tel'
     required?: boolean
     options?: { value: string; label: string }[]
     multiple?: boolean
     placeholder?: string
     maxLength?: number
     step?: string
+    min?: number
+    max?: number
+    disabled?: boolean | ((operation: string) => boolean)
+    readOnly?: boolean
+    helperText?: string
+    className?: string
+    // Para campos condicionales
+    showCondition?: (formValues: Record<string, unknown>) => boolean
 }[]
 
 interface CrudFieldsProps {
@@ -60,9 +65,21 @@ export default function CrudFields({ fields, operation, form, className }: CrudF
     };
 
     const renderField = (field: typeof fields[0]) => {
+        const isDisabled = typeof field.disabled === 'function'
+            ? field.disabled(operation)
+            : field.disabled || isView;
+
+        const shouldShow = field.showCondition
+            ? field.showCondition(form.getValues())
+            : true;
+
+        if (!shouldShow) return null;
+
         switch (field.type) {
             case 'text':
             case 'date':
+            case 'email':
+            case 'tel':
                 return (
                     <FormField
                         control={form.control}
@@ -77,16 +94,19 @@ export default function CrudFields({ fields, operation, form, className }: CrudF
                                         type={field.type}
                                         {...formField}
                                         required={field.required}
-                                        disabled={isView}
+                                        disabled={isView || isDisabled}
                                         placeholder={field.placeholder}
                                         className={className}
                                         value={toString(formField.value)}
                                         onChange={formField.onChange}
-                                        onBlur={formField.onBlur}
                                         name={formField.name}
-                                        ref={formField.ref}
                                     />
                                 </FormControl>
+                                {field.helperText && (
+                                    <p className="text-xs text-muted-foreground">
+                                        {field.helperText}
+                                    </p>
+                                )}
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -132,9 +152,9 @@ export default function CrudFields({ fields, operation, form, className }: CrudF
                                                     }
                                                 }
                                             }}
-                                            onBlur={formField.onBlur}
                                             name={formField.name}
-                                            ref={formField.ref}
+                                            min={field.min}
+                                            max={field.max}
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -165,9 +185,7 @@ export default function CrudFields({ fields, operation, form, className }: CrudF
                                         className={className}
                                         value={toString(formField.value)}
                                         onChange={formField.onChange}
-                                        onBlur={formField.onBlur}
                                         name={formField.name}
-                                        ref={formField.ref}
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -199,9 +217,7 @@ export default function CrudFields({ fields, operation, form, className }: CrudF
                                                 className={className}
                                                 value={toString(formField.value)}
                                                 onChange={formField.onChange}
-                                                onBlur={formField.onBlur}
                                                 name={formField.name}
-                                                ref={formField.ref}
                                             />
                                             <Button
                                                 type="button"
@@ -222,51 +238,6 @@ export default function CrudFields({ fields, operation, form, className }: CrudF
                                 </FormItem>
                             );
                         }}
-                    />
-                )
-
-            case 'radio':
-                if (!field.options) {
-                    console.warn(`Radio field "${field.name}" needs options`);
-                    return null;
-                }
-
-                return (
-                    <FormField
-                        control={form.control}
-                        name={field.name}
-                        render={({ field: formField }) => (
-                            <FormItem>
-                                <FormLabel>
-                                    {field.label} {field.required && '*'}
-                                </FormLabel>
-                                <FormControl>
-                                    <RadioGroup
-                                        value={formField.value as string}
-                                        onValueChange={formField.onChange}
-                                        disabled={isView}
-                                        className="flex flex-row space-y-2"
-                                    >
-                                        {field && field.options && field.options.map((option) => (
-                                            <div key={option.value} className="flex items-center space-x-2">
-                                                <RadioGroupItem
-                                                    value={option.value}
-                                                    id={`${field.name}-${option.value}`}
-                                                    className="text-blue-600 border-gray-400"
-                                                />
-                                                <Label
-                                                    htmlFor={`${field.name}-${option.value}`}
-                                                    className="text-sm text-gray-300 cursor-pointer"
-                                                >
-                                                    {option.label}
-                                                </Label>
-                                            </div>
-                                        ))}
-                                    </RadioGroup>
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
                     />
                 )
 
@@ -299,9 +270,7 @@ export default function CrudFields({ fields, operation, form, className }: CrudF
                                                 maxLength={maxLength}
                                                 value={toString(formField.value)}
                                                 onChange={formField.onChange}
-                                                onBlur={formField.onBlur}
                                                 name={formField.name}
-                                                ref={formField.ref}
                                             />
                                             <div className={`absolute bottom-2 right-2 text-xs ${charCount > maxLength
                                                 ? 'text-red-400'
@@ -357,93 +326,6 @@ export default function CrudFields({ fields, operation, form, className }: CrudF
                         )}
                     />
                 )
-
-            case 'checkbox':
-                // Caso especial: checkbox simple (booleano)
-                if (!field.options) {
-                    return (
-                        <FormField
-                            control={form.control}
-                            name={field.name}
-                            render={({ field: formField }) => (
-                                <FormItem>
-                                    <FormLabel>
-                                        {field.label} {field.required && '*'}
-                                    </FormLabel>
-                                    <FormControl>
-                                        <div className="flex items-center justify-center space-x-2">
-                                            <Checkbox
-                                                id={field.name}
-                                                checked={formField.value as boolean}
-                                                onCheckedChange={formField.onChange}
-                                                disabled={isView}
-                                                className="text-blue-600 border-gray-400 data-[state=checked]:bg-blue-600"
-                                            />
-                                        </div>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    );
-                }
-
-                // Caso: múltiples checkboxes (array)
-                return (
-                    <FormField
-                        control={form.control}
-                        name={field.name}
-                        render={({ field: formField }) => {
-                            const currentValue = formField.value as string[] || [];
-
-                            const handleCheckboxChange = (optionValue: string, checked: boolean) => {
-                                let newValue: string[];
-
-                                if (checked) {
-                                    newValue = [...currentValue, optionValue];
-                                } else {
-                                    newValue = currentValue.filter(val => val !== optionValue);
-                                }
-
-                                formField.onChange(newValue);
-                            };
-
-                            return (
-                                <FormItem>
-                                    <FormLabel>
-                                        {field.label} {field.required && '*'}
-                                    </FormLabel>
-                                    <FormControl>
-                                        <div className="space-y-3">
-                                            {field && field.options && field.options.map((option) => (
-                                                <div key={option.value} className="flex flex-row space-x-2">
-                                                    <Checkbox
-                                                        id={`${field.name}-${option.value}`}
-                                                        name={field.name}
-                                                        value={option.value}
-                                                        checked={currentValue.includes(option.value)}
-                                                        onCheckedChange={(checked) =>
-                                                            handleCheckboxChange(option.value, checked as boolean)
-                                                        }
-                                                        disabled={isView}
-                                                        className="text-blue-600 border-gray-400 data-[state=checked]:bg-blue-600"
-                                                    />
-                                                    <Label
-                                                        htmlFor={`${field.name}-${option.value}`}
-                                                        className="text-sm text-gray-300 cursor-pointer"
-                                                    >
-                                                        {option.label}
-                                                    </Label>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            );
-                        }}
-                    />
-                );
 
             default:
                 return null;
