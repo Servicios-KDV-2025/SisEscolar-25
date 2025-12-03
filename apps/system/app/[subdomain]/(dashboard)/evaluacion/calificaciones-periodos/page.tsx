@@ -424,25 +424,66 @@ export default function GradeManagementDashboard() {
                 />
               </div>
             </div>
-            <Select
-              value={selectedSchoolCycle}
-              onValueChange={(value) => {
-                setSelectedSchoolCycle(value);
-                setSelectedClass("");
-              }}
-            >
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Ciclo Escolar" />
-              </SelectTrigger>
-              <SelectContent>
-                {hasSchoolCycles &&
-                  schoolCycles.map((cycle) => (
-                    <SelectItem key={cycle._id} value={cycle._id as string}>
-                      {cycle.name}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select
+                value={selectedSchoolCycle}
+                onValueChange={(value) => {
+                  setSelectedSchoolCycle(value);
+                  setSelectedClass("");
+                }}
+              >
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Ciclo Escolar" />
+                </SelectTrigger>
+                <SelectContent>
+                  {hasSchoolCycles &&
+                    schoolCycles.map((cycle) => (
+                      <SelectItem key={cycle._id} value={cycle._id as string}>
+                        <div className="flex items-center gap-2">
+                          <span>{cycle.name}</span>
+                          {cycle.status === "archived" && (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs ml-1">
+                              Archivado
+                            </Badge>
+                          )}
+                          {cycle.status === "inactive" && (
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs ml-1">
+                              Inactivo
+                            </Badge>
+                          )}
+                          {cycle.status === "active" && (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs ml-1">
+                              Activo
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              {selectedSchoolCycle && schoolCycles && (
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const selected = schoolCycles.find(c => c._id === selectedSchoolCycle);
+                    if (selected?.status === "archived") {
+                      return (
+                        <Badge className="bg-blue-100 text-blue-800 border border-blue-200 whitespace-nowrap">
+                          Ciclo Archivado
+                        </Badge>
+                      );
+                    }
+                    if (selected?.status === "inactive") {
+                      return (
+                        <Badge className="bg-yellow-100 text-yellow-800 border border-yellow-200 whitespace-nowrap">
+                          Ciclo Inactivo
+                        </Badge>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              )}
+            </div>
             {hasClasses && (
               <Select value={selectedClass} onValueChange={setSelectedClass}>
                 <SelectTrigger className="w-full md:w-48">

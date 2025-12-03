@@ -38,6 +38,7 @@ import { TaskFormData, taskFormSchema } from '@/types/form/taskSchema';
 import { useTask } from 'stores/taskStore';
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
+import { NullifiedContextProvider } from "@dnd-kit/core/dist/components/DragOverlay/components";
 
 export default function GradeManagementDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -546,11 +547,15 @@ export default function GradeManagementDashboard() {
                               Archivado
                             </Badge>
                           )}
-                          {cycle.status === "inactive" && (
+                          {cycle.status === "inactive" ? (
                             <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs ml-1">
                               Inactivo
                             </Badge>
-                          )}
+                          ): cycle.status === "active" ? (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs ml-1">
+                              Activo
+                            </Badge>
+                          ): null}
                         </div>
                       </SelectItem>
                     ))}
