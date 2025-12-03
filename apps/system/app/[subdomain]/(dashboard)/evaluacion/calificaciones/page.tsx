@@ -10,7 +10,7 @@ import {
 } from "@repo/ui/components/shadcn/card";
 import {
   Select,
-  SelectContent,  
+  SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -52,7 +52,7 @@ export default function GradeManagementDashboard() {
   const {
     currentSchool,
     isLoading: schoolLoading,
-    
+
   } = useCurrentSchool(currentUser?._id);
 
   const { createTask } = useTask(currentSchool?.school._id);
@@ -167,22 +167,57 @@ export default function GradeManagementDashboard() {
 
   // State synchronization and initial value setting
   useEffect(() => {
-    // Establece el ciclo escolar por defecto si no hay uno seleccionado
+    // Solo ejecutamos si hay ciclos y NO hay uno seleccionado manualmente
     if (schoolCycles && schoolCycles.length > 0 && !selectedSchoolCycle) {
-      setSelectedSchoolCycle(schoolCycles[0]!._id as string);
+
+      console.log("Buscando ciclo activo en:", schoolCycles);
+
+      // Buscamos el ciclo usando TODAS las variantes posibles
+      const activeCycle = schoolCycles.find((c: any) => {
+        // Opción 1: Booleano directo (active: true, isActive: true, current: true)
+        if (c.active === true) return true;
+        if (c.isActive === true) return true;
+        if (c.isCurrent === true) return true;
+        if (c.current === true) return true;
+
+        // Opción 2: String "true" (por si se guardó como texto)
+        if (String(c.active) === "true") return true;
+        if (String(c.isActive) === "true") return true;
+
+        // Opción 3: Estado de texto (status: "active", state: "ACTIVO")
+        if (c.status?.toLowerCase() === "active") return true;
+        if (c.status?.toLowerCase() === "activo") return true;
+        if (c.state?.toLowerCase() === "active") return true;
+
+        return false;
+      });
+
+      if (activeCycle) {
+        console.log("¡ENCONTRADO! Ciclo activo:", activeCycle);
+        setSelectedSchoolCycle(activeCycle._id as string);
+      } else {
+        console.warn("NO SE ENCONTRÓ NINGÚN ACTIVO. Usando el primero por defecto.");
+        setSelectedSchoolCycle(schoolCycles[0]!._id as string);
+
+        // Agrega esto para cumplir el criterio de "Aviso claro"
+        toast.info("No se detectó un ciclo activo. Se ha cargado el primer ciclo disponible.");
+      }
     }
 
-    // Establece la clase por defecto si no hay una seleccionada
+    // Inicialización de Clases (sin cambios)
     if (classes && classes.length > 0 && !selectedClass) {
       setSelectedClass(classes[0]!._id as string);
     }
 
-    // Establece el periodo por defecto si no hay uno seleccionado
+    // Inicialización de Periodos (sin cambios)
     if (terms && terms.length > 0 && !selectedTerm) {
       setSelectedTerm(terms[0]!._id as string);
     }
   }, [
-    schoolCycles, selectedSchoolCycle,
+    schoolCycles,
+    // Quitamos selectedSchoolCycle de las dependencias para evitar loops, 
+    // pero mantenemos la lógica interna (!selectedSchoolCycle) para respetar la elección del usuario.
+    // Nota: Si Convex actualiza schoolCycles, esto se volverá a ejecutar.
     classes, selectedClass,
     terms, selectedTerm
   ]);
@@ -202,13 +237,11 @@ export default function GradeManagementDashboard() {
         return fullName.includes(searchTermLower);
       })
       .sort((a, b) => {
-        // Obtenemos los datos de forma segura, usando '' como fallback
         const lastNameA = a.student?.name || "";
         const lastNameB = b.student?.name || "";
         const nameA = a.student?.name || "";
         const nameB = b.student?.name || "";
 
-        // La lógica de comparación ahora es segura
         const lastNameComparison = lastNameA.localeCompare(lastNameB);
         if (lastNameComparison !== 0) {
           return lastNameComparison;
@@ -228,7 +261,6 @@ export default function GradeManagementDashboard() {
     )
       return;
 
-    // Recorre cada estudiante y guarda su promedio
     for (const student of students) {
       if (!student.student) continue;
 
@@ -237,7 +269,6 @@ export default function GradeManagementDashboard() {
 
       if (newAverage !== null) {
         try {
-          // Llama a la mutación para guardar el promedio del periodo
           await upsertTermAverage({
             studentClassId: studentClassId as Id<"studentClass">,
             termId: selectedTerm as Id<"term">,
@@ -296,14 +327,13 @@ export default function GradeManagementDashboard() {
     rubrics === undefined ||
     grades === undefined;
 
-  // Logic to handle grade updates. This now uses the upsert mutation.
+  // Logic to handle grade updates.
   const handleUpdateGrade = async (
     studentClassId: string,
     assignmentId: string,
     score: number | null,
-    comments: string // Agrega el argumento de comentario aquí
+    comments: string
   ) => {
-    // Only proceed if a user is logged in and the score is a number
     if (!currentUser || score === null) return;
 
     try {
@@ -337,7 +367,6 @@ export default function GradeManagementDashboard() {
     }
   };
 
-  // Logic to calculate the student's weighted average
   const calculateAverage = (studentClassId: string): number | null => {
     if (!assignments || !rubrics || !grades) return null;
 
@@ -345,13 +374,11 @@ export default function GradeManagementDashboard() {
       (g) => g.studentClassId === studentClassId
     );
 
-    // 1. Crear un mapa para acumular los puntajes totales por rúbrica.
     const rubricTotals = new Map<
       Id<"gradeRubric">,
       { totalScore: number; totalMaxScore: number }
     >();
 
-    // 2. Iterar sobre las calificaciones y agrupar por rúbrica.
     studentGrades.forEach((grade) => {
       const assignment = assignments.find((a) => a._id === grade.assignmentId);
       if (assignment && grade.score !== null) {
@@ -370,18 +397,13 @@ export default function GradeManagementDashboard() {
       }
     });
 
-    // 3. Calcular el promedio final aplicando el peso de cada rúbrica.
     let finalGrade = 0;
     rubricTotals.forEach((totals, rubricId) => {
       const rubric = rubrics.find((r) => r._id === rubricId);
       if (rubric && totals.totalMaxScore > 0) {
-        // Calcular el porcentaje de la categoría (ej. 100% en Tareas)
         const rubricPercentage = Math.round(
           (totals.totalScore / totals.totalMaxScore) * 100
         );
-
-        // Multiplicar por el peso de la rúbrica (ej. 10% del total)
-        // Asumimos que el peso es un valor decimal (ej. 0.1 para 10%)
         finalGrade += rubricPercentage * rubric.weight;
       }
     });
@@ -389,9 +411,6 @@ export default function GradeManagementDashboard() {
     return Math.round(finalGrade);
   };
 
-  // Conditionally render based on data availability
-
-  // Check for missing data and display specific messages
   const hasSchoolCycles = schoolCycles && schoolCycles.length > 0;
   const hasClasses = classes && classes.length > 0;
   const hasTerms = terms && terms.length > 0;
@@ -402,11 +421,9 @@ export default function GradeManagementDashboard() {
       return;
     }
 
-    // Combinar fecha y hora para crear el timestamp
     const dueDateTime = new Date(`${values.dueDate}T${values.dueTime}`);
     const dueTimestamp = dueDateTime.getTime();
 
-    // Aquí necesitarías la función createTask - puede que necesites importarla o crearla
     await createTask({
       classCatalogId: values.classCatalogId as Id<"classCatalog">,
       termId: values.termId as Id<"term">,
@@ -416,15 +433,12 @@ export default function GradeManagementDashboard() {
       dueDate: dueTimestamp,
       maxScore: parseInt(values.maxScore as string),
     });
-    //   Los toasts ahora los maneja el CrudDialog automáticamente
   }
 
   if (isLoading) {
     return <GeneralDashboardSkeleton nc={0} />;
   }
 
-
-  // Main UI when all data is available
   return (
     <div className="space-y-8 p-6">
       {/* Header */}
@@ -447,7 +461,7 @@ export default function GradeManagementDashboard() {
                 </div>
               </div>
             </div>
-         
+
           </div>
         </div>
       </div>
@@ -513,22 +527,58 @@ export default function GradeManagementDashboard() {
                 />
               </div>
             </div>
-            <Select
-              value={selectedSchoolCycle}
-              onValueChange={setSelectedSchoolCycle}
-            >
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Ciclo Escolar" />
-              </SelectTrigger>
-              <SelectContent>
-                {hasSchoolCycles &&
-                  schoolCycles.map((cycle) => (
-                    <SelectItem key={cycle._id} value={cycle._id as string}>
-                      {cycle.name}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select
+                value={selectedSchoolCycle}
+                onValueChange={setSelectedSchoolCycle}
+              >
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Ciclo Escolar" />
+                </SelectTrigger>
+                <SelectContent>
+                  {hasSchoolCycles &&
+                    schoolCycles.map((cycle) => (
+                      <SelectItem key={cycle._id} value={cycle._id as string}>
+                        <div className="flex items-center gap-2">
+                          <span>{cycle.name}</span>
+                          {cycle.status === "archived" && (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs ml-1">
+                              Archivado
+                            </Badge>
+                          )}
+                          {cycle.status === "inactive" && (
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs ml-1">
+                              Inactivo
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              {selectedSchoolCycle && schoolCycles && (
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const selected = schoolCycles.find(c => c._id === selectedSchoolCycle);
+                    if (selected?.status === "archived") {
+                      return (
+                        <Badge className="bg-blue-100 text-blue-800 border border-blue-200 whitespace-nowrap">
+                          Ciclo Archivado
+                        </Badge>
+                      );
+                    }
+                    if (selected?.status === "inactive") {
+                      return (
+                        <Badge className="bg-yellow-100 text-yellow-800 border border-yellow-200 whitespace-nowrap">
+                          Ciclo Inactivo
+                        </Badge>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              )}
+            </div>
             {hasClasses && (
               <Select
                 value={selectedClass}
@@ -574,19 +624,19 @@ export default function GradeManagementDashboard() {
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <CardTitle>
-            <div className="flex flex-col gap-2">
-            <span>Calificaciones</span>
-            <Badge
-              variant="outline"
-              className="bg-black-50 text-black-700 border-black-200 w-fit"
-            >
-              {assignments?.length} asignaciones
-            </Badge>
-            </div>
-          </CardTitle>
-          <div className="flex flex-col gap-2 md:flex-row">
-          {canCreateAssignance &&
+            <CardTitle>
+              <div className="flex flex-col gap-2">
+                <span>Calificaciones</span>
+                <Badge
+                  variant="outline"
+                  className="bg-black-50 text-black-700 border-black-200 w-fit"
+                >
+                  {assignments?.length} asignaciones
+                </Badge>
+              </div>
+            </CardTitle>
+            <div className="flex flex-col gap-2 md:flex-row">
+              {canCreateAssignance &&
                 <Button
                   className="cursor-pointer"
                   onClick={openCreate}
@@ -613,7 +663,7 @@ export default function GradeManagementDashboard() {
                   Guardar Promedios
                 </Button>
               )}
-          </div>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="w-full">
