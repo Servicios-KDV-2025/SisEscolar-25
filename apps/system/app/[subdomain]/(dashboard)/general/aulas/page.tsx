@@ -89,7 +89,7 @@ function ClassroomForm({ form, operation }: ClassroomFormProps) {
           placeholder="Ingresa el nombre del aula"
           {...form.register("name")}
           readOnly={isView}
-          required
+          //required - sab 2 dic
           maxLength={50}
         />
       </div>
@@ -98,12 +98,11 @@ function ClassroomForm({ form, operation }: ClassroomFormProps) {
         <Input
           id="capacity"
           type="number"
-          min="1"
-          max="35"
           placeholder="Ingresa la capacidad"
           {...form.register("capacity", { valueAsNumber: true })}
           readOnly={isView}
-          required
+          //required - sab 2 dic
+          //min="1" max="35" - sab 2 dic - removidos para evitar mensajes HTML5 en inglés
         />
       </div>
       <div className="grid gap-2">
@@ -113,7 +112,7 @@ function ClassroomForm({ form, operation }: ClassroomFormProps) {
           placeholder="Ingresa la ubicación"
           {...form.register("location")}
           readOnly={isView}
-          required
+          //required - sab 2 dic
           maxLength={50}
         />
       </div>
