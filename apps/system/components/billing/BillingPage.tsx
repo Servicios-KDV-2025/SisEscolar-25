@@ -38,7 +38,7 @@ interface PagosProps {
     canCreatePagos?: boolean
     canUpdatePagos?: boolean
     currentRole?: string | null
-    currentUser?: { _id: Id<"user"> } | null
+    currentUser?: { _id: Id<"user">, email: string } | null
 }
 
 export default function BillingPage({ 

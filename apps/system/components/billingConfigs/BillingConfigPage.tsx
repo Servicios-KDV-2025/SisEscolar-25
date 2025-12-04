@@ -43,7 +43,6 @@ export default function BillingConfigPage() {
   // Obtener permisos del usuario
   const {
     currentRole,
-    isLoading: permissionsLoading,
   } = usePermissions(currentSchool?.school._id);
 
   const students = useQuery(

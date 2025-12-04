@@ -40,42 +40,48 @@ export function PaymentSuccessContent() {
       ? "No se encontró información del pago. El pago puede estar aún procesándose."
       : null
 
-  const paymentData: PaymentData | null = paymentDetails
-    ? {
-        amount: `$${paymentDetails.payment.amount.toLocaleString("es-MX", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}`,
-        concept: `${paymentDetails.billing.type} - ${paymentDetails.student.name} ${paymentDetails.student.lastName || ""}`,
-        date: new Date(paymentDetails.payment.createdAt).toLocaleDateString("es-MX", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        }),
-        time: new Date(paymentDetails.payment.createdAt).toLocaleTimeString("es-MX", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        paymentMethod:
-          paymentDetails.payment.method === "card"
-            ? "Tarjeta de crédito/débito"
-            : paymentDetails.payment.method === "cash"
-              ? "Efectivo (OXXO)"
-              : paymentDetails.payment.method === "bank_transfer"
-                ? "Transferencia bancaria (SPEI)"
-                : "Otro",
-        transactionId: paymentDetails.payment.stripePaymentIntentId || paymentDetails.payment._id,
-        status: "success",
-        receiptUrl: paymentDetails.payment.facturapiInvoiceId
-          ? `https://api.facturapi.io/v1/invoices/${paymentDetails.payment.facturapiInvoiceId}/pdf`
-          : undefined,
-      }
-    : null
+  const paymentData: PaymentData | null = (() => {
+    if (!paymentDetails?.payment || !paymentDetails?.billing || !paymentDetails?.student) {
+      return null;
+    }
+    
+    const { payment, billing, student } = paymentDetails;
+    
+    return {
+      amount: `$${payment.amount.toLocaleString("es-MX", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+      concept: `${billing.type} - ${student.name} ${student.lastName || ""}`,
+      date: new Date(payment.createdAt).toLocaleDateString("es-MX", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+      time: new Date(payment.createdAt).toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      paymentMethod:
+        payment.method === "card"
+          ? "Tarjeta de crédito/débito"
+          : payment.method === "cash"
+            ? "Efectivo (OXXO)"
+            : payment.method === "bank_transfer"
+              ? "Transferencia bancaria (SPEI)"
+              : "Otro",
+      transactionId: payment.stripePaymentIntentId || payment._id,
+      status: "success" as const,
+      receiptUrl: payment.facturapiInvoiceId
+        ? `https://api.facturapi.io/v1/invoices/${payment.facturapiInvoiceId}/pdf`
+        : undefined,
+    };
+  })()
 
   const handleDownloadReceipt = () => {
     if (paymentData?.receiptUrl) {
       window.open(paymentData.receiptUrl, "_blank")
-    } else if (paymentDetails?.payment.facturapiInvoiceNumber) {
+    } else if (paymentDetails?.payment?.facturapiInvoiceNumber) {
       // Si no hay URL directa, al menos mostrar el número de factura
       alert(`Número de factura: ${paymentDetails.payment.facturapiInvoiceNumber}`)
     }
