@@ -1,15 +1,17 @@
 "use client"
 
+import { useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { useQuery } from "convex/react"
+import { useQuery, useAction } from "convex/react"
 import { api } from "@repo/convex/convex/_generated/api"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
-import { CheckCircle2, Download, ArrowLeft, AlertCircle, CreditCard, Calendar, Hash, FileText } from "lucide-react"
+import { CheckCircle2, Download, ArrowLeft, AlertCircle, CreditCard, Calendar, Hash, FileText, Loader2 } from "lucide-react"
 import { Button } from "@repo/ui/components/shadcn/button"
 import { Card, CardContent, CardDescription, CardHeader } from "@repo/ui/components/shadcn/card"
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert"
 import { Separator } from "@repo/ui/components/shadcn/separator"
 import { Badge } from "@repo/ui/components/shadcn/badge"
+import { toast } from "@repo/ui/sonner"
 
 interface PaymentData {
   amount: string
@@ -25,19 +27,40 @@ interface PaymentData {
 export function PaymentSuccessContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const [isLoadingReceipt, setIsLoadingReceipt] = useState(false)
+  
+  const getStripeReceiptUrl = useAction(api.functions.actions.stripePayments.getStripeReceiptUrl)
+  
+  // Priorizar paymentId, luego paymentIntentId, luego billing como ultima opcion 
+  const paymentId = searchParams.get("paymentId") as Id<"payments"> | null
+  const paymentIntentId = searchParams.get("payment_intent") || searchParams.get("paymentIntentId")
   const billingId = searchParams.get("billingId") as Id<"billing"> | null
 
-  
-  const paymentDetails = useQuery(
-    api.functions.payments.getLatestPaymentDetailsByBilling,
-    billingId ? { billingId } : "skip"
+  //  Consulta por paymentId priorizado
+  const paymentDetailsById = useQuery(
+    api.functions.payments.getPaymentDetailsById,
+    paymentId ? { paymentId } : "skip"
   )
 
-  const loading = paymentDetails === undefined && billingId !== null
-  const error = billingId === null
+  //  Consultar por paymentIntentId  por si el anterior falla 
+  const paymentDetailsByPaymentIntent = useQuery(
+    api.functions.payments.getPaymentDetailsByPaymentIntentId,
+    !paymentId && paymentIntentId ? { paymentIntentId } : "skip"
+  )
+
+  //  Consultar por billingId si no hay paymentId ni paymentIntentId
+  const paymentDetailsByBilling = useQuery(
+    api.functions.payments.getLatestPaymentDetailsByBilling,
+    !paymentId && !paymentIntentId && billingId ? { billingId } : "skip"
+  )
+
+  const paymentDetails = paymentDetailsById ?? paymentDetailsByPaymentIntent ?? paymentDetailsByBilling
+  const hasValidId = paymentId !== null || paymentIntentId !== null || billingId !== null
+  const loading = paymentDetails === undefined && hasValidId
+  const error = !hasValidId
     ? "No se proporcionó un ID de pago válido"
     : paymentDetails === null && !loading
-      ? "No se encontró información del pago. El pago puede estar aún procesándose."
+      ? "No se encontró información del pago. El pago puede estar aún procesándose. Por favor espera unos segundos y recarga la página."
       : null
 
   const paymentData: PaymentData | null = (() => {
@@ -78,13 +101,56 @@ export function PaymentSuccessContent() {
     };
   })()
 
-  const handleDownloadReceipt = () => {
-    if (paymentData?.receiptUrl) {
-      window.open(paymentData.receiptUrl, "_blank")
-    } else if (paymentDetails?.payment?.facturapiInvoiceNumber) {
-      // Si no hay URL directa, al menos mostrar el número de factura
-      alert(`Número de factura: ${paymentDetails.payment.facturapiInvoiceNumber}`)
+  const handleDownloadReceipt = async () => {
+    if (!paymentDetails?.payment) return
+
+    const payment = paymentDetails.payment
+    const school = paymentDetails.school
+
+    // Intentar con recibo de Stripe si está disponible
+    if (payment.stripeChargeId && school?.stripeAccountId) {
+      setIsLoadingReceipt(true)
+      try {
+        const result = await getStripeReceiptUrl({
+          chargeId: payment.stripeChargeId,
+          stripeAccountId: school.stripeAccountId,
+        })
+
+        if (result.invoiceUrl) {
+          window.open(result.invoiceUrl, "_blank")
+          return
+        } else if (result.error) {
+          console.error("Error obteniendo recibo de Stripe:", result.error)
+          // Continuar con las siguientes opciones
+        }
+      } catch (error) {
+        console.error("Error obteniendo recibo de Stripe:", error)
+        toast.error("Error al obtener el recibo de Stripe", {
+          description: error instanceof Error ? error.message : "Error desconocido",
+        })
+      } finally {
+        setIsLoadingReceipt(false)
+      }
     }
+
+    //  Intentar con Facturapi como segunda opcion
+    if (payment.facturapiInvoiceId) {
+      const facturapiUrl = `https://api.facturapi.io/v1/invoices/${payment.facturapiInvoiceId}/pdf`
+      window.open(facturapiUrl, "_blank")
+      return
+    }
+
+    
+    if (payment.facturapiInvoiceNumber) {
+      toast.info("Recibo no disponible", {
+        description: `Número de factura: ${payment.facturapiInvoiceNumber}`,
+      })
+      return
+    }
+
+    toast.info("Recibo no disponible", {
+      description: "El recibo aún no está disponible. Por favor intenta más tarde.",
+    })
   }
 
   const handleBackToDashboard = () => {
@@ -202,11 +268,21 @@ export function PaymentSuccessContent() {
           <div className="space-y-3 pt-2">
             <Button
               onClick={handleDownloadReceipt}
+              disabled={isLoadingReceipt}
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
               size="lg"
             >
-              <Download className="mr-2 h-4 w-4" />
-              Descargar comprobante
+              {isLoadingReceipt ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Obteniendo recibo...
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  Descargar comprobante
+                </>
+              )}
             </Button>
 
             <Button onClick={handleBackToDashboard} variant="outline" className="w-full bg-transparent" size="lg">
