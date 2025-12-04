@@ -5,6 +5,8 @@ import { BillingRuleCard } from "../../../../../components/billingRules/BillingR
 import { useUserWithConvex } from "stores/userStore";
 import { useCurrentSchool } from "stores/userSchoolsStore";
 import { useBillingRule } from "stores/billingRuleStore";
+import { usePermissions } from "../../../../../hooks/usePermissions";
+import NotAuth from "../../../../../components/NotAuth";
 import {
   CrudDialog,
   useCrudDialog,
@@ -55,7 +57,17 @@ export default function BillingRulePage() {
     currentUser?._id
   );
 
-  const isLoading = !isLoaded || userLoading || schoolLoading;
+  // Obtener permisos del usuario
+  const {
+    canCreatePoliticaDeCobro,
+    canReadPoliticaDeCobro,
+    canUpdatePoliticaDeCobro,
+    canDeletePoliticaDeCobro,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+  } = usePermissions(currentSchool?.school._id);
+
+  const isLoading = !isLoaded || userLoading || schoolLoading || permissionsLoading;
 
   const {
     billingRules,
@@ -144,13 +156,21 @@ export default function BillingRulePage() {
     await deleteBillingRule(id);
     //   Los toasts ahora los maneja el CrudDialog automáticamente
   };
-  if (!isLoaded || userLoading || schoolLoading) {
+    if (isLoading) {
+    return <GeneralDashboardSkeleton nc={3} />;
+  }
+
+  // Verificar error de permisos o falta de permiso de lectura
+  if ((permissionsError || !canReadPoliticaDeCobro) && !permissionsLoading && !isLoading) {
     return (
-
-      <GeneralDashboardSkeleton nc={3} />
-
+      <NotAuth
+        pageName="Políticas de Cobros"
+        pageDetails="Administra las políticas de cobros del sistema"
+        icon={Scale}
+      />
     );
   }
+
   return (
     <div className="space-y-8 p-6">
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
@@ -288,20 +308,28 @@ export default function BillingRulePage() {
             <CardTitle>
               <div className="flex flex-col gap-2">
                 <span>Lista de Políticas de Cobros</span>
-                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
-                  {filteredBillingRules.length} políticas
-                </Badge>
+                {canCreatePoliticaDeCobro && (
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                    {filteredBillingRules.length} políticas
+                  </Badge>
+                )}
               </div>
             </CardTitle>
-            <Button
-              size="lg"
-              className="gap-2"
-              onClick={openCreate}
-              disabled={isCreatingBillingRule}
-            >
-              <Plus className="h-4 w-4" />
-              Agregar Política
-            </Button>
+            {canCreatePoliticaDeCobro ? (
+              <Button
+                size="lg"
+                className="gap-2"
+                onClick={openCreate}
+                disabled={isCreatingBillingRule}
+              >
+                <Plus className="h-4 w-4" />
+                Agregar Política
+              </Button>
+            ) : canReadPoliticaDeCobro && !canCreatePoliticaDeCobro ? (
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit px-4 flex items-center">
+                {filteredBillingRules.length} políticas
+              </Badge>
+            ) : null}
           </div>
         </CardHeader>
         <CardContent>
@@ -316,15 +344,17 @@ export default function BillingRulePage() {
               <p className="text-muted-foreground mb-4">
                 Intenta ajustar los filtros o no hay políticas registradas.
               </p>
-              <Button
-                size="lg"
-                className="gap-2"
-                onClick={openCreate}
-                disabled={isCreatingBillingRule}
-              >
-                <Plus className="h-4 w-4" />
-                Agregar Política
-              </Button>
+              {canCreatePoliticaDeCobro && (
+                <Button
+                  size="lg"
+                  className="gap-2"
+                  onClick={openCreate}
+                  disabled={isCreatingBillingRule}
+                >
+                  <Plus className="h-4 w-4" />
+                  Agregar Política
+                </Button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-9">
@@ -337,6 +367,8 @@ export default function BillingRulePage() {
                   openDelete={openDelete}
                   isUpdatingBillingRule={isUpdatingBillingRule}
                   isDeletingBillingRule={isDeletingBillingRule}
+                  canUpdate={canUpdatePoliticaDeCobro}
+                  canDelete={canDeletePoliticaDeCobro}
                 />
               ))}
             </div>

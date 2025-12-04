@@ -14,9 +14,11 @@ interface BillingRuleCardProps {
     openDelete: (itemData: BillingRule) => void;
     isUpdatingBillingRule: boolean;
     isDeletingBillingRule: boolean;
+    canUpdate?: boolean;
+    canDelete?: boolean;
 }
 
-export function BillingRuleCard({ billingRule, openEdit, openView, openDelete, isUpdatingBillingRule, isDeletingBillingRule }: BillingRuleCardProps) {
+export function BillingRuleCard({ billingRule, openEdit, openView, openDelete, isUpdatingBillingRule, isDeletingBillingRule, canUpdate = true, canDelete = true }: BillingRuleCardProps) {
     const formatDate = (timestamp: number) => {
         return new Date(timestamp).toLocaleDateString("es-ES", {
             year: "numeric",
@@ -166,30 +168,34 @@ export function BillingRuleCard({ billingRule, openEdit, openView, openDelete, i
                 >
                     <Eye className="h-4 w-4" />
                 </Button>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                        e.stopPropagation()
-                        openEdit(billingRule);
-                    }}
-                    disabled={isUpdatingBillingRule || isDeletingBillingRule}
-                    className="hover:scale-105 transition-transform cursor-pointer"
-                >
-                    <Edit className="h-4 w-4" />
-                </Button>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                        e.stopPropagation()
-                        openDelete(billingRule)
-                    }}
-                    disabled={isUpdatingBillingRule || isDeletingBillingRule}
-                    className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive bg-white"
-                >
-                    <Trash2 className="h-4 w-4" />
-                </Button>
+                {canUpdate && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            openEdit(billingRule);
+                        }}
+                        disabled={isUpdatingBillingRule || isDeletingBillingRule}
+                        className="hover:scale-105 transition-transform cursor-pointer"
+                    >
+                        <Edit className="h-4 w-4" />
+                    </Button>
+                )}
+                {canDelete && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            openDelete(billingRule)
+                        }}
+                        disabled={isUpdatingBillingRule || isDeletingBillingRule}
+                        className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive bg-white"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                )}
             </CardFooter>
         </Card>
     )

@@ -13,6 +13,7 @@ import { useUser } from "@clerk/nextjs"
 import { useCrudToastMessages } from "../../hooks/useCrudToastMessages";
 import { useUserWithConvex } from "stores/userStore"
 import { useCurrentSchool } from "stores/userSchoolsStore"
+import { usePermissions } from "../../hooks/usePermissions"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
 import { BanknoteArrowUp, School } from "@repo/ui/icons"
 import { BillingConfigDto, billingConfigSchema } from "@/types/form/billingConfigSchema"
@@ -38,6 +39,11 @@ export default function BillingConfigPage() {
   )
 
   const { groups } = useGroup(currentSchool?.school._id);
+
+  // Obtener permisos del usuario
+  const {
+    currentRole,
+  } = usePermissions(currentSchool?.school._id);
 
   const students = useQuery(
     api.functions.student.listStudentsBySchool,
@@ -359,11 +365,13 @@ export default function BillingConfigPage() {
           <CardHeader>
             <div className="flex items-center justify-between flex-col gap-3 sm:flex-row">
               <CardTitle>Lista de Configuraciones de Cobros</CardTitle>
-              <Button onClick={openCreate}
-                className="w-full mt-1 sm:w-auto sm:mt-0">
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar Configuración
-              </Button>
+              {currentRole !== "auditor" && (
+                <Button onClick={openCreate}
+                  className="w-full mt-1 sm:w-auto sm:mt-0">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar Configuración
+                </Button>
+              )}
             </div>
 
           </CardHeader>
@@ -391,10 +399,12 @@ export default function BillingConfigPage() {
                 <p className="text-muted-foreground mb-4">
                   Intenta ajustar los filtros o agregar una configuración.
                 </p>
-                <Button className="cursor-pointer" onClick={openCreate}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar Configuración
-                </Button>
+                {currentRole !== "auditor" && (
+                  <Button className="cursor-pointer" onClick={openCreate}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Agregar Configuración
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-9">
@@ -407,8 +417,8 @@ export default function BillingConfigPage() {
                     openDelete={openDelete}
                     isUpdatingBillingConfig={isCreatingBillingConfig || isUpdatingBillingConfig}
                     isDeletingBillingConfig={isDeletingBillingConfig}
-                    canUpdateBillingConfig={true}
-                    canDeleteBillingConfig={true}
+                    canUpdateBillingConfig={currentRole !== "auditor"}
+                    canDeleteBillingConfig={currentRole !== "auditor"}
                     schoolCycles={schoolCycles}
                     billingRules={billingRules}
                   />
