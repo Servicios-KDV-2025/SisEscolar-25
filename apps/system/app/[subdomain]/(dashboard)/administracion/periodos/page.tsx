@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
-import { FormControl, FormField, FormDescription, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form"; // FormDescription se comenta 3Dic
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
