@@ -20,15 +20,7 @@ import {
   Plus,
   XCircle,
 } from "@repo/ui/icons";
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@repo/ui/components/shadcn/form";
 import { Input } from "@repo/ui/components/shadcn/input";
-import { Textarea } from "@repo/ui/components/shadcn/textarea";
 import {
   Select,
   SelectContent,
@@ -51,6 +43,7 @@ import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
+import { SubjectForm } from 'components/SubjectForm';
 
 export default function SubjectPage() {
   const { user: clerkUser, isLoaded } = useUser();
@@ -151,6 +144,7 @@ export default function SubjectPage() {
   if (isLoading) {
     return <GeneralDashboardSkeleton nc={3} />;
   }
+
   return (
     <>
       {canReadSubject ? (
@@ -380,16 +374,18 @@ export default function SubjectPage() {
               operation === "create"
                 ? "Crear Nueva Materia"
                 : operation === "edit"
-                  ? "Editar Materia"
-                  : "Ver Materia"
+                  ? "Actualizar Materia"
+                  : "Detalles de la Materia"
             }
             description={
               operation === "create"
-                ? "Completa la información de la nueva materia"
+                ? "Ingresa los datos necesarios para registrar una nueva materia en el sistema académico."
                 : operation === "edit"
-                  ? "Modifica la información de la materia"
-                  : "Información de la materia"
+                  ? "Realiza los ajustes necesarios en la información de esta materia."
+                  : "Revisa toda la información relacionada con esta materia."
             }
+            deleteConfirmationTitle="¿Eliminar Materia?"
+            deleteConfirmationDescription="Esta acción borrará de manera permanente la materia del sistema. No podrá deshacerse."
             schema={subjectSchema}
             defaultValues={{
               name: "",
@@ -407,133 +403,12 @@ export default function SubjectPage() {
             toastMessages={toastMessages}
             disableDefaultToasts={false}
           >
-            {(form, operation) => {
-              const nameValue = (form.watch("name") as string) || "";
-              const descriptionValue =
-                (form.watch("description") as string) || "";
-
-              return (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Nombre</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Input
-                              {...field}
-                              placeholder="Nombre de la materia"
-                              value={field.value as string}
-                              disabled={operation === "view"}
-                              maxLength={25}
-                            />
-                            <div className="absolute right-2 top-2 text-xs text-muted-foreground">
-                              {nameValue.length}/25
-                            </div>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Descripción</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Textarea
-                              {...field}
-                              placeholder="Descripción de la materia"
-                              value={field.value as string}
-                              disabled={operation === "view"}
-                              maxLength={150}
-                              className="pr-12"
-                            />
-                            <div className="absolute right-2 top-2 text-xs text-muted-foreground">
-                              {descriptionValue.length}/150
-                            </div>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="credits"
-                    render={({ field }) => {
-                      // Convertimos explícitamente el valor a string para el input
-                      const inputValue =
-                        field.value === null || field.value === undefined
-                          ? ""
-                          : String(field.value);
-
-                      return (
-                        <FormItem>
-                          <FormLabel>Créditos</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type="number"
-                              placeholder="Número de créditos"
-                              value={inputValue}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                // Convertimos a número o undefined
-                                const numValue =
-                                  value === "" ? undefined : Number(value);
-                                field.onChange(numValue);
-                              }}
-                              disabled={operation === "view"}
-                              max={10}
-                              min={1}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      );
-                    }}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem className="space-y-2">
-                        <FormLabel>Estado</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value?.toString()}
-                          disabled={operation === "view"}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona un estado" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="active">
-                              Materia activa
-                            </SelectItem>
-                            <SelectItem value="inactive">
-                              Materia inactiva
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              );
-            }}
+            {(form, operation) => (
+              <SubjectForm
+                operation={operation}
+                form={form}
+              />
+            )}
           </CrudDialog>
         </div>
       ) : (

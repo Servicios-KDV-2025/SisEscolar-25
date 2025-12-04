@@ -34,6 +34,7 @@ import { useTerm, Term } from "stores/termStore";
 import { useCurrentSchool } from "stores/userSchoolsStore";
 import { useUserWithConvex } from "stores/userStore";
 import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
+import CrudFields, { TypeFields } from '@repo/ui/components/dialog/crud-fields';
 
 // Form Component
 function TermForm({
@@ -48,46 +49,65 @@ function TermForm({
     name: string;
   }>;
 }) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <FormField
-        control={form.control}
-        name="name"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Nombre del periodo</FormLabel>
-            <FormControl>
-              <Input
-                {...field}
-                value={field.value as string || ""}
-                placeholder="Ej: Primer Bimestre"
-                disabled={operation === "view"}
-                maxLength={50}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+  // Preparar opciones para schoolCycleId
+  const schoolCycleOptions = schoolCycles?.map(cycle => ({
+    value: cycle._id,
+    label: cycle.name
+  })) || [];
 
-      <FormField
-        control={form.control}
-        name="key"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Clave del periodo</FormLabel>
-            <FormControl>
-              <Input
-                {...field}
-                value={field.value as string || ""}
-                placeholder="Ej: BIM1-2024"
-                disabled={operation === "view"}
-                maxLength={10}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
+  // Definir campos para CrudFields
+  const crudFields1: TypeFields = [
+    {
+      name: 'name',
+      label: 'Nombre del periodo',
+      type: 'text',
+      placeholder: 'Ej: Primer Bimestre',
+      maxLength: 50,
+      required: true
+    },
+    {
+      name: 'key',
+      label: 'Clave del periodo',
+      type: 'text',
+      placeholder: 'Ej: BIM1-2024',
+      maxLength: 10,
+      required: true
+    },
+  ];
+
+  const crudFields2: TypeFields = [
+    {
+      name: 'schoolCycleId',
+      label: 'Ciclo Escolar',
+      type: 'select',
+      options: schoolCycleOptions,
+      placeholder: 'Selecciona un ciclo escolar',
+      required: true
+    },
+  ];
+
+  // Solo agregar status si no es creación
+  if (operation !== "create") {
+    crudFields2.push({
+      name: 'status',
+      label: 'Estado',
+      type: 'select',
+      options: [
+        { value: 'active', label: 'Activo' },
+        { value: 'inactive', label: 'Inactivo' },
+        { value: 'closed', label: 'Cerrado' }
+      ],
+      placeholder: 'Selecciona un estado',
+      required: true
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <CrudFields
+        fields={crudFields1}
+        operation={operation}
+        form={form}
       />
 
       <FormField
@@ -146,63 +166,11 @@ function TermForm({
         )}
       />
 
-      <FormField
-        control={form.control}
-        name="schoolCycleId"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Ciclo Escolar</FormLabel>
-            <Select
-              onValueChange={field.onChange}
-              value={field.value as string}
-              disabled={operation === "view"}
-            >
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un ciclo escolar" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {schoolCycles?.map((cycle) => (
-                  <SelectItem key={cycle._id} value={cycle._id}>
-                    {cycle.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
+      <CrudFields
+        fields={crudFields2}
+        operation={operation}
+        form={form}
       />
-
-      {operation !== "create" && (
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Estado</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                value={field.value as string}
-                disabled={operation === "view"}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un estado" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="active">Activo</SelectItem>
-                  <SelectItem value="inactive">Inactivo</SelectItem>
-                  <SelectItem value="closed">Cerrado</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
     </div>
   );
 }
@@ -583,14 +551,14 @@ export default function PeriodsManagement() {
                 </div>
               </CardTitle>
               {canCreateTerm && (<Button
-                  size="lg"
-                  className="gap-2"
-                  onClick={openCreate}
-                  disabled={isCreating}
-                >
-                  <Plus className="h-4 w-4" />
-                  Agregar Periodo
-                </Button>)}
+                size="lg"
+                className="gap-2"
+                onClick={openCreate}
+                disabled={isCreating}
+              >
+                <Plus className="h-4 w-4" />
+                Agregar Periodo
+              </Button>)}
             </div>
           </CardHeader>
           <CardContent>
@@ -708,17 +676,19 @@ export default function PeriodsManagement() {
         <CrudDialog
           operation={operation}
           title={operation === 'create'
-            ? 'Crear Agregar Periodo'
+            ? 'Crear Nuevo Periodo'
             : operation === 'edit'
-              ? 'Editar Periodo'
-              : 'Ver Periodo'
+              ? 'Actualizar Periodo'
+              : 'Detalles del Periodo'
           }
           description={operation === 'create'
-            ? 'Completa la información del periodo'
+            ? 'Completa los datos necesarios para registrar un nuevo periodo académico.'
             : operation === 'edit'
-              ? 'Modifica la información del periodo'
-              : 'Información del periodo'
+              ? 'Modifica la información del periodo para mantener sus datos correctos y vigentes.'
+              : 'Consulta toda la información registrada sobre este periodo.'
           }
+          deleteConfirmationTitle="¿Eliminar Periodo?"
+          deleteConfirmationDescription="Esta acción borrará de forma definitiva el periodo del sistema. No podrá deshacerse."
           schema={termSchema}
           defaultValues={{
             name: '',

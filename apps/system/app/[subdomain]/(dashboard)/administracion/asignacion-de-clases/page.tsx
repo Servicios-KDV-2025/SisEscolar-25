@@ -15,7 +15,7 @@ import { api } from "@repo/convex/convex/_generated/api"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
 import { toast } from "@repo/ui/sonner"
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog"
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form"
+import { FormControl, FormField, FormItem, FormLabel } from "@repo/ui/components/shadcn/form"
 import { Switch } from "@repo/ui/components/shadcn/switch"
 import { useUser } from "@clerk/nextjs"
 import { useUserWithConvex } from "stores/userStore"
@@ -31,6 +31,7 @@ import { ChartNoAxesCombined } from 'lucide-react'
 import MassAssignmentStudets from "components/classAssignment/MassAssignmentStudents"
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
+import CrudFields from '@repo/ui/components/dialog/crud-fields';
 
 export default function StudentClassesDashboard() {
   const { user: clerkUser } = useUser();
@@ -132,6 +133,7 @@ export default function StudentClassesDashboard() {
 
   const filteredEnrollments = useMemo(() => {
 
+
     const filtered = (enrollments?.filter(Boolean) || []).filter((enrollment) => {
       const matchesSearch =
         enrollment?.student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -156,15 +158,7 @@ export default function StudentClassesDashboard() {
       return nameA.localeCompare(nameB);
     });
 
-  }, [
-    enrollments,
-    searchTerm,
-    schoolYearFilter,
-    classesByTeacher,
-    gradeFilter,
-    groupFilter,
-    statusFilter
-  ]);
+  }, [enrollments, searchTerm, schoolYearFilter, classesByTeacher, gradeFilter, groupFilter, statusFilter]);
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!currentSchool?.school?._id) {
@@ -248,7 +242,7 @@ export default function StudentClassesDashboard() {
                   </div>
                 </div>
                 <div className="flex flex-col justify-start items-stretch  gap-2">
-                  
+
                 </div>
 
               </div>
@@ -792,13 +786,15 @@ export default function StudentClassesDashboard() {
               isOpen={isOpen}
               operation={operation}
               title={
-                operation === 'create' ? 'Crear nueva asignación de alumno por clase' :
-                  operation === 'edit' ? 'Editar asignación de alumno por clase' : 'Ver asignación de alumno por clase'
+                operation === 'create' ? 'Crear Nueva Asignación de Alumno a Clase' :
+                  operation === 'edit' ? 'Actualizar Asignación de Alumno a Clase' : 'Detalles de la Asignación de Alumno a Clase'
               }
               description={
-                operation === 'create' ? 'Completa los campos para crear una nueva asignación.' :
-                  operation === 'edit' ? 'Actualizar los datos de la asignación.' : 'Detalles de la asignación'
+                operation === 'create' ? 'Completa los campos necesarios para registrar una nueva asignación y asegurar el control académico del alumno.' :
+                  operation === 'edit' ? 'Modifica la información de esta asignación para mantener los datos actualizados y precisos.' : 'Consulta toda la información relacionada con esta asignación.'
               }
+              deleteConfirmationTitle="¿Eliminar Asignación?"
+              deleteConfirmationDescription="Esta acción eliminará permanentemente la asignación del sistema. No podrá deshacerse."
               schema={studentClassSchema}
               defaultValues={{
                 _id: '',
@@ -867,93 +863,30 @@ export default function StudentClassesDashboard() {
                             disabled={operation === "view"}
                           />
                         </div>
-                        // <FormItem>
-                        //   <FormLabel>Clase</FormLabel>
-                        //   <Select
-                        //     onValueChange={field.onChange}
-                        //     value={field.value as string}
-                        //     disabled={operation === 'view'}
-                        //   >
-                        //     <FormControl>
-                        //       <SelectTrigger className="w-full truncate">
-                        //         <SelectValue placeholder="Seleccione una clase" />
-                        //       </SelectTrigger>
-                        //     </FormControl>
-                        //     <SelectContent>
-                        //       {classCatalogsWithDetails?.map((cc) => (
-                        //         <SelectItem key={cc._id} value={cc._id}>
-                        //           {cc.name} - {cc.teacher?.name} {cc.teacher?.lastName}
-                        //         </SelectItem>
-                        //       ))}
-                        //     </SelectContent>
-                        //   </Select>
-                        //   <FormMessage />
-                        // </FormItem>
                       )}
                     />
                   </div>
 
-
-                  <FormField
-                    control={form.control}
-                    name="enrollmentDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Fecha de asignación</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="date"
-                            disabled={operation === 'view'}
-                            min={new Date().toISOString().split("T")[0]}
-                            value={
-                              field.value
-                                ? (typeof field.value === 'number'
-                                  ? new Date(field.value).toISOString().split("T")[0]
-                                  : new Date(field.value as string).toISOString().split("T")[0])
-                                : ''
-                            }
-                            onChange={(e) => field.onChange(e.target.value)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                  <CrudFields
+                    fields={[
+                      {
+                        name: 'enrollmentDate',
+                        label: 'Fecha de asignación',
+                        type: 'date',
+                        required: true
+                      },
+                      {
+                        name: 'averageScore',
+                        label: 'Promedio',
+                        type: 'number',
+                        placeholder: 'Promedio final de la clase',
+                        step: '0.1'
+                      }
+                    ]}
+                    form={form}
+                    operation={operation}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="averageScore"
-                    render={({ field }) => {
-                      const inputValue = field.value === null || field.value === undefined
-                        ? ""
-                        : String(field.value);
-
-                      return (
-                        <FormItem>
-                          <FormLabel>Promedio</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type="number"
-                              step="0.1"
-                              placeholder="Promedio final de la clase"
-                              value={inputValue}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                const numValue = value === ""
-                                  ? undefined
-                                  : Number(value);
-                                field.onChange(numValue);
-                              }}
-                              disabled={operation === "view"}
-
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      );
-                    }}
-                  />
                   {(operation != 'create') && (
                     <FormField
                       control={form.control}
