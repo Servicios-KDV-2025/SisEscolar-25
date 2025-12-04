@@ -30,13 +30,6 @@ import {
   useCrudDialog,
 } from "@repo/ui/components/dialog/crud-dialog";
 import { groupSchema } from "@/types/form/groupSchema";
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@repo/ui/components/shadcn/form";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import {
   Card,
@@ -50,6 +43,7 @@ import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
+import CrudFields, { TypeFields } from '@repo/ui/components/dialog/crud-fields';
 
 export default function GroupPage() {
   const { user: clerkUser, isLoaded } = useUser();
@@ -143,9 +137,54 @@ export default function GroupPage() {
   const { canCreateGroup, canReadGroup } = usePermissions(
     currentSchool?.school._id
   );
+
   if (isLoading) {
     return <GeneralDashboardSkeleton nc={3} />
   }
+
+  const crudFields: TypeFields = [
+    {
+      name: 'grade',
+      label: 'Grado',
+      type: 'select',
+      options: [
+        { value: '1°', label: '1°' },
+        { value: '2°', label: '2°' },
+        { value: '3°', label: '3°' },
+        { value: '4°', label: '4°' },
+        { value: '5°', label: '5°' },
+        { value: '6°', label: '6°' },
+      ],
+      placeholder: 'Seleccionar grado',
+      required: true
+    },
+    {
+      name: 'name',
+      label: 'Nombre',
+      type: 'select',
+      options: [
+        { value: 'A', label: 'A' },
+        { value: 'B', label: 'B' },
+        { value: 'C', label: 'C' },
+        { value: 'D', label: 'D' },
+        { value: 'E', label: 'E' },
+      ],
+      placeholder: 'Seleccionar Nombre',
+      required: true
+    },
+    {
+      name: 'status',
+      label: 'Estado',
+      type: 'select',
+      options: [
+        { value: 'active', label: 'Activo' },
+        { value: 'inactive', label: 'Inactivo' }
+      ],
+      placeholder: 'Selecciona estatus',
+      required: false
+    },
+  ];
+
   return (
     <>
       {canReadGroup ? (
@@ -432,93 +471,11 @@ export default function GroupPage() {
             disableDefaultToasts={false}
           >
             {(form, operation) => (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="grade"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Grado</FormLabel>
-                      <FormControl>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value as string}
-                          disabled={operation === "view"}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccionar grado" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1°">1°</SelectItem>
-                            <SelectItem value="2°">2°</SelectItem>
-                            <SelectItem value="3°">3°</SelectItem>
-                            <SelectItem value="4°">4°</SelectItem>
-                            <SelectItem value="5°">5°</SelectItem>
-                            <SelectItem value="6°">6°</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => {
-                    return (
-                      <FormItem>
-                        <FormLabel>Nombre</FormLabel>
-                        <FormControl>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value as string}
-                            disabled={operation === "view"}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccionar Nombre" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="A">A</SelectItem>
-                              <SelectItem value="B">B</SelectItem>
-                              <SelectItem value="C">C</SelectItem>
-                              <SelectItem value="D">D</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    );
-                  }}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel>Estado</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value?.toString()}
-                        disabled={operation === "view"}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un estado" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="active">Grupo activo</SelectItem>
-                          <SelectItem value="inactive">
-                            Grupo inactivo
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+              <div>
+                <CrudFields
+                  fields={crudFields}
+                  operation={operation}
+                  form={form}
                 />
               </div>
             )}

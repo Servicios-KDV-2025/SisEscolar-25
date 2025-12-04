@@ -24,10 +24,10 @@ export const taskFormSchema = z.object({
     .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato de hora inválido"),
   
   maxScore: z
-    .string()
+    .number()
     .min(1, "La puntuación máxima es obligatoria")
     .refine((val) => {
-      const num = parseInt(val);
+      const num = val;
       return !isNaN(num) && num > 0 && num <= 100;
     }, "La puntuación debe ser un número entre 1 y 100"),
   

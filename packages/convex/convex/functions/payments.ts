@@ -252,6 +252,16 @@ export const getBillingWithConfig = internalQuery({
   },
 });
 
+export const getPaymentByPaymentIntentIdInternal = internalQuery({
+  args: { paymentIntentId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("payments")
+      .filter((q) => q.eq(q.field("stripePaymentIntentId"), args.paymentIntentId))
+      .first();
+  },
+});
+
 // Confirmar un pago después de que se complete
 export const confirmPayment = internalMutation({
   args: {
@@ -262,7 +272,7 @@ export const confirmPayment = internalMutation({
     createdBy: v.id("user"),
     stripeChargeId: v.optional(v.string()),
     stripeTransferId: v.optional(v.string()),
-    paymentMethod: v.optional(v.union(v.literal("cash"), v.literal("bank_transfer"), v.literal("card"), v.literal("other"))),
+    paymentMethod: v.optional(v.union(v.literal("cash"), v.literal("bank_transfer"), v.literal("card"), v.literal("oxxo"), v.literal("other"))),
   },
   handler: async (ctx, args) => {
     const now = Date.now();

@@ -14,7 +14,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@repo/ui/components/shadcn/dialog"
-import { useQuery, useMutation } from "convex/react"
+import { useQuery, useAction } from "convex/react"
 import { api } from "@repo/convex/convex/_generated/api"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
 import { useUser } from "@clerk/nextjs"
@@ -91,7 +91,7 @@ export default function BillingPage({
     const uniqueGrades = [...new Set(groupeByGrade?.map(g => g.grade) ?? [])].map(grade => ({ grade }));
     const uniqueGroup = [...new Set(groupeByGrade?.map(g => g.name) ?? [])].map(name => ({ name }));
 
-    const processBilling = useMutation(api.functions.billing.processPayment)
+    const processBilling = useAction(api.functions.actions.stripePayments.processPaymentAction)
 
     const { billingRules } = useBillingRule(currentSchool?.school._id)
 
@@ -300,6 +300,7 @@ export default function BillingPage({
                     : Math.min(amount / paymentsToProcess.length, paymentRecord.amount)
 
                 const result = await processBilling({
+                    schoolId: currentSchool.school._id as Id<"school">,
                     billingId: paymentRecord.id as Id<"billing">,
                     tutorId: estudiante.tutorId as Id<"user">,
                     studentId: paymentRecord.studentId as Id<"student">,
@@ -1030,6 +1031,7 @@ export default function BillingPage({
                                                 tutorId={currentUser._id}
                                                 studentName={firstBilling.studentName}
                                                 paymentType={firstBilling.paymentType}
+                                                customerEmail={currentUser.email}
                                                 onCancel={closeBillingFormModal}
                                             />
                                         )

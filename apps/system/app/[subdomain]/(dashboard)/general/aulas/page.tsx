@@ -5,7 +5,6 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Input } from "@repo/ui/components/shadcn/input";
-import { Label } from "@repo/ui/components/shadcn/label";
 import {
   Card,
   CardContent,
@@ -46,19 +45,16 @@ import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { useUser } from "@clerk/nextjs";
 import { useUserWithConvex } from "stores/userStore";
 import { useCurrentSchool } from "stores/userSchoolsStore";
-import {
-  classroomFormSchema,
-  ClassroomFormValues,
-} from "@/types/form/classroomSchema";
+import { classroomFormSchema } from "@/types/form/classroomSchema";
 import {
   CrudDialog,
   useCrudDialog,
 } from "@repo/ui/components/dialog/crud-dialog";
-import { UseFormReturn } from "react-hook-form";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
+import { ClassroomForm } from 'components/ClassroomForm';
 
 interface Classroom extends Record<string, unknown> {
   _id: Id<"classroom">;
@@ -69,74 +65,6 @@ interface Classroom extends Record<string, unknown> {
   status: "active" | "inactive";
   createdAt: number;
   updatedAt: number;
-}
-
-// Usar el tipo específico para el formulario
-interface ClassroomFormProps {
-  form: UseFormReturn<ClassroomFormValues>;
-  operation: "create" | "edit" | "view" | "delete";
-}
-
-function ClassroomForm({ form, operation }: ClassroomFormProps) {
-  const isView = operation === "view";
-
-  return (
-    <div className="grid gap-4 py-4">
-      <div className="grid gap-2">
-        <Label htmlFor="name">Nombre *</Label>
-        <Input
-          id="name"
-          placeholder="Ingresa el nombre del aula"
-          {...form.register("name")}
-          readOnly={isView}
-          required
-          maxLength={50}
-        />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="capacity">Capacidad *</Label>
-        <Input
-          id="capacity"
-          type="number"
-          min="1"
-          max="35"
-          placeholder="Ingresa la capacidad"
-          {...form.register("capacity", { valueAsNumber: true })}
-          readOnly={isView}
-          required
-        />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="location">Ubicación *</Label>
-        <Input
-          id="location"
-          placeholder="Ingresa la ubicación"
-          {...form.register("location")}
-          readOnly={isView}
-          required
-          maxLength={50}
-        />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="status">Estado</Label>
-        <Select
-          value={form.watch("status")}
-          onValueChange={(value: "active" | "inactive") =>
-            form.setValue("status", value)
-          }
-          disabled={isView}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecciona estatus" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="active">Activo</SelectItem>
-            <SelectItem value="inactive">Inactivo</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
-  );
 }
 
 export default function ClassroomManagement() {
@@ -476,7 +404,6 @@ export default function ClassroomManagement() {
 
           {/* Tabla de Aulas */}
           <Card>
-            
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                 <CardTitle>
@@ -644,7 +571,7 @@ export default function ClassroomManagement() {
                                 onClick={() => {
                                   openDelete({
                                     ...classroom,
-                                    _id: classroom.id, 
+                                    _id: classroom.id,
                                   });
                                 }}
                                 className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive"
@@ -702,8 +629,10 @@ export default function ClassroomManagement() {
           >
             {(form, operation) => (
               <ClassroomForm
-                form={form as unknown as UseFormReturn<ClassroomFormValues>}
+                form={form}
                 operation={operation}
+                classrooms={classrooms || []}
+                editingClassroomId={operation === "edit" ? (data?.id as string) : undefined}
               />
             )}
           </CrudDialog>
