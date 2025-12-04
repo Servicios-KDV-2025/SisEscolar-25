@@ -17,6 +17,7 @@ interface StripeCheckoutButtonProps {
   tutorId: Id<"user">
   studentName: string
   paymentType: string
+  customerEmail: string
   onCancel: () => void
 }
 
@@ -28,6 +29,7 @@ export function StripeCheckoutButton({
   tutorId,
   studentName,
   paymentType,
+  customerEmail,
   onCancel,
 }: StripeCheckoutButtonProps) {
   const [isProcessing, setIsProcessing] = useState(false)
@@ -46,8 +48,10 @@ export function StripeCheckoutButton({
         tutorId,
         studentName,
         paymentType,
-        successUrl: `${window.location.origin}${window.location.pathname}?payment=success&billingId=${billingId}`,
+      //  successUrl: `${window.location.origin}${window.location.pathname}?payment=success&billingId=${billingId}`,
+        successUrl: `${window.location.origin}/pagos/exitoso?billingId=${billingId}`,
         cancelUrl: `${window.location.origin}${window.location.pathname}?payment=cancelled`,
+        customerEmail
       })
 
       // Redirigir a Stripe Checkout

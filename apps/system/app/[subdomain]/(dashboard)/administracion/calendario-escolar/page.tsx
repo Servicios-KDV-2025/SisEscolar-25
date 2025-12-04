@@ -435,8 +435,6 @@ export default function CalendarioEscolar() {
       console.error(error);
     }
   };
-  // Tipos de eventos
-
 
   return (
     <>

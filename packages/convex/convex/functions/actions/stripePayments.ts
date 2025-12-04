@@ -1,16 +1,28 @@
 "use node";
 
 import { v } from "convex/values";
-import { action} from "../../_generated/server";
-import { internal } from "../../_generated/api";
+import { action } from "../../_generated/server";
+import { api, internal } from "../../_generated/api";
 import { Id } from "../../_generated/dataModel";
 import Stripe from "stripe";
+import { stripe } from "../../lib/stripe";
+import {
+  amountToCents,
+  buildMetadata,
+  calcFee,
+  createAndConfirmPaymentIntent,
+  createStripeCustomer,
+  validateSchool,
+} from "../../utils/stripeHelpers";
+import { sendPaymentSuccessEmail } from "../../http";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-10-29.clover",
-});
-
-// Crear una Checkout Session para pago con tarjeta
+/**
+ * Crea una sesión de Stripe Checkout para pagos únicos.
+ *
+ * Valida que la escuela tenga una cuenta conectada, configurada y que su onboarding esté completo.
+ *
+ * @returns Un objeto con el ID de la sesión y la URL para redirigir al cliente.
+ */
 export const createCheckoutSession = action({
   args: {
     billingId: v.id("billing"),
@@ -22,8 +34,221 @@ export const createCheckoutSession = action({
     paymentType: v.string(),
     successUrl: v.string(),
     cancelUrl: v.string(),
+    customerEmail: v.string(),
   },
   handler: async (ctx, args): Promise<{ sessionId: string; url: string | null }> => {
+    const school = await validateSchool(ctx, args.schoolId);
+
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: "payment",
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price_data: {
+              currency: "mxn",
+              product_data: {
+                name: args.paymentType,
+                description: `Pago de ${args.studentName}`,
+              },
+              unit_amount: amountToCents(args.amount),
+            },
+            quantity: 1,
+          },
+        ],
+        success_url: args.successUrl,
+        cancel_url: args.cancelUrl,
+        metadata: {
+          billingId: args.billingId,
+          studentId: args.studentId,
+          tutorId: args.tutorId,
+          schoolId: args.schoolId,
+        },
+        customer_email: args.customerEmail,
+        payment_intent_data: {
+          application_fee_amount: calcFee(args.amount),
+          metadata: {
+            billingId: args.billingId,
+            studentId: args.studentId,
+            tutorId: args.tutorId,
+            schoolId: args.schoolId,
+            studentName: args.studentName,
+            paymentType: args.paymentType,
+          },
+        },
+      },
+      {
+        stripeAccount: school.stripeAccountId,
+      }
+    );
+
+    return {
+      sessionId: session.id,
+      url: session.url,
+    };
+  },
+});
+
+/**
+ * Crea un PaymentIntent SPEI usando Stripe Connect, genera las instrucciones
+ * bancarias y devuelve el client_secret para el frontend.
+ *
+ * Flujo:
+ * 1. Validar que la escuela tenga Stripe Connect configurado.
+ * 2. Crear un Customer obligatorio para SPEI.
+ * 3. Crear PaymentIntent con `customer_balance`.
+ * 4. Se confirma el PaymentIntent para generar instrucciones de la transferencia SPEI.
+ *
+ * @returns Información esencial del PaymentIntent SPEI:
+ * - clientSecret
+ * - paymentIntentId
+ * - customerId
+ * - status
+ * - transferInstructions (instrucciones SPEI)
+ */
+export const createPaymentIntentWithSPEI = action({
+  args: {
+    billingId: v.id("billing"),
+    amount: v.number(),
+    schoolId: v.id("school"),
+    studentId: v.id("student"),
+    tutorId: v.id("user"),
+    description: v.optional(v.string()),
+    customerEmail: v.string(),
+    customerName: v.string(),
+  },
+
+  handler: async (ctx, args) => {
+    const school = await validateSchool(ctx, args.schoolId);
+    const customer = await createStripeCustomer(args, school.stripeAccountId);
+
+    const confirmed = await createAndConfirmPaymentIntent(
+      school.stripeAccountId,
+      {
+        amount: amountToCents(args.amount),
+        currency: "mxn",
+        customer: customer.id,
+        description: args.description ?? "Pago con SPEI",
+        payment_method_types: ["customer_balance"],
+        payment_method_options: {
+          customer_balance: {
+            funding_type: "bank_transfer",
+            bank_transfer: { type: "mx_bank_transfer" },
+          },
+        },
+        application_fee_amount: calcFee(args.amount),
+        metadata: buildMetadata(args),
+      },
+      {
+        payment_method_data: { type: "customer_balance" },
+      }
+    );
+
+    return {
+      clientSecret: confirmed.client_secret,
+      paymentIntentId: confirmed.id,
+      customerId: customer.id,
+      status: confirmed.status,
+      transferInstructions: confirmed.next_action?.display_bank_transfer_instructions ?? null,
+    };
+  },
+});
+
+/**
+ * Crea un PaymentIntent para pagos en OXXO usando Stripe Connect.
+ * Genera el número de referencia y voucher URL.
+ *
+ * Flujo:
+ * 1. Validar escuela.
+ * 2. Crear Customer.
+ * 3. Crear PaymentIntent con método OXXO.
+ * 4. Se confirma el PaymentIntent para obtener el número OXXO.
+ *
+ * @returns Datos útiles para mostrar al usuario:
+ * - clientSecret
+ * - paymentIntentId
+ * - customerId
+ * - status
+ * - oxxoNumber (número de referencia)
+ * - expiresAt (fecha de expiración)
+ * - hostedVoucherUrl (voucher imprimible)
+ */
+export const createPaymentIntentWithOXXO = action({
+  args: {
+    billingId: v.id("billing"),
+    amount: v.number(),
+    schoolId: v.id("school"),
+    studentId: v.id("student"),
+    tutorId: v.id("user"),
+    description: v.optional(v.string()),
+    customerEmail: v.string(),
+    customerName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const school = await validateSchool(ctx, args.schoolId);
+    const customer = await createStripeCustomer(args, school.stripeAccountId);
+
+    const confirmed = await createAndConfirmPaymentIntent(
+      school.stripeAccountId,
+      {
+        amount: amountToCents(args.amount),
+        currency: "mxn",
+        customer: customer.id,
+        description: args.description ?? "Pago por OXXO",
+        payment_method_types: ["oxxo"],
+        application_fee_amount: calcFee(args.amount),
+        metadata: buildMetadata(args),
+      },
+      {
+        payment_method_data: {
+          type: "oxxo",
+          billing_details: {
+            name: args.customerName,
+            email: args.customerEmail,
+          },
+        },
+      }
+    );
+
+    const oxxo = confirmed.next_action?.oxxo_display_details;
+
+    return {
+      clientSecret: confirmed.client_secret,
+      paymentIntentId: confirmed.id,
+      customerId: customer.id,
+      status: confirmed.status,
+      oxxoNumber: oxxo?.number,
+      expiresAt: oxxo?.expires_after,
+      hostedVoucherUrl: oxxo?.hosted_voucher_url,
+    };
+  },
+});
+
+// Registrar pago en efectivo usando Stripe Invoices (sin comisión)
+export const registerCashPaymentWithInvoice = action({
+  args: {
+    billingId: v.id("billing"),
+    amount: v.number(),
+    schoolId: v.id("school"),
+    studentId: v.id("student"),
+    createdBy: v.id("user"),
+    receiptNumber: v.optional(v.string()),
+    notes: v.optional(v.string()),
+  },
+  handler: async (
+    ctx,
+    args
+  ): Promise<{
+    success: boolean;
+    paymentId: Id<"payments">;
+    stripeInvoiceId: string;
+    receiptNumber: string;
+    invoiceUrl: string | null;
+    newStatus: "Pago pendiente" | "Pago cumplido" | "Pago vencido" | "Pago parcial" | "Pago retrasado";
+    message: string;
+  }> => {
+    console.log("💵 registerCashPaymentWithInvoice - Iniciando...");
+
     // Obtener la escuela y su cuenta conectada
     const school = await ctx.runQuery(internal.functions.schools.getSchoolForConnect, {
       schoolId: args.schoolId,
@@ -37,50 +262,207 @@ export const createCheckoutSession = action({
       throw new Error("La escuela debe completar la configuración de Stripe");
     }
 
-    // Crear Checkout Session
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
-      line_items: [
+    // Obtener información del estudiante y tutor
+    const studentData = await ctx.runQuery(internal.functions.payments.getStudentWithTutor, {
+      studentId: args.studentId,
+    });
+    if (!studentData) {
+      throw new Error("Estudiante no encontrado");
+    }
+    const { student, tutor } = studentData;
+
+    // Obtener información del billing y config
+    const billingData = await ctx.runQuery(internal.functions.payments.getBillingWithConfig, {
+      billingId: args.billingId,
+    });
+    if (!billingData) {
+      throw new Error("Billing no encontrado");
+    }
+    const { billing, billingConfig } = billingData;
+
+    const receiptNumber = args.receiptNumber || `REC-${Date.now()}-${args.studentId.substring(0, 6)}`;
+
+    console.log("📄 Creando Invoice en Stripe...");
+
+    // 1. Crear o buscar Customer en Stripe
+    let customer: Stripe.Customer;
+    try {
+      // Buscar si ya existe un customer con este email
+      const existingCustomers = await stripe.customers.list(
         {
-          price_data: {
-            currency: "mxn",
-            product_data: {
-              name: args.paymentType,
-              description: `Pago de ${args.studentName}`,
+          email: tutor?.email || undefined,
+          limit: 1,
+        },
+        {
+          stripeAccount: school.stripeAccountId,
+        }
+      );
+
+      const existingCustomer = existingCustomers.data[0];
+      if (existingCustomer) {
+        customer = existingCustomer;
+        console.log("✅ Customer existente encontrado:", customer.id);
+      } else {
+        // Crear nuevo customer
+        customer = await stripe.customers.create(
+          {
+            name: tutor ? `${tutor.name} ${tutor.lastName || ""}` : `Tutor de ${student.name}`,
+            email: tutor?.email || undefined,
+            phone: tutor?.phone || undefined,
+            metadata: {
+              studentId: args.studentId,
+              studentName: `${student.name} ${student.lastName || ""}`,
+              schoolId: args.schoolId,
+              tutorId: student.tutorId,
             },
-            unit_amount: Math.round(args.amount * 100), // Convierte  a centavos
           },
-          quantity: 1,
-        },
-      ],
-      // Transferir automáticamente el dinero a la cuenta de la escuela (solucion temporal)
-      payment_intent_data: {
-        transfer_data: {
-          destination: school.stripeAccountId,
-        },
+          {
+            stripeAccount: school.stripeAccountId,
+          }
+        );
+        console.log("✅ Nuevo Customer creado:", customer.id);
+      }
+    } catch (error) {
+      console.error("Error al crear/buscar customer:", error);
+      throw new Error("No se pudo crear el registro del cliente en Stripe");
+    }
+
+    // 2. Crear Invoice con los items
+    const invoice = await stripe.invoices.create(
+      {
+        customer: customer.id,
+        collection_method: "send_invoice", // No cobrar automáticamente
+        days_until_due: 0, // Ya está pagado
+        auto_advance: false, // Control manual
+        description: `${billingConfig?.type || "Pago"} - ${student.name} ${student.lastName || ""}`,
         metadata: {
           billingId: args.billingId,
           studentId: args.studentId,
-          tutorId: args.tutorId,
           schoolId: args.schoolId,
-          studentName: args.studentName,
-          paymentType: args.paymentType,
+          paymentMethod: "cash",
+          receiptNumber: receiptNumber,
+          processedBy: args.createdBy,
+          notes: args.notes || "",
         },
+        footer: `Recibo: ${receiptNumber}\nPago recibido en efectivo\n${args.notes || ""}`,
       },
-      success_url: args.successUrl,
-      cancel_url: args.cancelUrl,
-      metadata: {
-        billingId: args.billingId,
-        studentId: args.studentId,
-        tutorId: args.tutorId,
-        schoolId: args.schoolId,
-      },
+      {
+        stripeAccount: school.stripeAccountId,
+      }
+    );
+
+    console.log("✅ Invoice creado:", invoice.id);
+    console.log("   Status inicial:", invoice.status);
+
+    // 3. Agregar item(s) al invoice
+    try {
+      const invoiceItem = await stripe.invoiceItems.create(
+        {
+          customer: customer.id,
+          invoice: invoice.id,
+          amount: Math.round(args.amount * 100), // Convertir a centavos
+          currency: "mxn",
+          description: billingConfig?.type || "Pago de colegiatura",
+          metadata: {
+            billingConfigId: billing.billingConfigId,
+            billingType: billingConfig?.type || "Colegiatura",
+          },
+        },
+        {
+          stripeAccount: school.stripeAccountId,
+        }
+      );
+
+      console.log("✅ Item agregado al invoice:", invoiceItem.id);
+      console.log("   Monto del item:", invoiceItem.amount / 100, "MXN");
+    } catch (error) {
+      console.error("❌ Error agregando item al invoice:", error);
+      throw new Error(`Error agregando item: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+
+    // Verificar invoice antes de finalizar
+    const invoiceBeforeFinalize = await stripe.invoices.retrieve(invoice.id, {
+      stripeAccount: school.stripeAccountId,
+    });
+    console.log("📋 Invoice antes de finalizar:");
+    console.log("   Total:", invoiceBeforeFinalize.total / 100, "MXN");
+    console.log("   Status:", invoiceBeforeFinalize.status);
+
+    // 4. Finalizar el invoice
+    let finalizedInvoice;
+    try {
+      finalizedInvoice = await stripe.invoices.finalizeInvoice(
+        invoice.id,
+        {
+          auto_advance: false,
+        },
+        {
+          stripeAccount: school.stripeAccountId,
+        }
+      );
+
+      console.log("✅ Invoice finalizado");
+      console.log("   Status después de finalizar:", finalizedInvoice.status);
+      console.log("   Total final:", finalizedInvoice.total / 100, "MXN");
+    } catch (error) {
+      console.error("❌ Error finalizando invoice:", error);
+      throw new Error(`Error finalizando invoice: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+
+    // 5. Marcar como pagado (CLAVE: paid_out_of_band = SIN COMISIÓN)
+    let paidInvoice;
+    try {
+      paidInvoice = await stripe.invoices.pay(
+        invoice.id,
+        {
+          paid_out_of_band: true, // ⭐ Esto evita la comisión
+        },
+        {
+          stripeAccount: school.stripeAccountId,
+        }
+      );
+
+      console.log("✅ Invoice marcado como pagado (sin comisión)");
+      console.log("   Status final:", paidInvoice.status);
+      console.log("   Invoice URL:", paidInvoice.hosted_invoice_url);
+    } catch (error) {
+      console.error("❌ Error marcando invoice como pagado:", error);
+      console.error("   Invoice ID:", invoice.id);
+      console.error("   Status actual:", finalizedInvoice.status);
+      throw new Error(`Error marcando como pagado: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+
+    // 6. Registrar en la base de datos
+    const result = await ctx.runMutation(internal.functions.payments.confirmPayment, {
+      paymentIntentId: paidInvoice.id, // Usar el invoice ID
+      billingId: args.billingId,
+      studentId: args.studentId,
+      amount: args.amount,
+      createdBy: args.createdBy,
+      paymentMethod: "cash",
+      // Note: Invoices paid_out_of_band no generan charge en Stripe
     });
 
+    console.log("✅ Pago registrado en base de datos:", result.paymentId);
+
+    // Verificar estado final del invoice en Stripe
+    const finalInvoiceCheck = await stripe.invoices.retrieve(paidInvoice.id, {
+      stripeAccount: school.stripeAccountId,
+    });
+    console.log("🔍 Estado FINAL del invoice en Stripe:");
+    console.log("   ID:", finalInvoiceCheck.id);
+    console.log("   Status:", finalInvoiceCheck.status);
+    console.log("   Amount paid:", finalInvoiceCheck.amount_paid / 100, "MXN");
+    console.log("   URL:", finalInvoiceCheck.hosted_invoice_url);
+
     return {
-      sessionId: session.id,
-      url: session.url,
+      success: true,
+      paymentId: result.paymentId,
+      stripeInvoiceId: paidInvoice.id,
+      receiptNumber: receiptNumber,
+      invoiceUrl: paidInvoice.hosted_invoice_url || null,
+      newStatus: result.newStatus,
+      message: "Pago en efectivo registrado exitosamente en Stripe (sin comisión)",
     };
   },
 });
@@ -134,10 +516,12 @@ export const createPaymentIntent = action({
     studentId: v.id("student"),
     tutorId: v.id("user"),
     description: v.string(),
-    metadata: v.optional(v.object({
-      paymentType: v.string(),
-      studentName: v.string(),
-    })),
+    metadata: v.optional(
+      v.object({
+        paymentType: v.string(),
+        studentName: v.string(),
+      })
+    ),
   },
   handler: async (ctx, args) => {
     // Obtener la escuela y su cuenta conectada
@@ -178,393 +562,121 @@ export const createPaymentIntent = action({
   },
 });
 
-export const createPaymentIntentWithSPEI = action({
+/**
+ * Orquesta el procesamiento de un pago en efectivo y la notificación por correo. Ejecuta
+ * la mutación transaccional y, tras confirmar el resultado, envía el correo al tutor.
+ */
+export const processPaymentAction = action({
   args: {
-    billingId: v.id("billing"),
-    amount: v.number(),
     schoolId: v.id("school"),
-    studentId: v.id("student"),
+    billingId: v.id("billing"),
     tutorId: v.id("user"),
-    description: v.optional(v.string()),
-    customerEmail: v.string(),
-    customerName: v.string(),
-  },
-  handler : async (ctx, args) => {
-    const school = await ctx.runQuery(internal.functions.schools.getSchoolForConnect, {
-      schoolId: args.schoolId,
-    });
-
-    if (!school.stripeAccountId) {
-      throw new Error("La escuela no tiene una cuenta de Stripe configurada");
-    }
-
-    if (!school.stripeOnboardingComplete) {
-      throw new Error("La escuela debe completar la configuración de Stripe");
-    }
-
-    // Crear o recuperar un Customer en Stripe
-    // Esto es requerido para customer_balance (SPEI)
-    const customer = await stripe.customers.create({
-      email: args.customerEmail,
-      name: args.customerName,
-      metadata: {
-        studentId: args.studentId,
-        tutorId: args.tutorId,
-        schoolId: args.schoolId,
-      },
-    });
-
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(args.amount * 100),
-      currency: "mxn",
-      customer: customer.id,
-      description: args.description || `Pago de colegiatura`,
-      payment_method_types: ["customer_balance"],  // SPEI
-      payment_method_options: {
-        customer_balance: {
-          funding_type: "bank_transfer",
-          bank_transfer: {
-            type: "mx_bank_transfer",  // Transferencia bancaria mexicana
-          },
-        },
-      },
-      transfer_data: {
-        destination: school.stripeAccountId,
-      },
-      metadata: {
-        billingId: args.billingId,
-        studentId: args.studentId,
-        tutorId: args.tutorId,
-        schoolId: args.schoolId,
-        customerEmail: args.customerEmail,
-        customerName: args.customerName,
-      },
-    });
-
-    // Para SPEI, necesitamos confirmar el Payment Intent para generar las instrucciones
-    const confirmedPaymentIntent = await stripe.paymentIntents.confirm(paymentIntent.id, {
-      payment_method_data: {
-        type: "customer_balance",
-      },
-    });
-
-
-    return {
-      clientSecret: confirmedPaymentIntent.client_secret,
-      paymentIntentId: confirmedPaymentIntent.id,
-      customerId: customer.id,
-      status: confirmedPaymentIntent.status,
-      transferInstructions: confirmedPaymentIntent.next_action?.display_bank_transfer_instructions || null,
-    };
-  }
-});
-
-export const createPaymentIntentWithOXXO = action({
-  args: {
-    billingId: v.id("billing"),
-    amount: v.number(),
-    schoolId: v.id("school"),
     studentId: v.id("student"),
-    tutorId: v.id("user"),
-    description: v.optional(v.string()),
-    customerEmail: v.string(),
-    customerName: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const school = await ctx.runQuery(internal.functions.schools.getSchoolForConnect, {
-      schoolId: args.schoolId,
-    });
-
-    if (!school.stripeAccountId) {
-      throw new Error("La escuela no tiene una cuenta de Stripe configurada");
-    }
-
-    if (!school.stripeOnboardingComplete) {
-      throw new Error("La escuela debe completar la configuración de Stripe");
-    }
-
-    // Crear o recuperar un Customer en Stripe
-    const customer = await stripe.customers.create({
-      email: args.customerEmail,
-      name: args.customerName,
-      metadata: {
-        studentId: args.studentId,
-        tutorId: args.tutorId,
-        schoolId: args.schoolId,
-      },
-    });
-
-    // Crear Payment Intent con OXXO
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(args.amount * 100), // Convertir a centavos
-      currency: "mxn",
-      customer: customer.id,
-      description: args.description || `Pago por OXXO`,
-      payment_method_types: ["oxxo"],
-      transfer_data: {
-        destination: school.stripeAccountId,
-      },
-      metadata: {
-        billingId: args.billingId,
-        studentId: args.studentId,
-        tutorId: args.tutorId,
-        schoolId: args.schoolId,
-        customerEmail: args.customerEmail,
-        customerName: args.customerName,
-      },
-    });
-
-    // Confirmar el Payment Intent para generar el número OXXO
-    const confirmedPaymentIntent = await stripe.paymentIntents.confirm(paymentIntent.id, {
-      payment_method_data: {
-        type: "oxxo",
-        billing_details: {
-          name: args.customerName,
-          email: args.customerEmail,
-        },
-      },
-    });
-
-    // Extraer los detalles de OXXO
-    const oxxoDetails = confirmedPaymentIntent.next_action?.oxxo_display_details;
-
-    return {
-      clientSecret: confirmedPaymentIntent.client_secret,
-      paymentIntentId: confirmedPaymentIntent.id,
-      customerId: customer.id,
-      status: confirmedPaymentIntent.status,
-      oxxoNumber: oxxoDetails?.number,
-      expiresAt: oxxoDetails?.expires_after,
-      hostedVoucherUrl: oxxoDetails?.hosted_voucher_url,
-    };
-  }
-});
-
-// Registrar pago en efectivo usando Stripe Invoices (sin comisión)
-export const registerCashPaymentWithInvoice = action({
-  args: {
-    billingId: v.id("billing"),
+    method: v.union(v.literal("cash"), v.literal("bank_transfer"), v.literal("card"), v.literal("other")),
     amount: v.number(),
-    schoolId: v.id("school"),
-    studentId: v.id("student"),
     createdBy: v.id("user"),
-    receiptNumber: v.optional(v.string()),
-    notes: v.optional(v.string()),
   },
-  handler: async (ctx, args): Promise<{
+
+  handler: async (
+    ctx,
+    args
+  ): Promise<{
     success: boolean;
     paymentId: Id<"payments">;
-    stripeInvoiceId: string;
-    receiptNumber: string;
-    invoiceUrl: string | null;
-    newStatus: "Pago pendiente" | "Pago cumplido" | "Pago vencido" | "Pago parcial" | "Pago retrasado";
-    message: string;
+    billing: {
+      id: Id<"billing">;
+      previousStatus: string;
+      newStatus: string;
+      previousTotalAmount: number;
+      newTotalAmount: number;
+      amount: number;
+      remaining: number;
+      overpayment: number;
+    };
+    student: {
+      id: Id<"student">;
+      previousCredit: number;
+      newCredit: number;
+      paymentAmount: number;
+      creditAdded: number;
+    };
   }> => {
-    console.log("💵 registerCashPaymentWithInvoice - Iniciando...");
+    const result = await ctx.runMutation(internal.functions.billing.processPayment, args);
 
-    // Obtener la escuela y su cuenta conectada
-    const school = await ctx.runQuery(internal.functions.schools.getSchoolForConnect, {
-      schoolId: args.schoolId,
-    });
-
-    if (!school.stripeAccountId) {
-      throw new Error("La escuela no tiene una cuenta de Stripe configurada");
-    }
-
-    if (!school.stripeOnboardingComplete) {
-      throw new Error("La escuela debe completar la configuración de Stripe");
-    }
-
-    // Obtener información del estudiante y tutor
-    const studentData = await ctx.runQuery(internal.functions.payments.getStudentWithTutor, {
-      studentId: args.studentId,
-    });
-    if (!studentData) {
-      throw new Error("Estudiante no encontrado");
-    }
-    const { student, tutor } = studentData;
-
-    // Obtener información del billing y config
-    const billingData = await ctx.runQuery(internal.functions.payments.getBillingWithConfig, {
-      billingId: args.billingId,
-    });
-    if (!billingData) {
-      throw new Error("Billing no encontrado");
-    }
-    const { billing, billingConfig } = billingData;
-
-    const receiptNumber = args.receiptNumber || `REC-${Date.now()}-${args.studentId.substring(0, 6)}`;
-
-    console.log("📄 Creando Invoice en Stripe...");
-
-    // 1. Crear o buscar Customer en Stripe
-    let customer: Stripe.Customer;
     try {
-      // Buscar si ya existe un customer con este email
-      const existingCustomers = await stripe.customers.list({
-        email: tutor?.email || undefined,
-        limit: 1,
-      }, {
-        stripeAccount: school.stripeAccountId,
-      });
-
-      const existingCustomer = existingCustomers.data[0];
-      if (existingCustomer) {
-        customer = existingCustomer;
-        console.log("✅ Customer existente encontrado:", customer.id);
-      } else {
-        // Crear nuevo customer
-        customer = await stripe.customers.create({
-          name: tutor ? `${tutor.name} ${tutor.lastName || ""}` : `Tutor de ${student.name}`,
-          email: tutor?.email || undefined,
-          phone: tutor?.phone || undefined,
-          metadata: {
-            studentId: args.studentId,
-            studentName: `${student.name} ${student.lastName || ""}`,
-            schoolId: args.schoolId,
-            tutorId: student.tutorId,
-          },
-        }, {
-          stripeAccount: school.stripeAccountId,
-        });
-        console.log("✅ Nuevo Customer creado:", customer.id);
-      }
-    } catch (error) {
-      console.error("Error al crear/buscar customer:", error);
-      throw new Error("No se pudo crear el registro del cliente en Stripe");
+      await sendPaymentSuccessEmail(ctx, result.metadata, result.payment, args.amount, args.method);
+    } catch (emailError) {
+      console.error("Error enviando correo con recibo:", emailError);
     }
-
-    // 2. Crear Invoice con los items
-    const invoice = await stripe.invoices.create({
-      customer: customer.id,
-      collection_method: "send_invoice", // No cobrar automáticamente
-      days_until_due: 0, // Ya está pagado
-      auto_advance: false, // Control manual
-      description: `${billingConfig?.type || "Pago"} - ${student.name} ${student.lastName || ""}`,
-      metadata: {
-        billingId: args.billingId,
-        studentId: args.studentId,
-        schoolId: args.schoolId,
-        paymentMethod: "cash",
-        receiptNumber: receiptNumber,
-        processedBy: args.createdBy,
-        notes: args.notes || "",
-      },
-      footer: `Recibo: ${receiptNumber}\nPago recibido en efectivo\n${args.notes || ""}`,
-    }, {
-      stripeAccount: school.stripeAccountId,
-    });
-
-    console.log("✅ Invoice creado:", invoice.id);
-    console.log("   Status inicial:", invoice.status);
-
-    // 3. Agregar item(s) al invoice
-    try {
-      const invoiceItem = await stripe.invoiceItems.create({
-        customer: customer.id,
-        invoice: invoice.id,
-        amount: Math.round(args.amount * 100), // Convertir a centavos
-        currency: "mxn",
-        description: billingConfig?.type || "Pago de colegiatura",
-        metadata: {
-          billingConfigId: billing.billingConfigId,
-          billingType: billingConfig?.type || "Colegiatura",
-        },
-      }, {
-        stripeAccount: school.stripeAccountId,
-      });
-
-      console.log("✅ Item agregado al invoice:", invoiceItem.id);
-      console.log("   Monto del item:", invoiceItem.amount / 100, "MXN");
-    } catch (error) {
-      console.error("❌ Error agregando item al invoice:", error);
-      throw new Error(`Error agregando item: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-
-    // Verificar invoice antes de finalizar
-    const invoiceBeforeFinalize = await stripe.invoices.retrieve(invoice.id, {
-      stripeAccount: school.stripeAccountId,
-    });
-    console.log("📋 Invoice antes de finalizar:");
-    console.log("   Total:", invoiceBeforeFinalize.total / 100, "MXN");
-    console.log("   Status:", invoiceBeforeFinalize.status);
-
-    // 4. Finalizar el invoice
-    let finalizedInvoice;
-    try {
-      finalizedInvoice = await stripe.invoices.finalizeInvoice(
-        invoice.id,
-        {
-          auto_advance: false,
-        },
-        {
-          stripeAccount: school.stripeAccountId,
-        }
-      );
-
-      console.log("✅ Invoice finalizado");
-      console.log("   Status después de finalizar:", finalizedInvoice.status);
-      console.log("   Total final:", finalizedInvoice.total / 100, "MXN");
-    } catch (error) {
-      console.error("❌ Error finalizando invoice:", error);
-      throw new Error(`Error finalizando invoice: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-
-    // 5. Marcar como pagado (CLAVE: paid_out_of_band = SIN COMISIÓN)
-    let paidInvoice;
-    try {
-      paidInvoice = await stripe.invoices.pay(
-        invoice.id,
-        {
-          paid_out_of_band: true, // ⭐ Esto evita la comisión
-        },
-        {
-          stripeAccount: school.stripeAccountId,
-        }
-      );
-
-      console.log("✅ Invoice marcado como pagado (sin comisión)");
-      console.log("   Status final:", paidInvoice.status);
-      console.log("   Invoice URL:", paidInvoice.hosted_invoice_url);
-    } catch (error) {
-      console.error("❌ Error marcando invoice como pagado:", error);
-      console.error("   Invoice ID:", invoice.id);
-      console.error("   Status actual:", finalizedInvoice.status);
-      throw new Error(`Error marcando como pagado: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-
-    // 6. Registrar en la base de datos
-    const result = await ctx.runMutation(internal.functions.payments.confirmPayment, {
-      paymentIntentId: paidInvoice.id, // Usar el invoice ID
-      billingId: args.billingId,
-      studentId: args.studentId,
-      amount: args.amount,
-      createdBy: args.createdBy,
-      paymentMethod: "cash",
-      // Note: Invoices paid_out_of_band no generan charge en Stripe
-    });
-
-    console.log("✅ Pago registrado en base de datos:", result.paymentId);
-
-    // Verificar estado final del invoice en Stripe
-    const finalInvoiceCheck = await stripe.invoices.retrieve(paidInvoice.id, {
-      stripeAccount: school.stripeAccountId,
-    });
-    console.log("🔍 Estado FINAL del invoice en Stripe:");
-    console.log("   ID:", finalInvoiceCheck.id);
-    console.log("   Status:", finalInvoiceCheck.status);
-    console.log("   Amount paid:", finalInvoiceCheck.amount_paid / 100, "MXN");
-    console.log("   URL:", finalInvoiceCheck.hosted_invoice_url);
 
     return {
-      success: true,
-      paymentId: result.paymentId,
-      stripeInvoiceId: paidInvoice.id,
-      receiptNumber: receiptNumber,
-      invoiceUrl: paidInvoice.hosted_invoice_url || null,
-      newStatus: result.newStatus,
-      message: "Pago en efectivo registrado exitosamente en Stripe (sin comisión)",
+      success: result.success,
+      paymentId: result.payment._id,
+      billing: result.billing,
+      student: result.student,
     };
   },
 });
 
+/**
+ * Obtiene la URL del recibo de Stripe para un cargo específico.
+ * Esta función realiza una petición HTTP a la API de Stripe para obtener
+ * la URL del recibo de un cargo específico en una cuenta conectada.
+ *
+ * @param chargeId - ID del cargo de Stripe (debe comenzar con 'ch_')
+ * @param stripeAccountId - ID de la cuenta conectada de Stripe
+ * @returns La URL del recibo si está disponible
+ */
+export const getStripeReceiptUrl = action({
+  args: {
+    chargeId: v.string(),
+    stripeAccountId: v.string(),
+  },
+  handler: async (ctx, args): Promise<{ invoiceUrl?: string; error?: string }> => {
+    if (!args.chargeId || !args.chargeId.startsWith("ch_")) {
+      return { error: "ID de cargo inválido. Debe comenzar con 'ch_'" };
+    }
+
+    if (!args.stripeAccountId) {
+      return { error: "ID de cuenta de Stripe requerido" };
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const chargeResp = await fetch(`https://api.stripe.com/v1/charges/${args.chargeId}`, {
+        headers: {
+          Authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}`,
+          "Stripe-Account": args.stripeAccountId,
+          "Content-Type": "application/json",
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!chargeResp.ok) {
+        const errorData = await chargeResp.json().catch(() => ({}));
+        console.log("Charge no encontrado o error en Stripe:", errorData.message || chargeResp.status);
+        return { error: errorData.message || "Error al obtener el recibo de Stripe" };
+      }
+
+      const charge = await chargeResp.json();
+
+      if (!charge || !charge.receipt_url) {
+        console.log("Charge encontrado pero sin receipt_url");
+        return { error: "El recibo no está disponible aún" };
+      }
+
+      return {
+        invoiceUrl: charge.receipt_url,
+      };
+    } catch (error) {
+      console.error("Error obteniendo charge:", error);
+      return {
+        error: error instanceof Error ? error.message : "Error desconocido al obtener el recibo",
+      };
+    }
+  },
+});

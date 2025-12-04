@@ -23,6 +23,7 @@ interface BillingAccordionProps {
     getEstadoConfig: (estado: string) => EstadoConfig
     getEstadoBillingConfig: (estado: string) => EstadoBillingConfig
     getBillingStatusConfig: (estado: string) => BillingStatusConfig | undefined
+    currentRole?: string | null
 }
 
 export function BillingAccordion({
@@ -35,6 +36,7 @@ export function BillingAccordion({
     getEstadoConfig,
     getEstadoBillingConfig,
     getBillingStatusConfig,
+    currentRole,
 }: BillingAccordionProps) {
     const estudianteCalculations = useMemo(() =>
         filteredEstudiantes.map((estudiante) => {
@@ -186,7 +188,9 @@ export function BillingAccordion({
                                 <div className="border-t border-gray-100 pt-5">
                                     <div className="mb-5">
                                         <h3 className="text-base font-semibold text-gray-900 mb-1">Detalle de Cobros</h3>
-                                        <p className="text-sm text-gray-500">Selecciona los pagos que deseas procesar</p>
+                                        <p className="text-sm text-gray-500">
+                                            {currentRole === "auditor" ? "Vista de solo lectura" : "Selecciona los pagos que deseas procesar"}
+                                        </p>
                                     </div>
                                     <div className="space-y-3">
                                         {studentBillings.map((pago) => {
@@ -215,7 +219,7 @@ export function BillingAccordion({
                                                                 <Checkbox
                                                                     checked={isBillingSelected}
                                                                     onCheckedChange={(checked) => handleBillingSelection(pago.id, checked as boolean)}
-                                                                    disabled={isPaid}
+                                                                    disabled={isPaid || currentRole === "auditor"}
                                                                     className="mt-1.5 border-gray-800 cursor-pointer"
                                                                 />
                                                             ) : <SquareCheck className="mt-1.5 text-green-400 h-5 w-5" />}

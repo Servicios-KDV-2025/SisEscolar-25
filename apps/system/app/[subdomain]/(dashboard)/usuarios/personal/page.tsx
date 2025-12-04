@@ -88,7 +88,7 @@ import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
-
+import CrudFields, { TypeFields } from '@repo/ui/components/dialog/crud-fields';
 
 // Tipo para los usuarios que vienen de Convex
 type UserFromConvex = {
@@ -122,8 +122,6 @@ type SearchUserResult = {
   createdAt: number;
   updatedAt: number;
 };
-
-
 
 // Función para obtener el esquema correcto según la operación
 const getSchemaForOperation = (operation: string) => {
@@ -842,6 +840,63 @@ export default function PersonalPage() {
     );
   };
 
+  const personalFields: TypeFields = [
+    {
+      name: 'name',
+      label: 'Nombre',
+      type: 'text',
+      required: true,
+      placeholder: 'Nombre del personal'
+    },
+    {
+      name: 'lastName',
+      label: 'Apellidos',
+      type: 'text',
+      required: false,
+      placeholder: 'Apellidos'
+    },
+    {
+      name: 'email',
+      label: 'Correo',
+      type: 'email',
+      required: true,
+      placeholder: 'correo@escuela.edu.mx',
+      disabled: (op) => op === 'view' || op === 'edit'
+    },
+    {
+      name: 'phone',
+      label: 'Teléfono',
+      type: 'tel',
+      required: false,
+      placeholder: '+52 555 1234567'
+    },
+    {
+      name: 'address',
+      label: 'Dirección',
+      type: 'text',
+      required: false,
+      placeholder: 'Dirección completa',
+      className: 'md:col-span-2'
+    },
+    {
+      name: 'password',
+      label: 'Contraseña',
+      type: 'password',
+      required: operation === 'create',
+      placeholder: 'Contraseña',
+      // showCondition: (operation) => operation === 'create'
+    },
+    {
+      name: 'status',
+      label: 'Estado',
+      type: 'select',
+      required: true,
+      options: [
+        { value: 'active', label: 'Activo' },
+        { value: 'inactive', label: 'Inactivo' }
+      ]
+    }
+  ];
 
   return (
     <div className="space-y-8 p-6">
@@ -1022,10 +1077,12 @@ export default function PersonalPage() {
                     </Badge>
                   ))}
                 </div>
-                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">{filteredUsers.length} usuarios</Badge>
+                {canCreateUsersPersonal && (
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">{filteredUsers.length} usuarios</Badge>
+                )}
               </div>
             </CardTitle>
-            {canCreateUsersPersonal && (
+            {canCreateUsersPersonal ? (
               <Button
                 size="lg"
                 className="gap-2"
@@ -1035,7 +1092,11 @@ export default function PersonalPage() {
                 <Plus className="w-4 h-4" />
                 Agregar Personal
               </Button>
-            )}
+            ) : canReadUsersPersonal && !canCreateUsersPersonal ? (
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit px-4 flex items-center">
+                {filteredUsers.length} usuarios
+              </Badge>
+            ) : null}
           </div>
         </CardHeader>
 
@@ -1326,20 +1387,20 @@ export default function PersonalPage() {
         operation={operation}
         title={
           operation === "create"
-            ? "Agregar Personal"
+            ? "Registrar Nuevo Personal"
             : operation === "edit"
-              ? "Editar Personal"
+              ? "Actualizar Información del Personal"
               : operation === "view"
-                ? "Ver Personal"
-                : "Desactivar Personal"
+                ? "Perfil del Personal"
+                : ""
         }
         description={
           operation === "create"
-            ? "Completa la información para agregar nuevo personal al sistema"
+            ? "Proporciona los datos necesarios para integrar a un nuevo miembro al personal de la institución."
             : operation === "edit"
-              ? "Modifica la información del personal"
+              ? "Realiza ajustes en los datos del personal para mantener la información clara y actualizada."
               : operation === "view"
-                ? "Información detallada del personal"
+                ? "Accede a la información completa del personal."
                 : undefined
         }
         schema={getSchemaForOperation(operation)}
@@ -1359,328 +1420,185 @@ export default function PersonalPage() {
         onSubmit={operation === "create" ? handleCreate : handleUpdate}
         onDelete={() => handleDelete(data || {})}
         deleteConfirmationTitle="¿Desactivar personal?"
-        deleteConfirmationDescription="Esta acción desactivará al personal de esta escuela. El usuario mantendrá su información en el sistema y podrá ser reactivado posteriormente."
+        deleteConfirmationDescription="Al desactivar a esta persona, dejará de aparecer como personal activo de la escuela. Su información se conservará y podrá reactivarse más adelante si es necesario."
         isLoading={isLoading}
         isSubmitting={userActions.isCreating || userActions.isUpdating}
         isDeleting={userActions.isDeleting}
         toastMessages={toastMessages}
         disableDefaultToasts={false}
       >
-        {(form, currentOperation) => (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nombre</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      value={(field.value as string) || ""}
-                      placeholder="Nombre del personal"
-                      disabled={currentOperation === "view"}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        {(form, currentOperation) => {
+          const currentRole = form.watch("role");
+          const hasAdminRole = Array.isArray(currentRole)
+            ? currentRole.includes("admin")
+            : currentRole === "admin";
 
-            <FormField
-              control={form.control}
-              name="lastName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Apellidos</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      value={(field.value as string) || ""}
-                      placeholder="Apellidos"
-                      disabled={currentOperation === "view"}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          return (
+            <div className="flex flex-col gap-4">
+              {/* Usamos CrudFields para los campos simples */}
+              <CrudFields
+                fields={personalFields}
+                operation={currentOperation}
+                form={form}
+              />
 
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Correo</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      value={(field.value as string) || ""}
-                      type="email"
-                      placeholder="correo@escuela.edu.mx"
-                      disabled={
-                        currentOperation === "view" ||
-                        currentOperation === "edit"
-                      }
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              {/* Campos complejos que NO pueden ir en CrudFields */}
+              {(currentOperation === "create" || currentOperation === "edit") && (
+                <FormField
+                  control={form.control}
+                  name="isTutor"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2 flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
+                      <FormControl>
+                        <Checkbox
+                          checked={!!field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>¿Es también Tutor?</FormLabel>
+                        <p className="text-sm text-muted-foreground">
+                          Marque esta casilla si el usuario también debe tener
+                          permisos de tutor.
+                        </p>
+                      </div>
+                    </FormItem>
+                  )}
+                />
               )}
-            />
 
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Teléfono</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      value={(field.value as string) || ""}
-                      placeholder="+52 555 1234567"
-                      disabled={currentOperation === "view"}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem className="md:col-span-2">
-                  <FormLabel>Dirección</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      value={(field.value as string) || ""}
-                      placeholder="Dirección completa"
-                      disabled={currentOperation === "view"}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {currentOperation === "create" && (
+              {/* Campo de roles (complejo - mantiene su lógica original) */}
               <FormField
                 control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Contraseña</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        value={(field.value as string) || ""}
-                        type="password"
-                        placeholder="Contraseña"
-                        disabled={false}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem className="items-start">
-                  <div>
-                    <FormLabel>Estado</FormLabel>
-                    <FormControl>
-                      <Select
-                        value={field.value as string}
-                        onValueChange={field.onChange}
-                        disabled={currentOperation === "view"}
-                      >
-                        <SelectTrigger className="w-full mt-2">
-                          <SelectValue placeholder="Seleccionar estado" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="active">Activo</SelectItem>
-                          <SelectItem value="inactive">Inactivo</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </div>
-
-                </FormItem>
-              )}
-            />
-
-            {(operation === "create" || operation === "edit") && (
-              <FormField
-                control={form.control}
-                name="isTutor"
-                render={({ field }) => (
-                  <FormItem className="md:col-span-2 flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
-                    <FormControl>
-                      <Checkbox
-                        checked={!!field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>¿Es también Tutor?</FormLabel>
-                      <p className="text-sm text-muted-foreground">
-                        Marque esta casilla si el usuario también debe tener
-                        permisos de tutor.
-                      </p>
-                    </div>
-                  </FormItem>
-                )}
-              />
-            )}
-
-            <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => {
-                // Obtener roles seleccionados (puede ser string o array)
-                let selectedRoles: string[];
-                if (currentOperation === "view" && data?.schoolRole) {
-                  selectedRoles = Array.isArray(data.schoolRole) ? data.schoolRole : [data.schoolRole];
-                } else if (Array.isArray(field.value)) {
-                  selectedRoles = field.value as string[];
-                } else {
-                  selectedRoles = field.value ? [field.value as string] : [];
-                }
-
-                const handleAddRole = (roleToAdd: string) => {
-                  if (!selectedRoles.includes(roleToAdd)) {
-                    const newRoles = [...selectedRoles, roleToAdd];
-                    field.onChange(newRoles.length === 1 ? newRoles[0] : newRoles);
-                  }
-                };
-
-                const handleRemoveRole = (roleToRemove: string) => {
-                  const newRoles = selectedRoles.filter(r => r !== roleToRemove);
-                  if (newRoles.length === 0) {
-                    field.onChange(undefined);
+                name="role"
+                render={({ field }) => {
+                  // Obtener roles seleccionados (puede ser string o array)
+                  let selectedRoles: string[];
+                  if (currentOperation === "view" && data?.schoolRole) {
+                    selectedRoles = Array.isArray(data.schoolRole) ? data.schoolRole : [data.schoolRole];
+                  } else if (Array.isArray(field.value)) {
+                    selectedRoles = field.value as string[];
                   } else {
-                    field.onChange(newRoles.length === 1 ? newRoles[0] : newRoles);
+                    selectedRoles = field.value ? [field.value as string] : [];
                   }
 
-                  // Limpiar departamento si se elimina el rol admin
-                  if (roleToRemove === "admin" && !newRoles.includes("admin")) {
-                    form.setValue("department", undefined);
-                  }
-                };
+                  const handleAddRole = (roleToAdd: string) => {
+                    if (!selectedRoles.includes(roleToAdd)) {
+                      const newRoles = [...selectedRoles, roleToAdd];
+                      field.onChange(newRoles.length === 1 ? newRoles[0] : newRoles);
+                    }
+                  };
 
-                const availableRoles = ["superadmin", "admin", "auditor", "teacher"].filter(
-                  role => !selectedRoles.includes(role)
-                );
+                  const handleRemoveRole = (roleToRemove: string) => {
+                    const newRoles = selectedRoles.filter(r => r !== roleToRemove);
+                    if (newRoles.length === 0) {
+                      field.onChange(undefined);
+                    } else {
+                      field.onChange(newRoles.length === 1 ? newRoles[0] : newRoles);
+                    }
 
-                return (
-                  <FormItem className="md:col-span-2">
-                    <FormLabel>Roles</FormLabel>
-                    <FormControl>
-                      <div className="space-y-3">
-                        {/* Roles seleccionados */}
-                        <div className="flex flex-wrap gap-2 min-h-[42px] p-2 border rounded-md bg-background">
-                          {selectedRoles.length === 0 ? (
-                            <span className="text-sm text-muted-foreground">
-                              No hay roles seleccionados
-                            </span>
-                          ) : (
-                            selectedRoles.map((role) => {
-                              const roleInfo = roleConfig[role as keyof typeof roleConfig];
-                              return (
-                                <Badge
-                                  key={role}
-                                  variant="outline"
-                                  className={`${roleInfo?.color} flex items-center gap-1 pr-1`}
-                                >
-                                  <roleInfo.icon className="h-3 w-3" />
-                                  {roleInfo?.label}
-                                  {currentOperation !== "view" && selectedRoles.length > 1 && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemoveRole(role)}
-                                      className="ml-1 hover:bg-black/10 rounded-full p-0.5"
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </button>
-                                  )}
-                                </Badge>
-                              );
-                            })
+                    // Limpiar departamento si se elimina el rol admin
+                    if (roleToRemove === "admin" && !newRoles.includes("admin")) {
+                      form.setValue("department", undefined);
+                    }
+                  };
+
+                  const availableRoles = ["superadmin", "admin", "auditor", "teacher"].filter(
+                    role => !selectedRoles.includes(role)
+                  );
+
+                  return (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Roles</FormLabel>
+                      <FormControl>
+                        <div className="space-y-3">
+                          {/* Roles seleccionados */}
+                          <div className="flex flex-wrap gap-2 min-h-[42px] p-2 border rounded-md bg-background">
+                            {selectedRoles.length === 0 ? (
+                              <span className="text-sm text-muted-foreground">
+                                No hay roles seleccionados
+                              </span>
+                            ) : (
+                              selectedRoles.map((role) => {
+                                const roleInfo = roleConfig[role as keyof typeof roleConfig];
+                                return (
+                                  <Badge
+                                    key={role}
+                                    variant="outline"
+                                    className={`${roleInfo?.color} flex items-center gap-1 pr-1`}
+                                  >
+                                    <roleInfo.icon className="h-3 w-3" />
+                                    {roleInfo?.label}
+                                    {currentOperation !== "view" && selectedRoles.length > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveRole(role)}
+                                        className="ml-1 hover:bg-black/10 rounded-full p-0.5"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    )}
+                                  </Badge>
+                                );
+                              })
+                            )}
+                          </div>
+
+                          {/* Selector para agregar roles */}
+                          {currentOperation !== "view" && availableRoles.length > 0 && (
+                            <div className="flex flex-col">
+                              <Select
+                                value=""
+                                onValueChange={(value) => {
+                                  handleAddRole(value);
+                                  // Solo limpiar departamento si después de agregar el rol, ya no tiene admin
+                                  const newRoles = selectedRoles.includes(value)
+                                    ? selectedRoles
+                                    : [...selectedRoles, value];
+                                  const stillHasAdmin = newRoles.includes("admin");
+
+                                  if (!stillHasAdmin) {
+                                    form.setValue("department", undefined);
+                                  }
+                                }}
+                              >
+                                <SelectTrigger className="w-full md:w-66">
+                                  <SelectValue placeholder="+ Agregar rol" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {availableRoles.map((role) => {
+                                    const roleInfo = roleConfig[role as keyof typeof roleConfig];
+                                    return (
+                                      <SelectItem key={role} value={role}>
+                                        <div className="flex items-center gap-2">
+                                          <roleInfo.icon className="h-4 w-4" />
+                                          {roleInfo.label}
+                                        </div>
+                                      </SelectItem>
+                                    );
+                                  })}
+                                </SelectContent>
+                              </Select>
+                              <p className="text-xs text-muted-foreground m-2">
+                                Puedes asignar múltiples roles. Haz clic en la X para eliminar un rol.
+                              </p>
+                            </div>
                           )}
                         </div>
+                      </FormControl>
+                      <FormMessage />
+                      <p className="text-xs text-muted-foreground">
+                        {currentOperation === "view"
+                          ? "Roles asignados al usuario en esta escuela"
+                          : ""}
+                      </p>
+                    </FormItem>
+                  );
+                }}
+              />
 
-                        {/* Selector para agregar roles */}
-                        {currentOperation !== "view" && availableRoles.length > 0 && (
-                          <div className="flex flex-col">
-                            <Select
-                              value=""
-                              onValueChange={(value) => {
-                                handleAddRole(value);
-                                // Solo limpiar departamento si después de agregar el rol, ya no tiene admin
-                                const newRoles = selectedRoles.includes(value)
-                                  ? selectedRoles
-                                  : [...selectedRoles, value];
-                                const stillHasAdmin = newRoles.includes("admin");
-
-                                if (!stillHasAdmin) {
-                                  form.setValue("department", undefined);
-                                }
-                              }}
-                            >
-                              <SelectTrigger className="w-full md:w-66">
-                                <SelectValue placeholder="+ Agregar rol" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {availableRoles.map((role) => {
-                                  const roleInfo = roleConfig[role as keyof typeof roleConfig];
-                                  return (
-                                    <SelectItem key={role} value={role}>
-                                      <div className="flex items-center gap-2">
-                                        <roleInfo.icon className="h-4 w-4" />
-                                        {roleInfo.label}
-                                      </div>
-                                    </SelectItem>
-                                  );
-                                })}
-                              </SelectContent>
-                            </Select>
-                            <p className="text-xs text-muted-foreground m-2">
-                              Puedes asignar múltiples roles. Haz clic en la X para eliminar un rol.
-                            </p>
-
-                          </div>
-                        )}
-
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                    <p className="text-xs text-muted-foreground">
-                      {currentOperation === "view"
-                        ? "Roles asignados al usuario en esta escuela"
-                        : ""}
-                    </p>
-                  </FormItem>
-                );
-              }}
-            />
-
-            {/* Campo de departamento solo visible si tiene rol de administrador */}
-            {(() => {
-              const currentRole = form.watch("role");
-              const hasAdminRole = Array.isArray(currentRole)
-                ? currentRole.includes("admin")
-                : currentRole === "admin";
-              return hasAdminRole;
-            })() && (
+              {/* Campo de departamento (condicional) */}
+              {hasAdminRole && (
                 <FormField
                   control={form.control}
                   name="department"
@@ -1718,8 +1636,9 @@ export default function PersonalPage() {
                   )}
                 />
               )}
-          </div>
-        )}
+            </div>
+          );
+        }}
       </CrudDialog>
     </div>
   );

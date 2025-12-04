@@ -20,14 +20,6 @@ import {
   useCrudDialog,
   CrudDialog,
 } from "@repo/ui/components/dialog/crud-dialog";
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@repo/ui/components/shadcn/form";
-import { Input } from "@repo/ui/components/shadcn/input";
 import { toast } from "@repo/ui/sonner";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import { Badge } from "@repo/ui/components/shadcn/badge";
@@ -38,6 +30,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@repo/ui/components/shadcn/select";
+import { UseFormReturn } from "react-hook-form";
 import { ScheduleFormData, scheduleSchema } from "schema/scheduleSchema";
 import {
   Card,
@@ -52,6 +45,7 @@ import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
+import { ScheduleFormFields } from "components/ScheduleFormFields";
 
 type FilterType = "all" | "active" | "inactive";
 
@@ -94,6 +88,49 @@ export default function SchedulePage() {
       return matchesStatus && matchesDay;
     });
   }, [schedule, filter, dayFilter]);
+
+  // Agrupar horarios por día y ordenar
+  const groupedSchedules = useMemo(() => {
+    const groups: Record<string, typeof schedule> = {};
+    const daysOrder = ['lun.', 'mar.', 'mié.', 'jue.', 'vie.'];
+
+    // Inicializar grupos
+    daysOrder.forEach(day => {
+      groups[day] = [];
+    });
+
+    // Agrupar
+    filteredSchedules.forEach((s) => {
+      const dayGroup = groups[s.day];
+      if (dayGroup) {
+        dayGroup.push(s);
+      } else {
+        // Fallback para días no esperados
+        if (!groups["Otros"]) groups["Otros"] = [];
+        groups["Otros"]?.push(s);
+      }
+    });
+
+    // Ordenar por hora de inicio
+    Object.keys(groups).forEach(day => {
+      groups[day]?.sort((a, b) => a.startTime.localeCompare(b.startTime));
+    });
+
+    return groups;
+  }, [filteredSchedules]);
+
+  const daysOrder = ['lun.', 'mar.', 'mié.', 'jue.', 'vie.'];
+
+  const getFullDayName = (shortDay: string) => {
+    const map: Record<string, string> = {
+      'lun.': 'Lunes',
+      'mar.': 'Martes',
+      'mié.': 'Miércoles',
+      'jue.': 'Jueves',
+      'vie.': 'Viernes'
+    };
+    return map[shortDay] || shortDay;
+  };
 
   // Usar ambos estados de carga
   const isDataLoading = isLoading || scheduleLoading;
@@ -163,7 +200,7 @@ export default function SchedulePage() {
     //   Los toasts ahora los maneja el CrudDialog automáticamente
   };
 
-  if (isLoading   || !currentUser || !currentSchool) {
+  if (isLoading || !currentUser || !currentSchool) {
     return <GeneralDashboardSkeleton nc={0} />;
   }
 
@@ -319,13 +356,15 @@ export default function SchedulePage() {
                 <CardTitle>
                   <div className="flex flex-col gap-2">
                     <span>Lista de Horarios</span>
-                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
-                      {filteredSchedules.length} horarios
-                    </Badge>
+                    {canCreateSchedule && (
+                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                        {filteredSchedules.length} horarios
+                      </Badge>
+                    )}
                   </div>
                 </CardTitle>
              
-                {canCreateSchedule && (
+                {canCreateSchedule ? (
                     <Button
                       size="lg"
                       className="gap-2"
@@ -335,7 +374,11 @@ export default function SchedulePage() {
                       <Plus className="h-4 w-4" />
                       {isCreating ? "Creando..." : "Agregar Horario"}
                     </Button>
-                  )}
+                  ) : canReadSchedule ? (
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                      {filteredSchedules.length} horarios
+                    </Badge>
+                  ) : null}
              </div>
             </CardHeader>
             <CardContent>
@@ -359,92 +402,103 @@ export default function SchedulePage() {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-9">
-                  {filteredSchedules.map((schedule) => (
-                    <Card
-                      key={schedule._id}
-                      className="w-full hover:shadow-lg transition-shadow duration-200 flex flex-col h-full"
-                    >
-                      <CardHeader>
-                        <CardTitle className="text-lg font-semibold leading-tight line-clamp-2 break-words flex justify-between">
-                          <span>{schedule.name}</span>
-                          <Badge
-                            variant={
-                              schedule.status === "active"
-                                ? "default"
-                                : "secondary"
-                            }
-                            className={
-                              schedule.status === "active"
-                                ? "bg-green-600 text-white flex-shrink-0 ml-2"
-                                : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"
-                            }
-                          >
-                            {schedule.status === "active"
-                              ? "Activo"
-                              : "Inactivo"}
+                <div className="space-y-8 mb-9">
+                  {[...daysOrder, 'Otros'].map((day) => {
+                    const daySchedules = groupedSchedules[day];
+                    if (!daySchedules || daySchedules.length === 0) return null;
+
+                    return (
+                      <div key={day} className="space-y-4">
+                        <div className="flex items-center gap-2 border-b pb-2">
+                          <CalendarDays className="h-5 w-5 text-primary" />
+                          <h3 className="text-xl font-semibold capitalize">
+                            {getFullDayName(day)}
+                          </h3>
+                          <Badge variant="secondary" className="ml-2">
+                            {daySchedules.length}
                           </Badge>
-                        </CardTitle>
-                      </CardHeader>
+                        </div>
 
-                      <CardContent className="space-y-4 flex-1">
-                        <p className="flex space-x-1">
-                          <CalendarDays className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-                          <span className="font-semibold flex">Día:</span>
-                          <span>{schedule.day}</span>
-                        </p>
-                        <p className="flex space-x-1">
-                          <Clock3 className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-                          <span className="font-semibold flex">Inicio:</span>
-                          <span>{schedule.startTime}</span>
-                        </p>
-                        <p className="flex space-x-1">
-                          <Clock3 className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-                          <span className="font-semibold flex">Fin:</span>
-                          <span>{schedule.endTime}</span>
-                        </p>
-                      </CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {daySchedules.map((schedule) => (
+                            <Card
+                              key={schedule._id}
+                              className="w-full hover:shadow-lg transition-shadow duration-200 flex flex-col h-full"
+                            >
+                              <CardHeader>
+                                <CardTitle className="text-lg font-semibold leading-tight line-clamp-2 break-words flex justify-between">
+                                  <span>{schedule.name}</span>
+                                  <Badge
+                                    variant={
+                                      schedule.status === "active"
+                                        ? "default"
+                                        : "secondary"
+                                    }
+                                    className={
+                                      schedule.status === "active"
+                                        ? "bg-green-600 text-white flex-shrink-0 ml-2"
+                                        : "flex-shrink-0 ml-2 bg-gray-600/70 text-white"
+                                    }
+                                  >
+                                    {schedule.status === "active"
+                                      ? "Activo"
+                                      : "Inactivo"}
+                                  </Badge>
+                                </CardTitle>
+                              </CardHeader>
 
-                      <CardFooter className="flex justify-end gap-2 pt-2 border-t mt-auto">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            openView({ ...schedule, _id: schedule._id })
-                          }
-                          className="hover:scale-105 transition-transform cursor-pointer"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        {canUpdateSchedule && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              openEdit({ ...schedule, _id: schedule._id })
-                            }
-                            className="hover:scale-105 transition-transform cursor-pointer"
-                            disabled={isUpdating}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {canDeleteSchedule && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              openDelete({ ...schedule, _id: schedule._id })
-                            }
-                            disabled={isDeleting}
-                            className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive bg-white"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </CardFooter>
-                    </Card>
-                  ))}
+                              <CardContent className="space-y-4 flex-1">
+                                <p className="flex space-x-1">
+                                  <Clock3 className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                                  <span className="font-semibold flex">Horario:</span>
+                                  <span>{schedule.startTime} - {schedule.endTime}</span>
+                                </p>
+                              </CardContent>
+
+                              <CardFooter className="flex justify-end gap-2 pt-2 border-t mt-auto">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    openView({ ...schedule, _id: schedule._id })
+                                  }
+                                  className="hover:scale-105 transition-transform cursor-pointer"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                {canUpdateSchedule && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() =>
+                                      openEdit({ ...schedule, _id: schedule._id })
+                                    }
+                                    className="hover:scale-105 transition-transform cursor-pointer"
+                                    disabled={isUpdating}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                {canDeleteSchedule && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() =>
+                                      openDelete({ ...schedule, _id: schedule._id })
+                                    }
+                                    disabled={isDeleting}
+                                    className="hover:scale-105 transition-transform cursor-pointer text-destructive hover:text-destructive bg-white"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </CardFooter>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
@@ -456,16 +510,18 @@ export default function SchedulePage() {
               operation === "create"
                 ? "Crear Nuevo Horario"
                 : operation === "edit"
-                  ? "Editar Horario"
-                  : "Ver Horario"
+                  ? "Actualizar Horario"
+                  : "Detalles del Horario"
             }
             description={
               operation === "create"
-                ? "Completa la información del nuevo horario"
+                ? "Completa la información necesaria para generar un nuevo horario y organizar adecuadamente las actividades."
                 : operation === "edit"
-                  ? "Modifica la información del horario"
-                  : "Información del horario"
+                  ? "Modifica los datos del horario para mantener una programación clara y vigente."
+                  : "Consulta la información completa de este horario."
             }
+            deleteConfirmationTitle="¿Eliminar Horario?"
+            deleteConfirmationDescription="Esta acción eliminará de forma definitiva el horario del sistema. No podrá deshacerse."
             schema={scheduleSchema}
             defaultValues={{
               name: "",
@@ -479,163 +535,14 @@ export default function SchedulePage() {
             onOpenChange={close}
             onSubmit={handleSubmit}
             onDelete={handleDelete}
-            deleteConfirmationTitle="¿Eliminar periodo?"
-            deleteConfirmationDescription="Esta acción no se puede deshacer. El periodo será eliminado permanentemente."
             toastMessages={toastMessages}
             disableDefaultToasts={false}
           >
             {(form, operation) => (
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nombre del horario</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          {...field}
-                          value={(() => {
-                            const day = form.watch("day");
-                            const startTime = form.watch("startTime");
-                            const endTime = form.watch("endTime");
-
-                            const isValidValue = (value: string) =>
-                              value != null &&
-                              value !== "" &&
-                              value.toString().trim() !== "";
-                            const dayMap: { [key: string]: string } = {
-                              "lun.": "Lunes",
-                              "mar.": "Martes",
-                              "mié.": "Miércoles",
-                              "jue.": "Jueves",
-                              "vie.": "Viernes",
-                            };
-
-                            const generatedName =
-                              isValidValue(day as string) &&
-                              isValidValue(startTime as string) &&
-                              isValidValue(endTime as string)
-                                ? `${dayMap[day as keyof typeof dayMap]} ${startTime}-${endTime}`
-                                : "";
-
-                            if (generatedName !== field.value) {
-                              form.setValue(field.name, generatedName);
-                            }
-
-                            return generatedName;
-                          })()}
-                          placeholder="Completa día, hora inicio y fin"
-                          disabled={operation === "view"}
-                          readOnly={true}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="day"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Dia de la semana</FormLabel>
-                      <FormControl>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={
-                            field.value as
-                              | "lun."
-                              | "mar."
-                              | "mié."
-                              | "jue"
-                              | "vie."
-                          }
-                          disabled={operation === "view"}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona un día" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="lun.">Lunes</SelectItem>
-                            <SelectItem value="mar.">Martes</SelectItem>
-                            <SelectItem value="mié.">Miercoles</SelectItem>
-                            <SelectItem value="jue.">Jueves</SelectItem>
-                            <SelectItem value="vie.">Viernes</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="startTime"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Hora inicio</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="time"
-                          {...field}
-                          value={field.value as string}
-                          disabled={operation === "view"}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="endTime"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Hora fin</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="time"
-                          {...field}
-                          value={field.value as string}
-                          disabled={operation === "view"}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Estado</FormLabel>
-                      <FormControl>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value as "active" | "inactive"}
-                          disabled={operation === "view"}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona un estado" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="active">Activo</SelectItem>
-                            <SelectItem value="inactive">Inactivo</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <ScheduleFormFields
+                form={form as unknown as UseFormReturn<ScheduleFormData>}
+                operation={operation}
+              />
             )}
           </CrudDialog>
         </div>

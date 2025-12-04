@@ -118,6 +118,9 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@repo/ui/components/shadcn/tabs";
 import { WeeklySchedule } from "../../../../../components/clase/horario-semanal";
 import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
+import { useSchedule } from "stores/scheduleStore";
+import { scheduleSchema, ScheduleFormData } from "schema/scheduleSchema";
+import { ScheduleFormFields } from "components/ScheduleFormFields";
 
 // Tipos para los props de los componentes de pasos
 type FullClassForm = UseFormReturn<z.infer<typeof FullClassSchema>>;
@@ -141,6 +144,7 @@ interface StepTwoProps {
   formatTime: (time: string) => string;
   conflictScheduleIds: string[];
   existingClass?: { _id: Id<"classCatalog">; name: string; } | null; // permitir null
+  onOpenCreateSchedule: () => void;
 }
 
 // Componente para el Paso 1 del formulario de creación
@@ -168,9 +172,12 @@ function StepOneContent({
   };
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium text-center">
-        Paso 1: Información de la Clase
-      </h3>
+      <div className='flex flex-col justify-center items-center'>
+        <h3 className="text-lg font-medium text-center">
+          Paso 1: Información de la Clase
+        </h3>
+        <p className='text-muted-foreground text-sm'>Ingresa los datos necesarios para configurar la clase.</p>
+      </div>
       <ClassCatalogForm
         form={form}
         operation="create"
@@ -202,13 +209,21 @@ function StepTwoContent({
   formatTime,
   conflictScheduleIds,
   existingClass, // ← NUEVO PROP
+  onOpenCreateSchedule,
 }: StepTwoProps) {
+  const [dayFilter, setDayFilter] = useState("all");
+
+  const filteredSchedules = schedules?.filter(
+    (s) => dayFilter === "all" || s.day === dayFilter
+  );
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium text-center">
-        Paso 2: Horarios Disponibles
-      </h3>
-
+      <div className='flex flex-col justify-center items-center'>
+        <h3 className="text-lg font-medium text-center">
+          Paso 2: Horarios Disponibles
+        </h3>
+        <p className='text-muted-foreground text-sm'>Selecciona los horarios disponibles para esta clase.</p>
+      </div>
       {/* ✅ MENSAJE SI LA CLASE YA EXISTE */}
       {existingClass && (
         <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
@@ -236,11 +251,37 @@ function StepTwoContent({
         name="selectedScheduleIds"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Seleccionar Horarios *</FormLabel>
+            <div className="flex items-center justify-between mb-3">
+              <FormLabel>Seleccionar Horarios *</FormLabel>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onOpenCreateSchedule}
+                className="h-8 gap-1"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Nuevo Horario
+              </Button>
+            </div>
+            <div className="flex gap-2 mb-2 overflow-x-auto pb-2 justify-between">
+              {["all", "lun.", "mar.", "mié.", "jue.", "vie."].map((day) => (
+                <Button
+                  key={day}
+                  type="button"
+                  variant={dayFilter === day ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setDayFilter(day)}
+                  className="whitespace-nowrap h-7 text-xs"
+                >
+                  {day === "all" ? "Todos" : getDayName(day)}
+                </Button>
+              ))}
+            </div>
             <FormControl>
               <TooltipProvider>
                 <div className="grid gap-2 max-h-60 overflow-y-auto border rounded-md p-4">
-                  {schedules?.map((schedule) => {
+                  {filteredSchedules?.map((schedule) => {
                     const isConflict = conflictScheduleIds.includes(schedule._id);
                     return (
                       <Tooltip key={schedule._id}>
@@ -307,6 +348,7 @@ function StepTwoContent({
     </div>
   );
 }
+
 const cleanErrorMessage = (error: unknown): React.ReactNode => {
   if (error instanceof Error) {
     let cleanMessage: string | undefined; // 1. Empezamos sin mensaje limpio
@@ -372,7 +414,6 @@ const cleanErrorMessage = (error: unknown): React.ReactNode => {
   return "Ocurrió un error inesperado";
 };
 
-
 export default function HorariosPorClasePage() {
   const { user: clerkUser, isLoaded } = useUser();
   const { currentUser, isLoading: userLoading } = useUserWithConvex(
@@ -409,13 +450,63 @@ export default function HorariosPorClasePage() {
     classroomId: "all",
   });
   const [openStudentCombo, setOpenStudentCombo] = useState(false);
+  const [editDayFilter, setEditDayFilter] = useState("all");
   // --- FIN ---
 
   const { subjects } = useSubject(currentSchool?.school._id);
   const { groups } = useGroup(currentSchool?.school._id);
 
+  // --- HOOKS PARA CREAR HORARIO ---
+  const {
+    createSchedule,
+  } = useSchedule(currentSchool?.school._id as Id<"school">);
+
+  const {
+    isOpen: isScheduleOpen,
+    operation: scheduleOperation,
+    data: scheduleData,
+    openCreate: openCreateSchedule,
+    close: closeScheduleDialog,
+  } = useCrudDialog(scheduleSchema, {
+    name: "",
+    day: "",
+    startTime: "07:00",
+    endTime: "08:00",
+    status: "active",
+  });
+
+  const handleScheduleSubmit = async (values: Record<string, unknown>) => {
+    if (!currentSchool?.school._id) return;
+    const value = values as ScheduleFormData;
+
+    try {
+      const newScheduleId = await createSchedule({
+        schoolId: currentSchool.school._id,
+        name: value.name as string,
+        day: value.day as "lun." | "mar." | "mié." | "jue." | "vie.",
+        startTime: value.startTime as string,
+        endTime: value.endTime as string,
+        status: value.status as "active" | "inactive",
+        updatedAt: Date.now(),
+      });
+
+      // Auto-select the new schedule
+      if (newScheduleId) {
+        const currentSelected = createForm.getValues("selectedScheduleIds") || [];
+        createForm.setValue("selectedScheduleIds", [...currentSelected, newScheduleId]);
+        toast.success("Horario creado y seleccionado");
+      }
+      closeScheduleDialog();
+    } catch (error) {
+      console.error(error);
+      // El error ya se maneja en el store y se puede mostrar en un toast o alerta si es necesario
+    }
+  };
+  // --- FIN ---
+
   //   Mensajes de toast personalizados
   const toastMessages = useCrudToastMessages("Clase");
+  const scheduleToastMessages = useCrudToastMessages("Horario");
 
   const crudDialog = useCrudDialog(EditClassFormSchema, {
     classCatalogId: "",
@@ -654,6 +745,26 @@ export default function HorariosPorClasePage() {
     api.functions.schedule.getSchedulesBySchools,
     currentSchool?.school._id ? { schoolId: currentSchool.school._id } : "skip"
   );
+
+  const sortedSchedules = useMemo(() => {
+    if (!schedules) return undefined;
+
+    const dayOrder: Record<string, number> = {
+      "lun.": 1,
+      "mar.": 2,
+      "mié.": 3,
+      "jue.": 4,
+      "vie.": 5,
+      "sáb.": 6,
+      "dom.": 7,
+    };
+
+    return [...schedules].sort((a, b) => {
+      const dayDiff = (dayOrder[a.day] || 99) - (dayOrder[b.day] || 99);
+      if (dayDiff !== 0) return dayDiff;
+      return a.startTime.localeCompare(b.startTime);
+    });
+  }, [schedules]);
 
   const schoolCycles = useQuery(
     api.functions.schoolCycles.ObtenerCiclosEscolares,
@@ -1115,19 +1226,19 @@ export default function HorariosPorClasePage() {
       if (existingClassOnEdit && existingClassOnEdit._id !== originalClass.classCatalogId) {
 
         if (data.status === 'inactive') {
-        toast.error(
-          <span style={{ color: '#dc2626' }}>
-            Acción no permitida
-          </span>,
-          {
-            className: 'bg-white border border-red-200',
-            unstyled: false,
-            description: "Ya existe una clase con estas características. No puede ser combinada como 'inactiva'. Por favor, establécela como 'activa' para continuar.",
-            duration: 5000,
-          }
-        );
-        return;
-      }
+          toast.error(
+            <span style={{ color: '#dc2626' }}>
+              Acción no permitida
+            </span>,
+            {
+              className: 'bg-white border border-red-200',
+              unstyled: false,
+              description: "Ya existe una clase con estas características. No puede ser combinada como 'inactiva'. Por favor, establécela como 'activa' para continuar.",
+              duration: 5000,
+            }
+          );
+          return;
+        }
 
         console.log(" Clase duplicada encontrada, combinando clases...");
 
@@ -1166,16 +1277,16 @@ export default function HorariosPorClasePage() {
             classCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
           });
 
-        // 4. Si AMBAS tienen éxito, actualiza el toast a "éxito"
-        toast.success(
-          <span style={{ color: '#16a34a', fontWeight: 600 }}>
-            {`¡Clases combinadas exitosamente! Los horarios se agregaron a "${existingClassOnEdit.name}".`}
-          </span>,
-          {
-            className: 'bg-white border border-green-200',
-            unstyled: false,
-          }
-        );
+          // 4. Si AMBAS tienen éxito, actualiza el toast a "éxito"
+          toast.success(
+            <span style={{ color: '#16a34a', fontWeight: 600 }}>
+              {`¡Clases combinadas exitosamente! Los horarios se agregaron a "${existingClassOnEdit.name}".`}
+            </span>,
+            {
+              className: 'bg-white border border-green-200',
+              unstyled: false,
+            }
+          );
 
           setIsEditingClassDetails(false);
           crudDialog.close();
@@ -1184,7 +1295,57 @@ export default function HorariosPorClasePage() {
           // 5. Si CUALQUIERA falla, captura el error
           const errorMessage = cleanErrorMessage(err); // <-- Tu función se usa aquí
 
-        // 6. Actualiza el toast a "error" con el mensaje limpio
+          // 6. Actualiza el toast a "error" con el mensaje limpio
+          toast.error(
+            <span style={{ color: '#dc2626' }}>
+              {toastMessages.editError}
+            </span>,
+            {
+              className: 'bg-white border border-red-200',
+              unstyled: false,
+              description: typeof errorMessage === 'string' ? errorMessage : undefined,
+              duration: 8000,
+            }
+          );
+          // 7. El error se "captura" y no se propaga a la consola
+        }
+        // --- FIN DE LA CORRECCIÓN ---
+
+        return;
+      }
+
+      // ✅ SI NO HAY DUPLICADO, ACTUALIZAR NORMALMENTE
+      const loadingToast = toast.loading("Actualizando la información de la clase...");
+      try {
+        await updateClassCatalog({
+          classCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
+          schoolId: currentSchool.school._id as Id<"school">,
+          schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
+          subjectId: data.subjectId as Id<"subject">,
+          classroomId: data.classroomId as Id<"classroom">,
+          teacherId: data.teacherId as Id<"user">,
+          groupId: data.groupId as Id<"group">,
+          name: data.name,
+          status: data.status,
+          updatedAt: Date.now(),
+        });
+        toast.dismiss(loadingToast);
+        setIsEditingClassDetails(false);
+        crudDialog.close();
+        // Toast personalizado con fondo blanco y texto verde
+        toast.success(
+          <span style={{ color: '#16a34a', fontWeight: 600 }}>
+            {toastMessages.editSuccess}
+          </span>,
+          {
+            className: 'bg-white border border-green-200',
+            unstyled: false,
+          }
+        );
+      } catch (error) {
+        toast.dismiss(loadingToast);
+        //console.error(" Error al actualizar:", error);
+        const errorMessage = cleanErrorMessage(error);
         toast.error(
           <span style={{ color: '#dc2626' }}>
             {toastMessages.editError}
@@ -1192,66 +1353,16 @@ export default function HorariosPorClasePage() {
           {
             className: 'bg-white border border-red-200',
             unstyled: false,
-            description: typeof errorMessage === 'string' ? errorMessage : undefined,
-            duration: 8000,
+            description: typeof errorMessage === 'string' ? errorMessage : undefined
           }
         );
-        // 7. El error se "captura" y no se propaga a la consola
       }
-      // --- FIN DE LA CORRECCIÓN ---
-
-        return;
-      }
-
-    // ✅ SI NO HAY DUPLICADO, ACTUALIZAR NORMALMENTE
-    const loadingToast = toast.loading("Actualizando la información de la clase...");
-    try {
-      await updateClassCatalog({
-        classCatalogId: originalClass.classCatalogId as Id<"classCatalog">,
-        schoolId: currentSchool.school._id as Id<"school">,
-        schoolCycleId: data.schoolCycleId as Id<"schoolCycle">,
-        subjectId: data.subjectId as Id<"subject">,
-        classroomId: data.classroomId as Id<"classroom">,
-        teacherId: data.teacherId as Id<"user">,
-        groupId: data.groupId as Id<"group">,
-        name: data.name,
-        status: data.status,
-        updatedAt: Date.now(),
-      });
-      toast.dismiss(loadingToast);
-      setIsEditingClassDetails(false);
-      crudDialog.close();
-      // Toast personalizado con fondo blanco y texto verde
-      toast.success(
-        <span style={{ color: '#16a34a', fontWeight: 600 }}>
-          {toastMessages.editSuccess}
-        </span>,
-        {
-          className: 'bg-white border border-green-200',
-          unstyled: false,
-        }
-      );
     } catch (error) {
-      toast.dismiss(loadingToast);
-      //console.error(" Error al actualizar:", error);
-      const errorMessage = cleanErrorMessage(error);
-      toast.error(
-        <span style={{ color: '#dc2626' }}>
-          {toastMessages.editError}
-        </span>,
-        {
-          className: 'bg-white border border-red-200',
-          unstyled: false,
-          description: typeof errorMessage === 'string' ? errorMessage : undefined
-        }
-      );
+      // Este catch es para errores generales ANTES del toast.promise
+      // console.error("Error en la actualizacion de la clase:", error);
+      return cleanErrorMessage(error);
     }
-  } catch (error) {
-    // Este catch es para errores generales ANTES del toast.promise
-    // console.error("Error en la actualizacion de la clase:", error);
-    return cleanErrorMessage(error);
-  }
-};
+  };
 
   const handleDelete = async (id: string) => {
     const loadingToast = toast.loading("Eliminando clase y horarios asociados...");
@@ -1682,15 +1793,17 @@ export default function HorariosPorClasePage() {
               <Card>
                 <CardHeader>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <CardTitle>
-              <div className="flex flex-col gap-2">
+                    <CardTitle>
+                      <div className="flex flex-col gap-2">
                         <span>Lista de Clases con Horario</span>
-                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
-                  {filteredClasses.length} clases
-                </Badge>
+                        {canCreateScheduleAssignament && (
+                          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                            {filteredClasses.length} clases
+                          </Badge>
+                        )}
               </div>
                     </CardTitle>
-            {canCreateScheduleAssignament && (
+            {canCreateScheduleAssignament ? (
               <Button
                 size="lg"
                 className="gap-2"
@@ -1706,6 +1819,10 @@ export default function HorariosPorClasePage() {
                 <Plus className="h-4 w-4" />
                 Agregar Clase
               </Button>
+            ) : (
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                {filteredClasses.length} clases
+              </Badge>
             )}
           </div>
                 </CardHeader>
@@ -1957,6 +2074,7 @@ export default function HorariosPorClasePage() {
                 onOpenChange={(isOpen) => {
                   if (!isOpen) {
                     setIsEditingClassDetails(false);
+                    setEditDayFilter("all");
                   }
                   crudDialog.close();
                 }}
@@ -2263,78 +2381,104 @@ export default function HorariosPorClasePage() {
                                   return (
                                     <FormItem>
                                       <FormLabel>Seleccionar Horarios</FormLabel>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={openCreateSchedule}
+                                        className="h-8 gap-1 mb-2"
+                                      >
+                                        <Plus className="h-3.5 w-3.5" />
+                                        Nuevo Horario
+                                      </Button>
+                                      <div className="flex gap-2 mb-2 overflow-x-auto pb-2 w-full mt-2 justify-between">
+                                        {["all", "lun.", "mar.", "mié.", "jue.", "vie."].map((day) => (
+                                          <Button
+                                            key={day}
+                                            type="button"
+                                            variant={editDayFilter === day ? "default" : "outline"}
+                                            size="sm"
+                                            onClick={() => setEditDayFilter(day)}
+                                            className="whitespace-nowrap h-7 text-xs"
+                                          >
+                                            {day === "all" ? "Todos" : getDayName(day)}
+                                          </Button>
+                                        ))}
+                                      </div>
                                       <FormControl>
                                         <TooltipProvider>
                                           <div className="grid gap-2 max-h-60 overflow-y-auto border rounded-md p-4">
-                                            {schedules?.map((schedule) => {
-                                              const isConflict = activeConflicts.includes(schedule._id);
-                                              const isCurrentlySelected = Array.isArray(field.value)
-                                                ? (field.value as string[]).includes(schedule._id)
-                                                : false;
-                                              const belongsToCurrentClass = currentClassItem?.selectedScheduleIds?.includes(schedule._id);
-                                              const isDisabled = isConflict && !isCurrentlySelected && !belongsToCurrentClass;
+                                            {sortedSchedules
+                                              ?.filter((s) => editDayFilter === "all" || s.day === editDayFilter)
+                                              .map((schedule) => {
+                                                const isConflict = activeConflicts.includes(schedule._id);
+                                                const isCurrentlySelected = Array.isArray(field.value)
+                                                  ? (field.value as string[]).includes(schedule._id)
+                                                  : false;
+                                                const belongsToCurrentClass = currentClassItem?.selectedScheduleIds?.includes(schedule._id);
+                                                const isDisabled = isConflict && !isCurrentlySelected && !belongsToCurrentClass;
 
-                                              return (
-                                                <Tooltip key={schedule._id}>
-                                                  <TooltipTrigger asChild>
-                                                    <div className="flex items-center space-x-2">
-                                                      <Checkbox
-                                                        id={`edit-${schedule._id}`}
-                                                        checked={isCurrentlySelected}
-                                                        disabled={isDisabled || crudDialog.operation === "view" || crudDialog.operation === "delete"} // <--- Corrección aquí también
-                                                        onCheckedChange={(checked) => {
-                                                          const currentIds = Array.isArray(field.value)
-                                                            ? (field.value as string[])
-                                                            : [];
-                                                          if (checked) {
-                                                            field.onChange([...currentIds, schedule._id]);
-                                                          } else {
-                                                            field.onChange(
-                                                              currentIds.filter((id: string) => id !== schedule._id)
-                                                            );
-                                                          }
-                                                        }}
-                                                      />
-                                                      <label
-                                                        htmlFor={`edit-${schedule._id}`}
-                                                        className={`text-sm font-medium leading-none flex-1 cursor-pointer ${isDisabled
-                                                          ? "text-muted-foreground opacity-50 cursor-not-allowed"
-                                                          : ""
-                                                          } ${isCurrentlySelected && !isDisabled
-                                                            ? "text-primary"
+                                                return (
+                                                  <Tooltip key={schedule._id}>
+                                                    <TooltipTrigger asChild>
+                                                      <div className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                          id={`edit-${schedule._id}`}
+                                                          checked={isCurrentlySelected}
+                                                          disabled={isDisabled || crudDialog.operation === "view" || crudDialog.operation === "delete"} // <--- Corrección aquí también
+                                                          onCheckedChange={(checked) => {
+                                                            const currentIds = Array.isArray(field.value)
+                                                              ? (field.value as string[])
+                                                              : [];
+                                                            if (checked) {
+                                                              field.onChange([...currentIds, schedule._id]);
+                                                            } else {
+                                                              field.onChange(
+                                                                currentIds.filter((id: string) => id !== schedule._id)
+                                                              );
+                                                            }
+                                                          }}
+                                                        />
+                                                        <label
+                                                          htmlFor={`edit-${schedule._id}`}
+                                                          className={`text-sm font-medium leading-none flex-1 cursor-pointer ${isDisabled
+                                                            ? "text-muted-foreground opacity-50 cursor-not-allowed"
                                                             : ""
-                                                          }`}
-                                                      >
-                                                        <div className="flex items-center justify-between">
-                                                          <span className="font-medium flex items-center gap-2">
-                                                            {getDayName(schedule.day)}
-                                                            {isCurrentlySelected && (
-                                                              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                                                                Asignado
-                                                              </span>
-                                                            )}
-                                                          </span>
-                                                          <span className="text-muted-foreground">
-                                                            {formatTime(schedule.startTime)} -{" "}
-                                                            {formatTime(schedule.endTime)}
-                                                          </span>
-                                                        </div>
-                                                        <div className="text-xs text-muted-foreground">
-                                                          {schedule.name}
-                                                        </div>
-                                                      </label>
-                                                    </div>
-                                                  </TooltipTrigger>
-                                                  {isDisabled && (
-                                                    <TooltipContent side="right" className="max-w-xs">
-                                                      <p className="text-xs">
-                                                        ⚠️ Este horario ya está ocupado por otra clase
-                                                      </p>
-                                                    </TooltipContent>
-                                                  )}
-                                                </Tooltip>
-                                              );
-                                            })}
+                                                            } ${isCurrentlySelected && !isDisabled
+                                                              ? "text-primary"
+                                                              : ""
+                                                            }`}
+                                                        >
+                                                          <div className="flex items-center justify-between">
+                                                            <span className="font-medium flex items-center gap-2">
+                                                              {getDayName(schedule.day)}
+                                                              {isCurrentlySelected && (
+                                                                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                                                  Asignado
+                                                                </span>
+                                                              )}
+                                                            </span>
+                                                            <span className="text-muted-foreground">
+                                                              {formatTime(schedule.startTime)} -{" "}
+                                                              {formatTime(schedule.endTime)}
+                                                            </span>
+                                                          </div>
+                                                          <div className="text-xs text-muted-foreground">
+                                                            {schedule.name}
+                                                          </div>
+                                                        </label>
+                                                      </div>
+                                                    </TooltipTrigger>
+                                                    {isDisabled && (
+                                                      <TooltipContent side="right" className="max-w-xs">
+                                                        <p className="text-xs">
+                                                          ⚠️ Este horario ya está ocupado por otra clase
+                                                        </p>
+                                                      </TooltipContent>
+                                                    )}
+                                                  </Tooltip>
+                                                );
+                                              })}
                                           </div>
                                         </TooltipProvider>
                                       </FormControl>
@@ -2357,7 +2501,7 @@ export default function HorariosPorClasePage() {
                   <DialogHeader>
                     <DialogTitle>Crear Nueva Clase</DialogTitle>
                     <DialogDescription>
-                      Completa la información de la clase y asigna horarios.
+                      Completa la información de la clase y asigna los horarios correspondientes.
                     </DialogDescription>
                   </DialogHeader>
                   <Form {...createForm}>
@@ -2389,11 +2533,12 @@ export default function HorariosPorClasePage() {
                         <StepTwoContent
                           form={createForm}
                           setFormStep={setFormStep}
-                          schedules={schedules}
+                          schedules={sortedSchedules}
                           getDayName={getDayName}
                           formatTime={formatTime}
                           conflictScheduleIds={conflictScheduleIds || []}
                           existingClass={existingClass}
+                          onOpenCreateSchedule={openCreateSchedule}
                         />
                       )}
                     </form>
@@ -2609,6 +2754,36 @@ export default function HorariosPorClasePage() {
               )}
             </TabsContent>
           </Tabs>
+          {/* DIALOGO PARA CREAR HORARIO */}
+          <CrudDialog
+            operation={scheduleOperation}
+            title="Crear Nuevo Horario"
+            description="Completa la información necesaria para generar un nuevo horario y organizar adecuadamente las actividades."
+            schema={scheduleSchema}
+            defaultValues={{
+              name: "",
+              day: "",
+              startTime: "07:00",
+              endTime: "08:00",
+              status: "active",
+            }}
+            data={scheduleData}
+            isOpen={isScheduleOpen}
+            onOpenChange={closeScheduleDialog}
+            onSubmit={handleScheduleSubmit}
+            onDelete={async () => { }}
+            deleteConfirmationTitle=""
+            deleteConfirmationDescription=""
+            toastMessages={scheduleToastMessages}
+            disableDefaultToasts={false}
+          >
+            {(form, operation) => (
+              <ScheduleFormFields
+                form={form as unknown as UseFormReturn<ScheduleFormData>}
+                operation={operation}
+              />
+            )}
+          </CrudDialog>
         </>
       )}
     </div>
