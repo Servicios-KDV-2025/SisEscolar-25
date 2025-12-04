@@ -588,20 +588,22 @@ export default function ClassroomManagement() {
               operation === "create"
                 ? "Crear Nueva Aula"
                 : operation === "edit"
-                  ? "Editar Aula"
+                  ? "Actualizar Aula"
                   : operation === "delete"
                     ? "Eliminar Aula"
-                    : "Ver Aula"
+                    : "Detalles del Aula"
             }
             description={
               operation === "create"
-                ? "Ingresa los detalles para la nueva aula."
+                ? "Ingresa los datos necesarios para registrar una nueva aula y mantener la organización de los espacios escolares."
                 : operation === "edit"
-                  ? "Actualiza la información del aula a continuación."
+                  ? "Ajusta o corrige la información del aula para asegurar que esté siempre al día."
                   : operation === "delete"
                     ? "Confirma la eliminación del aula."
-                    : "Información detallada del aula."
+                    : "Consulta la información completa y actual de esta aula."
             }
+            deleteConfirmationTitle="¿Eliminar Aula?"
+            deleteConfirmationDescription="Esta acción eliminará permanentemente el aula del sistema. No podrá deshacerse, así que confirma con cuidado antes de continuar."
             schema={classroomFormSchema}
             defaultValues={{
               name: "",
@@ -616,8 +618,6 @@ export default function ClassroomManagement() {
             onDelete={(id) => handleDelete(id)}
             toastMessages={toastMessages}
             disableDefaultToasts={false}
-            deleteConfirmationTitle="¿Estás seguro de eliminar esta aula?"
-            deleteConfirmationDescription="Esta acción no se puede deshacer. Se eliminará permanentemente el aula."
           >
             {(form, operation) => (
               <ClassroomForm

@@ -172,9 +172,12 @@ function StepOneContent({
   };
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium text-center">
-        Paso 1: Información de la Clase
-      </h3>
+      <div className='flex flex-col justify-center items-center'>
+        <h3 className="text-lg font-medium text-center">
+          Paso 1: Información de la Clase
+        </h3>
+        <p className='text-muted-foreground text-sm'>Ingresa los datos necesarios para configurar la clase.</p>
+      </div>
       <ClassCatalogForm
         form={form}
         operation="create"
@@ -215,10 +218,12 @@ function StepTwoContent({
   );
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium text-center">
-        Paso 2: Horarios Disponibles
-      </h3>
-
+      <div className='flex flex-col justify-center items-center'>
+        <h3 className="text-lg font-medium text-center">
+          Paso 2: Horarios Disponibles
+        </h3>
+        <p className='text-muted-foreground text-sm'>Selecciona los horarios disponibles para esta clase.</p>
+      </div>
       {/* ✅ MENSAJE SI LA CLASE YA EXISTE */}
       {existingClass && (
         <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
@@ -2490,7 +2495,7 @@ export default function HorariosPorClasePage() {
                   <DialogHeader>
                     <DialogTitle>Crear Nueva Clase</DialogTitle>
                     <DialogDescription>
-                      Completa la información de la clase y asigna horarios.
+                      Completa la información de la clase y asigna los horarios correspondientes.
                     </DialogDescription>
                   </DialogHeader>
                   <Form {...createForm}>
@@ -2747,7 +2752,7 @@ export default function HorariosPorClasePage() {
           <CrudDialog
             operation={scheduleOperation}
             title="Crear Nuevo Horario"
-            description="Completa la información del nuevo horario"
+            description="Completa la información necesaria para generar un nuevo horario y organizar adecuadamente las actividades."
             schema={scheduleSchema}
             defaultValues={{
               name: "",

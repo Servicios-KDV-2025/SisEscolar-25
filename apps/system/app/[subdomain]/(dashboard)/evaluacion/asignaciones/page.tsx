@@ -485,29 +485,29 @@ export default function TaskManagement() {
           <Card>
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div className="flex flex-col gap-2">
-                <CardTitle className="flex items-center gap-2">
-                  
-                  <span>Lista de Asignaciones</span>
-                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
-                    {filteredTasksList.length} asignaciones
-                  </Badge>
-                </CardTitle>
-                <CardDescription>
-                  Haz clic en una asignación para acceder al panel de calificación de estudiantes.
-                </CardDescription>
+                <div className="flex flex-col gap-2">
+                  <CardTitle className="flex items-center gap-2">
+
+                    <span>Lista de Asignaciones</span>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                      {filteredTasksList.length} asignaciones
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    Haz clic en una asignación para acceder al panel de calificación de estudiantes.
+                  </CardDescription>
                 </div>
-                
+
                 {canCreateTask &&
-                    <Button
-                      className="cursor-pointer w-full sm:w-auto"
-                      onClick={openCreate}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      <span className="hidden sm:inline">Agregar Asignación</span>
-                      <span className="sm:hidden">Agregar Asignación</span>
-                    </Button>
-                  }
+                  <Button
+                    className="cursor-pointer w-full sm:w-auto"
+                    onClick={openCreate}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Agregar Asignación</span>
+                    <span className="sm:hidden">Agregar Asignación</span>
+                  </Button>
+                }
               </div>
             </CardHeader>
             <CardContent>
@@ -844,16 +844,18 @@ export default function TaskManagement() {
               operation === "create"
                 ? "Crear Nueva Asignación"
                 : operation === "edit"
-                  ? "Editar Asignación"
-                  : "Ver Asignación"
+                  ? "Actualizar Asignación"
+                  : "Detalles de la Asignación"
             }
             description={
               operation === "create"
-                ? "Define una nueva Asignación para tus estudiantes"
+                ? "Define una nueva asignación para tus estudiantes y organiza sus actividades académicas."
                 : operation === "edit"
-                  ? "Modifica los datos de la asignación"
-                  : "Información de la asignación"
+                  ? "Modifica la información de esta asignación para mantenerla siempre actualizada."
+                  : "Consulta toda la información registrada de esta asignación."
             }
+            deleteConfirmationTitle="¿Eliminar Asignación?"
+            deleteConfirmationDescription="¿Eliminar Asignación?"
             schema={taskFormSchema}
             defaultValues={{
               name: '',

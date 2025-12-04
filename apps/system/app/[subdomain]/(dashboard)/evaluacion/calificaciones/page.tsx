@@ -789,8 +789,8 @@ export default function GradeManagementDashboard() {
 
       <CrudDialog
         operation={operation}
-        title="Crear Nueva Asignación"
-        description="Define una nueva Asignación para tus estudiantes"
+        title="Registrar Nueva Calificación"
+        description="Ingresa la calificación correspondiente para el alumno y mantén actualizado su desempeño académico."
         schema={taskFormSchema}
         defaultValues={{
           name: '',
