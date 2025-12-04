@@ -519,7 +519,7 @@ export default function SchoolCyclesPage() {
               )}
             </CardContent>
           </Card>
-          {/* CrudDialog */}
+          {/* CrudDialog */}         
           <CrudDialog
             operation={operation}
             title={
@@ -527,14 +527,14 @@ export default function SchoolCyclesPage() {
                 ? "Crear Nuevo Ciclo Escolar"
                 : operation === "edit"
                   ? "Editar Ciclo Escolar"
-                  : "Ver Ciclo Escolar"
+                  : "Detalles del Ciclo Escolar"
             }
             description={
               operation === "create"
                 ? "Completa la información del nuevo ciclo escolar"
                 : operation === "edit"
                   ? "Modifica la información del ciclo escolar"
-                  : "Información del ciclo escolar"
+                  : "Información completa del ciclo escolar"
             }
             schema={cicloEscolarSchema}
             defaultValues={{
@@ -552,60 +552,186 @@ export default function SchoolCyclesPage() {
             disableDefaultToasts={false}
           >
             {(form, operation) => (
-              <div className="grid gap-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nombre del Ciclo</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Ej: Ciclo Escolar 2024-2025"
-                          value={(field.value as string) || ""}
-                          onChange={(e) => {
-                            field.onChange(e);
-                            // Limpiar errores cuando el usuario empiece a escribir
-                            if (form.formState.errors.name) {
-                              form.clearErrors("name");
-                            }
-                            setDuplicateNameError(null);
-                          }}
-                          onBlur={() => {
-                            if (
-                              field.value &&
-                              !validateUniqueName(
-                                field.value as string,
-                                data?._id as string
-                              )
-                            ) {
-                              setDuplicateNameError(
-                                "Ya existe un ciclo escolar con este nombre"
-                              );
-                            } else {
-                              setDuplicateNameError(null);
-                            }
-                          }}
-                          disabled={operation === "view"}
-                        />
-                      </FormControl>
-                      {/* Solo mostrar el texto de ayuda si no hay errores de validación */}
-                      {!form.formState.errors.name && !duplicateNameError && (
-                        <div className="text-sm text-muted-foreground">
-                          El máximo de caracteres es de 50
-                        </div>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <>
+                {operation === "view" ? (
+                  // Vista de solo lectura con diseño mejorado
+                  <div className="space-y-6">
+                    {/* Nombre del Ciclo */}
+                    <div className="rounded-lg border bg-muted/50 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium text-muted-foreground">
+                          Nombre del Ciclo
+                        </span>
+                      </div>
+                      <p className="text-lg font-semibold">
+                        {(form.getValues("name") as string) || "Sin nombre"}
+                      </p>
+                    </div>
 
-                <CrudFields
-                  fields={crudFields}
-                  operation={operation}
-                  form={form}
-                />
-              </div>
+                    {/* Fechas */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="rounded-lg border bg-muted/50 p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium text-muted-foreground">
+                            Fecha de Inicio
+                          </span>
+                        </div>
+                        <p className="text-base font-medium">
+                          {form.getValues("startDate")
+                            ? new Date(form.getValues("startDate") as string).toLocaleDateString(
+                              "es-MX",
+                              {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              }
+                            )
+                            : "No especificada"}
+                        </p>
+                      </div>
+
+                      <div className="rounded-lg border bg-muted/50 p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium text-muted-foreground">
+                            Fecha de Fin
+                          </span>
+                        </div>
+                        <p className="text-base font-medium">
+                          {form.getValues("endDate")
+                            ? new Date(form.getValues("endDate") as string).toLocaleDateString(
+                              "es-MX",
+                              {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              }
+                            )
+                            : "No especificada"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Estado */}
+                    <div className="rounded-lg border bg-muted/50 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        {form.getValues("status") === "active" ? (
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                        ) : form.getValues("status") === "archived" ? (
+                          <AlertCircle className="h-4 w-4 text-orange-600" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-gray-600" />
+                        )}
+                        <span className="text-sm font-medium text-muted-foreground">
+                          Estado
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={
+                            form.getValues("status") === "active"
+                              ? "default"
+                              : form.getValues("status") === "archived"
+                                ? "secondary"
+                                : "outline"
+                          }
+                          className={
+                            form.getValues("status") === "active"
+                              ? "bg-green-100 text-green-800 border-green-200"
+                              : form.getValues("status") === "archived"
+                                ? "bg-orange-100 text-orange-800 border-orange-200"
+                                : "bg-gray-100 text-gray-800 border-gray-200"
+                          }
+                        >
+                          {form.getValues("status") === "active"
+                            ? "Activo"
+                            : form.getValues("status") === "archived"
+                              ? "Archivado"
+                              : "Inactivo"}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Duración del ciclo */}
+                    <div className="rounded-lg border bg-primary/5 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Calendar className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium text-muted-foreground">
+                          Duración del Ciclo
+                        </span>
+                      </div>
+                      <p className="text-base font-medium">
+                        {form.getValues("startDate") && form.getValues("endDate")
+                          ? (() => {
+                            const start = new Date(form.getValues("startDate") as string);
+                            const end = new Date(form.getValues("endDate") as string);
+                            const diffTime = Math.abs(end.getTime() - start.getTime());
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            const months = Math.floor(diffDays / 30);
+                            const days = diffDays % 30;
+                            return `${months} ${months === 1 ? "mes" : "meses"}${days > 0 ? ` y ${days} ${days === 1 ? "día" : "días"}` : ""}`;
+                          })()
+                          : "No calculable"}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  // Vista de edición/creación (formulario tradicional)
+                  <div className="grid gap-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nombre del Ciclo</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Ej: Ciclo Escolar 2024-2025"
+                              value={(field.value as string) || ""}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                if (form.formState.errors.name) {
+                                  form.clearErrors("name");
+                                }
+                                setDuplicateNameError(null);
+                              }}
+                              onBlur={() => {
+                                if (
+                                  field.value &&
+                                  !validateUniqueName(
+                                    field.value as string,
+                                    data?._id as string
+                                  )
+                                ) {
+                                  setDuplicateNameError(
+                                    "Ya existe un ciclo escolar con este nombre"
+                                  );
+                                } else {
+                                  setDuplicateNameError(null);
+                                }
+                              }}
+                            />
+                          </FormControl>
+                          {!form.formState.errors.name && !duplicateNameError && (
+                            <div className="text-sm text-muted-foreground">
+                              El máximo de caracteres es de 50
+                            </div>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <CrudFields
+                      fields={crudFields}
+                      operation={operation}
+                      form={form}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </CrudDialog>
         </div>

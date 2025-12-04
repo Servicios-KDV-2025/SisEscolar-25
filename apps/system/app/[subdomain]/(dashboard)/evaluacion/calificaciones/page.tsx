@@ -38,7 +38,6 @@ import { TaskFormData, taskFormSchema } from '@/types/form/taskSchema';
 import { useTask } from 'stores/taskStore';
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
-import { NullifiedContextProvider } from "@dnd-kit/core/dist/components/DragOverlay/components";
 
 export default function GradeManagementDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -82,7 +81,6 @@ export default function GradeManagementDashboard() {
   const permissions = usePermissions();
 
   const {
-    canCreateAssignance,
     canCreateRubric,
     canUpdateRubric,
     currentRole,
@@ -168,25 +166,25 @@ export default function GradeManagementDashboard() {
   );
 
   // State synchronization and initial value setting
+// 1. Efecto para inicializar el Ciclo Escolar
   useEffect(() => {
-    // Solo ejecutamos si hay ciclos y NO hay uno seleccionado manualmente
     if (schoolCycles && schoolCycles.length > 0 && !selectedSchoolCycle) {
-
       console.log("Buscando ciclo activo en:", schoolCycles);
 
       // Buscamos el ciclo usando TODAS las variantes posibles
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const activeCycle = schoolCycles.find((c: any) => {
-        // Opción 1: Booleano directo (active: true, isActive: true, current: true)
+        // Opción 1: Booleano directo
         if (c.active === true) return true;
         if (c.isActive === true) return true;
         if (c.isCurrent === true) return true;
         if (c.current === true) return true;
 
-        // Opción 2: String "true" (por si se guardó como texto)
+        // Opción 2: String "true"
         if (String(c.active) === "true") return true;
         if (String(c.isActive) === "true") return true;
 
-        // Opción 3: Estado de texto (status: "active", state: "ACTIVO")
+        // Opción 3: Estado de texto
         if (c.status?.toLowerCase() === "active") return true;
         if (c.status?.toLowerCase() === "activo") return true;
         if (c.state?.toLowerCase() === "active") return true;
@@ -199,35 +197,29 @@ export default function GradeManagementDashboard() {
         setSelectedSchoolCycle(activeCycle._id as string);
       } else {
         console.warn("NO SE ENCONTRÓ NINGÚN ACTIVO. Usando el primero por defecto.");
-        setSelectedSchoolCycle(schoolCycles[0]!._id as string);
-
-        // Agrega esto para cumplir el criterio de "Aviso claro"
+        if (schoolCycles[0]) {
+             setSelectedSchoolCycle(schoolCycles[0]._id as string);
+        }
         toast.info("No se detectó un ciclo activo. Se ha cargado el primer ciclo disponible.");
       }
     }
+  }, [schoolCycles, selectedSchoolCycle]);
 
-    // Inicialización de Clases (sin cambios)
+  // 2. Efecto para inicializar la Clase
+  useEffect(() => {
     if (classes && classes.length > 0 && !selectedClass) {
+      // Solo seleccionamos por defecto si NO estamos esperando que el usuario elija
+      // (Aquí asumimos que si la lista cambia y no hay nada seleccionado, tomamos el primero)
       setSelectedClass(classes[0]!._id as string);
     }
+  }, [classes, selectedClass]);
 
-    // Inicialización de Periodos (sin cambios)
+  // 3. Efecto para inicializar el Periodo
+  useEffect(() => {
     if (terms && terms.length > 0 && !selectedTerm) {
       setSelectedTerm(terms[0]!._id as string);
     }
-  }, [
-    schoolCycles,
-    // Quitamos selectedSchoolCycle de las dependencias para evitar loops, 
-    // pero mantenemos la lógica interna (!selectedSchoolCycle) para respetar la elección del usuario.
-    // Nota: Si Convex actualiza schoolCycles, esto se volverá a ejecutar.
-    classes, selectedClass,
-    terms, selectedTerm
-  ]);
-
-  useEffect(() => {
-    setSelectedClass("");
-    setSelectedTerm("");
-  }, [selectedSchoolCycle]);
+  }, [terms, selectedTerm]);
 
   const filteredAndSortedStudents = students
     ? students

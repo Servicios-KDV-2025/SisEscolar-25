@@ -515,7 +515,7 @@ export const usePermissions = (schoolId?: string) => {
       "delete:schedule": false,
       // Ciclos Escolares
       "create:schoolCycle": false,
-      "read:schoolCycle": false,
+      "read:schoolCycle": true,
       "update:schoolCycle": false,
       "delete:schoolCycle": false,
       // Calendario Escolar
