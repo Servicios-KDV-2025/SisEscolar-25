@@ -784,27 +784,27 @@ export default function RubricDashboard() {
         isOpen={isOpen}
         operation={operation}
         title={
-          operation === 'create' ? 'Nueva Rubrica' :
-            operation === 'edit' ? 'Editar Rúbrica' : 'Ver Rúbrica'
+          operation === 'create' ? 'Crear Nueva Rúbrica' :
+            operation === 'edit' ? 'Actualizar Rúbrica' : 'Detalles de la Rúbrica'
         }
         description={
-          operation === 'create' ? 'Completa los campos para crear una nueva rúbrica.' :
-            operation === 'edit' ? 'Modifica los campos para actualizar la rúbrica.' : 'Detalles de la rúbrica.'
+          operation === 'create' ? 'Completa los campos necesarios para definir una nueva rúbrica y establecer criterios claros de evaluación.' :
+            operation === 'edit' ? 'Ajusta los campos para mantener la rúbrica precisa y acorde a las necesidades de evaluación.' : 'Consulta toda la información y criterios establecidos en esta rúbrica.'
         }
+        deleteConfirmationTitle="¿Estas Rúbrica?"
+        deleteConfirmationDescription="Esta acción no se puede deshacer. Se eliminarán todos los datos asociados a esta rúbrica de manera permanente."
         schema={rubricSchema}
         data={data}
         onOpenChange={close}
         onSubmit={handleSaveRubric}
         onDelete={handleDeleteRubric}
         submitButtonText={operation === 'create' ? 'Crear Rúbrica' : 'Actualizar Rúbrica'}
-        deleteConfirmationTitle="¿Estas seguro de eliminar esta rúbrica?"
-        deleteConfirmationDescription="Esta acción no se puede deshacer. Se eliminarán todos los datos asociados a esta rúbrica."
         toastMessages={toastMessages}
         disableDefaultToasts={false}
       >
         {(form, operation) => {
           return (
-            <div className="space-y-4 py-4">
+            <div>
               {/* Nombre */}
               <div className="space-y-2">
                 <FormField
@@ -981,7 +981,7 @@ export default function RubricDashboard() {
                           })();
 
                           return (
-                            <>
+                            <div className='py-2 gap-2'>
                               <Label className="mb-2">
                                 Porcentaje {" "}
                                 {shouldShowFormValidation && availableWeight !== null
@@ -1010,7 +1010,7 @@ export default function RubricDashboard() {
                                 max={maxAllowed}
                                 min={0}
                                 step={5}
-                                className="w-full"
+                                className="w-full py-4"
                                 disabled={
                                   !!(
                                     shouldShowFormValidation &&
@@ -1045,7 +1045,7 @@ export default function RubricDashboard() {
                                   <p>El porcentaje debe ser mayor a 0%</p>
                                 </div>
                               )}
-                            </>
+                            </div>
                           );
                         })()}
                       </div>

@@ -440,16 +440,18 @@ export default function GroupPage() {
               operation === "create"
                 ? "Crear Nuevo Grupo"
                 : operation === "edit"
-                  ? "Editar Grupo"
-                  : "Ver Grupo"
+                  ? "Actualizar Grupo"
+                  : "Detalles del Grupo"
             }
             description={
               operation === "create"
-                ? "Completa la información del nuevo grupo"
+                ? "Completa los datos necesarios para formar un nuevo grupo dentro de la institución."
                 : operation === "edit"
-                  ? "Modifica la información del grupo"
-                  : "Información del grupo"
+                  ? "Modifica la información del grupo para mantener sus datos precisos y actualizados."
+                  : "Revisa toda la información registrada de este grupo."
             }
+            deleteConfirmationTitle="¿Eliminar Grupo?"
+            deleteConfirmationDescription="Esta acción eliminará permanentemente el grupo del sistema. No será posible recuperarlo posteriormente."
             schema={groupSchema}
             defaultValues={{
               grade: "1°",

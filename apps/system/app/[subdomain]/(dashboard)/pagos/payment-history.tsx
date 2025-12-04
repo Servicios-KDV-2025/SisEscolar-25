@@ -543,7 +543,7 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
       <CrudDialog
         operation="view"
         title="Detalles de la Factura"
-        description="Detalles completos del pago y la factura generada"
+        description="Revisa toda la información del pago realizado y la factura generada para este proceso."
         schema={z.object({})}
         data={selectedPayment as (Record<string, unknown> & { _id?: string }) | undefined}
         isOpen={isInvoiceModalOpen}

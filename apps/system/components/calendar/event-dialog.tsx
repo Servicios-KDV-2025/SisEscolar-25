@@ -213,20 +213,20 @@ export function EventDialog({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {event?.id ? "Editar Evento" : "Crear Evento"}
+            {event?.id ? "Editar Evento" : "Crear Nuevo Evento"}
           </DialogTitle>
-          <DialogDescription className="sr-only">
+          <DialogDescription>
             {event?.id
-              ? "Edit the details of this event"
-              : "Add a new event to your calendar"}
+              ? "Actualiza los detalles de este evento."
+              : "Completa la información para registrar un nuevo evento en el calendario."}
           </DialogDescription>
         </DialogHeader>
         {error && (
-          <div className="bg-destructive/15 text-destructive rounded-md px-3 py-2 text-sm">
+          <div className="bg-destructive/15 text-destructive rounded-md px-3 ext-sm">
             {error}
           </div>
         )}
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-2 pt-1">
           <div className="*:not-first:mt-1.5">
             <Label htmlFor="title">Titulo</Label>
             <Input
