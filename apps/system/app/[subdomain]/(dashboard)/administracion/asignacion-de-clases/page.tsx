@@ -242,7 +242,7 @@ export default function StudentClassesDashboard() {
                   </div>
                 </div>
                 <div className="flex flex-col justify-start items-stretch  gap-2">
-                  
+
                 </div>
 
               </div>
@@ -829,13 +829,15 @@ export default function StudentClassesDashboard() {
               isOpen={isOpen}
               operation={operation}
               title={
-                operation === 'create' ? 'Crear nueva asignación de alumno por clase' :
-                  operation === 'edit' ? 'Editar asignación de alumno por clase' : 'Ver asignación de alumno por clase'
+                operation === 'create' ? 'Crear Nueva Asignación de Alumno a Clase' :
+                  operation === 'edit' ? 'Actualizar Asignación de Alumno a Clase' : 'Detalles de la Asignación de Alumno a Clase'
               }
               description={
-                operation === 'create' ? 'Completa los campos para crear una nueva asignación.' :
-                  operation === 'edit' ? 'Actualizar los datos de la asignación.' : 'Detalles de la asignación'
+                operation === 'create' ? 'Completa los campos necesarios para registrar una nueva asignación y asegurar el control académico del alumno.' :
+                  operation === 'edit' ? 'Modifica la información de esta asignación para mantener los datos actualizados y precisos.' : 'Consulta toda la información relacionada con esta asignación.'
               }
+              deleteConfirmationTitle="¿Eliminar Asignación?"
+              deleteConfirmationDescription="Esta acción eliminará permanentemente la asignación del sistema. No podrá deshacerse."
               schema={studentClassSchema}
               defaultValues={{
                 _id: '',

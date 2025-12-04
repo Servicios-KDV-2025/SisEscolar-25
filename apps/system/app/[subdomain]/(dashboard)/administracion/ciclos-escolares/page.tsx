@@ -532,16 +532,18 @@ export default function SchoolCyclesPage() {
               operation === "create"
                 ? "Crear Nuevo Ciclo Escolar"
                 : operation === "edit"
-                  ? "Editar Ciclo Escolar"
-                  : "Ver Ciclo Escolar"
+                  ? "Actualizar Ciclo Escolar"
+                  : "Detalles del Ciclo Escolar"
             }
             description={
               operation === "create"
-                ? "Completa la información del nuevo ciclo escolar"
+                ? "Ingresa los datos necesarios para establecer un nuevo ciclo escolar y organizar correctamente la operación académica."
                 : operation === "edit"
-                  ? "Modifica la información del ciclo escolar"
-                  : "Información del ciclo escolar"
+                  ? "Ajusta la información del ciclo escolar para mantener su configuración vigente."
+                  : "Revisa la información completa registrada para este ciclo escolar."
             }
+            deleteConfirmationTitle="¿Eliminar Ciclo Escolar?"
+            deleteConfirmationDescription="Esta acción eliminará permanentemente el ciclo escolar del sistema. No será posible recuperarlo más adelante."
             schema={cicloEscolarSchema}
             defaultValues={{
               name: "",

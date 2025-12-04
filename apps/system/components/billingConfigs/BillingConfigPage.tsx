@@ -434,10 +434,17 @@ export default function BillingConfigPage() {
         operation={operation}
         title={
           operation === "create" ? "Crear Configuración de Cobro" :
-            operation === "edit" ? "Editar Configuración de Cobro" :
-              "Ver Configuración de Cobro"
+            operation === "edit" ? "Actualizar Configuración de Cobro" :
+              "Detalles de la Configuración de Cobro"
         }
-        description="Completa los campos para configurar el cobro."
+        description={operation === "create"
+          ?"Completa los campos necesarios para establecer una nueva configuración de cobro y asegurar un proceso de pagos claro y eficiente."
+          : operation === "edit"
+            ? 'Modifica los datos de esta configuración para mantener un proceso de cobro preciso y actualizado.'
+            : 'Consulta la configuración completa de este cobro y verifica que toda la información esté correcta.'
+        }
+        deleteConfirmationTitle="¿Eliminar Configuración de Cobro?"
+        deleteConfirmationDescription="Esta acción eliminará permanentemente esta configuración del sistema. No podrás recuperarla posteriormente."
         schema={billingConfigSchema}
         defaultValues={{
           schoolCycleId: schoolCycles?.[schoolCycles.length - 1]?._id ?? "",

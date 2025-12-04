@@ -510,16 +510,18 @@ export default function SchedulePage() {
               operation === "create"
                 ? "Crear Nuevo Horario"
                 : operation === "edit"
-                  ? "Editar Horario"
-                  : "Ver Horario"
+                  ? "Actualizar Horario"
+                  : "Detalles del Horario"
             }
             description={
               operation === "create"
-                ? "Completa la información del nuevo horario"
+                ? "Completa la información necesaria para generar un nuevo horario y organizar adecuadamente las actividades."
                 : operation === "edit"
-                  ? "Modifica la información del horario"
-                  : "Información del horario"
+                  ? "Modifica los datos del horario para mantener una programación clara y vigente."
+                  : "Consulta la información completa de este horario."
             }
+            deleteConfirmationTitle="¿Eliminar Horario?"
+            deleteConfirmationDescription="Esta acción eliminará de forma definitiva el horario del sistema. No podrá deshacerse."
             schema={scheduleSchema}
             defaultValues={{
               name: "",
@@ -533,8 +535,6 @@ export default function SchedulePage() {
             onOpenChange={close}
             onSubmit={handleSubmit}
             onDelete={handleDelete}
-            deleteConfirmationTitle="¿Eliminar periodo?"
-            deleteConfirmationDescription="Esta acción no se puede deshacer. El periodo será eliminado permanentemente."
             toastMessages={toastMessages}
             disableDefaultToasts={false}
           >

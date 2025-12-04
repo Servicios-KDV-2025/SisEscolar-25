@@ -639,7 +639,6 @@ export default function TutorPage() {
     });
   };
 
-
   const getInitials = (name: string, lastName?: string) => {
     const first = name.charAt(0).toUpperCase();
     const last = lastName ? lastName.charAt(0).toUpperCase() : "";
@@ -846,26 +845,12 @@ export default function TutorPage() {
       disabled: (op) => op === 'view' || op === 'edit'
     },
     {
-      name: 'password',
-      label: 'Contraseña',
-      type: 'password',
-      required: operation === 'create',
-      placeholder: 'Contraseña',
-    },
-    {
       name: 'address',
       label: 'Dirección',
       type: 'text',
       required: false,
       placeholder: 'Dirección completa',
       className: 'md:col-span-2'
-    },
-    {
-      name: 'phone',
-      label: 'Teléfono',
-      type: 'tel',
-      required: false,
-      placeholder: '555 1234567'
     },
     {
       name: 'status',
@@ -1457,20 +1442,20 @@ export default function TutorPage() {
         operation={operation}
         title={
           operation === "create"
-            ? "Agregar Tutor"
+            ? "Registrar Nuevo Tutor"
             : operation === "edit"
-              ? "Editar Tutor"
+              ? "Actualizar Información del Tutor"
               : operation === "view"
-                ? "Ver Tutor"
-                : "Desactivar Tutor"
+                ? "Perfil del Tutor"
+                : ""
         }
         description={
           operation === "create"
-            ? "Completa la información para agregar un nuevo tutor al sistema"
+            ? "Completa los datos para incorporar un nuevo tutor y fortalecer el acompañamiento del alumno."
             : operation === "edit"
-              ? "Modifica la información del tutor"
+              ? "Modifica los datos del tutor para asegurar que la información esté correcta y actualizada."
               : operation === "view"
-                ? "Información detallada del tutor"
+                ? "Visualiza toda la información registrada del tutor."
                 : undefined
         }
         schema={getSchemaForOperation(operation)}
@@ -1478,9 +1463,7 @@ export default function TutorPage() {
           name: "",
           lastName: "",
           email: "",
-          password: "",
           address: "",
-          phone: "",
           status: "active"
         }}
         data={data}
@@ -1489,7 +1472,7 @@ export default function TutorPage() {
         onSubmit={operation === "create" ? handleCreate : handleUpdate}
         onDelete={() => handleDelete(data || {})}
         deleteConfirmationTitle="¿Desactivar tutor?"
-        deleteConfirmationDescription="Esta acción desactivará al tutor de esta escuela. El usuario mantendrá su información en el sistema y podrá ser reactivado posteriormente."
+        deleteConfirmationDescription="Esta acción desactivará al tutor dentro de esta escuela. Su información permanecerá en el sistema y podrá reactivarse cuando sea necesario."
         isLoading={isLoading}
         isSubmitting={userActions.isCreating || userActions.isUpdating}
         isDeleting={userActions.isDeleting}
