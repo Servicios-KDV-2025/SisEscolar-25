@@ -38,12 +38,19 @@ import { TaskFormData, taskFormSchema } from '@/types/form/taskSchema';
 import { useTask } from 'stores/taskStore';
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
+import { AlertCircle, RefreshCw, XCircle } from '@repo/ui/icons';
 
 export default function GradeManagementDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSchoolCycle, setSelectedSchoolCycle] = useState<string>("");
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [selectedTerm, setSelectedTerm] = useState<string>("");
+  const [isSlowLoading, setIsSlowLoading] = useState(false);
+  const [loadingTime, setLoadingTime] = useState(0);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [connectionError, setConnectionError] = useState(false);
+
+
 
   const { user: clerkUser } = useUser();
   const { currentUser, isLoading: userLoading } = useUserWithConvex(
@@ -165,8 +172,28 @@ export default function GradeManagementDashboard() {
     api.functions.termAverages.upsertTermAverage
   );
 
+  // ✅ VARIABLES DE LOADING (Línea ~168)
+  const isInitialLoading = userLoading || schoolLoading || permissionsLoading;
+
+  const isTableDataLoading =
+    assignments === undefined ||
+    classes === undefined ||
+    terms === undefined ||
+    schoolCycles === undefined ||
+    students === undefined ||
+    rubrics === undefined ||
+    grades === undefined;
+
+  const hasNoData =
+    !selectedClass ||
+    !selectedTerm ||
+    students?.length === 0 ||
+    rubrics?.length === 0 ||
+    connectionError ||
+    loadingTimeout;
+
   // State synchronization and initial value setting
-// 1. Efecto para inicializar el Ciclo Escolar
+  // 1. Efecto para inicializar el Ciclo Escolar
   useEffect(() => {
     if (schoolCycles && schoolCycles.length > 0 && !selectedSchoolCycle) {
       console.log("Buscando ciclo activo en:", schoolCycles);
@@ -198,7 +225,7 @@ export default function GradeManagementDashboard() {
       } else {
         console.warn("NO SE ENCONTRÓ NINGÚN ACTIVO. Usando el primero por defecto.");
         if (schoolCycles[0]) {
-             setSelectedSchoolCycle(schoolCycles[0]._id as string);
+          setSelectedSchoolCycle(schoolCycles[0]._id as string);
         }
         toast.info("No se detectó un ciclo activo. Se ha cargado el primer ciclo disponible.");
       }
@@ -207,19 +234,93 @@ export default function GradeManagementDashboard() {
 
   // 2. Efecto para inicializar la Clase
   useEffect(() => {
-    if (classes && classes.length > 0 && !selectedClass) {
-      // Solo seleccionamos por defecto si NO estamos esperando que el usuario elija
-      // (Aquí asumimos que si la lista cambia y no hay nada seleccionado, tomamos el primero)
-      setSelectedClass(classes[0]!._id as string);
+    if (classes && classes.length > 0 && !selectedClass && selectedSchoolCycle) {
+      const cycle = schoolCycles?.find(c => c._id === selectedSchoolCycle);
+      // Solo auto-seleccionar si el ciclo está activo
+      if (cycle?.status === "active") {
+        setSelectedClass(classes[0]!._id as string);
+      }
     }
-  }, [classes, selectedClass]);
+  }, [classes, selectedClass, selectedSchoolCycle, schoolCycles]);
 
   // 3. Efecto para inicializar el Periodo
   useEffect(() => {
-    if (terms && terms.length > 0 && !selectedTerm) {
-      setSelectedTerm(terms[0]!._id as string);
+    if (terms && terms.length > 0 && !selectedTerm && selectedSchoolCycle) {
+      const cycle = schoolCycles?.find(c => c._id === selectedSchoolCycle);
+      // Solo auto-seleccionar si el ciclo está activo
+      if (cycle?.status === "active") {
+        setSelectedTerm(terms[0]!._id as string);
+      }
     }
-  }, [terms, selectedTerm]);
+  }, [terms, selectedTerm, selectedSchoolCycle, schoolCycles]);
+
+  useEffect(() => {
+    if (selectedSchoolCycle) {
+      // Resetear las selecciones dependientes cuando cambia el ciclo
+      setSelectedClass("");
+      setSelectedTerm("");
+
+      // Mostrar mensaje si el ciclo no está activo
+      const cycle = schoolCycles?.find(c => c._id === selectedSchoolCycle);
+      if (cycle?.status !== "active") {
+        toast.info(
+          <span style={{ color: '#ea580c' }}>
+            Este ciclo está {cycle?.status === "archived" ? "archivado" : "inactivo"}.
+            Los datos son de solo lectura.
+          </span>,
+          {
+            className: 'bg-white border border-orange-200',
+            unstyled: false,
+          }
+        );
+      }
+    }
+  }, [selectedSchoolCycle, schoolCycles]);
+
+  useEffect(() => {
+    if (!isTableDataLoading) {
+      setIsSlowLoading(false);
+      setLoadingTime(0);
+      setLoadingTimeout(false);
+      setConnectionError(false);
+      return;
+    }
+
+    const startTime = Date.now();
+
+    // Mostrar mensaje de "carga lenta" después de 5 segundos
+    const slowTimeoutId = setTimeout(() => {
+      setIsSlowLoading(true);
+    }, 5000);
+
+    // Mostrar error de conexión después de 15 segundos
+    const errorTimeoutId = setTimeout(() => {
+      setLoadingTimeout(true);
+      setConnectionError(true);
+
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          Error al cargar los datos
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: 'No se pudo conectar al servidor o no hay datos disponibles'
+        }
+      );
+    }, 15000); // 15 segundos
+
+    // Actualizar contador cada segundo
+    const intervalId = setInterval(() => {
+      setLoadingTime(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+
+    return () => {
+      clearTimeout(slowTimeoutId);
+      clearTimeout(errorTimeoutId);
+      clearInterval(intervalId);
+    };
+  }, [isTableDataLoading]);
 
   const filteredAndSortedStudents = students
     ? students
@@ -300,19 +401,6 @@ export default function GradeManagementDashboard() {
 
   // Handle loading state
   const isDataLoading =
-    assignments === undefined ||
-    classes === undefined ||
-    terms === undefined ||
-    schoolCycles === undefined ||
-    students === undefined ||
-    students.length === 0 ||
-    rubrics === undefined ||
-    rubrics.length === 0 ||
-    grades === undefined;
-  const isLoading =
-    userLoading ||
-    schoolLoading ||
-    permissionsLoading ||
     assignments === undefined ||
     classes === undefined ||
     terms === undefined ||
@@ -437,7 +525,7 @@ export default function GradeManagementDashboard() {
     });
   }
 
-  if (isLoading) {
+  if (isInitialLoading) {
     return <GeneralDashboardSkeleton nc={0} />;
   }
 
@@ -552,11 +640,11 @@ export default function GradeManagementDashboard() {
                             <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs ml-1">
                               Inactivo
                             </Badge>
-                          ): cycle.status === "active" ? (
+                          ) : cycle.status === "active" ? (
                             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs ml-1">
                               Activo
                             </Badge>
-                          ): null}
+                          ) : null}
                         </div>
                       </SelectItem>
                     ))}
@@ -684,92 +772,230 @@ export default function GradeManagementDashboard() {
         </CardHeader>
         <CardContent className="w-full">
           {
-            isLoading
+            isTableDataLoading && !loadingTimeout
               ? (
-                <div className="space-y-4 text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                  <p className="text-muted-foreground">
+                <div className="space-y-4 text-center py-8">
+                  {/* Spinner con contador de tiempo */}
+                  <div className="relative inline-flex">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                    {loadingTime > 0 && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {loadingTime}s
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Mensaje principal */}
+                  <p className="text-muted-foreground font-medium">
                     Cargando calificaciones...
                   </p>
-                </div>
-              ) : (isDataLoading || !hasSchoolCycles || !hasClasses || !hasTerms) ? (
-                <div className="flex justify-center">
-                  <div className="space-y-4 text-center">
-                    <BookCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">
-                      No se pueden mostrar las calificaciones
-                    </h3>
 
-                    {selectedCycleStatus && selectedCycleStatus !== "active" ? (
-                      <p className="">Este ciclo no permite modificaciones porque está {selectedCycleStatus === "archived" ? "archivado" : "inactivo"}.</p>
-                    ) : currentRole !== 'tutor' ? (
-                      <p className="">Registra:</p>
-                    ) : (
-                      <p className="">Comunicate con soporte para más información.</p>
-                    )}
-                    {selectedCycleStatus === "active" && (
-                    <div className="flex flex-col items-center gap-4 w-full" >
-                      {/*esta es la 1ra fila de botones*/}
-                      <div className="flex flex-row gap-4 justify-center w-full"  >
-                        {(!assignments && canCreateRubric) && (
-                          <Link href={`/evaluacion/asignaciones`}>
-                            <Button>
-                              <Plus className="w-4 h-4" />
-                              Asignaciones
-                            </Button>
-                          </Link>
-                        )}
+                  {/* Barra de progreso animada */}
+                  <div className="w-64 mx-auto">
+                    <div className="h-1 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary transition-all duration-1000"
+                        style={{
+                          width: `${Math.min((loadingTime / 10) * 100, 90)}%`,
+                          animation: loadingTime > 10 ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'
+                        }}
+                      />
+                    </div>
+                  </div>
 
-                        {!hasTerms && (
-                          <Link href={`/administracion/periodos`}>
-                            <Button>
-                              <Plus className="w-4 h-4" />
-                              Periodos
-                            </Button>
-                          </Link>
-                        )}
-                        {!hasClasses && (
-                          <Link href={`/administracion/clases`}>
-                            <Button>
-                              <Plus className="w-4 h-4" />
-                              Clases
-                            </Button>
-                          </Link>
-                        )}
-
+                  {/* Mensaje de carga lenta (aparece después de 5 segundos) */}
+                  {isSlowLoading && (
+                    <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      <div className="flex items-center justify-center gap-2 text-orange-600">
+                        <AlertCircle className="h-5 w-5" />
+                        <p className="font-medium">
+                          Esto está tomando más tiempo de lo esperado...
+                        </p>
                       </div>
 
-                      {/*esta es la 2da fila de botones*/}
-                      {canCreateRubric &&
-                        <div className="flex flex-row gap-4 justify-center w-full">
+                      <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4 max-w-md mx-auto">
+                        <p className="font-medium mb-2">Posibles causas:</p>
+                        <ul className="list-disc list-inside space-y-1 text-left">
+                          <li>Conexión a internet lenta</li>
+                          <li>Gran cantidad de estudiantes o calificaciones</li>
+                          <li>El servidor está procesando la información</li>
+                        </ul>
+                      </div>
 
-                          {!hasSchoolCycles && (
-                            <Link href='/administracion/ciclos-escolares'>
+                      {/* Botón de recargar */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.location.reload()}
+                        className="gap-2"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                        Recargar página
+                      </Button>
+
+                      <p className="text-xs text-muted-foreground">
+                        Si el problema persiste, contacta a soporte técnico.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (hasNoData || !hasSchoolCycles || !hasClasses || !hasTerms) ? (
+                <div className="flex justify-center">
+                  <div className="space-y-4 text-center">
+                    {/* Ícono según el tipo de error */}
+                    {connectionError ? (
+                      <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    ) : (
+                      <BookCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    )}
+
+                    {/* Título según el tipo de error */}
+                    <h3 className="text-lg font-medium mb-2">
+                      {connectionError
+                        ? "Error de conexión al servidor"
+                        : "No se pueden mostrar las calificaciones"
+                      }
+                    </h3>
+
+                    {/* Mensaje específico según el error */}
+                    {connectionError ? (
+                      <div className="space-y-3">
+                        <p className="text-muted-foreground">
+                          No se pudo cargar la información. Esto puede deberse a:
+                        </p>
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-left max-w-md mx-auto">
+                          <ul className="space-y-2">
+                            <li className="flex items-start gap-2">
+                              <span className="text-red-500 mt-0.5">•</span>
+                              <span>Problemas de conexión a internet</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-red-500 mt-0.5">•</span>
+                              <span>El servidor no responde</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-red-500 mt-0.5">•</span>
+                              <span>No existen datos para este ciclo/clase/periodo</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-red-500 mt-0.5">•</span>
+                              <span>Tiempo de espera agotado</span>
+                            </li>
+                          </ul>
+                        </div>
+
+                        <div className="flex gap-2 justify-center pt-4">
+                          <Button
+                            onClick={() => {
+                              setConnectionError(false);
+                              setLoadingTimeout(false);
+                              window.location.reload();
+                            }}
+                            className="gap-2"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                            Reintentar
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setConnectionError(false);
+                              setLoadingTimeout(false);
+                            }}
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+
+                        <p className="text-xs text-muted-foreground mt-4">
+                          Si el problema persiste, verifica tu conexión a internet o contacta a soporte técnico.
+                        </p>
+                      </div>
+                    ) : 
+                       selectedCycleStatus && selectedCycleStatus !== "active" ? (
+                        <div className="space-y-3">
+                          <p className="text-muted-foreground">
+                            Este ciclo está {selectedCycleStatus === "archived" ? "archivado" : "inactivo"}.
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Selecciona una clase y periodo para ver los datos históricos.
+                          </p>
+                        </div>
+                      ) : !selectedClass || !selectedTerm ? (
+                        <p className="text-muted-foreground">
+                          Selecciona una clase y un periodo para ver las calificaciones.
+                        </p>
+                      ) : currentRole !== 'tutor' ? (
+                        <p className="text-muted-foreground">Registra:</p>
+                      ) : (
+                        <p className="text-muted-foreground">Comunícate con soporte para más información.</p>
+                      )}
+
+                    {/* Solo mostrar botones si el ciclo está activo Y no hay datos */}
+                    {!connectionError && selectedCycleStatus === "active" && (
+                      <div className="flex flex-col items-center gap-4 w-full" >
+                        {/*esta es la 1ra fila de botones*/}
+                        <div className="flex flex-row gap-4 justify-center w-full"  >
+                          {(!assignments && canCreateRubric) && (
+                            <Link href={`/evaluacion/asignaciones`}>
                               <Button>
                                 <Plus className="w-4 h-4" />
-                                Ciclos Escolares
+                                Asignaciones
                               </Button>
                             </Link>
                           )}
-                          {(!rubrics || rubrics.length === 0) && (
-                            <Link href={`/evaluacion/rubricas`}>
+
+                          {!hasTerms && (
+                            <Link href={`/administracion/periodos`}>
                               <Button>
                                 <Plus className="w-4 h-4" />
-                                Rubricas
+                                Periodos
                               </Button>
                             </Link>
                           )}
-                          {(!students || students.length === 0) && (
-                            <Link href={`/administracion/asignacion-de-clases`}>
+                          {!hasClasses && (
+                            <Link href={`/administracion/clases`}>
                               <Button>
                                 <Plus className="w-4 h-4" />
-                                Asignación de clases{" "}
+                                Clases
                               </Button>
                             </Link>
                           )}
                         </div>
-                      }
-                    </div>
+
+                        {/*esta es la 2da fila de botones*/}
+                        {canCreateRubric &&
+                          <div className="flex flex-row gap-4 justify-center w-full">
+                            {!hasSchoolCycles && (
+                              <Link href='/administracion/ciclos-escolares'>
+                                <Button>
+                                  <Plus className="w-4 h-4" />
+                                  Ciclos Escolares
+                                </Button>
+                              </Link>
+                            )}
+                            {(!rubrics || rubrics.length === 0) && (
+                              <Link href={`/evaluacion/rubricas`}>
+                                <Button>
+                                  <Plus className="w-4 h-4" />
+                                  Rubricas
+                                </Button>
+                              </Link>
+                            )}
+                            {(!students || students.length === 0) && (
+                              <Link href={`/administracion/asignacion-de-clases`}>
+                                <Button>
+                                  <Plus className="w-4 h-4" />
+                                  Asignación de clases{" "}
+                                </Button>
+                              </Link>
+                            )}
+                          </div>
+                        }
+                      </div>
                     )}
                   </div>
                 </div>
@@ -787,7 +1013,8 @@ export default function GradeManagementDashboard() {
                     />
                   </div>
                 </div>
-              )}
+              )
+          }
         </CardContent>
       </Card>
 
