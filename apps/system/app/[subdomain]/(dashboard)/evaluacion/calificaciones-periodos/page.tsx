@@ -51,7 +51,6 @@ export default function GradeManagementDashboard() {
   const permissions = usePermissions(currentSchool?.school._id);
 
   const {
-    canUpdateTermAverage,
     isLoading: permissionsLoading,
   } = permissions;
 
@@ -331,6 +330,10 @@ export default function GradeManagementDashboard() {
   const hasTerms = terms && terms.length > 0;
   const hasStudents = students && students.length > 0;
 
+  const selectedCycle = schoolCycles?.find(c => c._id === selectedSchoolCycle);
+  const selectedCycleStatus = selectedCycle?.status;
+  const canUpdateAveragesWithCycle = permissions.hasPermissionWithCycleCheck("update:termAverages", selectedCycleStatus);
+
   // if (!hasSchoolCycles) {
   //   return (
   //     <div className="min-h-screen bg-background p-6">
@@ -518,6 +521,7 @@ export default function GradeManagementDashboard() {
             </div>
           </CardTitle>
           {permissions.currentRole !== 'tutor' && (
+            canUpdateAveragesWithCycle ? (
               <Button
                 onClick={handleSaveAverages}
                 size="lg"
@@ -527,7 +531,12 @@ export default function GradeManagementDashboard() {
                 <SaveAll className="w-4 h-4" />
                 Guardar promedios
               </Button>
-            )}
+            ) : selectedCycleStatus && selectedCycleStatus !== "active" ? (
+              <div className="text-sm text-muted-foreground p-2 bg-muted rounded-md">
+                No se pueden guardar promedios en un ciclo {selectedCycleStatus === "archived" ? "archivado" : "inactivo"}.
+              </div>
+            ) : null
+          )}
           </div>
         </CardHeader>
         <CardContent>
@@ -541,11 +550,12 @@ export default function GradeManagementDashboard() {
             </div>
           ) : (hasStudents && hasTerms && hasClasses && !isDataLoading) ? (
             <TermAverageMatrix
+              key={selectedSchoolCycle}
               students={filteredAndSortedStudents}
               terms={terms!}
               averages={averagesMap}
               onAverageUpdate={handleUpdateGrade}
-              canUpdateRubric={canUpdateTermAverage}
+              canUpdateRubric={canUpdateAveragesWithCycle}
             />
           ) : (
             <div className="flex justify-center">

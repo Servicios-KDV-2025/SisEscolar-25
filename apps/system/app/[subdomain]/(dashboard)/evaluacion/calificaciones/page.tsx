@@ -700,11 +700,14 @@ export default function GradeManagementDashboard() {
                       No se pueden mostrar las calificaciones
                     </h3>
 
-                    {currentRole !== 'tutor' ? (
+                    {selectedCycleStatus && selectedCycleStatus !== "active" ? (
+                      <p className="">Este ciclo no permite modificaciones porque está {selectedCycleStatus === "archived" ? "archivado" : "inactivo"}.</p>
+                    ) : currentRole !== 'tutor' ? (
                       <p className="">Registra:</p>
                     ) : (
                       <p className="">Comunicate con soporte para más información.</p>
                     )}
+                    {selectedCycleStatus === "active" && (
                     <div className="flex flex-col items-center gap-4 w-full" >
                       {/*esta es la 1ra fila de botones*/}
                       <div className="flex flex-row gap-4 justify-center w-full"  >
@@ -767,6 +770,7 @@ export default function GradeManagementDashboard() {
                         </div>
                       }
                     </div>
+                    )}
                   </div>
                 </div>
               ) : (

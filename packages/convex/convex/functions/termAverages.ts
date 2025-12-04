@@ -172,15 +172,21 @@ export const getAnnualAveragesForStudents = query({
 
     const studentClassIds = studentClasses.map((sc) => sc._id);
 
-    // 2. Obtener todos los promedios de todos los terminos de estos estudiantes
     const allAverages = await ctx.db
       .query("termAverage")
       .filter((q) => q.or(...studentClassIds.map((id) => q.eq(q.field("studentClassId"), id))))
       .collect();
 
-    // 3. Agrupar los promedios por el ID del estudiante
-    const groupedAverages: Record<string, typeof allAverages> = {};
+    const filteredAverages = [] as typeof allAverages;
     for (const avg of allAverages) {
+      const term = await ctx.db.get(avg.termId);
+      if (term && term.schoolCycleId === args.schoolCycleId) {
+        filteredAverages.push(avg);
+      }
+    }
+
+    const groupedAverages: Record<string, typeof filteredAverages> = {};
+    for (const avg of filteredAverages) {
       const id = avg.studentClassId as string;
       if (!groupedAverages[id]) {
         groupedAverages[id] = [];
@@ -191,4 +197,3 @@ export const getAnnualAveragesForStudents = query({
     return groupedAverages;
   },
 });
-
