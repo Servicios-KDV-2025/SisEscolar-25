@@ -84,6 +84,7 @@ import { useUserActionsWithConvex } from "../../../../../stores/userActionsStore
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
+import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
 
 // Tipo para los usuarios que vienen de Convex
 type UserFromConvex = {
@@ -655,6 +656,10 @@ export default function TutorPage() {
   const isLoading = schoolLoading || permissionsLoading || allUsers === undefined;
   const isCrudLoading =
     userActions.isCreating || userActions.isUpdating || userActions.isDeleting;
+
+  if (isLoading) {
+    return <GeneralDashboardSkeleton />;
+  }
 
   // Verificar error de permisos o falta de permiso de lectura
   if ((permissionsError || !canReadUsersTutores) && !permissionsLoading && !isLoading) {
@@ -1382,7 +1387,7 @@ export default function TutorPage() {
                         }
                       />
                     </FormControl>
-                    <FormMessage className="mt-2"/>
+                    <FormMessage className="mt-2" />
                   </div>
                 </FormItem>
               )}

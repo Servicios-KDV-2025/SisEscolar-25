@@ -56,11 +56,12 @@ import { TaskForm } from 'components/tasks/TaskForm';
 import { UseFormReturn } from 'react-hook-form';
 import NotAuth from "../../../../../components/NotAuth";
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
+import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
 
 export default function TaskManagement() {
   const { user: clerkUser } = useUser();
-  const { currentUser } = useUserWithConvex(clerkUser?.id);
-  const { currentSchool } = useCurrentSchool(currentUser?._id);
+  const { currentUser, isLoading: userLoading } = useUserWithConvex(clerkUser?.id);
+  const { currentSchool, isLoading: schoolLoading } = useCurrentSchool(currentUser?._id);
   const {
     allAssignmentsForFilters,
     allClassesForFilters,
@@ -78,6 +79,7 @@ export default function TaskManagement() {
     canUpdateTask,
     canDeleteTask,
     currentRole,
+    isLoading: permissionsLoading,
   } = useTask(currentSchool?.school._id);
 
   // Estados para filtros
@@ -337,6 +339,20 @@ export default function TaskManagement() {
       return rubricMatch && termMatch && subjectMatch && groupMatch;
     }) ?? [];
 
+  const isLoading =
+    userLoading ||
+    schoolLoading ||
+    permissionsLoading ||
+    allAssignmentsForFilters === undefined ||
+    uniqueGradeGroups === undefined ||
+    uniqueSubject === undefined ||
+    uniqueTerm === undefined ||
+    uniqueRubrics === undefined ||
+    filteredTasksList === undefined;
+
+  if (isLoading) {
+    return <GeneralDashboardSkeleton nc={0} />
+  }
   return (
     <>
       {canReadTask ? (

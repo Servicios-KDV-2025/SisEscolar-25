@@ -32,6 +32,7 @@ import {
 import { useDashboardHeader } from "../../../../hooks/useDashboardHeader";
 import { useTeacherDashboard } from "../../../../hooks/useTeacherDashboard";
 import { useTutorDashboard } from "../../../../hooks/useTutorDashboard";
+import { GeneralDashboardSkeleton } from "../../../../components/skeletons/GeneralDashboardSkeleton";
 
 export default function EscuelaHome() {
   // Get current user from Clerk
@@ -55,10 +56,10 @@ export default function EscuelaHome() {
     api.functions.classCatalog.getAllClassCatalog,
     currentSchool && currentUser && currentRole === "teacher"
       ? {
-          schoolId: currentSchool.school._id,
-          canViewAll: false,
-          teacherId: currentUser._id,
-        }
+        schoolId: currentSchool.school._id,
+        canViewAll: false,
+        teacherId: currentUser._id,
+      }
       : "skip"
   );
 
@@ -66,9 +67,9 @@ export default function EscuelaHome() {
     api.functions.student.getStudentsByTutor,
     currentSchool && currentUser && currentRole === "tutor"
       ? {
-          schoolId: currentSchool.school._id,
-          tutorId: currentUser._id,
-        }
+        schoolId: currentSchool.school._id,
+        tutorId: currentUser._id,
+      }
       : "skip"
   );
 
@@ -82,10 +83,10 @@ export default function EscuelaHome() {
     api.functions.schools.getUsersBySchoolAndRoles,
     currentSchool?.school._id
       ? {
-          schoolId: currentSchool.school._id,
-          roles: ["teacher", "admin", "superadmin"],
-          status: "active",
-        }
+        schoolId: currentSchool.school._id,
+        roles: ["teacher", "admin", "superadmin"],
+        status: "active",
+      }
       : "skip"
   );
 
@@ -189,18 +190,7 @@ export default function EscuelaHome() {
 
   // Show loading screen for initial load
   if (isLoading || (currentUser && !currentSchool && !schoolError)) {
-    return (
-      <div className="space-y-8 p-6 max-w-7xl mx-auto">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="space-y-4 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-muted-foreground">
-              Cargando información de la escuela...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
+    return <GeneralDashboardSkeleton nc={2} />;
   }
 
   return (

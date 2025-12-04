@@ -117,6 +117,7 @@ import {
 } from "@/types/temporalSchema";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@repo/ui/components/shadcn/tabs";
 import { WeeklySchedule } from "../../../../../components/clase/horario-semanal";
+import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
 
 // Tipos para los props de los componentes de pasos
 type FullClassForm = UseFormReturn<z.infer<typeof FullClassSchema>>;
@@ -1463,6 +1464,10 @@ export default function HorariosPorClasePage() {
     return false;
   }, [currentRole, selectedStudentId, scheduleFilters]);
 
+  if (isLoading) {
+    return <GeneralDashboardSkeleton />;
+  }
+
   return (
     <div className="space-y-8 p-6">
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
@@ -2400,7 +2405,7 @@ export default function HorariosPorClasePage() {
               {/* --- FILTROS DE HORARIO --- */}
               {(currentRole === "admin" || currentRole === "auditor" || currentRole === "superadmin") && (
                 <Card className="mb-6">
-                  <CardContent className="pt-6">
+                  <CardContent className="pt-1">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       {/* Filtro de Estudiante (Combobox) */}
                       <div className="space-y-2">

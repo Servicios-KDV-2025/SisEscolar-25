@@ -53,6 +53,8 @@ import {
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
+import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
+
 
 export default function SchoolCyclesPage() {
   const { user: clerkUser, isLoaded } = useUser();
@@ -242,6 +244,10 @@ export default function SchoolCyclesPage() {
     await deleteCicloEscolar(id as Id<"schoolCycle">);
   };
 
+  if (isLoading) {
+    return <GeneralDashboardSkeleton nc={3} />;
+  }
+
   return (
     <>
       {canReadSchoolCycle ? (
@@ -274,50 +280,50 @@ export default function SchoolCyclesPage() {
             updateError ||
             deleteError ||
             duplicateNameError) && (
-            <div className="space-y-4">
-              {createError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Error al crear el ciclo: {createError}
-                  </AlertDescription>
-                </Alert>
-              )}
-              {updateError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Error al actualizar el ciclo: {updateError}
-                  </AlertDescription>
-                </Alert>
-              )}
-              {deleteError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Error al eliminar el ciclo: {deleteError}
-                  </AlertDescription>
-                </Alert>
-              )}
-              {duplicateNameError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Error de validación: {duplicateNameError}
-                  </AlertDescription>
-                </Alert>
-              )}
-              <button
-                onClick={() => {
-                  clearErrors();
-                  setDuplicateNameError(null);
-                }}
-                className="text-xs text-blue-500 underline mt-1"
-              >
-                Limpiar errores
-              </button>
-            </div>
-          )}
+              <div className="space-y-4">
+                {createError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Error al crear el ciclo: {createError}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {updateError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Error al actualizar el ciclo: {updateError}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {deleteError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Error al eliminar el ciclo: {deleteError}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {duplicateNameError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Error de validación: {duplicateNameError}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <button
+                  onClick={() => {
+                    clearErrors();
+                    setDuplicateNameError(null);
+                  }}
+                  className="text-xs text-blue-500 underline mt-1"
+                >
+                  Limpiar errores
+                </button>
+              </div>
+            )}
 
           {/* Estadísticas */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -446,14 +452,7 @@ export default function SchoolCyclesPage() {
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-muted-foreground">
-                      Cargando ciclos escolares...
-                    </p>
-                  </div>
-                </div>
+                <GeneralDashboardSkeleton nc={3} />
               ) : filteredCycles.length === 0 ? (
                 <div className="text-center py-12">
                   <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
