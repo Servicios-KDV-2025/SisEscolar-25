@@ -17,9 +17,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
-import { FormControl, FormField,FormDescription, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
+import { FormControl, FormField, FormDescription, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 
 // Icons
 import {
@@ -32,6 +33,8 @@ import { termSchema, TermFormValues } from "schema/terms";
 import { useTerm, Term } from "stores/termStore";
 import { useCurrentSchool } from "stores/userSchoolsStore";
 import { useUserWithConvex } from "stores/userStore";
+import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
+import CrudFields, { TypeFields } from '@repo/ui/components/dialog/crud-fields';
 
 // Form Component
 function TermForm({
@@ -46,46 +49,65 @@ function TermForm({
     name: string;
   }>;
 }) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <FormField
-        control={form.control}
-        name="name"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Nombre del periodo</FormLabel>
-            <FormControl>
-              <Input
-                {...field}
-                value={field.value as string || ""}
-                placeholder="Ej: Primer Bimestre"
-                disabled={operation === "view"}
-                maxLength={50}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+  // Preparar opciones para schoolCycleId
+  const schoolCycleOptions = schoolCycles?.map(cycle => ({
+    value: cycle._id,
+    label: cycle.name
+  })) || [];
 
-      <FormField
-        control={form.control}
-        name="key"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Clave del periodo</FormLabel>
-            <FormControl>
-              <Input
-                {...field}
-                value={field.value as string || ""}
-                placeholder="Ej: BIM1-2024"
-                disabled={operation === "view"}
-                maxLength={10}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
+  // Definir campos para CrudFields
+  const crudFields1: TypeFields = [
+    {
+      name: 'name',
+      label: 'Nombre del periodo',
+      type: 'text',
+      placeholder: 'Ej: Primer Bimestre',
+      maxLength: 50,
+      required: true
+    },
+    {
+      name: 'key',
+      label: 'Clave del periodo',
+      type: 'text',
+      placeholder: 'Ej: BIM1-2024',
+      maxLength: 10,
+      required: true
+    },
+  ];
+
+  const crudFields2: TypeFields = [
+    {
+      name: 'schoolCycleId',
+      label: 'Ciclo Escolar',
+      type: 'select',
+      options: schoolCycleOptions,
+      placeholder: 'Selecciona un ciclo escolar',
+      required: true
+    },
+  ];
+
+  // Solo agregar status si no es creación
+  if (operation !== "create") {
+    crudFields2.push({
+      name: 'status',
+      label: 'Estado',
+      type: 'select',
+      options: [
+        { value: 'active', label: 'Activo' },
+        { value: 'inactive', label: 'Inactivo' },
+        { value: 'closed', label: 'Cerrado' }
+      ],
+      placeholder: 'Selecciona un estado',
+      required: true
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <CrudFields
+        fields={crudFields1}
+        operation={operation}
+        form={form}
       />
 
       <FormField
@@ -102,7 +124,7 @@ function TermForm({
                 disabled={operation === "view"}
               />
             </FormControl>
-            
+
             {/* --- MENSAJE DE ADVERTENCIA --- */}
             {operation !== "view" && (
               <FormDescription className="flex items-center gap-1.5 text-orange-600">
@@ -110,7 +132,7 @@ function TermForm({
                 El sistema tomará un día antes de la fecha seleccionada.
               </FormDescription>
             )}
-            
+
             <FormMessage />
           </FormItem>
         )}
@@ -130,7 +152,7 @@ function TermForm({
                 disabled={operation === "view"}
               />
             </FormControl>
-            
+
             {/* --- MENSAJE DE ADVERTENCIA --- */}
             {operation !== "view" && (
               <FormDescription className="flex items-center gap-1.5 text-orange-600">
@@ -144,63 +166,11 @@ function TermForm({
         )}
       />
 
-      <FormField
-        control={form.control}
-        name="schoolCycleId"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Ciclo Escolar</FormLabel>
-            <Select
-              onValueChange={field.onChange}
-              value={field.value as string}
-              disabled={operation === "view"}
-            >
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un ciclo escolar" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {schoolCycles?.map((cycle) => (
-                  <SelectItem key={cycle._id} value={cycle._id}>
-                    {cycle.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
+      <CrudFields
+        fields={crudFields2}
+        operation={operation}
+        form={form}
       />
-
-      {operation !== "create" && (
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Estado</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                value={field.value as string}
-                disabled={operation === "view"}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un estado" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="active">Activo</SelectItem>
-                  <SelectItem value="inactive">Inactivo</SelectItem>
-                  <SelectItem value="closed">Cerrado</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
     </div>
   );
 }
@@ -212,8 +182,8 @@ export default function PeriodsManagement() {
 
   // User and school data
   const { user: clerkUser } = useUser();
-  const { currentUser } = useUserWithConvex(clerkUser?.id);
-  const { currentSchool } = useCurrentSchool(currentUser?._id);
+  const { currentUser, isLoading: userLoading } = useUserWithConvex(clerkUser?.id);
+  const { currentSchool, isLoading: schoolLoading } = useCurrentSchool(currentUser?._id);
 
   // School cycles query
   const schoolCycles = useQuery(
@@ -239,6 +209,7 @@ export default function PeriodsManagement() {
     canReadTerm,
     canUpdateTerm,
     canDeleteTerm,
+    isLoading: permissionsLoading,
 
   } = usePermissions(currentSchool?.school._id);
   // Terms data from store
@@ -259,6 +230,9 @@ export default function PeriodsManagement() {
 
   // CRUD Dialog
   const { isOpen, operation, data, openCreate, openEdit, openView, openDelete, close } = useCrudDialog(termSchema);
+
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Periodo");
 
   // Set active cycle as initial value when component loads
   useEffect(() => {
@@ -295,77 +269,65 @@ export default function PeriodsManagement() {
       return;
     }
 
-    try {
-      const formValues = values as TermFormValues;
+    const formValues = values as TermFormValues;
 
-      if (!formValues.startDate || !formValues.endDate) {
-        toast.error('Error', { description: 'Las fechas de inicio y fin son requeridas' });
-        return;
-      }
+    if (!formValues.startDate || !formValues.endDate) {
+      toast.error('Error', { description: 'Las fechas de inicio y fin son requeridas' });
+      return;
+    }
 
-      const startDateTimestamp = new Date(formValues.startDate as string).getTime();
-      const endDateTimestamp = new Date(formValues.endDate as string).getTime();
+    const startDateTimestamp = new Date(formValues.startDate as string).getTime();
+    const endDateTimestamp = new Date(formValues.endDate as string).getTime();
 
-      if (isNaN(startDateTimestamp) || isNaN(endDateTimestamp)) {
-        toast.error('Error', { description: 'Las fechas proporcionadas no son válidas' });
-        return;
-      }
+    if (isNaN(startDateTimestamp) || isNaN(endDateTimestamp)) {
+      toast.error('Error', { description: 'Las fechas proporcionadas no son válidas' });
+      return;
+    }
 
-      if (startDateTimestamp >= endDateTimestamp) {
-        toast.error('Error', { description: 'La fecha de inicio debe ser anterior a la fecha de fin' });
-        return;
-      }
+    if (startDateTimestamp >= endDateTimestamp) {
+      toast.error('Error', { description: 'La fecha de inicio debe ser anterior a la fecha de fin' });
+      return;
+    }
 
-      const isDuplicateKey = terms.some((term: Term) =>
-        term.key === formValues.key && term._id !== data?._id
-      );
+    const isDuplicateKey = terms.some((term: Term) =>
+      term.key === formValues.key && term._id !== data?._id
+    );
 
-      if (isDuplicateKey) {
-        toast.error('Error', { description: 'La clave del periodo ya existe' });
-        return;
-      }
+    if (isDuplicateKey) {
+      toast.error('Error', { description: 'La clave del periodo ya existe' });
+      return;
+    }
 
-      if (operation === 'create') {
-        await createTerm({
+    if (operation === 'create') {
+      await createTerm({
+        name: formValues.name,
+        key: formValues.key,
+        startDate: startDateTimestamp,
+        endDate: endDateTimestamp,
+        schoolCycleId: formValues.schoolCycleId,
+        schoolId: currentSchool.school._id,
+      });
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
+    } else if (operation === 'edit' && data?._id) {
+      await updateTerm({
+        termId: data._id,
+        data: {
           name: formValues.name,
           key: formValues.key,
           startDate: startDateTimestamp,
           endDate: endDateTimestamp,
-          schoolCycleId: formValues.schoolCycleId,
-          schoolId: currentSchool.school._id,
-        });
-        toast.success('Periodo creado correctamente');
-      } else if (operation === 'edit' && data?._id) {
-        await updateTerm({
-          termId: data._id,
-          data: {
-            name: formValues.name,
-            key: formValues.key,
-            startDate: startDateTimestamp,
-            endDate: endDateTimestamp,
-            status: formValues.status as "active" | "inactive" | "closed",
-          },
-        });
-        toast.success('Periodo actualizado correctamente');
-      }
-
-      close();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      toast.error('Error', {
-        description: `No se pudo ${operation === 'create' ? 'crear' : 'actualizar'} el periodo: ${errorMessage}`
+          status: formValues.status as "active" | "inactive" | "closed",
+        },
       });
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
     }
+
+    close();
   };
 
   const handleDelete = async (id: string) => {
-    try {
-      await deleteTerm(id);
-      toast.success('Periodo eliminado correctamente');
-    } catch (error) {
-      console.error('Error al eliminar periodo:', error);
-      throw error;
-    }
+    await deleteTerm(id);
+    //   Los toasts ahora los maneja el CrudDialog automáticamente
   };
 
   // Get cycle name for display
@@ -377,7 +339,17 @@ export default function PeriodsManagement() {
   const isActiveCycle = (cycleId: string) => {
     return cycleId === activeSchoolCycle?._id;
   };
+  const isLoading =
+    userLoading ||
+    schoolLoading ||
+    permissionsLoading ||
+    activeSchoolCycle === undefined ||
+    schoolCycles === undefined ||
+    filteredTerms === undefined;
 
+  if (isLoading) {
+    return <GeneralDashboardSkeleton nc={3} />;
+  }
   return (
     <>
       {canReadTerm ? (<div className="space-y-8 p-6">
@@ -399,15 +371,6 @@ export default function PeriodsManagement() {
                   </div>
                 </div>
               </div>
-              {canCreateTerm && (<Button
-                size="lg"
-                className="gap-2"
-                onClick={openCreate}
-                disabled={isCreating}
-              >
-                <Plus className="h-4 w-4" />
-                Agregar Periodo
-              </Button>)}
             </div>
           </div>
         </div>
@@ -578,19 +541,29 @@ export default function PeriodsManagement() {
         {/* Terms Table */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Lista de Periodos</span>
-              <Badge variant="outline">{filteredTerms.length} periodos</Badge>
-            </CardTitle>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <CardTitle>
+                <div className="flex flex-col gap-2">
+                  <span>Lista de Periodos</span>
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                    {filteredTerms.length} periodos
+                  </Badge>
+                </div>
+              </CardTitle>
+              {canCreateTerm && (<Button
+                size="lg"
+                className="gap-2"
+                onClick={openCreate}
+                disabled={isCreating}
+              >
+                <Plus className="h-4 w-4" />
+                Agregar Periodo
+              </Button>)}
+            </div>
           </CardHeader>
           <CardContent>
             {isTermsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                  <p className="text-muted-foreground">Cargando periodos...</p>
-                </div>
-              </div>
+              <GeneralDashboardSkeleton nc={3} />
             ) : filteredTerms.length === 0 ? (
               <div className="text-center py-12">
                 <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -703,17 +676,19 @@ export default function PeriodsManagement() {
         <CrudDialog
           operation={operation}
           title={operation === 'create'
-            ? 'Crear Agregar Periodo'
+            ? 'Crear Nuevo Periodo'
             : operation === 'edit'
-              ? 'Editar Periodo'
-              : 'Ver Periodo'
+              ? 'Actualizar Periodo'
+              : 'Detalles del Periodo'
           }
           description={operation === 'create'
-            ? 'Completa la información del periodo'
+            ? 'Completa los datos necesarios para registrar un nuevo periodo académico.'
             : operation === 'edit'
-              ? 'Modifica la información del periodo'
-              : 'Información del periodo'
+              ? 'Modifica la información del periodo para mantener sus datos correctos y vigentes.'
+              : 'Consulta toda la información registrada sobre este periodo.'
           }
+          deleteConfirmationTitle="¿Eliminar Periodo?"
+          deleteConfirmationDescription="Esta acción borrará de forma definitiva el periodo del sistema. No podrá deshacerse."
           schema={termSchema}
           defaultValues={{
             name: '',
@@ -740,6 +715,8 @@ export default function PeriodsManagement() {
           onOpenChange={close}
           onSubmit={handleSubmit}
           onDelete={handleDelete}
+          toastMessages={toastMessages}
+          disableDefaultToasts={false}
         >
           {(form, operation) => (
             <TermForm

@@ -13,26 +13,29 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/sh
 import { useMutation, useQuery } from "convex/react"
 import { api } from "@repo/convex/convex/_generated/api"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
-import { toast } from "sonner"
+import { toast } from "@repo/ui/sonner"
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog"
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form"
+import { FormControl, FormField, FormItem, FormLabel } from "@repo/ui/components/shadcn/form"
 import { Switch } from "@repo/ui/components/shadcn/switch"
 import { useUser } from "@clerk/nextjs"
 import { useUserWithConvex } from "stores/userStore"
 import { useCurrentSchool } from "stores/userSchoolsStore"
 import { StudentClassDto, studentClassSchema } from "schema/studentClassSchema"
 import { StudentClasses } from "@/types/studentClass"
-import { parseConvexErrorMessage } from "lib/parseConvexErrorMessage"
 import { SelectPopover } from "../../../../../components/selectPopover"
 import { Student } from "@/types/student"
 import { usePermissions } from 'hooks/usePermissions'
 import { type ClassCatalogWithDetails, useClassCatalogWithPermissions } from 'stores/classCatalogStore'
 import { useCicloEscolarWithConvex } from 'stores/useSchoolCiclesStore'
 import { ChartNoAxesCombined } from 'lucide-react'
+import MassAssignmentStudets from "components/classAssignment/MassAssignmentStudents"
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
+import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
+import CrudFields from '@repo/ui/components/dialog/crud-fields';
 
 export default function StudentClassesDashboard() {
   const { user: clerkUser } = useUser();
-  const { currentUser } = useUserWithConvex(clerkUser?.id)
+  const { currentUser, isLoading: userLoading } = useUserWithConvex(clerkUser?.id)
   const {
     currentSchool, isLoading: schoolLoading
   } = useCurrentSchool(currentUser?._id);
@@ -53,13 +56,14 @@ export default function StudentClassesDashboard() {
 
   const {
     classCatalogsWithDetails: ClassCatalog,
-    getClassByTeacher
+    getClassByTeacher,
+    isLoading: classCatalogLoading
   } = useClassCatalogWithPermissions(
     currentSchool?.school._id,
     getStudentFilters
   );
 
-  const { ciclosEscolares: schoolYears } = useCicloEscolarWithConvex(currentSchool?.school._id);
+  const { ciclosEscolares: schoolYears, isLoading: schoolYearsLoading } = useCicloEscolarWithConvex(currentSchool?.school._id);
 
   const studentFilters = useMemo(() => {
     return getStudentFilters?.() || { canViewAll: false };
@@ -90,7 +94,16 @@ export default function StudentClassesDashboard() {
   const [groupFilter, setGroupFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [activeTab, setActiveTab] = useState("enrollments")
-
+  const [isMassAssignmentOpen, setIsMassAssignmentOpen] = useState(false)
+  const isLoading =
+    userLoading ||
+    schoolLoading ||
+    permissionsLoading ||
+    classCatalogLoading ||
+    schoolYearsLoading ||
+    students === undefined ||
+    enrollments === undefined ||
+    statistics === undefined;
   const {
     isOpen,
     operation,
@@ -110,13 +123,17 @@ export default function StudentClassesDashboard() {
     averageScore: 0,
   });
 
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Asignación de Clase");
+
   useEffect(() => {
     const activeSchoolYear = schoolYears?.find(year => year.status === "active");
     setSchoolYearFilter(activeSchoolYear?.name || "all");
   }, [schoolYears])
 
   const filteredEnrollments = useMemo(() => {
-    // 1. Lógica de FILTRADO (la que ya tenías)
+
+
     const filtered = (enrollments?.filter(Boolean) || []).filter((enrollment) => {
       const matchesSearch =
         enrollment?.student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -135,26 +152,13 @@ export default function StudentClassesDashboard() {
 
       return matchesSearch && matchesGrade && matchesTeacherClass && matchesStatus && matchesGroup && matchesSchoolYear;
     });
-
-    // 2. Lógica de ORDENAMIENTO (la nueva)
-    // Usamos [...filtered] para crear una copia antes de ordenar
     return [...filtered].sort((a, b) => {
       const nameA = `${a?.student.name} ${a?.student.lastName || ''}`.toLowerCase().trim();
       const nameB = `${b?.student.name} ${b?.student.lastName || ''}`.toLowerCase().trim();
-      
-      // localeCompare ordena alfabéticamente y maneja acentos
       return nameA.localeCompare(nameB);
     });
 
-  }, [
-    enrollments, 
-    searchTerm, 
-    schoolYearFilter, 
-    classesByTeacher, 
-    gradeFilter, 
-    groupFilter, 
-    statusFilter
-  ]); // <-- Añadimos las dependencias para que se recalcule solo cuando cambien
+  }, [enrollments, searchTerm, schoolYearFilter, classesByTeacher, gradeFilter, groupFilter, statusFilter]);
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!currentSchool?.school?._id) {
@@ -164,47 +168,36 @@ export default function StudentClassesDashboard() {
 
     const validatedValues = values as StudentClassDto
 
-    try {
-      if (operation === 'create') {
-        await createEnrollment({
-          schoolId: currentSchool?.school._id as Id<"school">,
-          classCatalogId: validatedValues.classCatalogId as Id<"classCatalog">,
-          studentId: validatedValues.studentId as Id<"student">,
-          enrollmentDate: new Date(validatedValues.enrollmentDate).getTime(),
-          status: "active",
-          averageScore: validatedValues.averageScore
-        })
-        toast.success("Creado correctamente")
-      } else if (operation === 'edit') {
-        await updateEnrollment({
-          _id: validatedValues._id as Id<"studentClass">,
-          schoolId: currentSchool?.school._id as Id<"school">,
-          classCatalogId: validatedValues.classCatalogId as Id<"classCatalog">,
-          studentId: validatedValues.studentId as Id<"student">,
-          enrollmentDate: new Date(validatedValues.enrollmentDate as string).getTime(),
-          status: validatedValues.status,
-          averageScore: validatedValues.averageScore || 0
-        })
-        toast.success("Actualizado correctamente")
-      } else {
-        throw new Error('Operación no válida')
-      }
-      close()
-    } catch (err) {
-      const cleanMessage = parseConvexErrorMessage(err)
-      toast.error("Error", { description: cleanMessage })
+    if (operation === 'create') {
+      await createEnrollment({
+        schoolId: currentSchool?.school._id as Id<"school">,
+        classCatalogId: validatedValues.classCatalogId as Id<"classCatalog">,
+        studentId: validatedValues.studentId as Id<"student">,
+        enrollmentDate: new Date(validatedValues.enrollmentDate).getTime(),
+        status: "active",
+        averageScore: validatedValues.averageScore
+      })
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
+    } else if (operation === 'edit') {
+      await updateEnrollment({
+        _id: validatedValues._id as Id<"studentClass">,
+        schoolId: currentSchool?.school._id as Id<"school">,
+        classCatalogId: validatedValues.classCatalogId as Id<"classCatalog">,
+        studentId: validatedValues.studentId as Id<"student">,
+        enrollmentDate: new Date(validatedValues.enrollmentDate as string).getTime(),
+        status: validatedValues.status,
+        averageScore: validatedValues.averageScore || 0
+      })
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
+    } else {
+      throw new Error('Operación no válida')
     }
+    close()
   }
 
   const handleDelete = async (id: string) => {
-    try {
-      await deleteEnrollment({ id: id as Id<"studentClass">, schoolId: currentSchool?.school?._id as Id<"school"> })
-      toast.success('Eliminado correctamente')
-      close()
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al eliminar la asignación'
-      toast.error(errorMessage)
-    }
+    await deleteEnrollment({ id: id as Id<"studentClass">, schoolId: currentSchool?.school?._id as Id<"school"> })
+    //   Los toasts ahora los maneja el CrudDialog automáticamente
   }
 
   function mapEnrollmentToFormValues(enrollment: StudentClasses) {
@@ -221,7 +214,9 @@ export default function StudentClassesDashboard() {
     }
   }
 
-  const isLoading = schoolLoading || !schoolYears || !students || !ClassCatalog || !enrollments || permissionsLoading;
+  if (isLoading) {
+    return <GeneralDashboardSkeleton nc={0} />;
+  }
 
   return (
     <>
@@ -247,28 +242,7 @@ export default function StudentClassesDashboard() {
                   </div>
                 </div>
                 <div className="flex flex-col justify-start items-stretch  gap-2">
-                  {canCreateStudentsClasses && (
-                    <>
-                      <Button
-                        size="lg"
-                        className="gap-2"
-                        onClick={openCreate}
-                        disabled={isLoading || !currentSchool}
-                      >
-                        <Plus className="w-4 h-4" />
-                        Agregar Asignación
-                      </Button>
-                      <Button
-                        size="lg"
-                        className="gap-2"
-                        onClick={openCreate}
-                        disabled={isLoading || !currentSchool}
-                      >
-                        <Plus className="w-4 h-4" />
-                        Asignar Clases Masivamente
-                      </Button>
-                    </>
-                  )}
+
                 </div>
 
               </div>
@@ -400,24 +374,51 @@ export default function StudentClassesDashboard() {
                 }
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>Lista de Asignaciones</span>
-                      {currentRole !== 'tutor' &&
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs sm:text-sm"
-                          disabled={currentRole === 'auditor'}
-                        >
-                          Exportar
-                        </Button>
-                      }
-                      {currentRole === 'tutor' &&
-                        <Badge variant="outline">
-                          {filteredEnrollments.length} {filteredEnrollments.length > 1 ? 'asignados' : 'asignado'}
-                        </Badge>
-                      }
-                    </CardTitle>
+                    <div className="flex flex-col gap-4">
+                      <CardTitle>
+                        Lista de Asignaciones
+                      </CardTitle>
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div className="flex items-center w-full md:w-auto">
+                          {currentRole === 'tutor' ? (
+                            <Badge variant="outline" className="w-full md:w-auto">
+                              {filteredEnrollments.length} {filteredEnrollments.length > 1 ? 'asignados' : 'asignado'}
+                            </Badge>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="lg"
+                              className="text-xs sm:text-sm w-full md:w-auto"
+                              disabled={currentRole === 'auditor'}
+                            >
+                              Exportar
+                            </Button>
+                          )}
+                        </div>
+                        {canCreateStudentsClasses && (
+                          <div className="flex gap-2 md:flex-row flex-col items-center w-full md:w-auto">
+                            <Button
+                              size="lg"
+                              className="gap-2 w-full md:w-auto"
+                              onClick={openCreate}
+                              disabled={isLoading || !currentSchool}
+                            >
+                              <Plus className="w-4 h-4" />
+                              Agregar Asignación
+                            </Button>
+                            <Button
+                              size="lg"
+                              className="gap-2 w-full md:w-auto"
+                              onClick={() => setIsMassAssignmentOpen(true)}
+                              disabled={isLoading || !currentSchool}
+                            >
+                              <Plus className="w-4 h-4" />
+                              Asignar Clases Masivamente
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     {isLoading ? (
@@ -770,18 +771,30 @@ export default function StudentClassesDashboard() {
                 </div>
               </TabsContent>
             </Tabs>
+            {/* Modal de asignación masiva */}
+            {currentSchool && (
+              <MassAssignmentStudets
+                isOpen={isMassAssignmentOpen}
+                onClose={() => setIsMassAssignmentOpen(false)}
+                schoolId={currentSchool.school._id as Id<'school'>}
+                students={students || []}
+                classCatalogs={ClassCatalog || []}
+              />
+            )}
 
             <CrudDialog
               isOpen={isOpen}
               operation={operation}
               title={
-                operation === 'create' ? 'Crear nueva asignación de alumno por clase' :
-                  operation === 'edit' ? 'Editar asignación de alumno por clase' : 'Ver asignación de alumno por clase'
+                operation === 'create' ? 'Crear Nueva Asignación de Alumno a Clase' :
+                  operation === 'edit' ? 'Actualizar Asignación de Alumno a Clase' : 'Detalles de la Asignación de Alumno a Clase'
               }
               description={
-                operation === 'create' ? 'Completa los campos para crear una nueva asignación.' :
-                  operation === 'edit' ? 'Actualizar los datos de la asignación.' : 'Detalles de la asignación'
+                operation === 'create' ? 'Completa los campos necesarios para registrar una nueva asignación y asegurar el control académico del alumno.' :
+                  operation === 'edit' ? 'Modifica la información de esta asignación para mantener los datos actualizados y precisos.' : 'Consulta toda la información relacionada con esta asignación.'
               }
+              deleteConfirmationTitle="¿Eliminar Asignación?"
+              deleteConfirmationDescription="Esta acción eliminará permanentemente la asignación del sistema. No podrá deshacerse."
               schema={studentClassSchema}
               defaultValues={{
                 _id: '',
@@ -796,6 +809,8 @@ export default function StudentClassesDashboard() {
               onOpenChange={close}
               onSubmit={handleSubmit}
               onDelete={handleDelete}
+              toastMessages={toastMessages}
+              disableDefaultToasts={false}
             >
               {(form, operation) => (
                 <div className="space-y-6">
@@ -848,93 +863,30 @@ export default function StudentClassesDashboard() {
                             disabled={operation === "view"}
                           />
                         </div>
-                        // <FormItem>
-                        //   <FormLabel>Clase</FormLabel>
-                        //   <Select
-                        //     onValueChange={field.onChange}
-                        //     value={field.value as string}
-                        //     disabled={operation === 'view'}
-                        //   >
-                        //     <FormControl>
-                        //       <SelectTrigger className="w-full truncate">
-                        //         <SelectValue placeholder="Seleccione una clase" />
-                        //       </SelectTrigger>
-                        //     </FormControl>
-                        //     <SelectContent>
-                        //       {classCatalogsWithDetails?.map((cc) => (
-                        //         <SelectItem key={cc._id} value={cc._id}>
-                        //           {cc.name} - {cc.teacher?.name} {cc.teacher?.lastName}
-                        //         </SelectItem>
-                        //       ))}
-                        //     </SelectContent>
-                        //   </Select>
-                        //   <FormMessage />
-                        // </FormItem>
                       )}
                     />
                   </div>
 
-
-                  <FormField
-                    control={form.control}
-                    name="enrollmentDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Fecha de asignación</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="date"
-                            disabled={operation === 'view'}
-                            min={new Date().toISOString().split("T")[0]}
-                            value={
-                              field.value
-                                ? (typeof field.value === 'number'
-                                  ? new Date(field.value).toISOString().split("T")[0]
-                                  : new Date(field.value as string).toISOString().split("T")[0])
-                                : ''
-                            }
-                            onChange={(e) => field.onChange(e.target.value)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                  <CrudFields
+                    fields={[
+                      {
+                        name: 'enrollmentDate',
+                        label: 'Fecha de asignación',
+                        type: 'date',
+                        required: true
+                      },
+                      {
+                        name: 'averageScore',
+                        label: 'Promedio',
+                        type: 'number',
+                        placeholder: 'Promedio final de la clase',
+                        step: '0.1'
+                      }
+                    ]}
+                    form={form}
+                    operation={operation}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="averageScore"
-                    render={({ field }) => {
-                      const inputValue = field.value === null || field.value === undefined
-                        ? ""
-                        : String(field.value);
-
-                      return (
-                        <FormItem>
-                          <FormLabel>Promedio</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type="number"
-                              step="0.1"
-                              placeholder="Promedio final de la clase"
-                              value={inputValue}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                const numValue = value === ""
-                                  ? undefined
-                                  : Number(value);
-                                field.onChange(numValue);
-                              }}
-                              disabled={operation === "view"}
-
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      );
-                    }}
-                  />
                   {(operation != 'create') && (
                     <FormField
                       control={form.control}

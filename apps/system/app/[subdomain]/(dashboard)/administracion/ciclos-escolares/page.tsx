@@ -52,6 +52,10 @@ import {
 } from "@repo/ui/components/shadcn/card";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
+import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
+import CrudFields, { TypeFields } from '@repo/ui/components/dialog/crud-fields';
+
 
 export default function SchoolCyclesPage() {
   const { user: clerkUser, isLoaded } = useUser();
@@ -110,6 +114,9 @@ export default function SchoolCyclesPage() {
     endDate: "",
     status: "inactive",
   });
+
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Ciclo Escolar");
 
   const validateUniqueName = (name: string, currentId?: string) => {
     const normalizedName = name.trim().toLowerCase();
@@ -238,6 +245,36 @@ export default function SchoolCyclesPage() {
     await deleteCicloEscolar(id as Id<"schoolCycle">);
   };
 
+  if (isLoading) {
+    return <GeneralDashboardSkeleton nc={3} />;
+  }
+
+  const crudFields: TypeFields = [
+    {
+      name: 'startDate',
+      label: 'Fecha de Inicio',
+      type: 'date',
+      required: true
+    },
+    {
+      name: 'endDate',
+      label: 'Fecha de Fin',
+      type: 'date',
+      required: true
+    },
+    {
+      name: 'status',
+      label: 'Estado',
+      type: 'select',
+      required: true,
+      options: [
+        { value: 'inactive', label: 'Inactivo' },
+        { value: 'active', label: 'Activo' },
+        { value: 'archived', label: 'Archivado' }
+      ]
+    }
+  ];
+
   return (
     <>
       {canReadSchoolCycle ? (
@@ -261,17 +298,6 @@ export default function SchoolCyclesPage() {
                     </div>
                   </div>
                 </div>
-                {canCreateSchoolCycle && (
-                  <Button
-                    size="lg"
-                    className="gap-2"
-                    onClick={openCreate}
-                    disabled={isCreating}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Agregar Ciclo Escolar
-                  </Button>
-                )}
               </div>
             </div>
           </div>
@@ -281,50 +307,50 @@ export default function SchoolCyclesPage() {
             updateError ||
             deleteError ||
             duplicateNameError) && (
-            <div className="space-y-4">
-              {createError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Error al crear el ciclo: {createError}
-                  </AlertDescription>
-                </Alert>
-              )}
-              {updateError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Error al actualizar el ciclo: {updateError}
-                  </AlertDescription>
-                </Alert>
-              )}
-              {deleteError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Error al eliminar el ciclo: {deleteError}
-                  </AlertDescription>
-                </Alert>
-              )}
-              {duplicateNameError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Error de validación: {duplicateNameError}
-                  </AlertDescription>
-                </Alert>
-              )}
-              <button
-                onClick={() => {
-                  clearErrors();
-                  setDuplicateNameError(null);
-                }}
-                className="text-xs text-blue-500 underline mt-1"
-              >
-                Limpiar errores
-              </button>
-            </div>
-          )}
+              <div className="space-y-4">
+                {createError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Error al crear el ciclo: {createError}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {updateError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Error al actualizar el ciclo: {updateError}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {deleteError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Error al eliminar el ciclo: {deleteError}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {duplicateNameError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Error de validación: {duplicateNameError}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <button
+                  onClick={() => {
+                    clearErrors();
+                    setDuplicateNameError(null);
+                  }}
+                  className="text-xs text-blue-500 underline mt-1"
+                >
+                  Limpiar errores
+                </button>
+              </div>
+            )}
 
           {/* Estadísticas */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -429,23 +455,31 @@ export default function SchoolCyclesPage() {
           {/* Tabla de Ciclos Escolares */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Lista de los grupos</span>
-                <Badge variant="outline">
-                  {filteredCycles.length} ciclos escolares
-                </Badge>
-              </CardTitle>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <CardTitle>
+                  <div className="flex flex-col gap-2">
+                    <span>Lista de los grupos</span>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                      {filteredCycles.length} ciclos escolares
+                    </Badge>
+                  </div>
+                </CardTitle>
+                {canCreateSchoolCycle && (
+                  <Button
+                    size="lg"
+                    className="gap-2"
+                    onClick={openCreate}
+                    disabled={isCreating}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Agregar Ciclo Escolar
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-muted-foreground">
-                      Cargando ciclos escolares...
-                    </p>
-                  </div>
-                </div>
+                <GeneralDashboardSkeleton nc={3} />
               ) : filteredCycles.length === 0 ? (
                 <div className="text-center py-12">
                   <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -492,16 +526,18 @@ export default function SchoolCyclesPage() {
               operation === "create"
                 ? "Crear Nuevo Ciclo Escolar"
                 : operation === "edit"
-                  ? "Editar Ciclo Escolar"
-                  : "Ver Ciclo Escolar"
+                  ? "Actualizar Ciclo Escolar"
+                  : "Detalles del Ciclo Escolar"
             }
             description={
               operation === "create"
-                ? "Completa la información del nuevo ciclo escolar"
+                ? "Ingresa los datos necesarios para establecer un nuevo ciclo escolar y organizar correctamente la operación académica."
                 : operation === "edit"
-                  ? "Modifica la información del ciclo escolar"
-                  : "Información del ciclo escolar"
+                  ? "Ajusta la información del ciclo escolar para mantener su configuración vigente."
+                  : "Revisa la información completa registrada para este ciclo escolar."
             }
+            deleteConfirmationTitle="¿Eliminar Ciclo Escolar?"
+            deleteConfirmationDescription="Esta acción eliminará permanentemente el ciclo escolar del sistema. No será posible recuperarlo más adelante."
             schema={cicloEscolarSchema}
             defaultValues={{
               name: "",
@@ -514,6 +550,8 @@ export default function SchoolCyclesPage() {
             onOpenChange={handleClose}
             onSubmit={handleSubmit}
             onDelete={handleDelete}
+            toastMessages={toastMessages}
+            disableDefaultToasts={false}
           >
             {(form, operation) => (
               <div className="grid gap-4">
@@ -564,97 +602,10 @@ export default function SchoolCyclesPage() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="startDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Fecha de Inicio</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="date"
-                          value={(field.value as string) || ""}
-                          onChange={(e) => {
-                            field.onChange(e);
-                            // Limpiar errores de fecha cuando cambie
-                            if (form.formState.errors.startDate) {
-                              form.clearErrors("startDate");
-                            }
-                            // Limpiar error de refinamiento si existe
-                            if (form.formState.errors.endDate) {
-                              form.clearErrors("endDate");
-                            }
-                          }}
-                          disabled={operation === "view"}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="endDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Fecha de Fin</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="date"
-                          value={(field.value as string) || ""}
-                          onChange={(e) => {
-                            field.onChange(e);
-                            // Limpiar errores de fecha cuando cambie
-                            if (form.formState.errors.endDate) {
-                              form.clearErrors("endDate");
-                            }
-                          }}
-                          disabled={operation === "view"}
-                        />
-                      </FormControl>
-                      {/* Solo mostrar el texto de ayuda si no hay errores de validación */}
-                      {!form.formState.errors.endDate && (
-                        <div className="text-sm text-muted-foreground">
-                          El ciclo debe durar mínimo 28 días y máximo 5 años
-                        </div>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Estado</FormLabel>
-                      <Select
-                        onValueChange={(value) => {
-                          field.onChange(value);
-                          // Limpiar errores de status cuando cambie
-                          if (form.formState.errors.status) {
-                            form.clearErrors("status");
-                          }
-                        }}
-                        value={field.value as string}
-                        disabled={operation === "view"}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un estado" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="inactive">Inactivo</SelectItem>
-                          <SelectItem value="active">Activo</SelectItem>
-                          <SelectItem value="archived">Archivado</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                <CrudFields
+                  fields={crudFields}
+                  operation={operation}
+                  form={form}
                 />
               </div>
             )}

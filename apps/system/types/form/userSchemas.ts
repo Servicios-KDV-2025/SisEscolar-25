@@ -1,4 +1,5 @@
 import { z } from "@repo/zod-config/index";
+import validateRfc from "validate-rfc";
 
 // =====================================================
 // SCHEMAS DE USUARIOS
@@ -10,19 +11,61 @@ import { z } from "@repo/zod-config/index";
  */
 export const userSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
-  lastName: z.string().optional(),
-  email: z.string().email("Email inválido"),
+  lastName: z.string().min(2, "El apellido debe tener al menos 2 caracteres"),
+  email: z.email("El formato del correo es inválido"),
   phone: z.string()
-    .regex(/^\d+$/, "El teléfono solo puede contener números (dígitos).")
-    .min(9, "El teléfono debe tener al menos 9 caracteres")
-    .max(12, "El teléfono no puede tener más de 12 caracteres")
-    .optional(),
-  address: z.string().min(5, "La dirección debe tener al menos 5 caracteres").max(150, "La dirección no puede tener más de 150 caracteres").optional(),
+    .regex(/^\d+$/, "El teléfono es un campo obligatorio")
+    .min(10, "El teléfono debe tener al menos 9 caracteres")
+    .max(10, "El teléfono no puede tener más de 10 caracteres"),
+  address: z.string().min(5, "La dirección debe tener al menos 5 caracteres").max(150, "La dirección no puede tener más de 150 caracteres"),
   birthDate: z.number().optional(),
   admissionDate: z.number().optional(),
   imgUrl: z.string().optional(),
-  status: z.enum(["active", "inactive"]).default("active"),
+  status: z.enum(["active", "inactive"]).default("active")
 });
+
+const passwordSchema = z.string().check((ctx) => {
+  const missing: string[] = [];
+
+  if (ctx.value.length < 8) {
+    missing.push("al menos 8 caracteres");
+  }
+  if (!/[A-Z]/.test(ctx.value)) {
+    missing.push("una letra mayúscula");
+  }
+  if (!/[a-z]/.test(ctx.value)) {
+    missing.push("una letra minúscula");
+  }
+  if (!/\d/.test(ctx.value)) {
+    missing.push("un número");
+  }
+  if (!/[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?]/.test(ctx.value)) {
+    missing.push("un carácter especial (ej. !@#$%&*)");
+  }
+
+  if (missing.length > 0) {
+    const message =
+      "La contraseña debe incluir " +
+      missing
+        .map((m, i) => {
+          if (i === 0) return m;
+          if (i === missing.length - 1) return "y " + m;
+          return m;
+        })
+        .join(", ") +
+      ".";
+    
+    // agregamos un *solo* issue con el mensaje combinado
+    ctx.issues.push({
+      code: "custom",
+      message,
+      path: [],
+      input: ctx.value,
+    });
+  }
+
+});
+
 
 /**
  * Schema para super-administradores (para creación)
@@ -30,7 +73,7 @@ export const userSchema = z.object({
  * Password opcional porque puede asignar usuarios existentes
  */
 export const superAdminCreateSchema = userSchema.extend({
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").optional(),
+  password: passwordSchema,
 });
 
 /**
@@ -45,7 +88,7 @@ export const superAdminEditSchema = userSchema;
  * Hace el password opcional para que funcione tanto para crear como editar
  */
 export const superAdminSchema = userSchema.extend({
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").optional(),
+  password: passwordSchema,
 });
 
 /**
@@ -71,15 +114,7 @@ export const teacherSchema = userSchema;
  * Los tutores tienen acceso a información de sus alumnos asignados
  */
 export const tutorCreateSchema = userSchema.extend({
-  password: z.string().optional().refine((val) => {
-    // Si se proporciona password, debe tener al menos 8 caracteres
-    if (val && val.length > 0) {
-      return val.length >= 8;
-    }
-    return true;
-  }, {
-    message: "La contraseña debe tener al menos 8 caracteres"
-  }),
+  password: passwordSchema,
 });
 
 /**
@@ -93,15 +128,7 @@ export const tutorEditSchema = userSchema;
  * Los tutores tienen acceso a información de sus alumnos asignados
  */
 export const tutorSchema = userSchema.extend({
-  password: z.string().optional().refine((val) => {
-    // Si se proporciona password, debe tener al menos 8 caracteres
-    if (val && val.length > 0) {
-      return val.length >= 8;
-    }
-    return true;
-  }, {
-    message: "La contraseña debe tener al menos 8 caracteres"
-  }),
+  password: passwordSchema,
 });
 
 /**
@@ -110,12 +137,12 @@ export const tutorSchema = userSchema.extend({
  * Soporta tanto un rol único (string) como múltiples roles (array)
  */
 export const unifiedUserCreateSchema = userSchema.extend({
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").optional(),
+  password: passwordSchema,
   role: z.union([
-    z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"]),
-    z.array(z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"])).min(1, "Debe seleccionar al menos un rol")
+    z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"], "Es obligatorio seleccionar un rol"),
+    z.array(z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"], "Es obligatorio seleccionar un rol")).min(1, "Debe seleccionar al menos un rol")
   ], {
-    message: "Debe seleccionar un rol"
+    message: "Es obligatorio seleccionar un rol"
   }),
   department: z.enum(["secretary", "direction", "schoolControl", "technology"]).optional(),
   isTutor: z.boolean().optional(), // 👈 Campo auxiliar solo para UI
@@ -133,10 +160,10 @@ export const unifiedUserCreateSchema = userSchema.extend({
 
 export const unifiedUserEditSchema = userSchema.extend({
   role: z.union([
-    z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"]),
-    z.array(z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"])).min(1, "Debe seleccionar al menos un rol")
+    z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"], "Es obligatorio seleccionar un rol"),
+    z.array(z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"], "Es obligatorio seleccionar un rol")).min(1, "Debe seleccionar al menos un rol")
   ], {
-    message: "Debe seleccionar un rol"
+    message: "Es obligatorio seleccionar un rol"
   }),
   department: z.enum(["secretary", "direction", "schoolControl", "technology"]).optional(),
   isTutor: z.boolean().optional(), // 👈 Campo auxiliar solo para UI
@@ -156,12 +183,12 @@ export const unifiedUserEditSchema = userSchema.extend({
  * Schema unificado para visualización o casos generales
  */
 export const unifiedUserSchema = userSchema.extend({
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").optional(),
+  password: passwordSchema,
   role: z.union([
     z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"]),
     z.array(z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"])).min(1, "Debe seleccionar al menos un rol")
   ], {
-    message: "Debe seleccionar un rol"
+    message: "Es obligatorio seleccionar un rol"
   }),
   department: z.enum(["secretary", "direction", "schoolControl", "technology"]).optional(),
   isTutor: z.boolean().optional(), // 👈 Campo auxiliar solo para UI
@@ -216,17 +243,17 @@ export const studentSchema = z.object({
   scholarshipType: z.union([z.literal("inactive"), z.literal("active")]),
   scholarshipPercentage: z.number().max(100, "El porcentaje debe ser menor a 100").optional(),
 }).refine(
-    (data) => {
-      if (data.scholarshipType === "active") {
-        return data.scholarshipPercentage && data.scholarshipPercentage > 0;
-      }
-      return true;
-    },
-    {
-      message: "El porcentaje no puede ser 0",
-      path: ["scholarshipPercentage"],
+  (data) => {
+    if (data.scholarshipType === "active") {
+      return data.scholarshipPercentage && data.scholarshipPercentage > 0;
     }
-  );
+    return true;
+  },
+  {
+    message: "El porcentaje no puede ser 0",
+    path: ["scholarshipPercentage"],
+  }
+);
 
 // -----------------------------------------------------
 // TIPOS DERIVADOS
@@ -298,3 +325,91 @@ export type TeacherWithSchoolInfo = TeacherWithMetadata & {
 export type TutorWithSchoolInfo = TutorWithMetadata & {
   userSchool?: UserSchool & WithSystemMetadata;
 };
+
+function isValidRFC(rfc: string): boolean {
+  const result = validateRfc(rfc);
+  return result.isValid;
+}
+
+export const fiscalDataSchema = z.object({
+  legalName: z
+    .string()
+    .trim()
+    .nonempty("El nombre o razón social es obligatorio")
+    .min(2, "El nombre o razón social debe tener al menos 2 caracteres")
+    .max(120, "El nombre o razón social no puede tener más de 120 caracteres")
+    .regex(/^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9\s.,&'-]+$/, "El nombre contiene caracteres inválidos"),
+  taxId: z
+    .string()
+    .min(12, "El RFC no tiene un formato válido")
+    .max(13)
+    .refine((val) => isValidRFC(val), {
+      message: "El RFC no tiene un formato válido",
+    }),
+  taxSystem: z.enum(["605", "606", "612", "616"], {
+    message: "Debe seleccionar un régimen fiscal válido",
+  }),
+  cfdiUse: z.enum(["G03", "D10"], {
+    message: "Debe seleccionar un uso de CFDI válido",
+  }),
+  street: z
+    .string()
+    .trim()
+    .nonempty("La calle es obligatoria")
+    .min(3, "La calle debe tener al menos 3 caracteres")
+    .max(100, "La calle no puede tener más de 100 caracteres"),
+  exteriorNumber: z
+    .string()
+    .nonempty("El número exterior es obligatorio")
+    .trim()
+    .refine((val) => (val !== undefined && val !== null) || val === "", "El número exterior es requerido")
+    .regex(/^[\w-]+$/, "El número exterior contiene caracteres inválidos")
+    .min(1, "El número exterior es requerido"),
+  interiorNumber: z
+    .string()
+    .optional(),
+  neighborhood: z
+    .string()
+    .trim()
+    .nonempty("La colonia es obligatoria")
+    .min(2, "La colonia debe tener al menos 2 caracteres")
+    .max(100, "La colonia no puede tener más de 100 caracteres"),
+  city: z
+    .string()
+    .trim()
+    .nonempty("La ciudad es obligatoria")
+    .min(2, "La ciudad debe tener al menos 2 caracteres")
+    .max(100, "La ciudad no puede tener más de 100 caracteres"),
+  state: z
+    .string()
+    .trim()
+    .nonempty("El estado es obligatorio")
+    .min(2, "El estado debe tener al menos 2 caracteres")
+    .max(100, "El estado no puede tener más de 100 caracteres"),
+  zip: z
+    .string()
+    .trim()
+    .nonempty("El código es obligatorio")
+    .regex(/^\d{5}$/, "El código postal debe tener exactamente 5 dígitos"),
+  country: z.literal("MXN").default("MXN"),
+  email: z
+    .string()
+    .nonempty("El correo es obligatorio")
+    .email("Correo inválido"),
+  phone: z
+    .string()
+    .trim()
+    .nonempty("El teléfono es obligatorio")
+    .regex(/^\d{10}$/, "El teléfono debe tener exactamente 10 dígitos (solo números)")
+    .optional(),
+});
+
+export const fiscalDataCreateSchema = fiscalDataSchema.extend({
+  userId: z.string(),
+});
+
+export const fiscalDataEditSchema = fiscalDataSchema;
+
+export type FiscalData = z.infer<typeof fiscalDataSchema>;
+export type FiscalDataCreate = z.infer<typeof fiscalDataCreateSchema>;
+export type FiscalDataEdit = z.infer<typeof fiscalDataEditSchema>;

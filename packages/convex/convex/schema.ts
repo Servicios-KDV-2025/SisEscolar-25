@@ -20,6 +20,39 @@ const applicationTable = defineSchema({
     .index("by_clerkId", ["clerkId"])
     .index("by_email", ["email"])
     .index("by_status", ["status"]),
+
+  fiscalData: defineTable({
+    userId: v.id("user"),
+    legalName: v.string(), // Nombre o razón social
+    taxId: v.string(), // RFC
+    taxSystem: v.union(
+      v.literal("605"), // Sueldos y Salarios
+      v.literal("606"), // Arrendamiento
+      v.literal("612"), // Actividades Empresariales y Profesionales
+      v.literal("616"), // Régimen Simplificado de Confianza
+    ),
+    cfdiUse: v.union(
+      v.literal("G03"), // Gastos en general
+      v.literal("D10"), // Pagos por servicios educativos
+    ),
+    street: v.string(),
+    exteriorNumber: v.string(),
+    interiorNumber: v.optional(v.string()),
+    neighborhood: v.string(),
+    city: v.string(),
+    state: v.string(),
+    zip: v.string(),
+    country: v.optional(v.literal("MXN")),
+    email: v.string(),
+    phone: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    createBy: v.id("user"),
+    updatedBy: v.id("user"),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_taxId", ["taxId"]),
+
   userSchool: defineTable({
     userId: v.id("user"),
     schoolId: v.id("school"),
@@ -228,8 +261,8 @@ const applicationTable = defineSchema({
   })
     .index("by_classCatalogId", ["classCatalogId"])
     .index("by_classCatalogId_term", ["classCatalogId", "termId"])
-    .index("by_term", ["termId"]) // ✨ Para el tutor y el admin
-    .index("by_createdBy", ["createdBy"]) // ✨ Para el maestro
+    .index("by_term", ["termId"]) //   Para el tutor y el admin
+    .index("by_createdBy", ["createdBy"]) //   Para el maestro
     .index("by_rubric", ["gradeRubricId"]),
 
   //Calificaciones Individuales
@@ -478,12 +511,13 @@ const applicationTable = defineSchema({
       v.literal("cash"),
       v.literal("bank_transfer"),
       v.literal("card"),
+      v.literal("oxxo"),
       v.literal("other")
     ),
     amount: v.number(),
-    invoiceId: v.optional(v.string()),
-    invoiceFilename: v.optional(v.string()),
-    invoiceMimeType: v.optional(v.string()),
+    facturapiInvoiceId: v.optional(v.string()),
+    facturapiInvoiceNumber: v.optional(v.string()),
+    facturapiInvoiceStatus: v.optional(v.string()),
     createdBy: v.id("user"),
     createdAt: v.number(),
     updatedAt: v.number(),

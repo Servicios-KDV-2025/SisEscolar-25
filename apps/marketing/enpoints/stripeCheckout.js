@@ -1,7 +1,7 @@
 import Stripe from 'stripe'
 import { auth } from '@clerk/nextjs/server'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', { apiVersion: '2025-09-30.clover' })
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', { apiVersion: '2025-10-29.clover' })
 
 export const stripeCheckout = async (req) => {
   try {

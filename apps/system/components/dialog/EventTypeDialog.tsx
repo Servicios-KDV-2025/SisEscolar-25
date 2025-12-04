@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "convex/react";
 import {
@@ -21,7 +21,6 @@ import {
   FormMessage,
 } from "@repo/ui/components/shadcn/form";
 import { Input } from "@repo/ui/components/shadcn/input";
-import { Textarea } from "@repo/ui/components/shadcn/textarea";
 import { Button } from "@repo/ui/components/shadcn/button";
 import {
   Select,
@@ -41,11 +40,13 @@ import {
   X,
   Trash2,
 } from "@repo/ui/icons";
-import { toast } from "sonner";
+import { toast } from "@repo/ui/sonner";
 import { EventType } from "@/types/eventType";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { EventTypeFormData, EventTypeSchema } from "schema/eventType";
 import { api } from "@repo/convex/convex/_generated/api";
+import { useCrudToastMessages } from "../../hooks/useCrudToastMessages";
+import CrudFields from '@repo/ui/components/dialog/crud-fields';
 
 interface TipoEventoDialogProps {
   isOpen: boolean;
@@ -107,6 +108,8 @@ export default function EventTypeDialog({
     api.functions.eventType.deleteEventType
   );
 
+  const toastMessages = useCrudToastMessages("Tipo de Evento");
+
   const form = useForm<EventTypeFormData>({
     resolver: zodResolver(EventTypeSchema),
     defaultValues: {
@@ -152,15 +155,37 @@ export default function EventTypeDialog({
   const handleEliminar = async () => {
     if (!tipoEventoEditar) return;
     try {
+      setIsLoading(true);
       await eliminarTipoEvento({
         schoolId: escuelaId,
         eventTypeId: tipoEventoEditar._id,
       });
-      toast.success("Evento eliminado");
+      // Toast de eliminación personalizado con icono de bote de basura
+      toast(
+        <span style={{ color: '#dc2626', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Trash2 className="h-4 w-4" style={{ color: '#dc2626' }} />
+          {toastMessages.deleteSuccess}
+        </span>,
+        {
+          className: 'bg-white border border-red-200 toast-red-text',
+          duration: 3000,
+        }
+      );
       onOpenChange(false);
     } catch (error) {
-      toast.error("Error al eliminar" + error);
-      toast.error("Error al eliminar" + error);
+      // Toast de error personalizado
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.deleteError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: error instanceof Error ? error.message : undefined
+        }
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -179,7 +204,16 @@ export default function EventTypeDialog({
           icon: data.icon,
           status: data.status || "active",
         });
-        toast.success("¡Tipo de Evento editado exitosamente!");
+        // Toast personalizado con fondo blanco y texto verde
+        toast.success(
+          <span style={{ color: '#16a34a', fontWeight: 600 }}>
+            {toastMessages.editSuccess}
+          </span>,
+          {
+            className: 'bg-white border border-green-200',
+            unstyled: false,
+          }
+        );
       } else {
         await crearTipoEvento({
           schoolId: escuelaId,
@@ -189,25 +223,55 @@ export default function EventTypeDialog({
           color: data.color || undefined,
           icon: data.icon || undefined,
         });
-        toast.success("Tipo de evento creado exitosamente");
+        // Toast personalizado con fondo blanco y texto verde
+        toast.success(
+          <span style={{ color: '#16a34a', fontWeight: 600 }}>
+            {toastMessages.createSuccess}
+          </span>,
+          {
+            className: 'bg-white border border-green-200',
+            unstyled: false,
+          }
+        );
       }
       form.reset();
       onOpenChange(false);
     } catch (error) {
-      toast.error("Error al crear el tipo de evento" + error);
+      // Toast de error personalizado - distingue entre crear y editar
+      const errorMessage = tipoEventoEditar 
+        ? toastMessages.editError 
+        : toastMessages.createError;
+      
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {errorMessage}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: error instanceof Error ? error.message : undefined
+        }
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleNameChange = (name: string) => {
-    const key = name
-      .toUpperCase()
-      .replace(/[^A-Z0-9\s]/g, "")
-      .replace(/\s+/g, "_")
-      .slice(0, 10);
-    form.setValue("key", key);
-  };
+  const operation = !canUpdateCalendar ? 'view' : tipoEventoEditar ? 'edit' : 'create';
+
+  useEffect(() => {
+    const nameValue = form.getValues('name');
+    if (nameValue && operation === 'create') {
+      const key = nameValue
+        .toUpperCase()
+        .replace(/[^A-Z0-9\s]/g, "")
+        .replace(/\s+/g, "_")
+        .slice(0, 10);
+      form.setValue("key", key);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.watch('name'), operation]);
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -215,30 +279,27 @@ export default function EventTypeDialog({
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-gray-900">
             {confirmingDelete
-              ? "Confirmar Eliminación"
+              ? "¿Eliminar tipo de evento?"
               : !canUpdateCalendar
-                ? "Detalle del Tipo de Evento"
+                ? "Ver Tipo de Evento"
                 : tipoEventoEditar
-                  ? "Editar Tipo de Evento"
+                  ? "Actualizar Tipo de Evento"
                   : "Crear Nuevo Tipo de Evento"}
           </DialogTitle>
           <DialogDescription className="text-gray-600">
             {confirmingDelete
-              ? "¿Estás seguro? Esta acción no se puede deshacer."
+              ? "Esta acción no se puede deshacer. El tipo de evento será eliminado permanentemente."
               : tipoEventoEditar
-                ? "Modifica la información del tipo de evento."
+                ? "Modifica los datos del tipo de evento."
                 : !canUpdateCalendar
                   ? "Información detallada del tipo de evento."
-                  : "Define un nuevo tipo de evento para tus actividades."}
+                  : "Define la información del nuevo tipo de evento para usarlo en tus actividades."}
           </DialogDescription>
         </DialogHeader>
 
         {confirmingDelete ? (
-          <div className="py-6">
-            <p className="text-center">
-              El tipo de evento será eliminado permanentemente.
-            </p>
-            <div className="flex justify-end gap-3 pt-6 mt-6 border-t">
+          <div>
+            <div className="flex justify-end gap-3 pt-6 border-t">
               <Button
                 variant="outline"
                 onClick={() => setConfirmingDelete(false)}
@@ -262,30 +323,17 @@ export default function EventTypeDialog({
           </div>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700">
-                      Nombre del Tipo de Evento
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={!canUpdateCalendar}
-                        {...field}
-                        placeholder="Ej: Reunión de Padres"
-                        className="h-11"
-                        onChange={(e) => {
-                          field.onChange(e);
-                          handleNameChange(e.target.value);
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+              <CrudFields
+                fields={[{
+                  name: 'name',
+                  label: 'Nombre del Tipo de Evento',
+                  type: 'text',
+                  required: true,
+                  placeholder: 'Ej: Reunión de Padres',
+                }]}
+                operation={operation}
+                form={form as unknown as UseFormReturn<Record<string, unknown>>}
               />
 
               <FormField
@@ -314,29 +362,16 @@ export default function EventTypeDialog({
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700">
-                      Descripción (Opcional)
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea
-                        disabled={!canUpdateCalendar}
-                        {...field}
-                        placeholder="Descripción breve del tipo de evento..."
-                        className="min-h-[80px] resize-none"
-                        maxLength={200}
-                      />
-                    </FormControl>
-                    <FormDescription className="text-xs text-gray-500">
-                      {field.value?.length || 0}/200 caracteres
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              <CrudFields
+                fields={[{
+                  name: 'description',
+                  label: 'Descripción (Opcional)',
+                  type: 'textarea',
+                  placeholder: 'Descripción breve del tipo de evento...',
+                  maxLength: 200,
+                }]}
+                operation={operation}
+                form={form as unknown as UseFormReturn<Record<string, unknown>>}
               />
 
               <FormField
@@ -357,9 +392,8 @@ export default function EventTypeDialog({
                           <SelectValue>
                             <div className="flex items-center gap-2">
                               <div
-                                className={`w-4 h-4 rounded-full border border-gray-300 ${
-                                colorOptions.find(c => c.value === field.value)?.preview || 'bg-gray-500'
-                              }`}
+                                className={`w-4 h-4 rounded-full border border-gray-300 ${colorOptions.find(c => c.value === field.value)?.preview || 'bg-gray-500'
+                                  }`}
                                 style={{ backgroundColor: selectedColor }}
                               />
                               {colorOptions.find((c) => c.value === selectedColor)?.label}
@@ -437,31 +471,22 @@ export default function EventTypeDialog({
               />
 
               {tipoEventoEditar ? (
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Estado</FormLabel>
-                      <FormControl>
-                        <Select
-                          disabled={!canUpdateCalendar}
-                          onValueChange={(value) => field.onChange(value)}
-                          value={field.value || "active"}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona el estado" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="active">Activo</SelectItem>
-                            <SelectItem value="inactive">Inactivo</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <>
+                  <CrudFields
+                    fields={[{
+                      name: 'status',
+                      label: 'Estado',
+                      type: 'select',
+                      required: true,
+                      options: [
+                        { value: 'active', label: 'Activo' },
+                        { value: 'inactive', label: 'Inactivo' },
+                      ],
+                    }]}
+                    operation={operation}
+                    form={form as unknown as UseFormReturn<Record<string, unknown>>}
+                  />
+                </>
               ) : (
                 ""
               )}

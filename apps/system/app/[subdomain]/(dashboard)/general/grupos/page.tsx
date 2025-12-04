@@ -30,13 +30,6 @@ import {
   useCrudDialog,
 } from "@repo/ui/components/dialog/crud-dialog";
 import { groupSchema } from "@/types/form/groupSchema";
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@repo/ui/components/shadcn/form";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import {
   Card,
@@ -48,6 +41,9 @@ import {
 import { GroupCard } from "../../../../../components/GroupCard";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
+import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
+import CrudFields, { TypeFields } from '@repo/ui/components/dialog/crud-fields';
 
 export default function GroupPage() {
   const { user: clerkUser, isLoaded } = useUser();
@@ -94,6 +90,9 @@ export default function GroupPage() {
     status: "",
   });
 
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Grupo");
+
   const filteredGroups = groups.filter((group) => {
     const matchesSearch =
       group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -114,7 +113,8 @@ export default function GroupPage() {
         name: values.name as string,
         grade: values.grade as string,
         status: values.status as "active" | "inactive",
-      });
+      })
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
     } else if (operation === "edit" && data?._id) {
       await updateGroup({
         _id: data._id as Id<"subject">,
@@ -124,17 +124,66 @@ export default function GroupPage() {
         status: values.status as "active" | "inactive",
         updatedAt: new Date().getTime(),
         updatedBy: currentUser._id,
-      });
+      })
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
     }
   };
 
   const handleDelete = async (id: string) => {
-    await deleteGroup(id, currentSchool?.school._id);
+    await deleteGroup(id, currentSchool?.school._id)
+    //   Los toasts ahora los maneja el CrudDialog automáticamente
   };
 
   const { canCreateGroup, canReadGroup } = usePermissions(
     currentSchool?.school._id
   );
+
+  if (isLoading) {
+    return <GeneralDashboardSkeleton nc={3} />
+  }
+
+  const crudFields: TypeFields = [
+    {
+      name: 'grade',
+      label: 'Grado',
+      type: 'select',
+      options: [
+        { value: '1°', label: '1°' },
+        { value: '2°', label: '2°' },
+        { value: '3°', label: '3°' },
+        { value: '4°', label: '4°' },
+        { value: '5°', label: '5°' },
+        { value: '6°', label: '6°' },
+      ],
+      placeholder: 'Seleccionar grado',
+      required: true
+    },
+    {
+      name: 'name',
+      label: 'Nombre',
+      type: 'select',
+      options: [
+        { value: 'A', label: 'A' },
+        { value: 'B', label: 'B' },
+        { value: 'C', label: 'C' },
+        { value: 'D', label: 'D' },
+        { value: 'E', label: 'E' },
+      ],
+      placeholder: 'Seleccionar Nombre',
+      required: true
+    },
+    {
+      name: 'status',
+      label: 'Estado',
+      type: 'select',
+      options: [
+        { value: 'active', label: 'Activo' },
+        { value: 'inactive', label: 'Inactivo' }
+      ],
+      placeholder: 'Selecciona estatus',
+      required: false
+    },
+  ];
 
   return (
     <>
@@ -159,17 +208,6 @@ export default function GroupPage() {
                     </div>
                   </div>
                 </div>
-                {canCreateGroup && (
-                  <Button
-                    size="lg"
-                    className="gap-2"
-                    onClick={openCreate}
-                    disabled={isCreatingGroup}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Agregar Grupo
-                  </Button>
-                )}
               </div>
             </div>
           </div>
@@ -331,19 +369,31 @@ export default function GroupPage() {
           {/* Tabla de Personal */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Lista de los grupos</span>
-                <Badge variant="outline">{filteredGroups.length} grupos</Badge>
-              </CardTitle>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <CardTitle>
+                  <div className="flex flex-col gap-2">
+                    <span>Lista de los grupos</span>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                      {filteredGroups.length} grupos
+                    </Badge>
+                  </div>
+                </CardTitle>
+                {canCreateGroup && (
+                  <Button
+                    size="lg"
+                    className="gap-2"
+                    onClick={openCreate}
+                    disabled={isCreatingGroup}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Agregar Grupo
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-muted-foreground">Cargando grupos...</p>
-                  </div>
-                </div>
+                <GeneralDashboardSkeleton nc={3} />
               ) : filteredGroups.length === 0 ? (
                 <div className="text-center py-12">
                   <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -375,7 +425,7 @@ export default function GroupPage() {
                       openView={openView}
                       openDelete={openDelete}
                       canUpdateGroup={canCreateGroup}
-                      canDeleteGroup={canCreateGroup}                      
+                      canDeleteGroup={canCreateGroup}
                     />
                   ))}
                 </div>
@@ -390,16 +440,18 @@ export default function GroupPage() {
               operation === "create"
                 ? "Crear Nuevo Grupo"
                 : operation === "edit"
-                  ? "Editar Grupo"
-                  : "Ver Grupo"
+                  ? "Actualizar Grupo"
+                  : "Detalles del Grupo"
             }
             description={
               operation === "create"
-                ? "Completa la información del nuevo grupo"
+                ? "Completa los datos necesarios para formar un nuevo grupo dentro de la institución."
                 : operation === "edit"
-                  ? "Modifica la información del grupo"
-                  : "Información del grupo"
+                  ? "Modifica la información del grupo para mantener sus datos precisos y actualizados."
+                  : "Revisa toda la información registrada de este grupo."
             }
+            deleteConfirmationTitle="¿Eliminar Grupo?"
+            deleteConfirmationDescription="Esta acción eliminará permanentemente el grupo del sistema. No será posible recuperarlo posteriormente."
             schema={groupSchema}
             defaultValues={{
               grade: "1°",
@@ -411,95 +463,15 @@ export default function GroupPage() {
             onOpenChange={close}
             onSubmit={handleSubmit}
             onDelete={handleDelete}
+            toastMessages={toastMessages}
+            disableDefaultToasts={false}
           >
             {(form, operation) => (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="grade"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Grado</FormLabel>
-                      <FormControl>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value as string}
-                          disabled={operation === "view"}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccionar grado" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1°">1°</SelectItem>
-                            <SelectItem value="2°">2°</SelectItem>
-                            <SelectItem value="3°">3°</SelectItem>
-                            <SelectItem value="4°">4°</SelectItem>
-                            <SelectItem value="5°">5°</SelectItem>
-                            <SelectItem value="6°">6°</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => {
-                    return (
-                      <FormItem>
-                        <FormLabel>Nombre</FormLabel>
-                        <FormControl>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value as string}
-                            disabled={operation === "view"}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccionar Nombre" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="A">A</SelectItem>
-                              <SelectItem value="B">B</SelectItem>
-                              <SelectItem value="C">C</SelectItem>
-                              <SelectItem value="D">D</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    );
-                  }}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel>Estado</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value?.toString()}
-                        disabled={operation === "view"}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un estado" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="active">Grupo activo</SelectItem>
-                          <SelectItem value="inactive">
-                            Grupo inactivo
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+              <div>
+                <CrudFields
+                  fields={crudFields}
+                  operation={operation}
+                  form={form}
                 />
               </div>
             )}

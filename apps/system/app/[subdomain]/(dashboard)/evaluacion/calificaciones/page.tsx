@@ -10,7 +10,7 @@ import {
 } from "@repo/ui/components/shadcn/card";
 import {
   Select,
-  SelectContent,
+  SelectContent,  
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -20,7 +20,7 @@ import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { api } from "@repo/convex/convex/_generated/api";
 import { useQuery, useMutation } from "convex/react";
 import { useUser } from "@clerk/nextjs";
-import { toast } from "sonner";
+import { toast } from "@repo/ui/sonner";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Filter, BookCheck, SaveAll, Search, Plus } from "@repo/ui/icons";
 import { Badge } from "@repo/ui/components/shadcn/badge";
@@ -36,6 +36,8 @@ import { TaskForm } from 'components/tasks/TaskForm';
 import { UseFormReturn } from 'react-hook-form';
 import { TaskFormData, taskFormSchema } from '@/types/form/taskSchema';
 import { useTask } from 'stores/taskStore';
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
+import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
 
 export default function GradeManagementDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -43,17 +45,21 @@ export default function GradeManagementDashboard() {
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [selectedTerm, setSelectedTerm] = useState<string>("");
 
-  const { user: clerkUser, isLoaded } = useUser();
+  const { user: clerkUser } = useUser();
   const { currentUser, isLoading: userLoading } = useUserWithConvex(
     clerkUser?.id
   );
   const {
     currentSchool,
     isLoading: schoolLoading,
-    error: schoolError,
+    
   } = useCurrentSchool(currentUser?._id);
 
   const { createTask } = useTask(currentSchool?.school._id);
+
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Calificación");
+  const toastMessagesAsignacion = useCrudToastMessages("Asignación");
 
   const {
     isOpen,
@@ -79,7 +85,7 @@ export default function GradeManagementDashboard() {
     canCreateRubric,
     canUpdateRubric,
     currentRole,
-    isLoading,
+    isLoading: permissionsLoading,
   } = permissions;
 
   // Fetch data with Convex
@@ -243,11 +249,28 @@ export default function GradeManagementDashboard() {
             `Error guardando promedio para ${student.student.name}:`,
             error
           );
-          toast.error(`Error guardando promedio para ${student.student.name}`);
+          toast.error(
+            <span style={{ color: '#dc2626' }}>
+              Error guardando promedio para {student.student.name}
+            </span>,
+            {
+              className: 'bg-white border border-red-200',
+              unstyled: false,
+              description: error instanceof Error ? error.message : undefined
+            }
+          );
         }
       }
     }
-    toast.success("¡Promedios de todos los alumnos guardados!");
+    toast.success(
+      <span style={{ color: '#16a34a', fontWeight: 600 }}>
+        ¡Promedios de todos los alumnos guardados!
+      </span>,
+      {
+        className: 'bg-white border border-green-200',
+        unstyled: false,
+      }
+    );
   };
 
   // Handle loading state
@@ -260,6 +283,17 @@ export default function GradeManagementDashboard() {
     students.length === 0 ||
     rubrics === undefined ||
     rubrics.length === 0 ||
+    grades === undefined;
+  const isLoading =
+    userLoading ||
+    schoolLoading ||
+    permissionsLoading ||
+    assignments === undefined ||
+    classes === undefined ||
+    terms === undefined ||
+    schoolCycles === undefined ||
+    students === undefined ||
+    rubrics === undefined ||
     grades === undefined;
 
   // Logic to handle grade updates. This now uses the upsert mutation.
@@ -280,10 +314,25 @@ export default function GradeManagementDashboard() {
         comments: comments,
         registeredById: currentUser._id as Id<"user">,
       });
-      toast.success("Calificación de asignación actualizada.");
+      toast.success(
+        <span style={{ color: '#16a34a', fontWeight: 600 }}>
+          {toastMessages.editSuccess}
+        </span>,
+        {
+          className: 'bg-white border border-green-200',
+          unstyled: false,
+        }
+      );
     } catch (error) {
       toast.error(
-        "Error al actualizar la calificación:" + (error as Error).message
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.editError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: error instanceof Error ? error.message : undefined
+        }
       );
     }
   };
@@ -353,26 +402,25 @@ export default function GradeManagementDashboard() {
       return;
     }
 
-    try {
-      // Combinar fecha y hora para crear el timestamp
-      const dueDateTime = new Date(`${values.dueDate}T${values.dueTime}`);
-      const dueTimestamp = dueDateTime.getTime();
+    // Combinar fecha y hora para crear el timestamp
+    const dueDateTime = new Date(`${values.dueDate}T${values.dueTime}`);
+    const dueTimestamp = dueDateTime.getTime();
 
-      // Aquí necesitarías la función createTask - puede que necesites importarla o crearla
-      await createTask({
-        classCatalogId: values.classCatalogId as Id<"classCatalog">,
-        termId: values.termId as Id<"term">,
-        gradeRubricId: values.gradeRubricId as Id<"gradeRubric">,
-        name: values.name as string,
-        description: values.description as string,
-        dueDate: dueTimestamp,
-        maxScore: parseInt(values.maxScore as string),
-      });
+    // Aquí necesitarías la función createTask - puede que necesites importarla o crearla
+    await createTask({
+      classCatalogId: values.classCatalogId as Id<"classCatalog">,
+      termId: values.termId as Id<"term">,
+      gradeRubricId: values.gradeRubricId as Id<"gradeRubric">,
+      name: values.name as string,
+      description: values.description as string,
+      dueDate: dueTimestamp,
+      maxScore: parseInt(values.maxScore as string),
+    });
+    //   Los toasts ahora los maneja el CrudDialog automáticamente
+  }
 
-      close();
-    } catch (error) {
-      console.error('Error al procesar la tarea:', error);
-    }
+  if (isLoading) {
+    return <GeneralDashboardSkeleton nc={0} />;
   }
 
 
@@ -399,34 +447,7 @@ export default function GradeManagementDashboard() {
                 </div>
               </div>
             </div>
-            <div className="flex flex-col gap-4 sm:flex-col sm:items-center sm:gap-8 lg:gap-2">
-              {canCreateAssignance &&
-                <Button
-                  className="cursor-pointer"
-                  onClick={openCreate}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Agregar Asignación
-                </Button>
-              }
-              {currentRole !== 'tutor' && (
-                <Button
-                  onClick={handleSaveAverages}
-                  size="lg"
-                  className="gap-2"
-                  disabled={
-                    isDataLoading ||
-                    !currentSchool ||
-                    !students ||
-                    students.length === 0 ||
-                    currentRole === 'auditor'
-                  }
-                >
-                  <SaveAll className="w-4 h-4" />
-                  Guardar Promedios
-                </Button>
-              )}
-            </div>
+         
           </div>
         </div>
       </div>
@@ -512,7 +533,7 @@ export default function GradeManagementDashboard() {
               <Select
                 value={selectedClass}
                 onValueChange={setSelectedClass}
-                disabled={students?.length === 0}
+                disabled={!selectedSchoolCycle}
               >
                 <SelectTrigger className="w-full md:w-48">
                   <SelectValue placeholder="Clase" />
@@ -552,128 +573,157 @@ export default function GradeManagementDashboard() {
       {/* Grade Matrix */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <CardTitle>
+            <div className="flex flex-col gap-2">
             <span>Calificaciones</span>
             <Badge
               variant="outline"
-              className="bg-black-50 text-black-700 border-black-200"
+              className="bg-black-50 text-black-700 border-black-200 w-fit"
             >
               {assignments?.length} asignaciones
             </Badge>
+            </div>
           </CardTitle>
+          <div className="flex flex-col gap-2 md:flex-row">
+          {canCreateAssignance &&
+                <Button
+                  className="cursor-pointer"
+                  onClick={openCreate}
+                  size="lg"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Agregar Asignación
+                </Button>
+              }
+              {currentRole !== 'tutor' && (
+                <Button
+                  onClick={handleSaveAverages}
+                  size="lg"
+                  className="gap-2"
+                  disabled={
+                    isDataLoading ||
+                    !currentSchool ||
+                    !students ||
+                    students.length === 0 ||
+                    currentRole === 'auditor'
+                  }
+                >
+                  <SaveAll className="w-4 h-4" />
+                  Guardar Promedios
+                </Button>
+              )}
+          </div>
+          </div>
         </CardHeader>
         <CardContent className="w-full">
-          {(
-            !isLoaded ||
-            userLoading ||
-            schoolLoading ||
-            isLoading ||
-            (currentUser && !currentSchool && !schoolError)
-          ) ? (
-            <div className="space-y-4 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-              <p className="text-muted-foreground">
-                Cargando calificaciones...
-              </p>
-            </div>
-          ) : (isDataLoading || !hasSchoolCycles || !hasClasses || !hasTerms) ? (
-            <div className="flex justify-center">
-              <div className="space-y-4 text-center">
-                <BookCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">
-                  No se pueden mostrar las calificaciones
-                </h3>
-
-                {currentRole !== 'tutor' ? (
-                  <p className="">Registra:</p>
-                ) : (
-                  <p className="">Comunicate con soporte para más información.</p>
-                )}
-                <div className="flex flex-col items-center gap-4 w-full" >
-                  {/*esta es la 1ra fila de botones*/}
-                  <div className="flex flex-row gap-4 justify-center w-full"  >
-                    {(!assignments && canCreateRubric) && (
-                      <Link href={`/evaluacion/asignaciones`}>
-                        <Button>
-                          <Plus className="w-4 h-4" />
-                          Asignaciones
-                        </Button>
-                      </Link>
-                    )}
-
-                    {!hasTerms && (
-                      <Link href={`/administracion/periodos`}>
-                        <Button>
-                          <Plus className="w-4 h-4" />
-                          Periodos
-                        </Button>
-                      </Link>
-                    )}
-                    {!hasClasses && (
-                      <Link href={`/administracion/clases`}>
-                        <Button>
-                          <Plus className="w-4 h-4" />
-                          Clases
-                        </Button>
-                      </Link>
-                    )}
-
-                  </div>
-
-                  {/*esta es la 2da fila de botones*/}
-                  {canCreateRubric &&
-                    <div className="flex flex-row gap-4 justify-center w-full">
-
-                      {!hasSchoolCycles && (
-                        <Link href='/administracion/ciclos-escolares'>
-                          <Button>
-                            <Plus className="w-4 h-4" />
-                            Ciclos Escolares
-                          </Button>
-                        </Link>
-                      )}
-                      {(!rubrics || rubrics.length === 0) && (
-                        <Link href={`/evaluacion/rubricas`}>
-                          <Button>
-                            <Plus className="w-4 h-4" />
-                            Rubricas
-                          </Button>
-                        </Link>
-                      )}
-                      {(!students || students.length === 0) && (
-                        <Link href={`/administracion/asignacion-de-clases`}>
-                          <Button>
-                            <Plus className="w-4 h-4" />
-                            Asignación de clases{" "}
-                          </Button>
-                        </Link>
-                      )}
-                    </div>
-                  }
+          {
+            isLoading
+              ? (
+                <div className="space-y-4 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="text-muted-foreground">
+                    Cargando calificaciones...
+                  </p>
                 </div>
-              </div>
-            </div>
-          ) : (
-            <div className="w-full overflow-x-auto">
-              <div className="min-w-full">
-                <GradeMatrix
-                  students={filteredAndSortedStudents}
-                  assignments={assignments!}
-                  grades={grades!}
-                  onGradeUpdate={handleUpdateGrade}
-                  calculateAverage={calculateAverage}
-                  canUpdateRubric={canUpdateRubric}
-                />
-              </div>
-            </div>
-          )}
+              ) : (isDataLoading || !hasSchoolCycles || !hasClasses || !hasTerms) ? (
+                <div className="flex justify-center">
+                  <div className="space-y-4 text-center">
+                    <BookCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-2">
+                      No se pueden mostrar las calificaciones
+                    </h3>
+
+                    {currentRole !== 'tutor' ? (
+                      <p className="">Registra:</p>
+                    ) : (
+                      <p className="">Comunicate con soporte para más información.</p>
+                    )}
+                    <div className="flex flex-col items-center gap-4 w-full" >
+                      {/*esta es la 1ra fila de botones*/}
+                      <div className="flex flex-row gap-4 justify-center w-full"  >
+                        {(!assignments && canCreateRubric) && (
+                          <Link href={`/evaluacion/asignaciones`}>
+                            <Button>
+                              <Plus className="w-4 h-4" />
+                              Asignaciones
+                            </Button>
+                          </Link>
+                        )}
+
+                        {!hasTerms && (
+                          <Link href={`/administracion/periodos`}>
+                            <Button>
+                              <Plus className="w-4 h-4" />
+                              Periodos
+                            </Button>
+                          </Link>
+                        )}
+                        {!hasClasses && (
+                          <Link href={`/administracion/clases`}>
+                            <Button>
+                              <Plus className="w-4 h-4" />
+                              Clases
+                            </Button>
+                          </Link>
+                        )}
+
+                      </div>
+
+                      {/*esta es la 2da fila de botones*/}
+                      {canCreateRubric &&
+                        <div className="flex flex-row gap-4 justify-center w-full">
+
+                          {!hasSchoolCycles && (
+                            <Link href='/administracion/ciclos-escolares'>
+                              <Button>
+                                <Plus className="w-4 h-4" />
+                                Ciclos Escolares
+                              </Button>
+                            </Link>
+                          )}
+                          {(!rubrics || rubrics.length === 0) && (
+                            <Link href={`/evaluacion/rubricas`}>
+                              <Button>
+                                <Plus className="w-4 h-4" />
+                                Rubricas
+                              </Button>
+                            </Link>
+                          )}
+                          {(!students || students.length === 0) && (
+                            <Link href={`/administracion/asignacion-de-clases`}>
+                              <Button>
+                                <Plus className="w-4 h-4" />
+                                Asignación de clases{" "}
+                              </Button>
+                            </Link>
+                          )}
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full overflow-x-auto">
+                  <div className="min-w-full">
+                    <GradeMatrix
+                      students={filteredAndSortedStudents}
+                      assignments={assignments!}
+                      grades={grades!}
+                      onGradeUpdate={handleUpdateGrade}
+                      calculateAverage={calculateAverage}
+                      canUpdateRubric={canUpdateRubric}
+                    />
+                  </div>
+                </div>
+              )}
         </CardContent>
       </Card>
 
       <CrudDialog
         operation={operation}
-        title="Crear Nueva Asignación"
-        description="Define una nueva Asignación para tus estudiantes"
+        title="Registrar Nueva Calificación"
+        description="Ingresa la calificación correspondiente para el alumno y mantén actualizado su desempeño académico."
         schema={taskFormSchema}
         defaultValues={{
           name: '',
@@ -689,6 +739,8 @@ export default function GradeManagementDashboard() {
         isOpen={isOpen}
         onOpenChange={close}
         onSubmit={handleSubmit}
+        toastMessages={toastMessagesAsignacion}
+        disableDefaultToasts={false}
       >
         {(form, operation) => (
           <TaskForm

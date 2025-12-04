@@ -79,6 +79,19 @@ export interface CrudDialogProps {
   // Callbacks
   onSuccess?: () => void
   onError?: (error: unknown) => void
+
+  //   Mensajes de toast personalizados
+  toastMessages?: {
+    createSuccess?: string
+    editSuccess?: string
+    deleteSuccess?: string
+    createError?: string
+    editError?: string
+    deleteError?: string
+  }
+  
+  // Si es true, el CrudDialog NO mostrará toasts (útil si ya los manejas en onSubmit/onDelete)
+  disableDefaultToasts?: boolean
 }
 
 export function CrudDialog({
@@ -106,7 +119,9 @@ export function CrudDialog({
   isSubmitting = false,
   isDeleting = false,
   onSuccess,
-  onError
+  onError,
+  toastMessages,
+  disableDefaultToasts = false
 }: CrudDialogProps) {
   const [open, setOpen] = useState(false)
   const [isInternalDeleting, setIsInternalDeleting] = useState(false)
@@ -143,13 +158,48 @@ export function CrudDialog({
   const handleSubmit = async (values: Record<string, unknown>) => {
     try {
       await onSubmit(values)
+      
+      //   Mostrar toast personalizado solo si no está deshabilitado Y hay mensajes personalizados
+      if (!disableDefaultToasts && toastMessages) {
+        const successMessage = operation === 'create' 
+          ? toastMessages.createSuccess
+          : toastMessages.editSuccess
+        
+        // Solo mostrar si hay un mensaje definido
+        if (successMessage) {
+          toast.success(<span style={{ color: '#16a34a' }}>{successMessage}</span>, {
+            className: 'bg-white border border-green-200',
+            unstyled: false,
+          })
+          // Salir temprano para evitar mostrar mensajes genéricos
+          setDialogOpen?.(false)
+          form.reset()
+          onSuccess?.()
+          return
+        }
+      }
+      
       setDialogOpen?.(false)
       form.reset()
       onSuccess?.()
     } catch (error) {
-      toast.error('Error', {
-        description: `Ocurrió un error al ${operation === 'create' ? 'crear' : 'actualizar'}`
-      })
+      //   Mostrar toast de error personalizado solo si no está deshabilitado Y hay mensajes personalizados
+      if (!disableDefaultToasts && toastMessages) {
+        const errorMessage = operation === 'create'
+          ? toastMessages.createError
+          : toastMessages.editError
+        
+        // Solo mostrar si hay un mensaje definido
+        if (errorMessage) {
+          toast.error(<span style={{ color: '#dc2626' }}>{errorMessage}</span>, {
+            className: 'bg-white border border-red-200',
+            unstyled: false,
+            description: error instanceof Error ? error.message : undefined
+          })
+          onError?.(error)
+          return
+        }
+      }
       onError?.(error)
     }
   }
@@ -160,12 +210,42 @@ export function CrudDialog({
     try {
       setIsInternalDeleting(true)
       await onDelete(data._id)
+      
+      //   Mostrar toast personalizado solo si no está deshabilitado Y hay mensajes personalizados
+      if (!disableDefaultToasts && toastMessages?.deleteSuccess) {
+        // Usar toast() normal pero forzar estilos rojos con icono de bote de basura
+        toast(
+          <span style={{ color: '#dc2626', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Trash2 className="h-4 w-4" style={{ color: '#dc2626' }} />
+            {toastMessages.deleteSuccess}
+          </span>,
+          {
+            className: 'bg-white border border-red-200 toast-red-text',
+            duration: 3000,
+          }
+        )
+        // Salir temprano para evitar mostrar mensajes genéricos
+        setDialogOpen?.(false)
+        onSuccess?.()
+        return
+      }
+      
       setDialogOpen?.(false)
       onSuccess?.()
     } catch (error) {
-      toast.error('Error', {
-        description: 'Ocurrió un error al eliminar'
-      })
+      //   Mostrar toast de error personalizado solo si no está deshabilitado Y hay mensajes personalizados
+      if (!disableDefaultToasts && toastMessages?.deleteError) {
+        toast.error(
+          <span style={{ color: '#dc2626' }}>{toastMessages.deleteError}</span>,
+          {
+            className: 'bg-white border border-red-200',
+            unstyled: false,
+            description: error instanceof Error ? error.message : undefined
+          }
+        )
+        onError?.(error)
+        return
+      }
       onError?.(error)
     } finally {
       setIsInternalDeleting(false)

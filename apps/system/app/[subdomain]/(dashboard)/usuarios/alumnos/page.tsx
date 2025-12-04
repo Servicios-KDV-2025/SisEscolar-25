@@ -24,9 +24,12 @@ import { useUserWithConvex } from "../../../../../stores/userStore";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import { Id } from "@repo/convex/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
+import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
+import CrudFields, { TypeFields } from '@repo/ui/components/dialog/crud-fields';
 
 // Tipos para los datos de grupos y tutores
 interface Group {
@@ -41,7 +44,6 @@ interface Tutor {
   lastName?: string;
   email: string;
 }
-
 
 export default function AlumnosPage() {
   // Hooks de autenticación y contexto
@@ -148,13 +150,6 @@ export default function AlumnosPage() {
     scholarshipPercentage: undefined,
   }), [currentSchool?.school._id, nextEnrollment, activeCycle?._id]);
 
-  // const paginatedStudents = useMemo(() => {
-  //   const dataToUse = filteredStudents.length > 0 ? filteredStudents : students;
-  //   const startIndex = (currentPage - 1) * itemsPerPage;
-  //   const endIndex = startIndex + itemsPerPage;
-  //   return dataToUse.slice(startIndex, endIndex);
-  // }, [filteredStudents, students, currentPage, itemsPerPage]);
-
   const paginatedStudents = useMemo(() => {
     // 1. Decide qué lista usar (filtrada o completa)
     const dataToUse = filteredStudents.length > 0 ? filteredStudents : students;
@@ -165,7 +160,7 @@ export default function AlumnosPage() {
       // Combinamos nombre y apellido para un ordenado completo
       const nameA = `${a.name} ${a.lastName || ''}`.toLowerCase().trim();
       const nameB = `${b.name} ${b.lastName || ''}`.toLowerCase().trim();
-      
+
       // localeCompare es la forma correcta de ordenar alfabéticamente (maneja acentos)
       return nameA.localeCompare(nameB);
     });
@@ -173,11 +168,11 @@ export default function AlumnosPage() {
     // 3. Pagina la lista ya ordenada
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    
+
     return sortedData.slice(startIndex, endIndex);
 
   }, [filteredStudents, students, currentPage, itemsPerPage]); // Las dependencias siguen igual
-  
+
   const totalPages = Math.ceil(
     (filteredStudents.length > 0 ? filteredStudents.length : students.length) / itemsPerPage
   );
@@ -193,6 +188,9 @@ export default function AlumnosPage() {
     openDelete,
     close,
   } = useCrudDialog(studentSchema, defaultValues);
+
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Alumno");
 
   // Aplicar filtros cuando cambien
   useEffect(() => {
@@ -296,8 +294,6 @@ export default function AlumnosPage() {
       console.error("Error al eliminar estudiante:", error);
     }
   };
-
-
 
   // Funciones de utilidad
   const formatDate = (timestamp?: number) => {
@@ -496,83 +492,79 @@ export default function AlumnosPage() {
     },
   ];
 
-  // Mostrar loading screen para carga inicial
-  // if (isLoading) {
-  //   return (
-  //     <div className="space-y-8 p-6">
-  //       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-background border">
-  //         <div className="relative p-8">
-  //           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-  //             <div className="space-y-3">
-  //               <div className="flex items-center gap-3">
-  //                 <div className="p-3 bg-indigo-500/10 rounded-xl">
-  //                   <GraduationCap className="h-8 w-8 text-indigo-600" />
-  //                 </div>
-  //                 <div>
-  //                   <Skeleton className="h-10 w-48 mb-2" />
-  //                   <Skeleton className="h-6 w-80" />
-  //                 </div>
-  //               </div>
-  //             </div>
-  //             <Skeleton className="h-12 w-40" />
-  //           </div>
-  //         </div>
-  //       </div>
+  if (isLoading) {
+    return <GeneralDashboardSkeleton />;
+  }
 
-  //       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-  //         {[1, 2, 3].map((i) => (
-  //           <Card key={i}>
-  //             <CardHeader>
-  //               <div className="flex items-center justify-between">
-  //                 <Skeleton className="h-4 w-24" />
-  //                 <Skeleton className="h-8 w-8 rounded-lg" />
-  //               </div>
-  //             </CardHeader>
-  //             <CardContent>
-  //               <Skeleton className="h-8 w-16 mb-2" />
-  //               <Skeleton className="h-3 w-32" />
-  //             </CardContent>
-  //           </Card>
-  //         ))}
-  //       </div>
-
-  //       <Card>
-  //         <CardHeader>
-  //           <Skeleton className="h-6 w-48" />
-  //         </CardHeader>
-  //         <CardContent>
-  //           <div className="space-y-4">
-  //             <div className="flex gap-4">
-  //               <Skeleton className="h-10 flex-1" />
-  //               <Skeleton className="h-10 w-48" />
-  //               <Skeleton className="h-10 w-48" />
-  //             </div>
-  //             <div className="border rounded-md">
-  //               {[1, 2, 3, 4, 5].map((i) => (
-  //                 <div key={i} className="flex items-center p-4 border-b last:border-b-0">
-  //                   <Skeleton className="h-10 w-10 rounded-full mr-3" />
-  //                   <div className="flex-1">
-  //                     <Skeleton className="h-4 w-48 mb-2" />
-  //                     <Skeleton className="h-3 w-24" />
-  //                   </div>
-  //                   <Skeleton className="h-8 w-20 mr-4" />
-  //                   <Skeleton className="h-8 w-16 mr-4" />
-  //                   <div className="flex gap-2">
-  //                     <Skeleton className="h-8 w-8" />
-  //                     <Skeleton className="h-8 w-8" />
-  //                     <Skeleton className="h-8 w-8" />
-  //                   </div>
-  //                 </div>
-  //               ))}
-  //             </div>
-  //           </div>
-  //         </CardContent>
-  //       </Card>
-  //     </div>
-  //   );
-  // }
-
-
+  // Define los campos para CrudFields
+  const studentFields: TypeFields = [
+    {
+      name: 'name',
+      label: 'Nombre',
+      type: 'text',
+      required: true,
+      placeholder: 'Nombre del alumno'
+    },
+    {
+      name: 'lastName',
+      label: 'Apellidos',
+      type: 'text',
+      required: false,
+      placeholder: 'Apellidos'
+    },
+    {
+      name: 'enrollment',
+      label: 'Matrícula',
+      type: 'text',
+      required: true,
+      placeholder: 'Se genera automáticamente',
+      disabled: (op) => op === 'create' || op === 'edit',
+      helperText: 'Generada automáticamente con formato: AÑO + número consecutivo'
+    },
+    {
+      name: 'status',
+      label: 'Estado',
+      type: 'select',
+      required: true,
+      options: [
+        { value: 'active', label: 'Activo' },
+        { value: 'inactive', label: 'Inactivo' }
+      ]
+    },
+    {
+      name: 'groupId',
+      label: 'Grupo',
+      type: 'select',
+      required: true,
+      placeholder: 'Seleccionar grupo',
+      options: groups?.map((group: Group) => ({
+        value: group._id,
+        label: `${group.grade} - ${group.name}`
+      })) || [],
+      disabled: !groups?.length
+    },
+    {
+      name: 'scholarshipType',
+      label: 'Tipo de Beca',
+      type: 'select',
+      required: true,
+      options: [
+        { value: 'inactive', label: 'Sin Beca' },
+        { value: 'active', label: 'Beca con Porcentaje' }
+      ]
+    },
+    {
+      name: 'scholarshipPercentage',
+      label: 'Porcentaje de Beca',
+      type: 'number',
+      required: false,
+      placeholder: 'Ej: 50',
+      min: 1,
+      max: 100,
+      showCondition: (values) => values.scholarshipType === 'active',
+      helperText: 'Ingresa el porcentaje de descuento (1-100%)'
+    }
+  ];
 
   return showNotAuth ? (
     <NotAuth
@@ -582,84 +574,27 @@ export default function AlumnosPage() {
     />
   ) : (
     <div className="space-y-8 p-6">
-
-        {/* Mostrar alerta cuando no hay datos necesarios para crear estudiantes */}
-        {canCreateUsersAlumnos && (!groups?.length || !tutors?.length || !activeCycle) && (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {/*Oct30: Se muestra mensaje de alerta para distintos escenarios (se agrega el del ciclo escolar activo) */}
-              {!groups?.length && !tutors?.length && !activeCycle
-                ? "No se pueden crear estudiantes porque no hay grupos, tutores disponibles ni un ciclo escolar activo. Debes crear grupos, asignar tutores y activar un ciclo escolar primero."
-                : !groups?.length && !tutors?.length
-                  ? "No se pueden crear estudiantes porque no hay grupos ni tutores disponibles. Debes crear grupos y asignar tutores primero."
-                  : !groups?.length && !activeCycle
-                    ? "No se pueden crear estudiantes porque no hay grupos disponibles ni un ciclo escolar activo. Debes crear grupos y activar un ciclo escolar primero."
-                    : !tutors?.length && !activeCycle
-                      ? "No se pueden crear estudiantes porque no hay tutores disponibles ni un ciclo escolar activo. Debes asignar tutores y activar un ciclo escolar primero."
-                      : !groups?.length
-                        ? "No se pueden crear estudiantes porque no hay grupos disponibles. Debes crear grupos primero."
-                        : !tutors?.length
-                          ? "No se pueden crear estudiantes porque no hay tutores disponibles. Debes asignar tutores a esta escuela primero."
-                          : "No se pueden crear estudiantes porque no hay un ciclo escolar activo. Debes activar un ciclo escolar primero."
-              }
-            </AlertDescription>
-          </Alert>
-        )}
-
-      {/* Información de permisos */}
-      {(isTutor || isTeacher) && !isSuperAdmin && !isAdmin && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {isTutor && "Como tutor, solo puedes ver los estudiantes que tienes asignados."}
-            {isTeacher && "Como maestro, solo puedes ver los estudiantes de las materias que impartes."}
-          </AlertDescription>
-        </Alert>
-      )}
-
-        {/* Header */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-background border">
-          <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
-          <div className="relative p-8">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-indigo-500/10 rounded-xl">
-                    <GraduationCap className="h-8 w-8 text-indigo-600" />
-                  </div>
-                  <div>
-                    <h1 className="text-4xl font-bold tracking-tight">Alumnos</h1>
-                    <p className="text-lg text-muted-foreground">
-                      Gestión de estudiantes del sistema escolar
-                    </p>
-                  </div>
+      {/* Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-background border">
+        <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
+        <div className="relative p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-indigo-500/10 rounded-xl">
+                  <GraduationCap className="h-8 w-8 text-indigo-600" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold tracking-tight">Alumnos</h1>
+                  <p className="text-lg text-muted-foreground">
+                    Gestión de estudiantes del sistema escolar
+                  </p>
                 </div>
               </div>
-              {canCreateUsersAlumnos && (
-                <Button
-                  size="lg"
-                  className="gap-2 bg-blue-600 hover:bg-blue-700"
-                  onClick={openCreate}
-                  disabled={isCreating || !currentSchool || !groups?.length || !tutors?.length || !activeCycle}
-                  title={
-                    !groups?.length ? "No hay grupos disponibles" :
-                      !tutors?.length ? "No hay tutores disponibles" :
-                        !activeCycle ? "No hay un ciclo escolar activo" :
-                          !currentSchool ? "No hay escuela seleccionada" : ""
-                  }
-                >
-                  {isCreating ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Plus className="w-4 h-4" />
-                  )}
-                  {isCreating ? "Creando..." : "Agregar Alumno"}
-                </Button>
-              )}
             </div>
           </div>
         </div>
+      </div>
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -740,15 +675,78 @@ export default function AlumnosPage() {
         </CardContent>
       </Card>
 
+      {/* Mostrar alerta cuando no hay datos necesarios para crear estudiantes */}
+      {canCreateUsersAlumnos && (!groups?.length || !tutors?.length || !activeCycle) && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {/*Oct30: Se muestra mensaje de alerta para distintos escenarios (se agrega el del ciclo escolar activo) */}
+            {!groups?.length && !tutors?.length && !activeCycle
+              ? "No se pueden crear estudiantes porque no hay grupos, tutores disponibles ni un ciclo escolar activo. Debes crear grupos, asignar tutores y activar un ciclo escolar primero."
+              : !groups?.length && !tutors?.length
+                ? "No se pueden crear estudiantes porque no hay grupos ni tutores disponibles. Debes crear grupos y asignar tutores primero."
+                : !groups?.length && !activeCycle
+                  ? "No se pueden crear estudiantes porque no hay grupos disponibles ni un ciclo escolar activo. Debes crear grupos y activar un ciclo escolar primero."
+                  : !tutors?.length && !activeCycle
+                    ? "No se pueden crear estudiantes porque no hay tutores disponibles ni un ciclo escolar activo. Debes asignar tutores y activar un ciclo escolar primero."
+                    : !groups?.length
+                      ? "No se pueden crear estudiantes porque no hay grupos disponibles. Debes crear grupos primero."
+                      : !tutors?.length
+                        ? "No se pueden crear estudiantes porque no hay tutores disponibles. Debes asignar tutores a esta escuela primero."
+                        : "No se pueden crear estudiantes porque no hay un ciclo escolar activo. Debes activar un ciclo escolar primero."
+            }
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Información de permisos */}
+      {(isTutor || isTeacher) && !isSuperAdmin && !isAdmin && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {isTutor && "Como tutor, solo puedes ver los estudiantes que tienes asignados."}
+            {isTeacher && "Como maestro, solo puedes ver los estudiantes de las materias que impartes."}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Tabla de Alumnos */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Lista de Alumnos</span>
-            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-              {filteredStudents.length > 0 ? filteredStudents.length : students.length} estudiantes
-            </Badge>
-          </CardTitle>
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <CardTitle>
+              <div className="flex flex-col gap-2">
+                <span>Lista de Alumnos</span>
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 w-fit">
+                  {filteredStudents.length > 0 ? filteredStudents.length : students.length} estudiantes
+                </Badge>
+              </div>
+            </CardTitle>
+
+            {canCreateUsersAlumnos && (
+              <div className="w-full md:w-auto">
+                <Button
+                  size="lg"
+                  className="gap-2 bg-blue-600 hover:bg-blue-700 w-full md:w-auto"
+                  onClick={openCreate}
+                  disabled={isCreating || !currentSchool || !groups?.length || !tutors?.length || !activeCycle}
+                  title={
+                    !groups?.length ? "No hay grupos disponibles" :
+                      !tutors?.length ? "No hay tutores disponibles" :
+                        !activeCycle ? "No hay un ciclo escolar activo" :
+                          !currentSchool ? "No hay escuela seleccionada" : ""
+                  }
+                >
+                  {isCreating ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4" />
+                  )}
+                  {isCreating ? "Creando..." : "Agregar Alumno"}
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
 
         <CardContent>
@@ -1018,20 +1016,20 @@ export default function AlumnosPage() {
         operation={operation}
         title={
           operation === "create"
-            ? "Agregar Alumno"
+            ? "Registrar Nuevo Alumno"
             : operation === "edit"
-              ? "Editar Alumno"
+              ? "Actualizar Información del Alumno"
               : operation === "view"
-                ? "Ver Alumno"
-                : "Eliminar Alumno"
+                ? "Perfil del Alumno"
+                : ""
         }
         description={
           operation === "create"
-            ? "Completa la información para agregar un nuevo alumno"
+            ? "Ingresa los datos necesarios para dar de alta a un nuevo alumno y comenzar su trayectoria escolar."
             : operation === "edit"
-              ? "Modifica la información del alumno"
+              ? "Ajusta o corrige los datos del alumno para mantener su información siempre al día."
               : operation === "view"
-                ? "Información detallada del alumno"
+                ? "Consulta la información completa y actual del alumno."
                 : undefined
         }
         schema={studentSchema}
@@ -1042,25 +1040,29 @@ export default function AlumnosPage() {
         onSubmit={operation === "create" ? handleCreate : handleUpdate}
         onDelete={handleDelete}
         deleteConfirmationTitle="¿Eliminar alumno?"
-        deleteConfirmationDescription="Esta acción eliminará permanentemente al alumno del sistema. Esta acción no se puede deshacer."
+        deleteConfirmationDescription="Esta acción eliminará permanentemente al alumno del sistema. No podrá deshacerse, por lo que te recomendamos confirmar cuidadosamente."
+        toastMessages={toastMessages}
+        disableDefaultToasts={false}
         onError={() => {
-          // Evitar que el CrudDialog muestre su propio toast de error
-          // ya que nosotros mostramos el error específico dentro del dialog
+          // El error se muestra dentro del dialog y también se maneja con toasts
         }}
       >
-        {(form, currentOperation) => (
-          <div className="space-y-4">
-            {/* Mostrar error del store dentro del formulario */}
-            {studentsError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  {studentsError}
-                </AlertDescription>
-              </Alert>
-            )}
+        {(form, currentOperation) => {
+          const selectedCycle = schoolCycles?.find((cycle) => cycle._id === form.getValues("schoolCycleId"));
+          const selectedTutor = tutors?.find((tutor: Tutor) => tutor._id === form.getValues("tutorId"));
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          return (
+            <div className="space-y-4">
+              {/* Mostrar error del store dentro del formulario */}
+              {studentsError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    {studentsError}
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {/* Campo oculto para schoolId */}
               <FormField
                 control={form.control}
@@ -1073,147 +1075,31 @@ export default function AlumnosPage() {
                   />
                 )}
               />
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nombre *</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        value={field.value as string || ""}
-                        placeholder="Nombre del alumno"
-                        disabled={currentOperation === "view"}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+
+              {/* Usamos CrudFields para los campos simples */}
+              <CrudFields
+                fields={studentFields}
+                operation={currentOperation}
+                form={form}
               />
 
-              <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Apellidos</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        value={field.value as string || ""}
-                        placeholder="Apellidos"
-                        disabled={currentOperation === "view"}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Mensaje informativo sobre la beca */}
+              {form.watch("scholarshipType") === "active" && (
+                <div className="flex flex-row text-xs text-muted-foreground gap-2">
+                  <Info className="h-4.5 w-4.5 items-center" />
+                  <p className="">
+                    La beca solo aplica para las inscripciones y colegiaturas
+                  </p>
+                </div>
+              )}
 
-              <FormField
-                control={form.control}
-                name="enrollment"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Matrícula *</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        value={field.value as string || ""}
-                        placeholder="Se genera automáticamente"
-                        disabled={currentOperation === "view" || currentOperation === "create"}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          // Limpiar error cuando el usuario empiece a escribir
-                          if (studentsError) {
-                            clearError();
-                          }
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                    {currentOperation === "create" && (
-                      <p className="text-xs text-muted-foreground">
-                        Generada automáticamente con formato: AÑO + número consecutivo
-                      </p>
-                    )}
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Estado</FormLabel>
-                    <FormControl>
-                      <Select
-                        value={field.value as string}
-                        onValueChange={field.onChange}
-                        disabled={currentOperation === "view"}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar estado" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="active">Activo</SelectItem>
-                          <SelectItem value="inactive">Inactivo</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="groupId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Grupo *</FormLabel>
-                    <FormControl>
-                      <Select
-                        value={field.value as string}
-                        onValueChange={field.onChange}
-                        disabled={currentOperation === "view"}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar grupo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {groups && groups.length > 0 ? (
-                            groups.map((group: Group) => (
-                              <SelectItem key={group._id} value={group._id}>
-                                {group.grade} - {group.name}
-                              </SelectItem>
-                            ))
-                          ) : groups === undefined ? (
-                            <SelectItem value="loading" disabled>
-                              Cargando grupos...
-                            </SelectItem>
-                          ) : (
-                            <SelectItem value="no-groups" disabled>
-                              No hay grupos disponibles
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="schoolCycleId"
-                render={({ field }) => {
-                  const selectedCycle = schoolCycles?.find((cycle) => cycle._id === field.value);
-
-                  return (
+              {/* Campos complejos que NO pueden ir en CrudFields (Popovers) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Campo de Ciclo Escolar (Popover) */}
+                <FormField
+                  control={form.control}
+                  name="schoolCycleId"
+                  render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Ciclo Escolar *</FormLabel>
                       <Popover open={cyclePopoverOpen} onOpenChange={setCyclePopoverOpen}>
@@ -1278,192 +1164,94 @@ export default function AlumnosPage() {
                       </Popover>
                       <FormMessage />
                     </FormItem>
-                  );
-                }}
-              />
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="tutorId"
-                render={({ field }) => {
-                  const selectedTutor = tutors?.find((tutor: Tutor) => tutor._id === field.value);
-
-                  return (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Tutor *</FormLabel>
-                      <Popover open={tutorPopoverOpen} onOpenChange={setTutorPopoverOpen}>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className={`w-full justify-between ${!field.value && "text-muted-foreground"}`}
-                              disabled={currentOperation === "view"}
-                            >
-                              {selectedTutor
-                                ? `${selectedTutor.name} ${selectedTutor.lastName || ''}`
-                                : "Seleccionar tutor"
-                              }
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[400px] p-0">
-                          <Command>
-                            <CommandInput placeholder="Buscar tutor..." className="h-9" />
-                            <CommandList>
-                              <CommandEmpty>
-                                {tutors && tutors.length === 0
-                                  ? "No hay tutores disponibles en esta escuela."
-                                  : "No se encontró ningún tutor."
-                                }
-                              </CommandEmpty>
-                              <CommandGroup>
-                                {tutors && tutors.length > 0 ? (
-                                  tutors.map((tutor: Tutor) => (
-                                    <CommandItem
-                                      value={`${tutor.name} ${tutor.lastName || ''}`}
-                                      key={tutor._id}
-                                      onSelect={() => {
-                                        field.onChange(tutor._id);
-                                        setTutorPopoverOpen(false);
-                                      }}
-                                    >
-                                      <div className="flex flex-col">
-                                        <span className="font-medium">
-                                          {tutor.name} {tutor.lastName || ''}
-                                        </span>
-                                        <span className="text-sm text-muted-foreground">
-                                          {tutor.email}
-                                        </span>
-                                      </div>
-                                      <Check
-                                        className={`ml-auto h-4 w-4 ${tutor._id === field.value
-                                          ? "opacity-100"
-                                          : "opacity-0"
-                                          }`}
-                                      />
-                                    </CommandItem>
-                                  ))
-                                ) : tutors === undefined ? (
-                                  <CommandItem disabled>
-                                    Cargando tutores...
-                                  </CommandItem>
-                                ) : (
-                                  <CommandItem disabled>
-                                    No hay tutores disponibles
-                                  </CommandItem>
-                                )}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-
-              <FormField
-                control={form.control}
-                name="scholarshipType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo de Beca</FormLabel>
-                    <FormControl>
-                      <Select
-                        value={field.value as string}
-                        onValueChange={field.onChange}
-                        disabled={currentOperation === "view"}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar tipo de beca" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="inactive">Sin Beca</SelectItem>
-                          <SelectItem value="active">Beca con Porcentaje</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                    {form.watch("scholarshipType") === "active" && (
-                      <div className="flex flex-row text-xs text-muted-foreground gap-2">
-                        <Info className="h-4.5 w-4.5 items-center" />
-                        <p className="">
-                          La beca solo aplica para las inscripciones y colegiaturas
-                        </p>
-                      </div>
-
-                    )}
-                  </FormItem>
-                )}
-              />
-              {form.watch("scholarshipType") === "active" && (
+                {/* Campo de Tutor (Popover) */}
                 <FormField
                   control={form.control}
-                  name="scholarshipPercentage"
+                  name="tutorId"
                   render={({ field }) => {
-                    const inputValue = field.value === null || field.value === undefined
-                      ? ""
-                      : String(field.value);
-                    return (<FormItem>
-                      <FormLabel>Porcentaje de Beca</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          value={inputValue}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            const numValue = value === ""
-                              ? undefined
-                              : Number(value);
-                            field.onChange(numValue);
-                          }}
-                          placeholder="Ej: 50"
-                          disabled={currentOperation === "view" || form.watch("scholarshipType") !== "active"}
-
-                        />
-                      </FormControl>
-                      <FormMessage />
-                      {form.watch("scholarshipType") === "active" && (
-                        <p className="text-xs text-muted-foreground">
-                          Ingresa el porcentaje de descuento (1-100%)
-                        </p>
-                      )}
-                    </FormItem>
-                    )
+                    return (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Tutor *</FormLabel>
+                        <Popover open={tutorPopoverOpen} onOpenChange={setTutorPopoverOpen}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className={`w-full justify-between ${!field.value && "text-muted-foreground"}`}
+                                disabled={currentOperation === "view"}
+                              >
+                                {selectedTutor
+                                  ? `${selectedTutor.name} ${selectedTutor.lastName || ''}`
+                                  : "Seleccionar tutor"
+                                }
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[400px] p-0">
+                            <Command>
+                              <CommandInput placeholder="Buscar tutor..." className="h-9" />
+                              <CommandList>
+                                <CommandEmpty>
+                                  {tutors && tutors.length === 0
+                                    ? "No hay tutores disponibles en esta escuela."
+                                    : "No se encontró ningún tutor."
+                                  }
+                                </CommandEmpty>
+                                <CommandGroup>
+                                  {tutors && tutors.length > 0 ? (
+                                    tutors.map((tutor: Tutor) => (
+                                      <CommandItem
+                                        value={`${tutor.name} ${tutor.lastName || ''}`}
+                                        key={tutor._id}
+                                        onSelect={() => {
+                                          field.onChange(tutor._id);
+                                          setTutorPopoverOpen(false);
+                                        }}
+                                      >
+                                        <div className="flex flex-col">
+                                          <span className="font-medium">
+                                            {tutor.name} {tutor.lastName || ''}
+                                          </span>
+                                          <span className="text-sm text-muted-foreground">
+                                            {tutor.email}
+                                          </span>
+                                        </div>
+                                        <Check
+                                          className={`ml-auto h-4 w-4 ${tutor._id === field.value
+                                            ? "opacity-100"
+                                            : "opacity-0"
+                                            }`}
+                                        />
+                                      </CommandItem>
+                                    ))
+                                  ) : tutors === undefined ? (
+                                    <CommandItem disabled>
+                                      Cargando tutores...
+                                    </CommandItem>
+                                  ) : (
+                                    <CommandItem disabled>
+                                      No hay tutores disponibles
+                                    </CommandItem>
+                                  )}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    );
                   }}
-                />)}
-
-
-              {currentOperation === "view" && data && (
-                <div className="md:col-span-2 space-y-4 pt-4 border-t">
-                  <h3 className="font-medium text-sm text-muted-foreground">Información adicional</h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">ID de Estudiante:</span>
-                      <p className="font-mono">{data._id as string}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Fecha de Creación:</span>
-                      <p>{formatDate(data.createdAt as number)}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Última Actualización:</span>
-                      <p>{formatDate(data.updatedAt as number)}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">ID de Escuela:</span>
-                      <p className="font-mono">{data.schoolId as string}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+                />
+              </div>
             </div>
-          </div>
-        )}
+          );
+        }}
       </CrudDialog>
     </div>
 

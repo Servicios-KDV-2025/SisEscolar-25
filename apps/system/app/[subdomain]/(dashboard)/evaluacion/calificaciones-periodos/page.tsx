@@ -24,34 +24,39 @@ import { useQuery, useMutation } from "convex/react";
 import { useUserWithConvex } from "../../../../../stores/userStore";
 import { useUser } from "@clerk/nextjs";
 import { useCurrentSchool } from "../../../../../stores/userSchoolsStore";
-import { toast } from "sonner";
+import { toast } from "@repo/ui/sonner";
 import { Button } from "@repo/ui/components/shadcn/button";
 import { Input } from "@repo/ui/components/shadcn/input";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { BookCheck } from "lucide-react";
 import { usePermissions } from 'hooks/usePermissions';
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
+import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
 
 export default function GradeManagementDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSchoolCycle, setSelectedSchoolCycle] = useState<string>("");
   const [selectedClass, setSelectedClass] = useState<string>("");
 
-  const { user: clerkUser, isLoaded } = useUser();
+  const { user: clerkUser } = useUser();
   const { currentUser, isLoading: userLoading } = useUserWithConvex(
     clerkUser?.id
   );
   const {
     currentSchool,
     isLoading: schoolLoading,
-    error: schoolError,
+    
   } = useCurrentSchool(currentUser?._id);
 
-  const permissions = usePermissions();
+  const permissions = usePermissions(currentSchool?.school._id);
 
   const {
-    currentRole,
-    canUpdateRubric,
+    canUpdateTermAverage,
+    isLoading: permissionsLoading,
   } = permissions;
+
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Calificación");
 
   // Fetch data with Convex
   const schoolCycles = useQuery(
@@ -89,7 +94,7 @@ export default function GradeManagementDashboard() {
       }
       : "skip"
   );
-  // ✨ Este es el cambio clave: ahora obtienes promedios de todos los términos del ciclo escolar
+  //   Este es el cambio clave: ahora obtienes promedios de todos los términos del ciclo escolar
   const allTermAverages = useQuery(
     api.functions.termAverages.getAnnualAveragesForStudents,
     selectedSchoolCycle && selectedClass
@@ -152,11 +157,19 @@ export default function GradeManagementDashboard() {
 
   const handleSaveAverages = async () => {
     if (!students || !currentSchool) {
-      toast.error("Faltan datos de estudiantes o del colegio para guardar.");
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          Faltan datos de estudiantes o del colegio para guardar.
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+        }
+      );
       return;
     }
 
-    toast.info("Guardando promedios finales...");
+    const loadingToast = toast.loading("Guardando promedios finales...");
 
     // Recorre cada estudiante para calcular y guardar su promedio final
     for (const student of students) {
@@ -180,14 +193,28 @@ export default function GradeManagementDashboard() {
             error
           );
           toast.error(
-            `Error al guardar el promedio para ${student.student?.name}.`
+            <span style={{ color: '#dc2626' }}>
+              Error al guardar el promedio para {student.student?.name}.
+            </span>,
+            {
+              className: 'bg-white border border-red-200',
+              unstyled: false,
+              description: error instanceof Error ? error.message : undefined
+            }
           );
         }
       }
     }
 
+    toast.dismiss(loadingToast);
     toast.success(
-      "¡Promedios finales de todos los alumnos guardados en su inscripción!"
+      <span style={{ color: '#16a34a', fontWeight: 600 }}>
+        ¡Promedios finales de todos los alumnos guardados en su inscripción!
+      </span>,
+      {
+        className: 'bg-white border border-green-200',
+        unstyled: false,
+      }
     );
   };
 
@@ -225,6 +252,15 @@ export default function GradeManagementDashboard() {
     classes === undefined ||
     terms === undefined ||
     schoolCycles === undefined ||
+    students === undefined ||
+    allTermAverages === undefined;
+  const isLoading =
+    userLoading ||
+    schoolLoading ||
+    permissionsLoading ||
+    schoolCycles === undefined ||
+    classes === undefined ||
+    terms === undefined ||
     students === undefined ||
     allTermAverages === undefined;
 
@@ -265,10 +301,27 @@ export default function GradeManagementDashboard() {
         comments: comment,
         registeredById: currentUser._id as Id<"user">,
       });
-      toast.success("Promedio actualizado correctamente.");
+      toast.success(
+        <span style={{ color: '#16a34a', fontWeight: 600 }}>
+          {toastMessages.editSuccess}
+        </span>,
+        {
+          className: 'bg-white border border-green-200',
+          unstyled: false,
+        }
+      );
     } catch (error) {
       console.error("Error al actualizar la calificación:", error);
-      toast.error("Hubo un error al actualizar el promedio.");
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          {toastMessages.editError}
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: error instanceof Error ? error.message : undefined
+        }
+      );
     }
   };
 
@@ -303,12 +356,16 @@ export default function GradeManagementDashboard() {
   //   );
   // }
 
-  // ✨ Transformar los datos de los promedios en un Map antes de pasarlos al componente
+  //   Transformar los datos de los promedios en un Map antes de pasarlos al componente
   const averagesMap = new Map();
   if (allTermAverages) {
     Object.entries(allTermAverages).forEach(([studentClassId, avgArray]) => {
       averagesMap.set(studentClassId, avgArray);
     });
+  }
+
+  if (isLoading) {
+    return <GeneralDashboardSkeleton nc={0} />;
   }
 
   // Main UI when all data is available
@@ -335,17 +392,7 @@ export default function GradeManagementDashboard() {
                 </div>
               </div>
             </div>
-            {currentRole !== 'tutor' && (
-              <Button
-                onClick={handleSaveAverages}
-                size="lg"
-                className="gap-2"
-                disabled={!currentSchool || currentRole === 'auditor'}
-              >
-                <SaveAll className="w-4 h-4" />
-                Guardar promedios
-              </Button>
-            )}
+           
           </div>
         </div>
       </div>
@@ -417,7 +464,9 @@ export default function GradeManagementDashboard() {
       {/* Grade Matrix */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <CardTitle>
+            <div className="flex flex-col gap-2">
             <span>Calificaciones</span>
             <Badge
               variant="outline"
@@ -425,15 +474,25 @@ export default function GradeManagementDashboard() {
             >
               {terms?.length} periodos
             </Badge>
+            </div>
           </CardTitle>
+          {permissions.currentRole !== 'tutor' && (
+              <Button
+                onClick={handleSaveAverages}
+                size="lg"
+                className="gap-2"
+                disabled={!currentSchool || permissions.currentRole === 'auditor'}
+              >
+                <SaveAll className="w-4 h-4" />
+                Guardar promedios
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
-          {/* Si no hay estudiantes o no hay Periodos, muestra un mensaje */}
+          {/* Si está cargando */}
           {(
-            !isLoaded ||
-            userLoading ||
-            schoolLoading ||
-            (currentUser && !currentSchool && !schoolError)
+            isLoading
           ) ? (
             <div className="space-y-4 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -443,9 +502,9 @@ export default function GradeManagementDashboard() {
             <TermAverageMatrix
               students={filteredAndSortedStudents}
               terms={terms!}
-              averages={averagesMap} // ✨ PASAMOS EL MAP CORREGIDO
+              averages={averagesMap}
               onAverageUpdate={handleUpdateGrade}
-              canUpdateRubric={canUpdateRubric}
+              canUpdateRubric={canUpdateTermAverage}
             />
           ) : (
             <div className="flex justify-center">
@@ -456,30 +515,30 @@ export default function GradeManagementDashboard() {
                 </h3>
                 <p className="">Registra:</p>
                 <div className="flex justify-center gap-3">
-                {!hasStudents && (
-                  <Link href={`/administracion/asignacion-de-clases`}>
-                    <Button>
-                      <Plus className="w-4 h-4" />
-                      Estudiantes en esta clase
-                    </Button>
-                  </Link>
-                )}
-                {!hasTerms && (
-                  <Link href={`/administracion/periodos`}>
-                    <Button>
-                      <Plus className="w-4 h-4" />
-                      Periodos en este ciclo{" "}
-                    </Button>
-                  </Link>
-                )}
-                {!hasClasses && (
-                  <Link href={`/administracion/clases`}>
-                    <Button>
-                      <Plus className="w-4 h-4" />
-                      Clases{" "}
-                    </Button>
-                  </Link>
-                )}
+                  {!hasStudents && (
+                    <Link href={`/administracion/asignacion-de-clases`}>
+                      <Button>
+                        <Plus className="w-4 h-4" />
+                        Estudiantes en esta clase
+                      </Button>
+                    </Link>
+                  )}
+                  {!hasTerms && (
+                    <Link href={`/administracion/periodos`}>
+                      <Button>
+                        <Plus className="w-4 h-4" />
+                        Periodos en este ciclo
+                      </Button>
+                    </Link>
+                  )}
+                  {!hasClasses && (
+                    <Link href={`/administracion/clases`}>
+                      <Button>
+                        <Plus className="w-4 h-4" />
+                        Clases
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>

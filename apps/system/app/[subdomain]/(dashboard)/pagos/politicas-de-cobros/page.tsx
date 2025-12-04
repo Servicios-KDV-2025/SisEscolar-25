@@ -39,7 +39,8 @@ import {
 import { Search } from "lucide-react";
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { BillingRulesForm } from "components/billingRules/BillingRulesForm";
-import { toast } from "@repo/ui/sonner";
+import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
+import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
 
 export default function BillingRulePage() {
   const { user: clerkUser, isLoaded } = useUser();
@@ -88,6 +89,9 @@ export default function BillingRulePage() {
     cutoffAfterDays: "",
   });
 
+  //   Mensajes de toast personalizados
+  const toastMessages = useCrudToastMessages("Política de Cobro");
+
   const filteredBillingRules = billingRules.filter((rule) => {
     const matchesSearch = rule.name
       .toLowerCase()
@@ -124,7 +128,7 @@ export default function BillingRulePage() {
         createdBy: currentUser._id,
         updatedBy: currentUser._id,
       });
-      toast.success("Política de cobro creada exitosamente")
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
     } else if (operation === "edit" && data?._id) {
       await updateBillingRule({
         ...baseData,
@@ -132,22 +136,21 @@ export default function BillingRulePage() {
         updatedAt: new Date().getTime(),
         updatedBy: currentUser._id,
       });
-      toast.success("Política de cobro actualizada exitosamente")
+      //   Los toasts ahora los maneja el CrudDialog automáticamente
     }
   };
 
   const handleDelete = async (id: string) => {
-    try {
-      await deleteBillingRule(id);
-      toast.success("Política de cobro eliminada correctamente");
-    } catch (error) {
-      toast.error("Error al eliminar la política de cobro ", {
-        description: (error as Error).message,
-      });
-      throw error;
-    }
+    await deleteBillingRule(id);
+    //   Los toasts ahora los maneja el CrudDialog automáticamente
   };
+  if (!isLoaded || userLoading || schoolLoading) {
+    return (
 
+      <GeneralDashboardSkeleton nc={3} />
+
+    );
+  }
   return (
     <div className="space-y-8 p-6">
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
@@ -169,15 +172,6 @@ export default function BillingRulePage() {
                 </div>
               </div>
             </div>
-            <Button
-              size="lg"
-              className="gap-2"
-              onClick={openCreate}
-              disabled={isCreatingBillingRule}
-            >
-              <Plus className="h-4 w-4" />
-              Agregar Política
-            </Button>
           </div>
         </div>
       </div>
@@ -290,23 +284,29 @@ export default function BillingRulePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Lista de Políticas de Cobros</span>
-            <Badge variant="outline">
-              {filteredBillingRules.length} políticas
-            </Badge>
-          </CardTitle>
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <CardTitle>
+              <div className="flex flex-col gap-2">
+                <span>Lista de Políticas de Cobros</span>
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                  {filteredBillingRules.length} políticas
+                </Badge>
+              </div>
+            </CardTitle>
+            <Button
+              size="lg"
+              className="gap-2"
+              onClick={openCreate}
+              disabled={isCreatingBillingRule}
+            >
+              <Plus className="h-4 w-4" />
+              Agregar Política
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-muted-foreground">
-                  Cargando políticas...
-                </p>
-              </div>
-            </div>
+            <GeneralDashboardSkeleton nc={3} />
           ) : filteredBillingRules.length === 0 ? (
             <div className="text-center py-12">
               <Scale className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -348,18 +348,20 @@ export default function BillingRulePage() {
         operation={operation}
         title={
           operation === "create"
-            ? "Crear Nueva Políticas de Cobros"
+            ? "Crear Nueva Política de Cobros"
             : operation === "edit"
-              ? "Editar Políticas de Cobros"
-              : "Ver Políticas de Cobros"
+              ? "Actualizar Política de Cobros"
+              : "Detalles de la Política de Cobros"
         }
         description={
           operation === "create"
-            ? "Completa la información de la nueva política"
+            ? "Ingresa los detalles necesarios para establecer una nueva política de cobros y asegurar una gestión clara y ordenada."
             : operation === "edit"
-              ? "Modifica la información de la política"
-              : "Información de la política"
+              ? "Ajusta o corrige la información de esta política para mantener su contenido vigente y preciso."
+              : "Consulta la información completa y actual de esta política."
         }
+        deleteConfirmationTitle='¿Eliminar Política de Cobros?'
+        deleteConfirmationDescription='Esta acción eliminará permanentemente la política del sistema. No se podrá recuperar una vez eliminada.'
         schema={billingRuleSchema}
         defaultValues={{
           name: "",
@@ -378,6 +380,8 @@ export default function BillingRulePage() {
         onDelete={handleDelete}
         isSubmitting={isCreatingBillingRule || isUpdatingBillingRule}
         isDeleting={isDeletingBillingRule}
+        toastMessages={toastMessages}
+        disableDefaultToasts={false}
       >
         {(form, operation) => (
           <BillingRulesForm

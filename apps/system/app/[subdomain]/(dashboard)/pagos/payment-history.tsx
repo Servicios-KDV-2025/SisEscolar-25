@@ -2,18 +2,25 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@repo/ui/components/shadcn/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table"
-import { Filter, AlertTriangle, CheckCircle, Clock, Search, History, TrendingUp, Loader2, Eye, Download, FileX } from "lucide-react"
+import { Copy, Wallet, BadgeCheck, CheckCircle2, Mail, Calendar, Receipt, Filter, AlertTriangle, CheckCircle, Clock, Search, History, TrendingUp, Loader2, Download, FileX, Eye, User, CreditCard, FileText, Building2 } from "lucide-react"
 import { Badge } from "@repo/ui/components/shadcn/badge"
 import { Input } from "@repo/ui/components/shadcn/input"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@repo/ui/components/shadcn/select"
 import { Button } from "@repo/ui/components/shadcn/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@repo/ui/components/shadcn/tooltip"
-import { useQuery } from "convex/react"
+import { CrudDialog } from "@repo/ui/components/dialog/crud-dialog"
+import { z } from "zod"
+import { useQuery, useMutation, useAction } from "convex/react"
 import { api } from "@repo/convex/convex/_generated/api"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
 import { useUser } from "@clerk/nextjs"
 import { useUserWithConvex } from "../../../../stores/userStore"
 import { useCurrentSchool } from "../../../../stores/userSchoolsStore"
+import { PAYMENT_TYPES } from "lib/billing/constants"
+import { toast } from "@repo/ui/sonner";
+import { Separator } from "@repo/ui/components/shadcn/separator"
+import { PaymentHistoryItem } from "@/types/payment"
+
 
 interface PaymentHistoryProps {
   selectedSchoolCycle: string
@@ -25,41 +32,49 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
   const [historyStatusFilter, setHistoryStatusFilter] = useState<string | null>(null)
   const [historyStartDateFilter, setHistoryStartDateFilter] = useState<string>("")
   const [historyEndDateFilter, setHistoryEndDateFilter] = useState<string>("")
+  const [downloadingInvoices, setDownloadingInvoices] = useState<Set<string>>(new Set())
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
+  const [selectedPayment, setSelectedPayment] = useState<PaymentHistoryItem>()
+  const [rfcCopied, setRfcCopied] = useState(false)
 
-  // Hooks para obtener datos del usuario y escuela
   const { user: clerkUser } = useUser()
   const { currentUser } = useUserWithConvex(clerkUser?.id)
   const { currentSchool } = useCurrentSchool(currentUser?._id)
 
-  // Obtener ciclos escolares
+  const generateFacturapiInvoice = useAction(api.functions.actions.facturapi.generateFacturapiInvoice);
+  const updatePaymentWithFacturapi = useMutation(api.functions.payments.updatePaymentWithFacturapi);
+  const downloadFacturapiInvoice = useAction(api.functions.actions.facturapi.downloadFacturapiInvoice);
+
+  const tutorFiscalData = useQuery(
+    api.functions.fiscalData.getFiscalDataByUserId,
+    selectedPayment?.tutorId ? { userId: selectedPayment.tutorId as Id<"user"> } : "skip"
+  );
+
   const schoolCycles = useQuery(
     api.functions.schoolCycles.getAllSchoolCycles,
     currentSchool?.school._id ? { schoolId: currentSchool.school._id } : "skip"
   )
 
-  // Obtener historial de pagos
   const paymentHistory = useQuery(
     api.functions.payments.getPaymentHistory,
     currentSchool?.school._id && selectedSchoolCycle
       ? {
-          schoolId: currentSchool.school._id,
-          schoolCycleId: selectedSchoolCycle as Id<"schoolCycle">,
-        }
+        schoolId: currentSchool.school._id,
+        schoolCycleId: selectedSchoolCycle as Id<"schoolCycle">,
+      }
       : "skip"
   )
 
-  // Obtener estadísticas
   const paymentStats = useQuery(
     api.functions.payments.getPaymentStats,
     currentSchool?.school._id && selectedSchoolCycle
       ? {
-          schoolId: currentSchool.school._id,
-          schoolCycleId: selectedSchoolCycle as Id<"schoolCycle">,
-        }
+        schoolId: currentSchool.school._id,
+        schoolCycleId: selectedSchoolCycle as Id<"schoolCycle">,
+      }
       : "skip"
   )
 
-  // Establecer el ciclo activo por defecto
   useEffect(() => {
     if (schoolCycles && schoolCycles.length > 0 && !selectedSchoolCycle) {
       const activeCycle = schoolCycles.find((cycle) => cycle.isActive)
@@ -81,10 +96,7 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
       payment.studentName.toLowerCase().includes(historySearchTerm.toLowerCase()) ||
       payment.studentEnrollment.toLowerCase().includes(historySearchTerm.toLowerCase()) ||
       payment.paymentType.toLowerCase().includes(historySearchTerm.toLowerCase())
-    
     const matchesStatus = !historyStatusFilter || payment.billingStatus === historyStatusFilter
-
-    // Filtrar por fecha de pago
     const paymentDate = new Date(payment.paidAt).toISOString().split('T')[0]
     const matchesStartDate = !historyStartDateFilter || (paymentDate && paymentDate >= historyStartDateFilter)
     const matchesEndDate = !historyEndDateFilter || (paymentDate && paymentDate <= historyEndDateFilter)
@@ -92,93 +104,72 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
     return matchesSearch && matchesStatus && matchesStartDate && matchesEndDate
   })
 
-  const handleViewInvoice = (url: string) => {
-    window.open(url, '_blank', 'noopener,noreferrer')
-  }
+  const handleGenerateInvoice = async (paymentId: string, tutor: string, paymentType: string, createdPayment: number, tutorId: string) => {
+    if (!currentUser?._id) return;
 
-  const handleDownloadInvoice = async (url: string, studentName: string, filename?: string | null, mimeType?: string | null) => {
     try {
-      const response = await fetch(url)
-      const blob = await response.blob()
-      
-      // Detectar la extensión desde múltiples fuentes
-      let extension = 'pdf' // Por defecto
-      let finalFilename = `Factura_${studentName.replace(/\s/g, '_')}`
-      
-      // 1. Si tenemos el nombre del archivo guardado, usar su extensión
-      if (filename) {
-        const fileExtension = filename.split('.').pop()
-        if (fileExtension && fileExtension.length <= 5) { // Validar que sea una extensión válida
-          extension = fileExtension
-          // Usar el nombre original si está disponible
-          finalFilename = filename
-        }
+      const result = await generateFacturapiInvoice({
+        paymentId: paymentId as Id<"payments">,
+        tutorId: tutorId as Id<"user">,
+      });
+
+      if (result.success === true && result.facturapiInvoiceId) {
+        await updatePaymentWithFacturapi({
+          paymentId: paymentId as Id<"payments">,
+          facturapiInvoiceId: result.facturapiInvoiceId,
+          facturapiInvoiceNumber: String(result.facturapiInvoiceNumber),
+          facturapiInvoiceStatus: result.facturapiInvoiceStatus,
+        });
+
+        toast.success("Factura generada exitosamente");
+        handleDownloadFacturapiInvoice(result.facturapiInvoiceId, tutor, paymentType, createdPayment)
+      } else if (result.success === false) {
+        toast.error(result.message);
+      } else {
+        toast.error("Error al generar la factura");
       }
-      // 2. Si tenemos el mimeType guardado, usarlo
-      else if (mimeType) {
-        const mimeToExtension: Record<string, string> = {
-          'application/pdf': 'pdf',
-          'image/jpeg': 'jpg',
-          'image/jpg': 'jpg',
-          'image/png': 'png',
-          'image/gif': 'gif',
-          'image/webp': 'webp',
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
-          'application/msword': 'doc',
-          'application/vnd.ms-excel': 'xls',
-          'text/plain': 'txt',
-        }
-        extension = mimeToExtension[mimeType] || extension
-        finalFilename = `${finalFilename}.${extension}`
-      }
-      // 3. Intentar desde Content-Disposition del response
-      else {
-        const contentDisposition = response.headers.get('content-disposition')
-        if (contentDisposition) {
-          const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
-          if (filenameMatch && filenameMatch[1]) {
-            const headerFilename = filenameMatch[1].replace(/['"]/g, '')
-            const fileExtension = headerFilename.split('.').pop()
-            if (fileExtension) {
-              extension = fileExtension
-            }
-          }
-        }
-        
-        // 4. Usar Content-Type como último recurso
-        const contentType = response.headers.get('content-type')
-        if (contentType) {
-          const mimeToExtension: Record<string, string> = {
-            'application/pdf': 'pdf',
-            'image/jpeg': 'jpg',
-            'image/jpg': 'jpg',
-            'image/png': 'png',
-            'image/gif': 'gif',
-            'image/webp': 'webp',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
-            'application/msword': 'doc',
-            'application/vnd.ms-excel': 'xls',
-            'text/plain': 'txt',
-          }
-          extension = mimeToExtension[contentType] || extension
-        }
-        
-        finalFilename = `${finalFilename}.${extension}`
-      }
-      
-      const downloadUrl = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = downloadUrl
-      link.download = finalFilename
-      
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(downloadUrl)
     } catch (error) {
-      console.error('Error descargando la factura:', error)
+      console.error("Error generando factura:", error);
+      toast.error("Error al generar la factura: " + (error instanceof Error ? error.message : "Error desconocido"));
+    }
+  };
+
+  const handleDownloadFacturapiInvoice = async (facturapiInvoiceId: string, tutor: string, paymentType: string, createdPayment: number) => {
+    setDownloadingInvoices(prev => new Set(prev).add(facturapiInvoiceId));
+
+    try {
+      const result = await downloadFacturapiInvoice({ facturapiInvoiceId, tutor, paymentType: PAYMENT_TYPES[paymentType as keyof typeof PAYMENT_TYPES], createdPayment });
+
+      if (result.success) {
+        const binaryString = atob(result.pdfData);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = result.filename || `Factura_${tutor.replace(/\s/g, '_')}.pdf`;
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+
+      } else {
+        console.error('Error descargando factura:', result);
+        toast.error('Error al descargar la factura');
+      }
+    } catch (error) {
+      console.error('Error descargando factura de Facturapi:', error);
+      toast.error('Error al descargar la factura: ' + (error instanceof Error ? error.message : 'Error desconocido'));
+    } finally {
+      setDownloadingInvoices(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(facturapiInvoiceId);
+        return newSet;
+      });
     }
   }
 
@@ -403,7 +394,7 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
                       <TableCell>
                         {payment.studentGrade} {payment.studentGroup}
                       </TableCell>
-                      <TableCell>{payment.paymentType}</TableCell>
+                      <TableCell>{PAYMENT_TYPES[payment.paymentType as keyof typeof PAYMENT_TYPES]}</TableCell>
                       <TableCell>{getPaymentStatusBadge(payment.billingStatus)}</TableCell>
                       <TableCell className="font-semibold">${payment.amount.toLocaleString()}</TableCell>
                       <TableCell>${payment.billingAmount.toLocaleString()}</TableCell>
@@ -411,7 +402,7 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
                         {(() => {
                           // Calcular el remanente correctamente: Total - Pagado
                           const remaining = payment.billingAmount - payment.amount;
-                          
+
                           if (remaining > 0) {
                             // Hay deuda pendiente
                             return (
@@ -467,53 +458,77 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
                       <TableCell>{new Date(payment.paidAt).toLocaleDateString('es-MX')}</TableCell>
                       <TableCell>{payment.methodLabel}</TableCell>
                       <TableCell>{payment.createdBy}</TableCell>
-                      <TableCell>
-                        {payment.invoiceUrl ? (
-                          <TooltipProvider>
-                            <div className="flex items-center gap-2">
+                      <TableCell className="text-center">
+                        {payment.facturapiInvoiceId && payment.facturapiInvoiceStatus === 'valid' ? (
+                          <>
+                            <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => handleViewInvoice(payment.invoiceUrl!)}
-                                    className="h-8 w-8 p-0 hover:bg-blue-100 cursor-pointer"
-                                  >
-                                    <Eye className="h-4 w-4 text-primary" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Ver factura</p>
-                                </TooltipContent>
-                              </Tooltip>
-                              
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleDownloadInvoice(
-                                      payment.invoiceUrl!, 
-                                      payment.studentName,
-                                      payment.invoiceFilename,
-                                      payment.invoiceMimeType
-                                    )}
+                                    onClick={() => { setSelectedPayment(payment); setIsInvoiceModalOpen(true); }}
+                                    disabled={downloadingInvoices.has(payment.facturapiInvoiceId!)}
                                     className="h-8 w-8 p-0 hover:bg-green-100 cursor-pointer"
                                   >
-                                    <Download className="h-4 w-4 text-primary" />
+                                    <Eye className="h-4 w-4" />
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>Descargar factura</p>
+                                  <p>
+                                    Ver datos de la factura...
+                                  </p>
+                                  {payment.facturapiInvoiceNumber && <p>Folio: {payment.facturapiInvoiceNumber}</p>}
                                 </TooltipContent>
                               </Tooltip>
-                            </div>
-                          </TooltipProvider>
+                            </TooltipProvider>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDownloadFacturapiInvoice(payment.facturapiInvoiceId!, payment.createdBy, payment.paymentType, payment.createdAt)}
+                                    disabled={downloadingInvoices.has(payment.facturapiInvoiceId!)}
+                                    className="h-8 w-8 p-0 hover:bg-green-100 cursor-pointer"
+                                  >
+                                    {downloadingInvoices.has(payment.facturapiInvoiceId!) ? (
+                                      <Loader2 className="h-4 w-4 animate-spin text-green-600" />
+                                    ) : (
+                                      <Download className="h-4 w-4 text-green-600" />
+                                    )}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>
+                                    {downloadingInvoices.has(payment.facturapiInvoiceId!)
+                                      ? "Descargando factura..."
+                                      : "Descargar factura PDF"
+                                    }
+                                  </p>
+                                  {payment.facturapiInvoiceNumber && <p>Folio: {payment.facturapiInvoiceNumber}</p>}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </>
                         ) : (
-                          <div className="flex items-center gap-1 text-gray-400">
-                            <FileX className="h-4 w-4" />
-                            <span className="text-xs">Sin factura</span>
-                          </div>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleGenerateInvoice(payment.id, payment.createdBy, payment.paymentType, payment.createdAt, payment.tutorId as Id<"user">)}
+                                  className="h-8 w-8 p-0 hover:bg-blue-100 cursor-pointer"
+                                >
+                                  <FileX className="h-4 w-4 text-primary" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Generar factura
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         )}
                       </TableCell>
                     </TableRow>
@@ -524,6 +539,260 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
           )}
         </CardContent>
       </Card>
+
+      <CrudDialog
+        operation="view"
+        title="Detalles de la Factura"
+        description="Revisa toda la información del pago realizado y la factura generada para este proceso."
+        schema={z.object({})}
+        data={selectedPayment as (Record<string, unknown> & { _id?: string }) | undefined}
+        isOpen={isInvoiceModalOpen}
+        onOpenChange={setIsInvoiceModalOpen}
+        onSubmit={async () => { }}
+        cancelButtonText="Cerrar"
+      >
+        {() => selectedPayment && (
+          <div className="flex flex-col mt-2">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 text-white">
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10" />
+              <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white/5" />
+
+              <div className="relative">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
+                      <Receipt className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-emerald-100">Monto Pagado</p>
+                      <p className="text-2xl md:text-3xl font-bold tracking-tight">
+                        ${selectedPayment?.amount.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="hidden sm:flex items-center justify-end md:justify-end">
+                    <div className="bg-white/90 rounded-md px-2 py-1">
+                      {selectedPayment?.billingStatus ? getPaymentStatusBadge(selectedPayment.billingStatus) : null}
+                    </div>
+                  </div>
+                </div>
+
+                <Separator className="mt-6 mb-2 bg-white/20" />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-emerald-200">Concepto</p>
+                    <p className="font-semibold">{PAYMENT_TYPES[selectedPayment?.paymentType as keyof typeof PAYMENT_TYPES]}</p>
+                  </div>
+                  <div className="text-left md:text-right">
+                    <p className="text-emerald-200">Monto Total del Cobro</p>
+                    <p className="font-semibold">
+                      ${selectedPayment?.billingAmount.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <section className="my-4">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">Detalles del Pago</h3>
+              <div className="rounded-lg border bg-card">
+                <div className="grid divide-y">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Fecha</span>
+                    </div>
+                    <span className="text-sm font-medium mt-1 sm:mt-0">
+                      {new Date(selectedPayment?.paidAt ?? selectedPayment?.createdAt ?? Date.now()).toLocaleDateString("es-MX", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Hora</span>
+                    </div>
+                    <span className="text-sm font-medium">
+                      {new Date(selectedPayment?.paidAt ?? selectedPayment?.createdAt ?? Date.now()).toLocaleTimeString("es-MX", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <Wallet className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Método de pago</span>
+                    </div>
+                    <span className="text-sm font-medium mt-1 sm:mt-0">{selectedPayment.methodLabel}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Registrado por</span>
+                    </div>
+                    <span className="text-sm font-medium mt-1 sm:mt-0">{selectedPayment.createdBy}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <CreditCard className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Monto del cobro</span>
+                    </div>
+                    <span className="text-sm font-medium mt-1 sm:mt-0">
+                      ${selectedPayment.billingAmount.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="my-4">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
+                Datos Fiscales del Emisor
+              </h3>
+              {tutorFiscalData ? (
+                <div className="rounded-lg border bg-card">
+                  <div className="px-4 py-4 border-b bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">RFC</p>
+                        <p className="font-mono text-lg font-semibold tracking-wider">
+                          {tutorFiscalData.taxId || "No registrado"}
+                        </p>
+                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                if (tutorFiscalData?.taxId) {
+                                  navigator.clipboard.writeText(tutorFiscalData.taxId);
+                                  setRfcCopied(true);
+                                  setTimeout(() => setRfcCopied(false), 2000);
+                                }
+                              }}
+                            >
+                              {rfcCopied ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Copiar RFC</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </div>
+
+                  <div className="grid divide-y">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Razón Social</span>
+                      </div>
+                      <span className="text-sm font-medium text-left md:text-right max-w-full md:max-w-[200px] truncate mt-1 sm:mt-0">
+                        {tutorFiscalData.legalName || "No registrado"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Régimen Fiscal</span>
+                      </div>
+                      <span className="text-sm font-medium text-left md:text-right max-w-full md:max-w-[200px]">
+                        {tutorFiscalData.taxSystem || "No especificado"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <Receipt className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Uso de CFDI</span>
+                      </div>
+                      <span className="text-sm font-medium text-left md:text-right">{tutorFiscalData.cfdiUse || "No especificado"}</span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Correo Fiscal</span>
+                      </div>
+                      <span className="text-sm font-medium text-left md:text-right mt-1 sm:mt-0">{tutorFiscalData.email || "No registrado"}</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-8 text-muted-foreground rounded-lg border">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <span className="text-sm">Cargando información fiscal...</span>
+                </div>
+              )}
+            </section>
+
+            <section className="my-4">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">Factura Electrónica</h3>
+              <div className={`rounded-lg border bg-card overflow-hidden ${selectedPayment ? "border-emerald-200" : ""}`}>
+                <div className="px-4 py-5">
+                  <div className="flex items-start gap-4">
+                    <div
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${selectedPayment ? "bg-emerald-100 text-emerald-600" : "bg-muted text-muted-foreground"
+                        }`}
+                    >
+                      {selectedPayment ? <BadgeCheck className="h-6 w-6" /> : <Clock className="h-6 w-6" />}
+                    </div>
+
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between min-w-0 w-full gap-2">
+                      <div className="flex flex-row items-center gap-2">
+                        <p className="text-md text-muted-foreground">Folio Fiscal: </p>
+                        <p className="font-mono text-lg md:text-xl font-semibold tracking-wide break-all">
+                          {selectedPayment.facturapiInvoiceNumber || "Pendiente de generación"}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-start md:justify-end">
+                        <Badge
+                          variant={selectedPayment.facturapiInvoiceStatus === 'valid' ? "default" : "secondary"}
+                          className={selectedPayment.facturapiInvoiceStatus === 'valid' ? "bg-emerald-600 hover:bg-emerald-700" : ""}
+                        >
+                          {selectedPayment.facturapiInvoiceStatus === 'valid' ? "Valido" : selectedPayment.facturapiInvoiceStatus || "Pendiente"}
+                        </Badge>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+
+                <div className="px-4 py-3 border-t bg-muted/30">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Fecha de emisión</span>
+                    <span className="font-medium">
+                      {new Date(selectedPayment.createdAt).toLocaleDateString("es-MX", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                </div>
+
+                {selectedPayment && (
+                  <div className="px-4 py-3 border-t bg-emerald-50 flex items-center gap-2 text-emerald-700">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span className="text-sm font-medium">Validada ante el SAT</span>
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
+
+        )}
+      </CrudDialog>
     </div>
   )
 }
