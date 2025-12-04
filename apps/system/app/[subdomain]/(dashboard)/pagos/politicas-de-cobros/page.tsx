@@ -144,11 +144,11 @@ export default function BillingRulePage() {
     await deleteBillingRule(id);
     //   Los toasts ahora los maneja el CrudDialog automáticamente
   };
-if (!isLoaded || userLoading || schoolLoading) {
+  if (!isLoaded || userLoading || schoolLoading) {
     return (
-    
-        <GeneralDashboardSkeleton nc={3} />
-      
+
+      <GeneralDashboardSkeleton nc={3} />
+
     );
   }
   return (
@@ -306,7 +306,7 @@ if (!isLoaded || userLoading || schoolLoading) {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <GeneralDashboardSkeleton nc={3}/>
+            <GeneralDashboardSkeleton nc={3} />
           ) : filteredBillingRules.length === 0 ? (
             <div className="text-center py-12">
               <Scale className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -348,18 +348,20 @@ if (!isLoaded || userLoading || schoolLoading) {
         operation={operation}
         title={
           operation === "create"
-            ? "Crear Nueva Políticas de Cobros"
+            ? "Crear Nueva Política de Cobros"
             : operation === "edit"
-              ? "Editar Políticas de Cobros"
-              : "Ver Políticas de Cobros"
+              ? "Actualizar Política de Cobros"
+              : "Detalles de la Política de Cobros"
         }
         description={
           operation === "create"
-            ? "Completa la información de la nueva política"
+            ? "Ingresa los detalles necesarios para establecer una nueva política de cobros y asegurar una gestión clara y ordenada."
             : operation === "edit"
-              ? "Modifica la información de la política"
-              : "Información de la política"
+              ? "Ajusta o corrige la información de esta política para mantener su contenido vigente y preciso."
+              : "Consulta la información completa y actual de esta política."
         }
+        deleteConfirmationTitle='¿Eliminar Política de Cobros?'
+        deleteConfirmationDescription='Esta acción eliminará permanentemente la política del sistema. No se podrá recuperar una vez eliminada.'
         schema={billingRuleSchema}
         defaultValues={{
           name: "",

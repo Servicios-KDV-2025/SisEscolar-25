@@ -374,16 +374,18 @@ export default function SubjectPage() {
               operation === "create"
                 ? "Crear Nueva Materia"
                 : operation === "edit"
-                  ? "Editar Materia"
-                  : "Ver Materia"
+                  ? "Actualizar Materia"
+                  : "Detalles de la Materia"
             }
             description={
               operation === "create"
-                ? "Completa la información de la nueva materia"
+                ? "Ingresa los datos necesarios para registrar una nueva materia en el sistema académico."
                 : operation === "edit"
-                  ? "Modifica la información de la materia"
-                  : "Información de la materia"
+                  ? "Realiza los ajustes necesarios en la información de esta materia."
+                  : "Revisa toda la información relacionada con esta materia."
             }
+            deleteConfirmationTitle="¿Eliminar Materia?"
+            deleteConfirmationDescription="Esta acción borrará de manera permanente la materia del sistema. No podrá deshacerse."
             schema={subjectSchema}
             defaultValues={{
               name: "",

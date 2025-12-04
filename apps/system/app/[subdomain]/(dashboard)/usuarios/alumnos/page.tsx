@@ -1016,20 +1016,20 @@ export default function AlumnosPage() {
         operation={operation}
         title={
           operation === "create"
-            ? "Agregar Alumno"
+            ? "Registrar Nuevo Alumno"
             : operation === "edit"
-              ? "Editar Alumno"
+              ? "Actualizar Información del Alumno"
               : operation === "view"
-                ? "Ver Alumno"
-                : "Eliminar Alumno"
+                ? "Perfil del Alumno"
+                : ""
         }
         description={
           operation === "create"
-            ? "Completa la información para agregar un nuevo alumno"
+            ? "Ingresa los datos necesarios para dar de alta a un nuevo alumno y comenzar su trayectoria escolar."
             : operation === "edit"
-              ? "Modifica la información del alumno"
+              ? "Ajusta o corrige los datos del alumno para mantener su información siempre al día."
               : operation === "view"
-                ? "Información detallada del alumno"
+                ? "Consulta la información completa y actual del alumno."
                 : undefined
         }
         schema={studentSchema}
@@ -1040,7 +1040,7 @@ export default function AlumnosPage() {
         onSubmit={operation === "create" ? handleCreate : handleUpdate}
         onDelete={handleDelete}
         deleteConfirmationTitle="¿Eliminar alumno?"
-        deleteConfirmationDescription="Esta acción eliminará permanentemente al alumno del sistema. Esta acción no se puede deshacer."
+        deleteConfirmationDescription="Esta acción eliminará permanentemente al alumno del sistema. No podrá deshacerse, por lo que te recomendamos confirmar cuidadosamente."
         toastMessages={toastMessages}
         disableDefaultToasts={false}
         onError={() => {

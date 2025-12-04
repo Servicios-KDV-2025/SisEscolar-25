@@ -345,6 +345,3 @@ export default function CrudFields({ fields, operation, form, className }: CrudF
         </div>
     );
 }
-
-// al entrar al sistema desde vercel se redirige al localhost, en vez del dominio de vercel; urgente
-// quitar campos del form de personal / tutor de contraseña temporal y teléfono, revisar con Emilio; normal

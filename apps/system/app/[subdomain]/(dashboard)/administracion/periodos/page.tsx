@@ -676,17 +676,19 @@ export default function PeriodsManagement() {
         <CrudDialog
           operation={operation}
           title={operation === 'create'
-            ? 'Crear Agregar Periodo'
+            ? 'Crear Nuevo Periodo'
             : operation === 'edit'
-              ? 'Editar Periodo'
-              : 'Ver Periodo'
+              ? 'Actualizar Periodo'
+              : 'Detalles del Periodo'
           }
           description={operation === 'create'
-            ? 'Completa la información del periodo'
+            ? 'Completa los datos necesarios para registrar un nuevo periodo académico.'
             : operation === 'edit'
-              ? 'Modifica la información del periodo'
-              : 'Información del periodo'
+              ? 'Modifica la información del periodo para mantener sus datos correctos y vigentes.'
+              : 'Consulta toda la información registrada sobre este periodo.'
           }
+          deleteConfirmationTitle="¿Eliminar Periodo?"
+          deleteConfirmationDescription="Esta acción borrará de forma definitiva el periodo del sistema. No podrá deshacerse."
           schema={termSchema}
           defaultValues={{
             name: '',
