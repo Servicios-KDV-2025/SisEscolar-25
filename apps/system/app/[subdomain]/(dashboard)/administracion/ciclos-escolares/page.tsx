@@ -431,13 +431,15 @@ export default function SchoolCyclesPage() {
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <CardTitle>
                 <div className="flex flex-col gap-2">
-                  <span>Lista de los grupos</span>
-                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
-                      {filteredCycles.length} ciclos escolares
-                    </Badge>
+                  <span>Lista de Ciclos Escolares</span>
+                    {canCreateSchoolCycle && (
+                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                        {filteredCycles.length} ciclos escolares
+                      </Badge>
+                    )}
                 </div>
               </CardTitle>
-              {canCreateSchoolCycle && (
+              {canCreateSchoolCycle ? (
                   <Button
                     size="lg"
                     className="gap-2"
@@ -447,7 +449,11 @@ export default function SchoolCyclesPage() {
                     <Plus className="h-4 w-4" />
                     Agregar Ciclo Escolar
                   </Button>
-                )}
+                ) : canReadSchoolCycle ? (
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                    {filteredCycles.length} ciclos escolares
+                  </Badge>
+                ) : null}
               </div>
             </CardHeader>
             <CardContent>

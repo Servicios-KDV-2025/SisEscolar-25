@@ -35,9 +35,20 @@ import { formatCurrency } from "lib/utils"
 interface PagosProps {
     selectedSchoolCycle: string
     setSelectedSchoolCycle: (cycle: string) => void
+    canCreatePagos?: boolean
+    canUpdatePagos?: boolean
+    currentRole?: string | null
+    currentUser?: { _id: Id<"user"> } | null
 }
 
-export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycle }: PagosProps) {
+export default function BillingPage({ 
+    selectedSchoolCycle, 
+    setSelectedSchoolCycle,
+    canCreatePagos = true,
+    // canUpdatePagos = true,
+    currentRole,
+    currentUser: currentUserProp
+}: PagosProps) {
     const [searchTerm, setSearchTerm] = useState("")
     const [gradeFilter, setGradeFilter] = useState<string | null>(null)
     const [groupFilter, setGroupFilter] = useState<string | null>(null)
@@ -48,11 +59,16 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
     const [paymentMethod, setBillingMethod] = useState<"cash" | "bank_transfer" | "card" | "other">("cash")
     const [paymentAmount, setBillingAmount] = useState<string>("")
     const [isProcessingBilling, setIsProcessingBilling] = useState(false)
-    const [paymentMethodType, setBillingMethodType] = useState<"manual" | "stripe" | "spei" | "oxxo">("manual")
+    const [paymentMethodType, setBillingMethodType] = useState<"manual" | "stripe" | "spei" | "oxxo">(
+        currentRole === "tutor" ? "stripe" : "manual"
+    )
 
     const { user: clerkUser } = useUser()
-    const { currentUser } = useUserWithConvex(clerkUser?.id)
-    const { currentSchool } = useCurrentSchool(currentUser?._id)
+    const { currentUser: currentUserFromHook } = useUserWithConvex(clerkUser?.id)
+    const { currentSchool } = useCurrentSchool(currentUserFromHook?._id)
+    
+    // Usar el currentUser de props si está disponible, sino usar el del hook
+    const currentUser = currentUserProp || currentUserFromHook
 
     const schoolCycles = useQuery(
         api.functions.schoolCycles.getAllSchoolCycles,
@@ -96,15 +112,23 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
         }
     }, [gradeFilter])
 
-    const estudiantes: Estudiante[] = useMemo(() => (paymentsData?.students || []).map(student => ({
-        ...student,
-        fechaVencimiento: student.fechaVencimiento || new Date().toISOString().split('T')[0],
-
-        pagos: student.pagos.map(pago => ({
-            ...pago,
-            fechaVencimiento: pago.fechaVencimiento || new Date().toISOString().split('T')[0],
-        }))
-    })) as Estudiante[], [paymentsData?.students])
+    const estudiantes: Estudiante[] = useMemo(() => {
+        let students = paymentsData?.students || [];
+        
+        // Si es tutor, filtrar solo los estudiantes de sus hijos
+        if (currentRole === "tutor" && currentUser?._id) {
+            students = students.filter(student => student.tutorId === currentUser._id);
+        }
+        
+        return students.map(student => ({
+            ...student,
+            fechaVencimiento: student.fechaVencimiento || new Date().toISOString().split('T')[0],
+            pagos: student.pagos.map(pago => ({
+                ...pago,
+                fechaVencimiento: pago.fechaVencimiento || new Date().toISOString().split('T')[0],
+            }))
+        })) as Estudiante[];
+    }, [paymentsData?.students, currentRole, currentUser?._id])
 
     const filteredEstudiantesByCycle = useMemo(() =>
         estudiantes.filter((estudiante) => estudiante.schoolCycleId === selectedSchoolCycle),
@@ -159,6 +183,11 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
     )
 
     const handleBillingSelection = (paymentId: string, checked: boolean) => {
+        // Auditor no puede seleccionar pagos
+        if (currentRole === "auditor") {
+            return;
+        }
+        
         const paymentRecord = paymentRecords.find((p) => p.id === paymentId)
 
         if (paymentRecord?.status === "Pagado") {
@@ -214,6 +243,10 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
         const totalAmount = paymentsToProcess.reduce((sum, payment) => sum + payment.amount, 0)
         setBillingAmount(totalAmount.toString())
         setShowBillingModal(false)
+        // Si es tutor, establecer el método de pago en "stripe" automáticamente
+        if (currentRole === "tutor") {
+            setBillingMethodType("stripe")
+        }
         setShowBillingFormModal(true)
     }
 
@@ -227,6 +260,8 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
         setShowBillingFormModal(false)
         setBillingMethod("cash")
         setBillingAmount("")
+        // Restablecer el método de pago según el rol
+        setBillingMethodType(currentRole === "tutor" ? "stripe" : "manual")
     }
 
     const handleConfirmBilling = async () => {
@@ -541,24 +576,43 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
 
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                        <span>Lista de Cobros</span>
-                        <div className="flex items-center gap-2">
-                            {selectedBillings.length > 0 && (
-                                <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
-                                    {selectedBillings.length} seleccionado{selectedBillings.length > 1 ? "s" : ""}
-                                </Badge>
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div className="flex flex-col gap-2">
+                            <CardTitle className="flex items-center gap-2">
+                                <span>Lista de Cobros</span>
+                                {((canCreatePagos || currentRole === "tutor") && currentRole !== "auditor") && (
+                                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                                        {filteredEstudiantes.length} registros
+                                    </Badge>
+                                )}
+                            </CardTitle>
+                            <CardDescription className="text-base text-gray-600">
+                                {currentRole === "auditor" ? "Vista de solo lectura - No puedes seleccionar ni procesar pagos" : "Selecciona los cobros que deseas procesar marcando las casillas correspondientes"}
+                            </CardDescription>
+                            {currentRole !== "auditor" && selectedBillings.length > 0 && (canCreatePagos || currentRole === "tutor") && (
+                                <div className="flex items-center gap-2 mt-1">
+                                    <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 w-fit">
+                                        {selectedBillings.length} seleccionado{selectedBillings.length > 1 ? "s" : ""}
+                                    </Badge>
+                                </div>
                             )}
-                            <Badge variant="outline">{filteredEstudiantes.length} registros</Badge>
                         </div>
-                    </CardTitle>
-                    <CardDescription className="text-base text-gray-600">
-                        Selecciona los cobros que deseas procesar marcando las casillas correspondientes
-                    </CardDescription>
-                    {selectedBillings.length > 0 && (
+                        {(canCreatePagos || currentRole === "tutor") && currentRole !== "auditor" ? (
+                            <Button 
+                                onClick={handleRealizarPagos} 
+                                size="lg"
+                                className="bg-black text-white hover:bg-gray-800 shadow-md cursor-pointer w-full sm:w-auto"
+                            >
+                                <CreditCard className="h-4 w-4 mr-2" />
+                                Realizar Pago{selectedBillings.length > 1 ? "s" : ""}
+                            </Button>
+                        ) : (
+                            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit px-4 flex items-center">{filteredEstudiantes.length} registros</Badge>
+                        )}
+                    </div>
+                    {currentRole !== "auditor" && selectedBillings.length > 0 && (
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t border-gray-200 bg-gray-50/50 -mx-6 px-6 py-4 mt-4 rounded-lg">
                             <div className="flex items-center gap-3 flex-wrap">
-
                                 <Button variant="outline"
                                     size="sm"
                                     className="border-gray-300 text-gray-600 hover:bg-gray-50 bg-white"
@@ -580,22 +634,6 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
                                     Deseleccionar todos
                                 </Button>
                             </div>
-                            <Button
-                                onClick={handleRealizarPagos}
-                                size="lg"
-                                className="bg-black text-white hover:bg-gray-800 shadow-lg border-0 max-"
-                            >
-                                <CreditCard className="h-4 w-4 mr-2" />
-                                Realizar Pago{selectedBillings.length > 1 ? "s" : ""}
-                            </Button>
-                        </div>
-                    )}
-                    {selectedBillings.length === 0 && (
-                        <div className="flex justify-end pt-2 max-md:justify-center ">
-                            <Button onClick={handleRealizarPagos} className="bg-black text-white hover:bg-gray-800 shadow-md max-md:w-full">
-                                <CreditCard className="h-4 w-4 mr-2" />
-                                Realizar Pago
-                            </Button>
                         </div>
                     )}
                 </CardHeader>
@@ -683,6 +721,7 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
                             getEstadoBillingConfig={getEstadoBillingConfig}
                             getBillingStatusConfig={getBillingStatusConfig}
                             onClear={() => setSelectedBillings([])}
+                            currentRole={currentRole}
                         />
                     )}
                 </CardContent>
@@ -928,13 +967,25 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
                         <div className="space-y-3">
                             <Label className="text-base font-semibold">Método de Pago</Label>
                             <RadioGroup value={paymentMethodType} onValueChange={(value) => setBillingMethodType(value as "manual" | "stripe" | "spei" | "oxxo")}>
+                                {currentRole !== "tutor" && (
+                                    <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
+                                        <RadioGroupItem value="manual" id="manual" />
+                                        <Label htmlFor="manual" className="flex items-center gap-2 cursor-pointer flex-1">
+                                            <Banknote className="h-4 w-4" />
+                                            <div>
+                                                <p className="font-medium">Registro Manual</p>
+                                                <p className="text-xs text-muted-foreground">Efectivo u otro método - Confirmacion en minutos</p>
+                                            </div>
+                                        </Label>
+                                    </div>
+                                )}
                                 <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
-                                    <RadioGroupItem value="manual" id="manual" />
-                                    <Label htmlFor="manual" className="flex items-center gap-2 cursor-pointer flex-1">
-                                        <Banknote className="h-4 w-4" />
+                                    <RadioGroupItem value="stripe" id="stripe" />
+                                    <Label htmlFor="stripe" className="flex items-center gap-2 cursor-pointer flex-1">
+                                        <CreditCard className="h-4 w-4" />
                                         <div>
-                                            <p className="font-medium">Registro Manual</p>
-                                            <p className="text-xs text-muted-foreground">Efectivo u otro método - Confirmacion en minutos</p>
+                                            <p className="font-medium">Pago con Tarjeta (Stripe)</p>
+                                            <p className="text-xs text-muted-foreground">Tarjeta de crédito o débito - Procesamiento inmediato</p>
                                         </div>
                                     </Label>
                                 </div>
@@ -945,16 +996,6 @@ export default function BillingPage({ selectedSchoolCycle, setSelectedSchoolCycl
                                         <div>
                                             <p className="font-medium">Pago en OXXO</p>
                                             <p className="text-xs text-muted-foreground">Paga en OXXO - Confirmacion en minutos</p>
-                                        </div>
-                                    </Label>
-                                </div>
-                                <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent/50 cursor-pointer">
-                                    <RadioGroupItem value="stripe" id="stripe" />
-                                    <Label htmlFor="stripe" className="flex items-center gap-2 cursor-pointer flex-1">
-                                        <CreditCard className="h-4 w-4" />
-                                        <div>
-                                            <p className="font-medium">Pago con Tarjeta (Stripe)</p>
-                                            <p className="text-xs text-muted-foreground">Tarjeta de crédito o débito - Procesamiento inmediato</p>
                                         </div>
                                     </Label>
                                 </div>

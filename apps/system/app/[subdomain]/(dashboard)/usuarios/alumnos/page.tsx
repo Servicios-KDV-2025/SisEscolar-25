@@ -657,6 +657,7 @@ export default function AlumnosPage() {
           groups={groups || []}
           schoolCycles={schoolCycles || []}
           tutors={tutors || []}
+          isLoading={tutorStudents === undefined || groups === undefined || schoolCycles === undefined || tutors === undefined}
         />
       </div>
     );

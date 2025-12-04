@@ -88,6 +88,11 @@ export default function GradeManagementDashboard() {
     isLoading: permissionsLoading,
   } = permissions;
 
+  // Restricción: Solo teachers pueden realizar acciones CRUD
+  const canTeacherCreateAssignance = canCreateAssignance && currentRole === 'teacher';
+  const canTeacherCreateRubric = canCreateRubric && currentRole === 'teacher';
+  const canTeacherUpdateRubric = canUpdateRubric && currentRole === 'teacher';
+
   // Fetch data with Convex
   const schoolCycles = useQuery(
     api.functions.schoolCycles.ObtenerCiclosEscolares,
@@ -577,26 +582,27 @@ export default function GradeManagementDashboard() {
           <CardTitle>
             <div className="flex flex-col gap-2">
             <span>Calificaciones</span>
-            <Badge
-              variant="outline"
-              className="bg-black-50 text-black-700 border-black-200 w-fit"
-            >
-              {assignments?.length} asignaciones
-            </Badge>
+            {canTeacherCreateAssignance && (
+              <Badge
+                variant="outline"
+                className="bg-black-50 text-black-700 border-black-200 w-fit"
+              >
+                {assignments?.length} asignaciones
+              </Badge>
+            )}
             </div>
           </CardTitle>
-          <div className="flex flex-col gap-2 md:flex-row">
-          {canCreateAssignance &&
-                <Button
-                  className="cursor-pointer"
-                  onClick={openCreate}
-                  size="lg"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Agregar Asignación
-                </Button>
-              }
-              {currentRole !== 'tutor' && (
+          {canTeacherCreateAssignance ? (
+            <div className="flex flex-col gap-2 md:flex-row">
+              <Button
+                className="cursor-pointer"
+                onClick={openCreate}
+                size="lg"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Agregar Asignación
+              </Button>
+              {canTeacherUpdateRubric && (
                 <Button
                   onClick={handleSaveAverages}
                   size="lg"
@@ -605,15 +611,40 @@ export default function GradeManagementDashboard() {
                     isDataLoading ||
                     !currentSchool ||
                     !students ||
-                    students.length === 0 ||
-                    currentRole === 'auditor'
+                    students.length === 0
                   }
                 >
                   <SaveAll className="w-4 h-4" />
                   Guardar Promedios
                 </Button>
               )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 md:flex-row">
+              {canTeacherUpdateRubric && (
+                <Button
+                  onClick={handleSaveAverages}
+                  size="lg"
+                  className="gap-2"
+                  disabled={
+                    isDataLoading ||
+                    !currentSchool ||
+                    !students ||
+                    students.length === 0
+                  }
+                >
+                  <SaveAll className="w-4 h-4" />
+                  Guardar Promedios
+                </Button>
+              )}
+              <Badge
+                variant="outline"
+                className="bg-black-50 text-black-700 border-black-200 w-fit"
+              >
+                {assignments?.length} asignaciones
+              </Badge>
+            </div>
+          )}
           </div>
         </CardHeader>
         <CardContent className="w-full">
@@ -642,7 +673,7 @@ export default function GradeManagementDashboard() {
                     <div className="flex flex-col items-center gap-4 w-full" >
                       {/*esta es la 1ra fila de botones*/}
                       <div className="flex flex-row gap-4 justify-center w-full"  >
-                        {(!assignments && canCreateRubric) && (
+                        {(!assignments && canTeacherCreateRubric) && (
                           <Link href={`/evaluacion/asignaciones`}>
                             <Button>
                               <Plus className="w-4 h-4" />
@@ -671,7 +702,7 @@ export default function GradeManagementDashboard() {
                       </div>
 
                       {/*esta es la 2da fila de botones*/}
-                      {canCreateRubric &&
+                      {canTeacherCreateRubric &&
                         <div className="flex flex-row gap-4 justify-center w-full">
 
                           {!hasSchoolCycles && (
@@ -712,7 +743,7 @@ export default function GradeManagementDashboard() {
                       grades={grades!}
                       onGradeUpdate={handleUpdateGrade}
                       calculateAverage={calculateAverage}
-                      canUpdateRubric={canUpdateRubric}
+                      canUpdateRubric={canTeacherUpdateRubric}
                     />
                   </div>
                 </div>

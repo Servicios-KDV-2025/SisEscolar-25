@@ -3,6 +3,7 @@ import { Card, CardContent } from "@repo/ui/components/shadcn/card"
 import { Badge } from "@repo/ui/components/shadcn/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/shadcn/avatar"
 import { Id } from "@repo/convex/convex/_generated/dataModel"
+import { GeneralDashboardSkeleton } from "../skeletons/GeneralDashboardSkeleton"
 
 // Tipos para los datos - usando tipos más flexibles para coincidir con los datos reales
 interface Group {
@@ -51,9 +52,10 @@ interface TutorViewProps {
   groups: Group[];
   schoolCycles: SchoolCycle[];
   tutors: Tutor[];
+  isLoading?: boolean;
 }
 
-export default function TutorView({ students, groups, schoolCycles, tutors }: TutorViewProps) {
+export default function TutorView({ students, groups, schoolCycles, tutors, isLoading = false }: TutorViewProps) {
 
   // Función para obtener información del grupo
   const getGroupInfo = (groupId: string) => {
@@ -105,6 +107,14 @@ export default function TutorView({ students, groups, schoolCycles, tutors }: Tu
     iniciales: getInitials(student.name, student.lastName),
     imgUrl: student.imgUrl,
   }))
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-6 py-8">
+        <GeneralDashboardSkeleton nc={3} />
+      </div>
+    );
+  }
 
   return (
     <div>

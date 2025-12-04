@@ -1685,12 +1685,14 @@ export default function HorariosPorClasePage() {
             <CardTitle>
               <div className="flex flex-col gap-2">
                         <span>Lista de Clases con Horario</span>
-                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
-                  {filteredClasses.length} clases
-                </Badge>
+                        {canCreateScheduleAssignament && (
+                          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                            {filteredClasses.length} clases
+                          </Badge>
+                        )}
               </div>
                     </CardTitle>
-            {canCreateScheduleAssignament && (
+            {canCreateScheduleAssignament ? (
               <Button
                 size="lg"
                 className="gap-2"
@@ -1706,6 +1708,10 @@ export default function HorariosPorClasePage() {
                 <Plus className="h-4 w-4" />
                 Agregar Clase
               </Button>
+            ) : (
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                {filteredClasses.length} clases
+              </Badge>
             )}
           </div>
                 </CardHeader>

@@ -15,6 +15,8 @@ import { useCurrentSchool } from "../../../../stores/userSchoolsStore";
 import PaymentHistoryComponent from "./payment-history";
 import StripeConfigPage from "./escuela";
 import { GeneralDashboardSkeleton } from "../../../../components/skeletons/GeneralDashboardSkeleton";
+import { usePermissions } from "../../../../hooks/usePermissions";
+import NotAuth from "../../../../components/NotAuth";
 
 import { Button } from "@repo/ui/components/shadcn/button";
 import BillingConfigPage from "components/billingConfigs/BillingConfigPage";
@@ -28,9 +30,19 @@ export default function Colegiaturas() {
   const [textOpacity, setTextOpacity] = useState<number>(1);
 
   // Hooks para obtener datos del usuario y escuela
-  const { user: clerkUser } = useUser();
-  const { currentUser } = useUserWithConvex(clerkUser?.id);
+  const { user: clerkUser, isLoaded } = useUser();
+  const { currentUser, isLoading: userLoading } = useUserWithConvex(clerkUser?.id);
   const { currentSchool, isLoading: isSchoolLoading } = useCurrentSchool(currentUser?._id);
+
+  // Obtener permisos del usuario
+  const {
+    canReadPagos,
+    canCreatePagos,
+    canUpdatePagos,
+    currentRole,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+  } = usePermissions(currentSchool?.school._id);
 
   // Obtener ciclos escolares
   const schoolCycles = useQuery(
@@ -38,7 +50,7 @@ export default function Colegiaturas() {
     currentSchool?.school._id ? { schoolId: currentSchool.school._id } : "skip"
   );
 
-  const isLoading = isSchoolLoading || schoolCycles === undefined;
+  const isLoading = !isLoaded || userLoading || isSchoolLoading || permissionsLoading || schoolCycles === undefined;
 
   // Establecer el ciclo activo por defecto cuando se cargan los datos
   useEffect(() => {
@@ -83,6 +95,17 @@ export default function Colegiaturas() {
     return <GeneralDashboardSkeleton />;
   }
 
+  // Verificar error de permisos o falta de permiso de lectura
+  if ((permissionsError || !canReadPagos) && !permissionsLoading && !isLoading) {
+    return (
+      <NotAuth
+        pageName="Sistema de Pagos"
+        pageDetails="Administra las configuraciones de cobros, cobros y el historial de pagos"
+        icon={Backpack}
+      />
+    );
+  }
+
   return (
     <div className="space-y-4 md:space-y-8 p-4 md:p-6">
 
@@ -106,28 +129,30 @@ export default function Colegiaturas() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Button
-                onClick={handleToggleStripeConfig}
-                className={`transition-all duration-700 ease-in-out hover:scale-105 cursor-pointer ${showStripeConfig ? "w-[160px]" : "w-[320px]"
-                  }`}
-                variant="outline"
-                size="lg"
-              >
-                <Settings
-                  className={`
-      h-4 w-4 md:h-4 md:w-4 flex-shrink-0 transition-transform duration-1900
-      ${showStripeConfig ? "rotate-180" : ""}
-    `}
-                />
-                <span
-                  className="truncate transition-opacity duration-300"
-                  style={{ opacity: textOpacity }}
+            {currentRole !== "tutor" && (
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={handleToggleStripeConfig}
+                  className={`transition-all duration-700 ease-in-out hover:scale-105 cursor-pointer ${showStripeConfig ? "w-[160px]" : "w-[320px]"
+                    }`}
+                  variant="outline"
+                  size="lg"
                 >
-                  {buttonText}
-                </span>
-              </Button>
-            </div>
+                  <Settings
+                    className={`
+        h-4 w-4 md:h-4 md:w-4 flex-shrink-0 transition-transform duration-1900
+        ${showStripeConfig ? "rotate-180" : ""}
+      `}
+                  />
+                  <span
+                    className="truncate transition-opacity duration-300"
+                    style={{ opacity: textOpacity }}
+                  >
+                    {buttonText}
+                  </span>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -147,14 +172,16 @@ export default function Colegiaturas() {
         </div>
       )}
       <Tabs defaultValue="pagos" className="space-y-4 md:space-y-6">
-        <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 gap-2 md:gap-6 h-auto ">
-          <TabsTrigger
-            value="configuracion"
-            className="flex items-center justify-center gap-2 p-3 md:p-2 h-auto md:h-10 text-sm md:text-base "
-          >
-            <Settings className="h-4 w-4 md:h-4 md:w-4 flex-shrink-0" />
-            <span className="truncate">Configuración de Cobros</span>
-          </TabsTrigger>
+        <TabsList className={`grid w-full ${currentRole === "tutor" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1 md:grid-cols-3"} gap-2 md:gap-6 h-auto `}>
+          {currentRole !== "tutor" && (
+            <TabsTrigger
+              value="configuracion"
+              className="flex items-center justify-center gap-2 p-3 md:p-2 h-auto md:h-10 text-sm md:text-base "
+            >
+              <Settings className="h-4 w-4 md:h-4 md:w-4 flex-shrink-0" />
+              <span className="truncate">Configuración de Cobros</span>
+            </TabsTrigger>
+          )}
           <TabsTrigger
             value="pagos"
             className="flex items-center justify-center gap-2 p-3 md:p-2 h-auto md:h-10 text-sm md:text-base"
@@ -171,18 +198,31 @@ export default function Colegiaturas() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="configuracion" className="mt-4 md:mt-6">
-          <BillingConfigPage />
-        </TabsContent>
+        {currentRole !== "tutor" && (
+          <TabsContent value="configuracion" className="mt-4 md:mt-6">
+            <BillingConfigPage />
+          </TabsContent>
+        )}
 
         <TabsContent value="pagos" className="mt-4 md:mt-6">
-          <BillingPage selectedSchoolCycle={selectedSchoolCycle} setSelectedSchoolCycle={setSelectedSchoolCycle} />
+          <BillingPage 
+            selectedSchoolCycle={selectedSchoolCycle} 
+            setSelectedSchoolCycle={setSelectedSchoolCycle}
+            canCreatePagos={canCreatePagos}
+            canUpdatePagos={canUpdatePagos}
+            currentRole={currentRole}
+            currentUser={currentUser}
+          />
         </TabsContent>
 
         <TabsContent value="historial" className="mt-4 md:mt-6">
           <PaymentHistoryComponent
             selectedSchoolCycle={selectedSchoolCycle}
             setSelectedSchoolCycle={setSelectedSchoolCycle}
+            canCreatePagos={canCreatePagos}
+            canUpdatePagos={canUpdatePagos}
+            currentRole={currentRole}
+            currentUser={currentUser}
           />
         </TabsContent>
       </Tabs>

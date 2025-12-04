@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@repo/ui/components/shadcn/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/ui/components/shadcn/table"
 import { Copy, Wallet, BadgeCheck, CheckCircle2, Mail, Calendar, Receipt, Filter, AlertTriangle, CheckCircle, Clock, Search, History, TrendingUp, Loader2, Download, FileX, Eye, User, CreditCard, FileText, Building2 } from "lucide-react"
@@ -25,9 +25,20 @@ import { PaymentHistoryItem } from "@/types/payment"
 interface PaymentHistoryProps {
   selectedSchoolCycle: string
   setSelectedSchoolCycle: (cycle: string) => void
+  canCreatePagos?: boolean
+  canUpdatePagos?: boolean
+  currentRole?: string | null
+  currentUser?: { _id: Id<"user"> } | null
 }
 
-export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelectedSchoolCycle }: PaymentHistoryProps) {
+export default function PaymentHistoryComponent({ 
+  selectedSchoolCycle, 
+  setSelectedSchoolCycle,
+  canCreatePagos = true,
+  canUpdatePagos = true,
+  currentRole,
+  currentUser: currentUserProp
+}: PaymentHistoryProps) {
   const [historySearchTerm, setHistorySearchTerm] = useState("")
   const [historyStatusFilter, setHistoryStatusFilter] = useState<string | null>(null)
   const [historyStartDateFilter, setHistoryStartDateFilter] = useState<string>("")
@@ -38,8 +49,11 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
   const [rfcCopied, setRfcCopied] = useState(false)
 
   const { user: clerkUser } = useUser()
-  const { currentUser } = useUserWithConvex(clerkUser?.id)
-  const { currentSchool } = useCurrentSchool(currentUser?._id)
+  const { currentUser: currentUserFromHook } = useUserWithConvex(clerkUser?.id)
+  const { currentSchool } = useCurrentSchool(currentUserFromHook?._id)
+  
+  // Usar el currentUser de props si está disponible, sino usar el del hook
+  const currentUser = currentUserProp || currentUserFromHook
 
   const generateFacturapiInvoice = useAction(api.functions.actions.facturapi.generateFacturapiInvoice);
   const updatePaymentWithFacturapi = useMutation(api.functions.payments.updatePaymentWithFacturapi);
@@ -65,16 +79,6 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
       : "skip"
   )
 
-  const paymentStats = useQuery(
-    api.functions.payments.getPaymentStats,
-    currentSchool?.school._id && selectedSchoolCycle
-      ? {
-        schoolId: currentSchool.school._id,
-        schoolCycleId: selectedSchoolCycle as Id<"schoolCycle">,
-      }
-      : "skip"
-  )
-
   useEffect(() => {
     if (schoolCycles && schoolCycles.length > 0 && !selectedSchoolCycle) {
       const activeCycle = schoolCycles.find((cycle) => cycle.isActive)
@@ -86,12 +90,26 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
     }
   }, [schoolCycles, selectedSchoolCycle, setSelectedSchoolCycle])
 
-  const totalPayments = paymentStats?.totalPayments || 0
-  const paidPayments = paymentStats?.paidPayments || 0
-  const pendingPayments = (paymentStats?.pendingPayments || 0) + (paymentStats?.overduePayments || 0)
-  const totalAmountCollected = paymentStats?.totalAmountCollected || 0
+  // Obtener estudiantes del tutor si es tutor
+  const tutorStudents = useQuery(
+    api.functions.student.getStudentsByTutor,
+    currentRole === "tutor" && currentUser?._id && currentSchool?.school._id
+      ? {
+          schoolId: currentSchool.school._id as Id<"school">,
+          tutorId: currentUser._id as Id<"user">,
+        }
+      : "skip"
+  );
 
   const filteredHistory = (paymentHistory || []).filter((payment) => {
+    // Si es tutor, filtrar solo los pagos de sus hijos
+    if (currentRole === "tutor" && tutorStudents) {
+      const studentIds = tutorStudents.map(s => s._id);
+      if (!studentIds.includes(payment.studentId as Id<"student">)) {
+        return false;
+      }
+    }
+    
     const matchesSearch =
       payment.studentName.toLowerCase().includes(historySearchTerm.toLowerCase()) ||
       payment.studentEnrollment.toLowerCase().includes(historySearchTerm.toLowerCase()) ||
@@ -103,6 +121,50 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
 
     return matchesSearch && matchesStatus && matchesStartDate && matchesEndDate
   })
+
+  const paymentStats = useQuery(
+    api.functions.payments.getPaymentStats,
+    currentSchool?.school._id && selectedSchoolCycle
+      ? {
+        schoolId: currentSchool.school._id,
+        schoolCycleId: selectedSchoolCycle as Id<"schoolCycle">,
+      }
+      : "skip"
+  )
+
+  // Calcular estadísticas basadas en el historial filtrado si es tutor, sino usar paymentStats
+  const stats = useMemo(() => {
+    if (currentRole === "tutor" && filteredHistory) {
+      const total = filteredHistory.length
+      const paid = filteredHistory.filter(p => p.billingStatus === "Pago cumplido").length
+      const pending = filteredHistory.filter(p => 
+        p.billingStatus === "Pago pendiente" || 
+        p.billingStatus === "Pago parcial" || 
+        p.billingStatus === "Pago vencido" || 
+        p.billingStatus === "Pago retrasado"
+      ).length
+      const totalAmount = filteredHistory.reduce((sum, p) => sum + p.amount, 0)
+      
+      return {
+        totalPayments: total,
+        paidPayments: paid,
+        pendingPayments: pending,
+        totalAmountCollected: totalAmount
+      }
+    } else {
+      return {
+        totalPayments: paymentStats?.totalPayments || 0,
+        paidPayments: paymentStats?.paidPayments || 0,
+        pendingPayments: (paymentStats?.pendingPayments || 0) + (paymentStats?.overduePayments || 0),
+        totalAmountCollected: paymentStats?.totalAmountCollected || 0
+      }
+    }
+  }, [currentRole, filteredHistory, paymentStats])
+
+  const totalPayments = stats.totalPayments
+  const paidPayments = stats.paidPayments
+  const pendingPayments = stats.pendingPayments
+  const totalAmountCollected = stats.totalAmountCollected
 
   const handleGenerateInvoice = async (paymentId: string, tutor: string, paymentType: string, createdPayment: number, tutorId: string) => {
     if (!currentUser?._id) return;
@@ -253,7 +315,9 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
         </Card>
         <Card className="relative overflow-hidden group hover:shadow-lg transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 lg:pb-3">
-            <CardTitle className="text-xs lg:text-sm font-medium text-muted-foreground">Total Recaudado</CardTitle>
+            <CardTitle className="text-xs lg:text-sm font-medium text-muted-foreground">
+              {currentRole === "tutor" ? "Total de mis pagos" : "Total Recaudado"}
+            </CardTitle>
             <div className="p-1.5 lg:p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
               <TrendingUp className="h-3 w-3 lg:h-4 lg:w-4 text-primary" />
             </div>
@@ -373,29 +437,31 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
                 <TableHeader>
                   <TableRow>
                     <TableHead>Estudiante</TableHead>
-                    <TableHead>Matrícula</TableHead>
-                    <TableHead>Grado/Grupo</TableHead>
+                    {currentRole !== "tutor" && <TableHead>Matrícula</TableHead>}
+                    {currentRole !== "tutor" && <TableHead>Grado/Grupo</TableHead>}
                     <TableHead>Tipo de Cobro</TableHead>
-                    <TableHead>Estado del Cobro</TableHead>
+                    {currentRole !== "tutor" && <TableHead>Estado del Cobro</TableHead>}
                     <TableHead>Monto Pagado</TableHead>
                     <TableHead>Monto Total</TableHead>
                     <TableHead>Restante</TableHead>
                     <TableHead>Fecha de Pago</TableHead>
                     <TableHead>Método de Pago</TableHead>
-                    <TableHead>Pagado por</TableHead>
-                    <TableHead>Factura</TableHead>
+                    {currentRole !== "tutor" && <TableHead>Pagado por</TableHead>}
+                    {currentRole !== "auditor" && <TableHead>Factura</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredHistory.map((payment) => (
                     <TableRow key={payment.id}>
                       <TableCell className="font-medium">{payment.studentName}</TableCell>
-                      <TableCell>{payment.studentEnrollment}</TableCell>
-                      <TableCell>
-                        {payment.studentGrade} {payment.studentGroup}
-                      </TableCell>
+                      {currentRole !== "tutor" && <TableCell>{payment.studentEnrollment}</TableCell>}
+                      {currentRole !== "tutor" && (
+                        <TableCell>
+                          {payment.studentGrade} {payment.studentGroup}
+                        </TableCell>
+                      )}
                       <TableCell>{PAYMENT_TYPES[payment.paymentType as keyof typeof PAYMENT_TYPES]}</TableCell>
-                      <TableCell>{getPaymentStatusBadge(payment.billingStatus)}</TableCell>
+                      {currentRole !== "tutor" && <TableCell>{getPaymentStatusBadge(payment.billingStatus)}</TableCell>}
                       <TableCell className="font-semibold">${payment.amount.toLocaleString()}</TableCell>
                       <TableCell>${payment.billingAmount.toLocaleString()}</TableCell>
                       <TableCell>
@@ -457,8 +523,9 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
                       </TableCell>
                       <TableCell>{new Date(payment.paidAt).toLocaleDateString('es-MX')}</TableCell>
                       <TableCell>{payment.methodLabel}</TableCell>
-                      <TableCell>{payment.createdBy}</TableCell>
-                      <TableCell className="text-center">
+                      {currentRole !== "tutor" && <TableCell>{payment.createdBy}</TableCell>}
+                      {currentRole !== "auditor" && (
+                        <TableCell className="text-center">
                         {payment.facturapiInvoiceId && payment.facturapiInvoiceStatus === 'valid' ? (
                           <>
                             <TooltipProvider>
@@ -512,25 +579,28 @@ export default function PaymentHistoryComponent({ selectedSchoolCycle, setSelect
                             </TooltipProvider>
                           </>
                         ) : (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleGenerateInvoice(payment.id, payment.createdBy, payment.paymentType, payment.createdAt, payment.tutorId as Id<"user">)}
-                                  className="h-8 w-8 p-0 hover:bg-blue-100 cursor-pointer"
-                                >
-                                  <FileX className="h-4 w-4 text-primary" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                Generar factura
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          (canCreatePagos && canUpdatePagos) || currentRole === "tutor" ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleGenerateInvoice(payment.id, payment.createdBy, payment.paymentType, payment.createdAt, payment.tutorId as Id<"user">)}
+                                    className="h-8 w-8 p-0 hover:bg-blue-100 cursor-pointer"
+                                  >
+                                    <FileX className="h-4 w-4 text-primary" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  Generar factura
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : null
                         )}
-                      </TableCell>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>

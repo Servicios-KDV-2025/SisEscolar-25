@@ -967,16 +967,18 @@ export default function TutorPage() {
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <CardTitle>
               <div className="flex flex-col gap-2">
-              <span>Lista de Tutores</span>
-                <Badge
-                  variant="outline"
-                  className="bg-orange-50 text-orange-700 border-orange-200 w-fit"
-                >
-                  {filteredUsers.length} tutores
-                </Badge>
+                <span>Lista de Tutores</span>
+                {canCreateUsersTutores && (
+                  <Badge
+                    variant="outline"
+                    className="bg-orange-50 text-orange-700 border-orange-200 w-fit"
+                  >
+                    {filteredUsers.length} tutores
+                  </Badge>
+                )}
               </div>
             </CardTitle>
-            {canCreateUsersTutores && (
+            {canCreateUsersTutores ? (
               <Button
                 size="lg"
                 className="gap-2 bg-orange-600 hover:bg-orange-700"
@@ -986,7 +988,14 @@ export default function TutorPage() {
                 <Plus className="w-4 h-4" />
                 Agregar Tutor
               </Button>
-            )}
+            ) : canReadUsersTutores && !canCreateUsersTutores ? (
+              <Badge
+                variant="outline"
+                className="bg-orange-50 text-orange-700 border-orange-200 w-fit px-4 flex items-center"
+              >
+                {filteredUsers.length} tutores
+              </Badge>
+            ) : null}
           </div>
         </CardHeader>
         <CardContent>
@@ -1126,16 +1135,18 @@ export default function TutorPage() {
                                 <Pencil className="h-4 w-4" />
                               </Button>
                             )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleOpenFiscalEdit(user)}
-                              className="h-8 w-8 p-0"
-                              disabled={isCrudLoading}
-                              title="Datos fiscales"
-                            >
-                              <FileText className="h-4 w-4" />
-                            </Button>
+                            {canCreateUsersTutores && canUpdateUsersTutores && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenFiscalEdit(user)}
+                                className="h-8 w-8 p-0"
+                                disabled={isCrudLoading}
+                                title="Datos fiscales"
+                              >
+                                <FileText className="h-4 w-4" />
+                              </Button>
+                            )}
                             {canDeleteUsersTutores && (
                               <Button
                                 variant="ghost"
@@ -1252,15 +1263,17 @@ export default function TutorPage() {
                             Editar
                           </Button>
                         )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenFiscalEdit(user)}
-                          disabled={isCrudLoading}
-                        >
-                          <FileText className="h-4 w-4 mr-1" />
-                          Datos Fiscales
-                        </Button>
+                        {canCreateUsersTutores && canUpdateUsersTutores && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenFiscalEdit(user)}
+                            disabled={isCrudLoading}
+                          >
+                            <FileText className="h-4 w-4 mr-1" />
+                            Datos Fiscales
+                          </Button>
+                        )}
                         {canDeleteUsersTutores && (
                           <Button
                             variant="outline"

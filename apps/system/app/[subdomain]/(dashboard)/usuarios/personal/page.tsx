@@ -1022,10 +1022,12 @@ export default function PersonalPage() {
                     </Badge>
                   ))}
                 </div>
-                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">{filteredUsers.length} usuarios</Badge>
+                {canCreateUsersPersonal && (
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">{filteredUsers.length} usuarios</Badge>
+                )}
               </div>
             </CardTitle>
-            {canCreateUsersPersonal && (
+            {canCreateUsersPersonal ? (
               <Button
                 size="lg"
                 className="gap-2"
@@ -1035,7 +1037,11 @@ export default function PersonalPage() {
                 <Plus className="w-4 h-4" />
                 Agregar Personal
               </Button>
-            )}
+            ) : canReadUsersPersonal && !canCreateUsersPersonal ? (
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit px-4 flex items-center">
+                {filteredUsers.length} usuarios
+              </Badge>
+            ) : null}
           </div>
         </CardHeader>
 
