@@ -45,7 +45,6 @@ export default function GradeManagementDashboard() {
   const {
     currentSchool,
     isLoading: schoolLoading,
-    
   } = useCurrentSchool(currentUser?._id);
 
   const permissions = usePermissions(currentSchool?.school._id);
@@ -55,7 +54,7 @@ export default function GradeManagementDashboard() {
   } = permissions;
 
   // Restricción: Solo teachers pueden actualizar promedios de periodo
-  const canTeacherUpdateTermAverage = canUpdateTermAverage && permissions.currentRole === 'teacher';
+  const canTeacherUpdateTermAverage = permissions.canUpdateTermAverage && permissions.currentRole === 'teacher';
 
   //   Mensajes de toast personalizados
   const toastMessages = useCrudToastMessages("Calificación");
@@ -96,7 +95,7 @@ export default function GradeManagementDashboard() {
       }
       : "skip"
   );
-  //   Este es el cambio clave: ahora obtienes promedios de todos los términos del ciclo escolar
+  
   const allTermAverages = useQuery(
     api.functions.termAverages.getAnnualAveragesForStudents,
     selectedSchoolCycle && selectedClass
@@ -113,24 +112,71 @@ export default function GradeManagementDashboard() {
     api.functions.studentsClasses.updateStudentClassAverage
   );
 
-  // State synchronization and initial value setting
+  // 1. Efecto para inicializar el Ciclo Escolar
   useEffect(() => {
-    setSelectedClass("");
     if (schoolCycles && schoolCycles.length > 0 && !selectedSchoolCycle) {
-      setSelectedSchoolCycle(schoolCycles[0]!._id as string);
+      console.log("Buscando ciclo activo en:", schoolCycles);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const activeCycle = schoolCycles.find((c: any) => {
+        if (c.active === true) return true;
+        if (c.isActive === true) return true;
+        if (c.isCurrent === true) return true;
+        if (c.current === true) return true;
+        if (String(c.active) === "true") return true;
+        if (String(c.isActive) === "true") return true;
+        if (c.status?.toLowerCase() === "active") return true;
+        if (c.status?.toLowerCase() === "activo") return true;
+        if (c.state?.toLowerCase() === "active") return true;
+        return false;
+      });
+
+      if (activeCycle) {
+        console.log("¡ENCONTRADO! Ciclo activo:", activeCycle);
+        setSelectedSchoolCycle(activeCycle._id as string);
+      } else {
+        console.warn("NO SE ENCONTRÓ NINGÚN ACTIVO. Usando el primero por defecto.");
+        if (schoolCycles[0]) {
+          setSelectedSchoolCycle(schoolCycles[0]._id as string);
+        }
+        toast.info("No se detectó un ciclo activo. Se ha cargado el primer ciclo disponible.");
+      }
     }
   }, [schoolCycles, selectedSchoolCycle]);
 
+  // 2. Efecto para inicializar la Clase
   useEffect(() => {
-    if (classes && classes.length > 0 && !selectedClass) {
-      setSelectedClass(classes[0]!._id as string);
+    if (classes && classes.length > 0 && !selectedClass && selectedSchoolCycle) {
+      const cycle = schoolCycles?.find(c => c._id === selectedSchoolCycle);
+      // Solo auto-seleccionar si el ciclo está activo
+      if (cycle?.status === "active") {
+        setSelectedClass(classes[0]!._id as string);
+      }
     }
-  }, [classes, selectedClass]);
+  }, [classes, selectedClass, selectedSchoolCycle, schoolCycles]);
 
+  // 3. Efecto para manejar cambio de ciclo escolar
   useEffect(() => {
-    // Al cambiar el ciclo escolar, limpiamos las selecciones de clase y periodo.
-    setSelectedClass("");
-  }, [selectedSchoolCycle]);
+    if (selectedSchoolCycle) {
+      // Resetear la selección de clase cuando cambia el ciclo
+      setSelectedClass("");
+
+      // Mostrar mensaje si el ciclo no está activo
+      const cycle = schoolCycles?.find(c => c._id === selectedSchoolCycle);
+      if (cycle?.status !== "active") {
+        toast.info(
+          <span style={{ color: '#ea580c' }}>
+            Este ciclo está {cycle?.status === "archived" ? "archivado" : "inactivo"}.
+            Los datos son de solo lectura.
+          </span>,
+          {
+            className: 'bg-white border border-orange-200',
+            unstyled: false,
+          }
+        );
+      }
+    }
+  }, [selectedSchoolCycle, schoolCycles]);
 
   const filteredAndSortedStudents = students
     ? students
@@ -142,13 +188,11 @@ export default function GradeManagementDashboard() {
         return fullName.includes(searchTermLower);
       })
       .sort((a, b) => {
-        // Obtenemos los datos de forma segura, usando '' como fallback
         const lastNameA = a.student?.name || "";
         const lastNameB = b.student?.name || "";
         const nameA = a.student?.name || "";
         const nameB = b.student?.name || "";
 
-        // La lógica de comparación ahora es segura
         const lastNameComparison = lastNameA.localeCompare(lastNameB);
         if (lastNameComparison !== 0) {
           return lastNameComparison;
@@ -173,17 +217,12 @@ export default function GradeManagementDashboard() {
 
     const loadingToast = toast.loading("Guardando promedios finales...");
 
-    // Recorre cada estudiante para calcular y guardar su promedio final
     for (const student of students) {
-      // student.id aquí es el studentClassId que necesitamos
       const studentClassId = student._id;
-
-      // Usamos la nueva función para calcular el promedio anual
       const finalAverage = calculateAnnualAverage(studentClassId);
 
       if (finalAverage !== null) {
         try {
-          // Llama a la mutación que creamos para guardar en 'studentClass'
           await updateAverage({
             studentClassId: studentClassId as Id<"studentClass">,
             schoolId: currentSchool.school._id,
@@ -223,7 +262,6 @@ export default function GradeManagementDashboard() {
   const calculateAnnualAverage = (studentClassId: string): number | null => {
     if (!allTermAverages) return null;
 
-    // 'allTermAverages' viene de tu query y tiene la forma { studentClassId: [avg1, avg2] }
     const studentAverages = allTermAverages[studentClassId];
 
     if (!studentAverages || studentAverages.length === 0) {
@@ -234,7 +272,6 @@ export default function GradeManagementDashboard() {
     let validTermsCount = 0;
 
     studentAverages.forEach((avg) => {
-      // Nos aseguramos de promediar solo si hay una calificación
       if (avg.averageScore !== null && avg.averageScore !== undefined) {
         totalScoreSum += avg.averageScore;
         validTermsCount++;
@@ -245,7 +282,6 @@ export default function GradeManagementDashboard() {
       return null;
     }
 
-    // Devolvemos el promedio final redondeado
     return Math.round(totalScoreSum / validTermsCount);
   };
 
@@ -256,43 +292,15 @@ export default function GradeManagementDashboard() {
     schoolCycles === undefined ||
     students === undefined ||
     allTermAverages === undefined;
-  const isLoading =
-    userLoading ||
-    schoolLoading ||
-    permissionsLoading ||
-    schoolCycles === undefined ||
-    classes === undefined ||
-    terms === undefined ||
-    students === undefined ||
-    allTermAverages === undefined;
+    
+  const isInitialLoading = userLoading || schoolLoading || permissionsLoading;
 
-  // Show a general loading screen for initial data fetching
-  // if (
-  //   !isLoaded ||
-  //   userLoading ||
-  //   schoolLoading ||
-  //   (currentUser && !currentSchool && !schoolError)
-  // ) {
-  //   return (
-  //     <div className="space-y-8 p-6 max-w-7xl mx-auto">
-  //       <div className="flex items-center justify-center min-h-[400px]">
-  //         <div className="space-y-4 text-center">
-  //           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-  //           <p className="text-muted-foreground">Cargando información...</p>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
-  // Logic to handle grade updates. This now uses the upsert mutation.
   const handleUpdateGrade = async (
     studentClassId: string,
     termId: string,
     averageScore: number | null,
     comment: string
   ) => {
-    // Only proceed if a user is logged in and the score is a number
     if (!currentUser || averageScore === null) return;
 
     try {
@@ -327,7 +335,6 @@ export default function GradeManagementDashboard() {
     }
   };
 
-  // Check for missing data and display specific messages
   const hasSchoolCycles = schoolCycles && schoolCycles.length > 0;
   const hasClasses = classes && classes.length > 0;
   const hasTerms = terms && terms.length > 0;
@@ -337,32 +344,6 @@ export default function GradeManagementDashboard() {
   const selectedCycleStatus = selectedCycle?.status;
   const canUpdateAveragesWithCycle = permissions.hasPermissionWithCycleCheck("update:termAverages", selectedCycleStatus);
 
-  // if (!hasSchoolCycles) {
-  //   return (
-  //     <div className="min-h-screen bg-background p-6">
-  //       <div className="mx-auto max-w-7xl space-y-6">
-  //         <h1 className="text-3xl font-bold text-foreground">
-  //           Calificaciones por Periodo
-  //         </h1>
-  //         <Card>
-  //           <CardContent className="pt-6">
-  //             <div className="text-center p-8">
-  //               <p className="text-muted-foreground">Aún no has registrado:</p>
-  //               <ul className="list-disc list-inside mt-4 inline-block text-left text-muted-foreground">
-  //                 {!hasSchoolCycles && <li>Ciclos escolares</li>}
-  //                 {!hasStudents && <li>Estudiantes en esta clase.</li>}
-  //                 {!hasTerms && <li>Periodos en este ciclo</li>}
-  //                 {!hasClasses && <li>Clases</li>}
-  //               </ul>
-  //             </div>
-  //           </CardContent>
-  //         </Card>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
-  //   Transformar los datos de los promedios en un Map antes de pasarlos al componente
   const averagesMap = new Map();
   if (allTermAverages) {
     Object.entries(allTermAverages).forEach(([studentClassId, avgArray]) => {
@@ -370,11 +351,10 @@ export default function GradeManagementDashboard() {
     });
   }
 
-  if (isLoading) {
+  if (isInitialLoading) {
     return <GeneralDashboardSkeleton nc={0} />;
   }
 
-  // Main UI when all data is available
   return (
     <div className="space-y-8 p-6 min-w-full max-w-5xl mx-auto">
       {/* Header */}
@@ -398,7 +378,6 @@ export default function GradeManagementDashboard() {
                 </div>
               </div>
             </div>
-           
           </div>
         </div>
       </div>
@@ -433,10 +412,7 @@ export default function GradeManagementDashboard() {
             <div className="flex items-center gap-2">
               <Select
                 value={selectedSchoolCycle}
-                onValueChange={(value) => {
-                  setSelectedSchoolCycle(value);
-                  setSelectedClass("");
-                }}
+                onValueChange={setSelectedSchoolCycle}
               >
                 <SelectTrigger className="w-full md:w-48">
                   <SelectValue placeholder="Ciclo Escolar" />
@@ -491,7 +467,11 @@ export default function GradeManagementDashboard() {
               )}
             </div>
             {hasClasses && (
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <Select 
+                value={selectedClass} 
+                onValueChange={setSelectedClass}
+                disabled={!selectedSchoolCycle}
+              >
                 <SelectTrigger className="w-full md:w-48">
                   <SelectValue placeholder="Clase" />
                 </SelectTrigger>
@@ -512,25 +492,25 @@ export default function GradeManagementDashboard() {
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <CardTitle>
-            <div className="flex flex-col gap-2">
-            <span>Calificaciones</span>
-            {canTeacherUpdateTermAverage && (
-              <Badge
-                variant="outline"
-                className="bg-black-50 text-black-700 border-black-200 w-fit"
-              >
-                {terms?.length} periodos
-              </Badge>
-            )}
-            </div>
-          </CardTitle>
-          {canTeacherUpdateTermAverage ? (
+            <CardTitle>
+              <div className="flex flex-col gap-2">
+                <span>Calificaciones</span>
+                {canTeacherUpdateTermAverage && (
+                  <Badge
+                    variant="outline"
+                    className="bg-black-50 text-black-700 border-black-200 w-fit"
+                  >
+                    {terms?.length || 0} periodos
+                  </Badge>
+                )}
+              </div>
+            </CardTitle>
+            {canTeacherUpdateTermAverage ? (
               <Button
                 onClick={handleSaveAverages}
                 size="lg"
                 className="gap-2"
-                disabled={!currentSchool}
+                disabled={!currentSchool || !canUpdateAveragesWithCycle}
               >
                 <SaveAll className="w-4 h-4" />
                 Guardar promedios
@@ -540,28 +520,25 @@ export default function GradeManagementDashboard() {
                 variant="outline"
                 className="bg-black-50 text-black-700 border-black-200 w-fit"
               >
-                {terms?.length} periodos
+                {terms?.length || 0} periodos
               </Badge>
             )}
           </div>
         </CardHeader>
         <CardContent>
-          {/* Si está cargando */}
-          {(
-            isLoading
-          ) ? (
-            <div className="space-y-4 text-center">
+          {isDataLoading ? (
+            <div className="space-y-4 text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-              <p className="text-muted-foreground">Cargando promedio...</p>
+              <p className="text-muted-foreground">Cargando calificaciones...</p>
             </div>
-          ) : (hasStudents && hasTerms && hasClasses && !isDataLoading) ? (
+          ) : (hasStudents && hasTerms && hasClasses) ? (
             <TermAverageMatrix
               key={selectedSchoolCycle}
               students={filteredAndSortedStudents}
               terms={terms!}
               averages={averagesMap}
               onAverageUpdate={handleUpdateGrade}
-              canUpdateRubric={canTeacherUpdateTermAverage}
+              canUpdateRubric={canTeacherUpdateTermAverage && canUpdateAveragesWithCycle}
             />
           ) : (
             <div className="flex justify-center">
@@ -570,33 +547,50 @@ export default function GradeManagementDashboard() {
                 <h3 className="text-lg font-medium mb-2">
                   No se pueden mostrar las calificaciones
                 </h3>
-                <p className="">Registra:</p>
-                <div className="flex justify-center gap-3">
-                  {!hasStudents && (
-                    <Link href={`/administracion/asignacion-de-clases`}>
-                      <Button>
-                        <Plus className="w-4 h-4" />
-                        Estudiantes en esta clase
-                      </Button>
-                    </Link>
-                  )}
-                  {!hasTerms && (
-                    <Link href={`/administracion/periodos`}>
-                      <Button>
-                        <Plus className="w-4 h-4" />
-                        Periodos en este ciclo
-                      </Button>
-                    </Link>
-                  )}
-                  {!hasClasses && (
-                    <Link href={`/administracion/clases`}>
-                      <Button>
-                        <Plus className="w-4 h-4" />
-                        Clases
-                      </Button>
-                    </Link>
-                  )}
-                </div>
+                {selectedCycleStatus && selectedCycleStatus !== "active" ? (
+                  <div className="space-y-3">
+                    <p className="text-muted-foreground">
+                      Este ciclo está {selectedCycleStatus === "archived" ? "archivado" : "inactivo"}.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Selecciona una clase para ver los datos históricos.
+                    </p>
+                  </div>
+                ) : !selectedClass ? (
+                  <p className="text-muted-foreground">
+                    Selecciona una clase para ver las calificaciones.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-muted-foreground">Registra:</p>
+                    <div className="flex flex-col gap-3 items-center">
+                      {!hasStudents && (
+                        <Link href={`/administracion/asignacion-de-clases`}>
+                          <Button>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Estudiantes en esta clase
+                          </Button>
+                        </Link>
+                      )}
+                      {!hasTerms && (
+                        <Link href={`/administracion/periodos`}>
+                          <Button>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Periodos en este ciclo
+                          </Button>
+                        </Link>
+                      )}
+                      {!hasClasses && (
+                        <Link href={`/administracion/clases`}>
+                          <Button>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Clases
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}

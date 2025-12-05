@@ -509,7 +509,6 @@ export default function GradeManagementDashboard() {
   // Check permissions with cycle status
   const canCreateAssignanceWithCycle = hasPermissionWithCycleCheck("create:assignance", selectedCycleStatus);
   const canTeacherCreateAssignance = canCreateAssignanceWithCycle && currentRole === 'teacher';
-  const canUpdateGradesWithCycle = hasPermissionWithCycleCheck("update:termAverages", selectedCycleStatus);
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!currentSchool?.school._id || !currentUser?._id) {
       console.error('Missing required IDs');
@@ -813,19 +812,6 @@ export default function GradeManagementDashboard() {
                     Cargando calificaciones...
                   </p>
 
-                  {/* Barra de progreso animada */}
-                  <div className="w-64 mx-auto">
-                    <div className="h-1 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary transition-all duration-1000"
-                        style={{
-                          width: `${Math.min((loadingTime / 10) * 100, 90)}%`,
-                          animation: loadingTime > 10 ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'
-                        }}
-                      />
-                    </div>
-                  </div>
-
                   {/* Mensaje de carga lenta (aparece después de 5 segundos) */}
                   {isSlowLoading && (
                     <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -836,29 +822,7 @@ export default function GradeManagementDashboard() {
                         </p>
                       </div>
 
-                      <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4 max-w-md mx-auto">
-                        <p className="font-medium mb-2">Posibles causas:</p>
-                        <ul className="list-disc list-inside space-y-1 text-left">
-                          <li>Conexión a internet lenta</li>
-                          <li>Gran cantidad de estudiantes o calificaciones</li>
-                          <li>El servidor está procesando la información</li>
-                        </ul>
-                      </div>
-
-                      {/* Botón de recargar */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.location.reload()}
-                        className="gap-2"
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                        Recargar página
-                      </Button>
-
-                      <p className="text-xs text-muted-foreground">
-                        Si el problema persiste, contacta a soporte técnico.
-                      </p>
+                      
                     </div>
                   )}
                 </div>
