@@ -749,6 +749,17 @@ export const createAssignment = mutation({
       .unique();
     if (!user) throw new Error("Usuario no encontrado.");
 
+    // Validar que el ciclo escolar esté activo
+    const classCatalog = await ctx.db.get(args.classCatalogId);
+    if (!classCatalog) throw new Error("Clase no encontrada.");
+
+    const schoolCycle = await ctx.db.get(classCatalog.schoolCycleId);
+    if (!schoolCycle) throw new Error("Ciclo escolar no encontrado.");
+
+    if (schoolCycle.status !== "active") {
+      throw new Error(`No se pueden crear asignaciones en un ciclo ${schoolCycle.status === "archived" ? "archivado" : "inactivo"}.`);
+    }
+
     const createdBy = user._id;
 
     const newAssignment = { ...args, createdBy };
@@ -791,6 +802,17 @@ export const updateAssignment = mutation({
       throw new Error("Acceso denegado: Solo puedes editar tus propias tareas.");
     }
 
+    // Validar que el ciclo escolar esté activo
+    const classCatalog = await ctx.db.get(existingAssignment.classCatalogId);
+    if (!classCatalog) throw new Error("Clase no encontrada.");
+
+    const schoolCycle = await ctx.db.get(classCatalog.schoolCycleId);
+    if (!schoolCycle) throw new Error("Ciclo escolar no encontrado.");
+
+    if (schoolCycle.status !== "active") {
+      throw new Error(`No se pueden modificar asignaciones en un ciclo ${schoolCycle.status === "archived" ? "archivado" : "inactivo"}.`);
+    }
+
     await ctx.runMutation(internal.functions.assignment.update, {
       id: args.id,
       patch: args.patch,
@@ -820,6 +842,17 @@ export const deleteAssignment = mutation({
     // Validamos que el usuario sea el creador de la tarea
     if (existingAssignment.createdBy !== user._id) {
       throw new Error("Acceso denegado: Solo puedes eliminar tus propias tareas.");
+    }
+
+    // Validar que el ciclo escolar esté activo
+    const classCatalog = await ctx.db.get(existingAssignment.classCatalogId);
+    if (!classCatalog) throw new Error("Clase no encontrada.");
+
+    const schoolCycle = await ctx.db.get(classCatalog.schoolCycleId);
+    if (!schoolCycle) throw new Error("Ciclo escolar no encontrado.");
+
+    if (schoolCycle.status !== "active") {
+      throw new Error(`No se pueden eliminar asignaciones en un ciclo ${schoolCycle.status === "archived" ? "archivado" : "inactivo"}.`);
     }
 
     await ctx.runMutation(internal.functions.assignment.delete_, { id: args.id });
