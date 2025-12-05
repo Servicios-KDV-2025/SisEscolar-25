@@ -48,7 +48,8 @@ export function StripeCheckoutButton({
         tutorId,
         studentName,
         paymentType,
-        successUrl: `${window.location.origin}${window.location.pathname}?payment=success&billingId=${billingId}`,
+      //  successUrl: `${window.location.origin}${window.location.pathname}?payment=success&billingId=${billingId}`,
+        successUrl: `${window.location.origin}/pagos/exitoso?billingId=${billingId}`,
         cancelUrl: `${window.location.origin}${window.location.pathname}?payment=cancelled`,
         customerEmail
       })

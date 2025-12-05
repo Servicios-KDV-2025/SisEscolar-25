@@ -374,14 +374,58 @@ export default function StudentClassesDashboard() {
                 }
                 <Card>
                   <CardHeader>
-                    <div className="flex flex-col gap-4">
-                      <CardTitle>
-                        Lista de Asignaciones
-                      </CardTitle>
+                    {(currentRole === 'superadmin' || currentRole === 'admin') ? (
+                      <div className="flex flex-col gap-4">
+                        <CardTitle>
+                          <span>Lista de Asignaciones</span>
+                        </CardTitle>
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                          <Button
+                            variant="outline"
+                            size="lg"
+                            className="text-xs sm:text-sm w-full md:w-auto"
+                          >
+                            Exportar
+                          </Button>
+                          {canCreateStudentsClasses && (
+                            <div className="flex gap-2 md:flex-row flex-col items-center w-full md:w-auto">
+                              <Button
+                                size="lg"
+                                className="gap-2 w-full md:w-auto"
+                                onClick={openCreate}
+                                disabled={isLoading || !currentSchool}
+                              >
+                                <Plus className="w-4 h-4" />
+                                Agregar Asignación
+                              </Button>
+                              <Button
+                                size="lg"
+                                className="gap-2 w-full md:w-auto"
+                                onClick={() => setIsMassAssignmentOpen(true)}
+                                disabled={isLoading || !currentSchool}
+                              >
+                                <Plus className="w-4 h-4" />
+                                Asignar Clases Masivamente
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div className="flex items-center w-full md:w-auto">
-                          {currentRole === 'tutor' ? (
-                            <Badge variant="outline" className="w-full md:w-auto">
+                        <CardTitle>
+                          <div className="flex flex-col gap-2">
+                            <span>Lista de Asignaciones</span>
+                            {currentRole === 'teacher' && (
+                              <Badge variant="outline" className="w-fit">
+                                {filteredEnrollments.length} {filteredEnrollments.length > 1 ? 'asignados' : 'asignado'}
+                              </Badge>
+                            )}
+                          </div>
+                        </CardTitle>
+                        <div className="flex flex-col gap-2 md:flex-row items-center w-full md:w-auto">
+                          {(currentRole === 'tutor' || currentRole === 'auditor') ? (
+                            <Badge variant="outline" className="w-fit">
                               {filteredEnrollments.length} {filteredEnrollments.length > 1 ? 'asignados' : 'asignado'}
                             </Badge>
                           ) : (
@@ -389,36 +433,35 @@ export default function StudentClassesDashboard() {
                               variant="outline"
                               size="lg"
                               className="text-xs sm:text-sm w-full md:w-auto"
-                              disabled={currentRole === 'auditor'}
                             >
                               Exportar
                             </Button>
                           )}
+                          {canCreateStudentsClasses && (
+                            <>
+                              <Button
+                                size="lg"
+                                className="gap-2 w-full md:w-auto"
+                                onClick={openCreate}
+                                disabled={isLoading || !currentSchool}
+                              >
+                                <Plus className="w-4 h-4" />
+                                Agregar Asignación
+                              </Button>
+                              <Button
+                                size="lg"
+                                className="gap-2 w-full md:w-auto"
+                                onClick={() => setIsMassAssignmentOpen(true)}
+                                disabled={isLoading || !currentSchool}
+                              >
+                                <Plus className="w-4 h-4" />
+                                Asignar Clases Masivamente
+                              </Button>
+                            </>
+                          )}
                         </div>
-                        {canCreateStudentsClasses && (
-                          <div className="flex gap-2 md:flex-row flex-col items-center w-full md:w-auto">
-                            <Button
-                              size="lg"
-                              className="gap-2 w-full md:w-auto"
-                              onClick={openCreate}
-                              disabled={isLoading || !currentSchool}
-                            >
-                              <Plus className="w-4 h-4" />
-                              Agregar Asignación
-                            </Button>
-                            <Button
-                              size="lg"
-                              className="gap-2 w-full md:w-auto"
-                              onClick={() => setIsMassAssignmentOpen(true)}
-                              disabled={isLoading || !currentSchool}
-                            >
-                              <Plus className="w-4 h-4" />
-                              Asignar Clases Masivamente
-                            </Button>
-                          </div>
-                        )}
                       </div>
-                    </div>
+                    )}
                   </CardHeader>
                   <CardContent>
                     {isLoading ? (

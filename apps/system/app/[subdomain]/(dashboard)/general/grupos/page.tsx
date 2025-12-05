@@ -373,12 +373,14 @@ export default function GroupPage() {
                 <CardTitle>
                   <div className="flex flex-col gap-2">
                     <span>Lista de los grupos</span>
-                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
-                      {filteredGroups.length} grupos
-                    </Badge>
+                    {canCreateGroup && (
+                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                        {filteredGroups.length} grupos
+                      </Badge>
+                    )}
                   </div>
                 </CardTitle>
-                {canCreateGroup && (
+                {canCreateGroup ? (
                   <Button
                     size="lg"
                     className="gap-2"
@@ -388,7 +390,11 @@ export default function GroupPage() {
                     <Plus className="h-4 w-4" />
                     Agregar Grupo
                   </Button>
-                )}
+                ) : canReadGroup ? (
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                    {filteredGroups.length} grupos
+                  </Badge>
+                ) : null}
               </div>
             </CardHeader>
             <CardContent>

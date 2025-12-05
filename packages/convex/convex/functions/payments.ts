@@ -229,6 +229,127 @@ export const getPaymentsByBilling = query({
   },
 });
 
+// Obtener detalles completos de un pago por su ID
+export const getPaymentDetailsById = query({
+  args: {
+    paymentId: v.id("payments"),
+  },
+  handler: async (ctx, args) => {
+    const payment = await ctx.db.get(args.paymentId);
+    
+    if (!payment) {
+      return null;
+    }
+
+    const billing = await ctx.db.get(payment.billingId);
+    const student = await ctx.db.get(payment.studentId);
+
+    if (!billing || !student) {
+      return null;
+    }
+
+    const billingConfig = await ctx.db.get(billing.billingConfigId);
+    const school = await ctx.db.get(student.schoolId);
+
+    return {
+      payment: payment,
+      billing: {
+        ...billing,
+        type: billingConfig?.type || "N/A",
+      },
+      student: student,
+      school: school ? {
+        stripeAccountId: school.stripeAccountId,
+      } : undefined,
+    };
+  },
+});
+
+// Obtener detalles completos de un pago por su Stripe Payment Intent ID
+export const getPaymentDetailsByPaymentIntentId = query({
+  args: {
+    paymentIntentId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const payment = await ctx.db
+      .query("payments")
+      .filter((q) => q.eq(q.field("stripePaymentIntentId"), args.paymentIntentId))
+      .first();
+
+    if (!payment) {
+      return null;
+    }
+
+    const billing = await ctx.db.get(payment.billingId);
+    const student = await ctx.db.get(payment.studentId);
+
+    if (!billing || !student) {
+      return null;
+    }
+
+    const billingConfig = await ctx.db.get(billing.billingConfigId);
+    const school = await ctx.db.get(student.schoolId);
+
+    return {
+      payment: payment,
+      billing: {
+        ...billing,
+        type: billingConfig?.type || "N/A",
+      },
+      student: student,
+      school: school ? {
+        stripeAccountId: school.stripeAccountId,
+      } : undefined,
+    };
+  },
+});
+
+// Obtener el último pago de un billing con todos los detalles
+export const getLatestPaymentDetailsByBilling = query({
+  args: {
+    billingId: v.id("billing"),
+  },
+  handler: async (ctx, args) => {
+    const payments = await ctx.db
+      .query("payments")
+      .withIndex("by_billing", (q) => q.eq("billingId", args.billingId))
+      .collect();
+
+    if (payments.length === 0) {
+      return null;
+    }
+
+    // Ordenar por fecha de creación (más reciente primero) y tomar el primero
+    const latestPayment = payments.sort((a, b) => b.createdAt - a.createdAt)[0];
+
+    if (!latestPayment) {
+      return null;
+    }
+
+    const billing = await ctx.db.get(latestPayment.billingId);
+    const student = await ctx.db.get(latestPayment.studentId);
+
+    if (!billing || !student) {
+      return null;
+    }
+
+    const billingConfig = await ctx.db.get(billing.billingConfigId);
+    const school = await ctx.db.get(student.schoolId);
+
+    return {
+      payment: latestPayment,
+      billing: {
+        ...billing,
+        type: billingConfig?.type || "N/A",
+      },
+      student: student,
+      school: school ? {
+        stripeAccountId: school.stripeAccountId,
+      } : undefined,
+    };
+  },
+});
+
 // Internal queries para acceder a la DB desde actions
 export const getStudentWithTutor = internalQuery({
   args: { studentId: v.id("student") },
