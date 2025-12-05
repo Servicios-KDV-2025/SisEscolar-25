@@ -356,24 +356,30 @@ export default function SchedulePage() {
                 <CardTitle>
                   <div className="flex flex-col gap-2">
                     <span>Lista de Horarios</span>
+                    {canCreateSchedule && (
+                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                        {filteredSchedules.length} horarios
+                      </Badge>
+                    )}
+                  </div>
+                </CardTitle>
+             
+                {canCreateSchedule ? (
+                    <Button
+                      size="lg"
+                      className="gap-2"
+                      onClick={openCreate}
+                      disabled={isCreating}
+                    >
+                      <Plus className="h-4 w-4" />
+                      {isCreating ? "Creando..." : "Agregar Horario"}
+                    </Button>
+                  ) : canReadSchedule ? (
                     <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
                       {filteredSchedules.length} horarios
                     </Badge>
-                  </div>
-                </CardTitle>
-
-                {canCreateSchedule && (
-                  <Button
-                    size="lg"
-                    className="gap-2"
-                    onClick={openCreate}
-                    disabled={isCreating}
-                  >
-                    <Plus className="h-4 w-4" />
-                    {isCreating ? "Creando..." : "Agregar Horario"}
-                  </Button>
-                )}
-              </div>
+                  ) : null}
+             </div>
             </CardHeader>
             <CardContent>
               {isDataLoading ? (

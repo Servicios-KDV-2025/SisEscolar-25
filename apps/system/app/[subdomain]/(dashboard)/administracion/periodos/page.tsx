@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@repo/ui/components/shadcn/badge";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import { CrudDialog, useCrudDialog } from "@repo/ui/components/dialog/crud-dialog";
-import { FormControl, FormField, FormDescription, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form";
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui/components/shadcn/form"; // FormDescription se comenta 3Dic
 import { usePermissions } from "../../../../../hooks/usePermissions";
 import NotAuth from "../../../../../components/NotAuth";
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
@@ -125,13 +125,13 @@ function TermForm({
               />
             </FormControl>
 
-            {/* --- MENSAJE DE ADVERTENCIA --- */}
-            {operation !== "view" && (
+            {/* --- MENSAJE DE ADVERTENCIA: 3Dic se comenta para posible eliminación --- */}
+            {/* {operation !== "view" && (
               <FormDescription className="flex items-center gap-1.5 text-orange-600">
                 <AlertCircle className="h-3 w-3" />
                 El sistema tomará un día antes de la fecha seleccionada.
               </FormDescription>
-            )}
+            )} */}
 
             <FormMessage />
           </FormItem>
@@ -153,13 +153,13 @@ function TermForm({
               />
             </FormControl>
 
-            {/* --- MENSAJE DE ADVERTENCIA --- */}
-            {operation !== "view" && (
+            {/* --- MENSAJE DE ADVERTENCIA: 3Dic se comenta para posible eliminación --- */}
+            {/* {operation !== "view" && (
               <FormDescription className="flex items-center gap-1.5 text-orange-600">
                 <AlertCircle className="h-3 w-3" />
                 El sistema tomará un día antes de la fecha seleccionada.
               </FormDescription>
-            )}
+            )} */}
 
             <FormMessage />
           </FormItem>
@@ -276,8 +276,13 @@ export default function PeriodsManagement() {
       return;
     }
 
-    const startDateTimestamp = new Date(formValues.startDate as string).getTime();
-    const endDateTimestamp = new Date(formValues.endDate as string).getTime();
+    //const startDateTimestamp = new Date(formValues.startDate as string).getTime();
+    //const endDateTimestamp = new Date(formValues.endDate as string).getTime();
+
+
+    // 3Dic: Se cambia forzando la zona horaria de México (aqui se realizan fechas a timespamps)
+    const startDateTimestamp = new Date(`${formValues.startDate}T00:00:00-06:00`).getTime();
+    const endDateTimestamp = new Date(`${formValues.endDate}T00:00:00-06:00`).getTime();
 
     if (isNaN(startDateTimestamp) || isNaN(endDateTimestamp)) {
       toast.error('Error', { description: 'Las fechas proporcionadas no son válidas' });
@@ -545,20 +550,28 @@ export default function PeriodsManagement() {
               <CardTitle>
                 <div className="flex flex-col gap-2">
                   <span>Lista de Periodos</span>
+                  {canCreateTerm && (
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                      {filteredTerms.length} periodos
+                    </Badge>
+                  )}
+                </div>
+              </CardTitle>
+              {canCreateTerm ? (
+                  <Button
+                    size="lg"
+                    className="gap-2"
+                    onClick={openCreate}
+                    disabled={isCreating}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Agregar Periodo
+                  </Button>
+                ) : canReadTerm ? (
                   <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
                     {filteredTerms.length} periodos
                   </Badge>
-                </div>
-              </CardTitle>
-              {canCreateTerm && (<Button
-                size="lg"
-                className="gap-2"
-                onClick={openCreate}
-                disabled={isCreating}
-              >
-                <Plus className="h-4 w-4" />
-                Agregar Periodo
-              </Button>)}
+                ) : null}
             </div>
           </CardHeader>
           <CardContent>
@@ -705,10 +718,10 @@ export default function PeriodsManagement() {
           data={data ? {
             ...data,
             startDate: (typeof data?.startDate === 'string' || typeof data?.startDate === 'number' || data?.startDate instanceof Date)
-              ? new Date(data.startDate).toISOString().split('T')[0]
+              ? new Date(data.startDate).toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }) //3Dic: cambio para usar zona horaria de Mexico
               : '',
             endDate: (typeof data.endDate === 'string' || typeof data.endDate === 'number' || data.endDate instanceof Date)
-              ? new Date(data.endDate).toISOString().split('T')[0]
+              ? new Date(data.endDate).toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }) //3Dic: cambio para usar zona horaria de Mexico
               : '',
           } : undefined}
           isOpen={isOpen}

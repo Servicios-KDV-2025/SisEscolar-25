@@ -545,8 +545,8 @@ export default function RubricDashboard() {
         </div>
       )}
 
-      {!shouldShowPercentage && (
-        <div>
+      {!shouldShowPercentage && canCreateRubricPermission && (
+        <div>   
           <Card className="py-3">
             <CardContent className="text-blue-600 text-sm font-semibold flex flex-row gap-2 justify-center">
               <AlertCircle className="h-5" />
@@ -566,12 +566,14 @@ export default function RubricDashboard() {
           <CardTitle>
             <div className="flex flex-col gap-2">
             <span>Lista de Rubricas</span>
-            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
-              {rubrics.length} rubricas
-            </Badge>
+            {canCreateRubricPermission && (
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                {rubrics.length} rubricas
+              </Badge>
+            )}
             </div>
           </CardTitle>
-          {canCreateRubricPermission &&
+          {canCreateRubricPermission ? (
               <Button
                 onClick={() => {
                   // Resetear el formulario con el ciclo activo antes de abrir
@@ -593,7 +595,11 @@ export default function RubricDashboard() {
                 <Plus className="w-4 h-4" />
                 Agregar Rubrica
               </Button>
-            }
+            ) : (
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                {rubrics.length} rubricas
+              </Badge>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -851,7 +857,7 @@ export default function RubricDashboard() {
                   <div className="text-sm mt-2 text-blue-600 flex flex-row justify-center items-center">
                     <AlertCircle className="h-5 text-blue-600" />
                     <p className="p-2">
-                      Selecciona una clase y después el período para asignar el porsentaje disponible
+                      Selecciona una clase y después el período para asignar el porcentaje disponible
                     </p>
                   </div>
                 )}

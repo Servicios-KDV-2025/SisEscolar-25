@@ -54,6 +54,9 @@ export default function GradeManagementDashboard() {
     isLoading: permissionsLoading,
   } = permissions;
 
+  // Restricción: Solo teachers pueden actualizar promedios de periodo
+  const canTeacherUpdateTermAverage = canUpdateTermAverage && permissions.currentRole === 'teacher';
+
   //   Mensajes de toast personalizados
   const toastMessages = useCrudToastMessages("Calificación");
 
@@ -512,31 +515,34 @@ export default function GradeManagementDashboard() {
           <CardTitle>
             <div className="flex flex-col gap-2">
             <span>Calificaciones</span>
-            <Badge
-              variant="outline"
-              className="bg-black-50 text-black-700 border-black-200"
-            >
-              {terms?.length} periodos
-            </Badge>
+            {canTeacherUpdateTermAverage && (
+              <Badge
+                variant="outline"
+                className="bg-black-50 text-black-700 border-black-200 w-fit"
+              >
+                {terms?.length} periodos
+              </Badge>
+            )}
             </div>
           </CardTitle>
-          {permissions.currentRole !== 'tutor' && (
-            canUpdateAveragesWithCycle ? (
+          {canTeacherUpdateTermAverage ? (
               <Button
                 onClick={handleSaveAverages}
                 size="lg"
                 className="gap-2"
-                disabled={!currentSchool || permissions.currentRole === 'auditor'}
+                disabled={!currentSchool}
               >
                 <SaveAll className="w-4 h-4" />
                 Guardar promedios
               </Button>
-            ) : selectedCycleStatus && selectedCycleStatus !== "active" ? (
-              <div className="text-sm text-muted-foreground p-2 bg-muted rounded-md">
-                No se pueden guardar promedios en un ciclo {selectedCycleStatus === "archived" ? "archivado" : "inactivo"}.
-              </div>
-            ) : null
-          )}
+            ) : (
+              <Badge
+                variant="outline"
+                className="bg-black-50 text-black-700 border-black-200 w-fit"
+              >
+                {terms?.length} periodos
+              </Badge>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -555,7 +561,7 @@ export default function GradeManagementDashboard() {
               terms={terms!}
               averages={averagesMap}
               onAverageUpdate={handleUpdateGrade}
-              canUpdateRubric={canUpdateAveragesWithCycle}
+              canUpdateRubric={canTeacherUpdateTermAverage}
             />
           ) : (
             <div className="flex justify-center">

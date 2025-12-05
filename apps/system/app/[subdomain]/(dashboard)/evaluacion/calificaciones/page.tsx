@@ -95,6 +95,10 @@ export default function GradeManagementDashboard() {
     hasPermissionWithCycleCheck,
   } = permissions;
 
+  // Restricción: Solo teachers pueden realizar acciones CRUD
+  const canTeacherCreateRubric = canCreateRubric && currentRole === 'teacher';
+  const canTeacherUpdateRubric = canUpdateRubric && currentRole === 'teacher';
+
   // Fetch data with Convex
   const schoolCycles = useQuery(
     api.functions.schoolCycles.ObtenerCiclosEscolares,
@@ -502,9 +506,10 @@ export default function GradeManagementDashboard() {
   const selectedCycleStatus = selectedCycle?.status;
 
   // Check permissions with cycle status
+  // Check permissions with cycle status
   const canCreateAssignanceWithCycle = hasPermissionWithCycleCheck("create:assignance", selectedCycleStatus);
+  const canTeacherCreateAssignance = canCreateAssignanceWithCycle && currentRole === 'teacher';
   const canUpdateGradesWithCycle = hasPermissionWithCycleCheck("update:termAverages", selectedCycleStatus);
-
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!currentSchool?.school._id || !currentUser?._id) {
       console.error('Missing required IDs');
@@ -718,56 +723,72 @@ export default function GradeManagementDashboard() {
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <CardTitle>
-              <div className="flex flex-col gap-2">
-                <span>Calificaciones</span>
-                <Badge
-                  variant="outline"
-                  className="bg-black-50 text-black-700 border-black-200 w-fit"
-                >
-                  {assignments?.length} asignaciones
-                </Badge>
-              </div>
-            </CardTitle>
+          <CardTitle>
+            <div className="flex flex-col gap-2">
+            <span>Calificaciones</span>
+            {canTeacherCreateAssignance && (
+              <Badge
+                variant="outline"
+                className="bg-black-50 text-black-700 border-black-200 w-fit"
+              >
+                {assignments?.length} asignaciones
+              </Badge>
+            )}
+            </div>
+          </CardTitle>
+          {canTeacherCreateAssignance ? (
             <div className="flex flex-col gap-2 md:flex-row">
-              {canCreateAssignanceWithCycle ? (
+              <Button
+                className="cursor-pointer"
+                onClick={openCreate}
+                size="lg"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Agregar Asignación
+              </Button>
+              {canTeacherUpdateRubric && (
                 <Button
-                  className="cursor-pointer"
-                  onClick={openCreate}
+                  onClick={handleSaveAverages}
                   size="lg"
+                  className="gap-2"
+                  disabled={
+                    isDataLoading ||
+                    !currentSchool ||
+                    !students ||
+                    students.length === 0
+                  }
                 >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Agregar Asignación
+                  <SaveAll className="w-4 h-4" />
+                  Guardar Promedios
                 </Button>
-              ) : selectedCycleStatus && selectedCycleStatus !== "active" ? (
-                <div className="text-sm text-muted-foreground p-2 bg-muted rounded-md">
-                  No se pueden crear asignaciones en un ciclo {selectedCycleStatus === "archived" ? "archivado" : "inactivo"}.
-                </div>
-              ) : null}
-              {currentRole !== 'tutor' && (
-                canUpdateGradesWithCycle ? (
-                  <Button
-                    onClick={handleSaveAverages}
-                    size="lg"
-                    className="gap-2"
-                    disabled={
-                      isDataLoading ||
-                      !currentSchool ||
-                      !students ||
-                      students.length === 0 ||
-                      currentRole === 'auditor'
-                    }
-                  >
-                    <SaveAll className="w-4 h-4" />
-                    Guardar Promedios
-                  </Button>
-                ) : selectedCycleStatus && selectedCycleStatus !== "active" ? (
-                  <div className="text-sm text-muted-foreground p-2 bg-muted rounded-md">
-                    No se pueden guardar promedios en un ciclo {selectedCycleStatus === "archived" ? "archivado" : "inactivo"}.
-                  </div>
-                ) : null
               )}
             </div>
+          ) : (
+            <div className="flex flex-col gap-2 md:flex-row">
+              {canTeacherUpdateRubric && (
+                <Button
+                  onClick={handleSaveAverages}
+                  size="lg"
+                  className="gap-2"
+                  disabled={
+                    isDataLoading ||
+                    !currentSchool ||
+                    !students ||
+                    students.length === 0
+                  }
+                >
+                  <SaveAll className="w-4 h-4" />
+                  Guardar Promedios
+                </Button>
+              )}
+              <Badge
+                variant="outline"
+                className="bg-black-50 text-black-700 border-black-200 w-fit"
+              >
+                {assignments?.length} asignaciones
+              </Badge>
+            </div>
+          )}
           </div>
         </CardHeader>
         <CardContent className="w-full">
@@ -967,7 +988,7 @@ export default function GradeManagementDashboard() {
                         </div>
 
                         {/*esta es la 2da fila de botones*/}
-                        {canCreateRubric &&
+                        {canTeacherCreateRubric &&
                           <div className="flex flex-row gap-4 justify-center w-full">
                             {!hasSchoolCycles && (
                               <Link href='/administracion/ciclos-escolares'>
@@ -1008,8 +1029,7 @@ export default function GradeManagementDashboard() {
                       grades={grades!}
                       onGradeUpdate={handleUpdateGrade}
                       calculateAverage={calculateAverage}
-                      canUpdateRubric={canUpdateRubric}
-                      canEdit={selectedCycleStatus === "active"}
+                      canUpdateRubric={canTeacherUpdateRubric}
                     />
                   </div>
                 </div>
