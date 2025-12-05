@@ -72,7 +72,7 @@ function SchoolForm({ onSuccess, onSchoolSelected, onNext }: SchoolFormProps) {
       return false
     }
     if (!formData.shortName.trim()) {
-      setError('El nombre corto es requerido')
+      setError('El Alias institucional es requerido')
       return false
     }
     if (!formData.cctCode.trim()) {
@@ -237,13 +237,13 @@ function SchoolForm({ onSuccess, onSchoolSelected, onNext }: SchoolFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="shortName">Nombre Corto *</Label>
+              <Label htmlFor="shortName">Alias institucional *</Label>
               <Input
                 id="shortName"
                 name="shortName"
                 value={formData.shortName}
                 onChange={handleInputChange}
-                placeholder="Abreviatura o nombre corto"
+                placeholder="Abreviatura o Alias institucional"
                 required
               />
             </div>
