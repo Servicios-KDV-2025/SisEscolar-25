@@ -463,14 +463,14 @@ export const createSchoolWithUser = mutation({
       throw new Error('Ya existe una escuela con ese código CCT');
     }
 
-    // Verificar que el nombre corto no exista
+    // Verificar que el Alias institucional no exista
     const existingShortName = await ctx.db
       .query('school')
       .filter((q) => q.eq(q.field('shortName'), args.shortName))
       .first();
 
     if (existingShortName) {
-      throw new Error('Ya existe una escuela con ese nombre corto');
+      throw new Error('Ya existe una escuela con ese Alias institucionalucional');
     }
 
     // Crear la escuela
@@ -566,14 +566,14 @@ export const createSchool = mutation({
       throw new Error('Ya existe una escuela con ese código CCT');
     }
 
-    // Verificar que el nombre corto no exista
+    // Verificar que el Alias institucional no exista
     const existingShortName = await ctx.db
       .query('school')
       .filter((q) => q.eq(q.field('shortName'), args.shortName))
       .first();
 
     if (existingShortName) {
-      throw new Error('Ya existe una escuela con ese nombre corto');
+      throw new Error('Ya existe una escuela con ese Alias institucional');
     }
 
     // Crear la escuela

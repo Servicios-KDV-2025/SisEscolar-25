@@ -30,6 +30,7 @@ import {
 import { useUserWithConvex } from "../../../../stores/userStore";
 import { usePermissions } from "../../../../hooks/usePermissions";
 import { ProfileSkeleton } from "../../../../components/skeletons/ProfileSkeleton";
+import { ImageUpload } from "../../../../components/image-upload/ImageUpload";
 
 export default function ConfiguracionPage() {
   const [isEditing, setIsEditing] = useState(false);
@@ -57,6 +58,7 @@ export default function ConfiguracionPage() {
     formState: { errors },
     reset,
     watch,
+    setValue,
   } = useForm<SchoolValidationSchema>({
     resolver: zodResolver(schoolValidationSchema),
   });
@@ -153,32 +155,35 @@ export default function ConfiguracionPage() {
           <CardTitle>Información General</CardTitle>
         </CardHeader>
         <CardContent className="p-6 grid md:grid-cols-3 gap-8">
-          <div className="col-span-1 space-y-2">
-            <Label>Logo Institucional</Label>
-            <div className="relative aspect-square max-w-[220px] rounded-2xl shadow-lg overflow-hidden">
-              {imgUrlValue != " " && imgUrlValue ? (
-                <Image
-                  src={imgUrlValue!}
-                  alt="Logo de la escuela"
-                  className="w-full h-full object-cover"
-                  fill
-                  unoptimized={true}
-                />
-              ) : (
-                <div className="relative aspect-square max-w-[220px] rounded-2xl shadow-lg overflow-hidden flex items-center justify-center">
-                  <School className="h-20 w-20" />
-                </div>
-              )}
-            </div>
-            {isEditing && (
-              <FormField
-                label="URL del Logo"
-                name="imgUrl"
-                isEditing={isEditing}
-                register={register}
-                error={errors.imgUrl}
-                readOnlyValue={currentSchool?.school?.name ?? ""}
+          <div className="col-span-1">
+            {isEditing ? (
+              <ImageUpload
+                currentImageUrl={imgUrlValue && imgUrlValue !== " " ? imgUrlValue : undefined}
+                onImageUploaded={(url) => {
+                  // Actualizar el valor del formulario cuando se sube una imagen
+                  setValue("imgUrl", url, { shouldValidate: true });
+                }}
+                disabled={!isEditing || isSaving}
               />
+            ) : (
+              <div className="space-y-2">
+                <Label>Logo Institucional</Label>
+                <div className="relative aspect-square max-w-[220px] rounded-2xl shadow-lg overflow-hidden">
+                  {imgUrlValue != " " && imgUrlValue ? (
+                    <Image
+                      src={imgUrlValue!}
+                      alt="Logo de la escuela"
+                      className="w-full h-full object-cover"
+                      fill
+                      unoptimized={true}
+                    />
+                  ) : (
+                    <div className="relative aspect-square max-w-[220px] rounded-2xl shadow-lg overflow-hidden flex items-center justify-center bg-gray-50">
+                      <School className="h-20 w-20 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
           <div className="col-span-1 space-y-4">
@@ -191,7 +196,7 @@ export default function ConfiguracionPage() {
               readOnlyValue={currentSchool.school.name}
             />
             <FormField
-              label="Nombre Corto"
+              label="Alias institucional"
               name="shortName"
               isEditing={isEditing}
               register={register}
