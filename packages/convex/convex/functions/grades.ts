@@ -20,6 +20,19 @@ export const upsertGrade = mutation({
       throw new Error("La calificación no puede ser mayor que el puntaje máximo permitido.");
     }
 
+    // Validar que el ciclo escolar esté activo
+    const classCatalog = await ctx.db.get(assignment.classCatalogId);
+    if (!classCatalog) {
+      throw new Error("Clase no encontrada.");
+    }
+    const schoolCycle = await ctx.db.get(classCatalog.schoolCycleId);
+    if (!schoolCycle) {
+      throw new Error("Ciclo escolar no encontrado.");
+    }
+    if (schoolCycle.status !== "active") {
+      throw new Error(`No se pueden modificar calificaciones en un ciclo ${schoolCycle.status === "archived" ? "archivado" : "inactivo"}.`);
+    }
+
     // Buscar si la calificación ya existe usando el nuevo índice
     const existingGrade = await ctx.db
       .query("grade")
@@ -235,18 +248,32 @@ export const updateGrade = mutation({
     updatedBy: v.id("user"),
   },
   handler: async (ctx, args) => {
-    // 1. Validar si el score actualizado supera el maxScore
+    // 1. Obtener la calificación y validar existencia
+    const grade = await ctx.db.get(args.gradeId);
+    if (!grade) throw new Error("Calificación no encontrada");
+
+    // 2. Validar que el ciclo escolar esté activo
+    const assignment = await ctx.db.get(grade.assignmentId);
+    if (!assignment) throw new Error("Tarea no encontrada");
+
+    const classCatalog = await ctx.db.get(assignment.classCatalogId);
+    if (!classCatalog) throw new Error("Clase no encontrada");
+
+    const schoolCycle = await ctx.db.get(classCatalog.schoolCycleId);
+    if (!schoolCycle) throw new Error("Ciclo escolar no encontrado");
+
+    if (schoolCycle.status !== "active") {
+      throw new Error(`No se pueden modificar calificaciones en un ciclo ${schoolCycle.status === "archived" ? "archivado" : "inactivo"}.`);
+    }
+
+    // 3. Validar si el score actualizado supera el maxScore
     if (args.data.score !== undefined) {
-      const grade = await ctx.db.get(args.gradeId);
-      if (!grade) throw new Error("Calificación no encontrada");
-      const rubric = await ctx.db.get(grade.assignmentId);
-      if (!rubric) throw new Error("Criterio de rúbrica no encontrado");
-      if (args.data.score > rubric.maxScore) {
+      if (args.data.score > assignment.maxScore) {
         throw new Error("La calificación no puede ser mayor que el puntaje máximo permitido");
       }
     }
- 
-    // 2. Aplicar la actualización
+
+    // 4. Aplicar la actualización
     await ctx.db.patch(args.gradeId, {
       ...args.data,
       updatedBy: args.updatedBy,
@@ -322,6 +349,25 @@ export const getGradesByClassAndTerm = query({
 export const deleteGrade = mutation({
   args: { gradeId: v.id("grade") },
   handler: async (ctx, args) => {
+    // 1. Obtener la calificación y validar existencia
+    const grade = await ctx.db.get(args.gradeId);
+    if (!grade) throw new Error("Calificación no encontrada");
+
+    // 2. Validar que el ciclo escolar esté activo
+    const assignment = await ctx.db.get(grade.assignmentId);
+    if (!assignment) throw new Error("Tarea no encontrada");
+
+    const classCatalog = await ctx.db.get(assignment.classCatalogId);
+    if (!classCatalog) throw new Error("Clase no encontrada");
+
+    const schoolCycle = await ctx.db.get(classCatalog.schoolCycleId);
+    if (!schoolCycle) throw new Error("Ciclo escolar no encontrado");
+
+    if (schoolCycle.status !== "active") {
+      throw new Error(`No se pueden modificar calificaciones en un ciclo ${schoolCycle.status === "archived" ? "archivado" : "inactivo"}.`);
+    }
+
+    // 3. Eliminar la calificación
     await ctx.db.delete(args.gradeId);
     return args.gradeId;
   },
