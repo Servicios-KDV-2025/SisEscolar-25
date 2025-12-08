@@ -13,6 +13,34 @@
  */
 
 // Source: schema.json
+export type FeatureBlock = {
+  _type: "featureBlock";
+  title?: string;
+  features?: Array<{
+    targetAudience?: string;
+    description?: string;
+    _key: string;
+  }>;
+  images?: Array<{
+    asset?: {
+      _ref: string;
+      _type: "reference";
+      _weak?: boolean;
+      [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+    };
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+    _key: string;
+  }>;
+  cta?: {
+    label?: string;
+    buttonText?: string;
+    buttonUrl?: string;
+  };
+};
+
 export type Grid = {
   _type: "grid";
   items?: Array<{
@@ -415,6 +443,8 @@ export type Page = {
   } & Carousel | {
     _key: string;
   } & PaymentStatus | {
+    _key: string;
+  } & FeatureBlock | {
     asset?: {
       _ref: string;
       _type: "reference";
@@ -567,6 +597,8 @@ export type Home = {
   } & Carousel | {
     _key: string;
   } & PaymentStatus | {
+    _key: string;
+  } & FeatureBlock | {
     asset?: {
       _ref: string;
       _type: "reference";
@@ -708,7 +740,7 @@ export type SanityAssetSourceData = {
   url?: string;
 };
 
-export type AllSanitySchemaTypes = Grid | PriceBlock | ContentWithMedia | CarouselAvatar | Acordeon | Carousel | ImagewithText | InfoBlock | PaymentStatus | CtaSection | StatsSection | FeatureSection | FeatureItem | HeroSection | LinkExternal | Price | Project | Page | Duration | Settings | Footer | LinkInternal | Nav | Home | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageHotspot | SanityImageCrop | SanityFileAsset | SanityImageAsset | SanityImageMetadata | Geopoint | Slug | SanityAssetSourceData;
+export type AllSanitySchemaTypes = FeatureBlock | Grid | PriceBlock | ContentWithMedia | CarouselAvatar | Acordeon | Carousel | ImagewithText | InfoBlock | PaymentStatus | CtaSection | StatsSection | FeatureSection | FeatureItem | HeroSection | LinkExternal | Price | Project | Page | Duration | Settings | Footer | LinkInternal | Nav | Home | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageHotspot | SanityImageCrop | SanityFileAsset | SanityImageAsset | SanityImageMetadata | Geopoint | Slug | SanityAssetSourceData;
 export declare const internalGroqTypeReferenceTo: unique symbol;
 // Source: ./sanity/lib/queries.ts
 // Variable: homePageQuery
@@ -812,6 +844,33 @@ export type HomePageQueryResult = {
       _type: "benefitItem";
       _key: string;
     }>;
+  } | {
+    _key: string;
+    _type: "featureBlock";
+    title?: string;
+    features?: Array<{
+      targetAudience?: string;
+      description?: string;
+      _key: string;
+    }>;
+    images?: Array<{
+      asset?: {
+        _ref: string;
+        _type: "reference";
+        _weak?: boolean;
+        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+      };
+      media?: unknown;
+      hotspot?: SanityImageHotspot;
+      crop?: SanityImageCrop;
+      _type: "image";
+      _key: string;
+    }>;
+    cta?: {
+      label?: string;
+      buttonText?: string;
+      buttonUrl?: string;
+    };
   } | {
     _key: string;
     _type: "featureSection";
@@ -976,6 +1035,33 @@ export type PagesBySlugQueryResult = {
       _type: "benefitItem";
       _key: string;
     }>;
+  } | {
+    _key: string;
+    _type: "featureBlock";
+    title?: string;
+    features?: Array<{
+      targetAudience?: string;
+      description?: string;
+      _key: string;
+    }>;
+    images?: Array<{
+      asset?: {
+        _ref: string;
+        _type: "reference";
+        _weak?: boolean;
+        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+      };
+      media?: unknown;
+      hotspot?: SanityImageHotspot;
+      crop?: SanityImageCrop;
+      _type: "image";
+      _key: string;
+    }>;
+    cta?: {
+      label?: string;
+      buttonText?: string;
+      buttonUrl?: string;
+    };
   } | {
     _key: string;
     _type: "featureSection";

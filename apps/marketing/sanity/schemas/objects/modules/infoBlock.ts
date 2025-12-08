@@ -32,9 +32,7 @@ export default defineType({
       type: 'text',
       rows: 3,
     },
-  
   ],
-  
   preview: {
     select: {
       title: 'title',

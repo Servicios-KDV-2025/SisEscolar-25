@@ -61,6 +61,10 @@ export default defineField({
         defineArrayMember({
             name: 'paymentStatus',
             type: 'paymentStatus',
+        }),
+        defineArrayMember({
+            name: 'featureBlock',
+            type: 'featureBlock',
         })
         ,
         defineField({
