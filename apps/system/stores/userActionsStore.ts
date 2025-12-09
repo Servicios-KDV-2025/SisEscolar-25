@@ -24,6 +24,15 @@ export type UpdateUserData = {
   address?: string;
 };
 
+export type InviteUserData = {
+  email: string;
+  name: string;
+  lastName: string;
+  role: string;
+  phone?: string;
+  address?: string;
+};
+
 export type UserActionResponse = {
   success: boolean;
   message?: string;
@@ -107,6 +116,7 @@ export const useUserActionsWithConvex = () => {
   const createUserAction = useAction(api.functions.actions.users.createUser);
   const updateUserAction = useAction(api.functions.actions.users.updateUser);
   const deleteUserAction = useAction(api.functions.actions.users.deleteUser);
+  const inviteUserAction = useAction(api.functions.actions.users.inviteUser);
 
   // Función para crear usuario
   const createUser = React.useCallback(async (data: CreateUserData): Promise<UserActionResponse> => {
@@ -226,6 +236,45 @@ export const useUserActionsWithConvex = () => {
     }
   }, [deleteUserAction, store]);
 
+  // Función para invitar usuario
+  const inviteUser = React.useCallback(async (data: InviteUserData): Promise<UserActionResponse> => {
+    try {
+      store.setCreating(true);
+      store.setCreateError(null);
+      store.clearLastResult();
+
+      const result = await inviteUserAction(data);
+
+      const typedResult: UserActionResponse = {
+        success: result.success,
+        message: result.message,
+        error: typeof result.error === 'string' ? result.error : undefined,
+        userId: result.userId
+      };
+
+      store.setLastResult(typedResult);
+      store.setCreating(false);
+
+      if (!typedResult.success && typedResult.error) {
+        store.setCreateError(typedResult.error);
+      }
+
+      return typedResult;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error al invitar usuario';
+      const errorResult: UserActionResponse = {
+        success: false,
+        error: errorMessage,
+      };
+
+      store.setCreateError(errorMessage);
+      store.setLastResult(errorResult);
+      store.setCreating(false);
+
+      return errorResult;
+    }
+  }, [inviteUserAction, store]);
+
   return React.useMemo(() => ({
     // Estado del store
     isCreating: store.isCreating,
@@ -240,6 +289,7 @@ export const useUserActionsWithConvex = () => {
     createUser,
     updateUser,
     deleteUser,
+    inviteUser,
 
     // Utilidades
     clearErrors: store.clearErrors,
@@ -260,6 +310,7 @@ export const useUserActionsWithConvex = () => {
     createUser,
     updateUser,
     deleteUser,
+    inviteUser,
     store.clearErrors,
     store.clearLastResult,
     store.reset,

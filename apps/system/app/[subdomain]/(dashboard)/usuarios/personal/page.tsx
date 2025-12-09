@@ -475,25 +475,20 @@ export default function PersonalPage() {
         return;
       }
 
-      // FLUJO B: Usuario no existe, crear nuevo
-      const password = formData.password as string;
-
-      if (!password || password.trim() === "") {
-        throw new Error(
-          "La contraseña es requerida para crear un usuario nuevo."
-        );
-      }
+      // FLUJO B: Usuario no existe, INVITAR
+      // const password = formData.password as string; // YA NO SE USA
 
       const createData = {
         email: email,
-        password: password,
         name: formData.name as string,
         lastName: formData.lastName as string,
+        role: "teacher", // Rol temporal para la invitación, se ajusta abajo
         phone: formData.phone as string,
         address: formData.address as string,
       };
 
-      const result = await userActions.createUser(createData);
+      // Usamos inviteUser en lugar de createUser
+      const result = await userActions.inviteUser(createData);
 
       if (result.success && result.userId) {
         try {
@@ -527,7 +522,7 @@ export default function PersonalPage() {
           );
         }
       } else {
-        throw new Error(result.error || "Error al crear usuario en Clerk");
+        throw new Error(result.error || "Error al invitar usuario");
       }
     } catch (error) {
       console.error("❌ Error en handleCreate:", error);
@@ -881,14 +876,14 @@ export default function PersonalPage() {
       placeholder: 'Dirección completa',
       className: 'md:col-span-2'
     },
-    {
-      name: 'password',
-      label: 'Contraseña',
-      type: 'password',
-      required: operation === 'create',
-      placeholder: 'Contraseña',
-      // showCondition: (operation) => operation === 'create'
-    },
+    // {
+    //   name: 'password',
+    //   label: 'Contraseña',
+    //   type: 'password',
+    //   required: operation === 'create',
+    //   placeholder: 'Contraseña',
+    //   // showCondition: (operation) => operation === 'create'
+    // },
     {
       name: 'status',
       label: 'Estado',
@@ -1407,7 +1402,7 @@ export default function PersonalPage() {
           name: "",
           lastName: "",
           email: "",
-          password: "",
+          // password: "",
           address: "",
           phone: "",
           status: "active"

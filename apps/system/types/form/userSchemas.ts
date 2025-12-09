@@ -114,7 +114,7 @@ export const teacherSchema = userSchema;
  * Los tutores tienen acceso a información de sus alumnos asignados
  */
 export const tutorCreateSchema = userSchema.extend({
-  password: passwordSchema,
+  password: passwordSchema.optional(),
 });
 
 /**
@@ -137,7 +137,7 @@ export const tutorSchema = userSchema.extend({
  * Soporta tanto un rol único (string) como múltiples roles (array)
  */
 export const unifiedUserCreateSchema = userSchema.extend({
-  password: passwordSchema,
+  password: passwordSchema.optional(),
   role: z.union([
     z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"], "Es obligatorio seleccionar un rol"),
     z.array(z.enum(["superadmin", "admin", "auditor", "teacher", "tutor"], "Es obligatorio seleccionar un rol")).min(1, "Debe seleccionar al menos un rol")

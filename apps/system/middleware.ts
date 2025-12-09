@@ -40,7 +40,8 @@ import { rootDomain } from './lib/utils';
 
 const isPublicRoute = createRouteMatcher([
   '/api/(.*)',
-  '/registro'
+  '/registro',
+  '/accept-invite'
 ])
 
 

@@ -505,25 +505,20 @@ export default function TutorPage() {
         return;
       }
 
-      // FLUJO B: Usuario no existe, crear nuevo en Clerk + asignar
-      const password = formData.password as string;
-
-      if (!password || password.trim() === "") {
-        throw new Error(
-          "La contraseña es requerida para crear un usuario nuevo. Si el usuario ya existe en el sistema, se asignará automáticamente."
-        );
-      }
+      // FLUJO B: Usuario no existe, INVITAR
+      // const password = formData.password as string; // YA NO SE USA
 
       const createData = {
         email: email,
-        password: password,
         name: formData.name as string,
         lastName: formData.lastName as string,
+        role: "tutor",
         phone: formData.phone as string,
         address: formData.address as string,
       };
 
-      const result = await userActions.createUser(createData);
+      // Usamos inviteUser en lugar de createUser
+      const result = await userActions.inviteUser(createData);
 
       if (result.success && result.userId) {
         try {
@@ -543,8 +538,8 @@ export default function TutorPage() {
           );
         }
       } else {
-        console.error("Error al crear usuario en Clerk:", result.error);
-        throw new Error(result.error || "Error al crear usuario en Clerk");
+        console.error("Error al invitar usuario:", result.error);
+        throw new Error(result.error || "Error al invitar usuario");
       }
     } catch (error) {
       console.error("❌ Error en handleCreate:", error);
@@ -859,13 +854,13 @@ export default function TutorPage() {
       placeholder: 'correo@escuela.edu.mx',
       disabled: (op) => op === 'view' || op === 'edit'
     },
-    {
-      name: 'password',
-      label: 'Contraseña',
-      type: 'password',
-      required: operation === 'create',
-      placeholder: 'Contraseña',
-    },
+    // {
+    //   name: 'password',
+    //   label: 'Contraseña',
+    //   type: 'password',
+    //   required: operation === 'create',
+    //   placeholder: 'Contraseña',
+    // },
     {
       name: 'address',
       label: 'Dirección',
@@ -1479,7 +1474,7 @@ export default function TutorPage() {
           name: "",
           lastName: "",
           email: "",
-          password: "",
+          // password: "",
           address: "",
           phone: "",
           status: "active"
