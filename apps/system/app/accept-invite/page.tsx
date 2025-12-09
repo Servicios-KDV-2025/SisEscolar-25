@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSignIn, useClerk } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
-export default function AcceptInvitePage() {
+function InviteContent() {
     const { signIn, isLoaded, setActive } = useSignIn();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -46,14 +46,16 @@ export default function AcceptInvitePage() {
                     setStatus("error");
                     setErrorMessage("No se pudo completar el inicio de sesión. Por favor contacta a soporte.");
                 }
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error("Error accepting invite:", err);
 
+                const clerkError = err as { errors?: { code?: string; message?: string }[] };
+
                 // If token is already used, it might be because of a double-fire or previous attempt
-                if (err.errors?.[0]?.code === "verification_expired") {
+                if (clerkError.errors?.[0]?.code === "verification_expired") {
                     setErrorMessage("El enlace de invitación ya ha sido utilizado o ha expirado.");
                 } else {
-                    setErrorMessage(err.errors?.[0]?.message || "El enlace de invitación es inválido o ha expirado.");
+                    setErrorMessage(clerkError.errors?.[0]?.message || "El enlace de invitación es inválido o ha expirado.");
                 }
                 setStatus("error");
             }
@@ -87,4 +89,19 @@ export default function AcceptInvitePage() {
     }
 
     return null; // Redirecting...
+}
+
+export default function AcceptInvitePage() {
+    return (
+        <Suspense
+            fallback={
+                <div className="flex min-h-screen flex-col items-center justify-center p-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="mt-4 text-muted-foreground">Cargando...</p>
+                </div>
+            }
+        >
+            <InviteContent />
+        </Suspense>
+    );
 }

@@ -73,9 +73,10 @@ export default function SetPasswordPage() {
             });
             toast.success("Contraseña establecida correctamente");
             router.push("/");
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Error setting password:", error);
-            const errorMessage = error.errors?.[0]?.message || "Error al establecer la contraseña";
+            const clerkError = error as { errors?: { code?: string; message?: string }[] };
+            const errorMessage = clerkError.errors?.[0]?.message || "Error al establecer la contraseña";
 
             if (errorMessage.includes("data breach") || errorMessage.includes("pwned")) {
                 setError("Esta contraseña ha sido expuesta en una filtración de datos. Por seguridad, elige una diferente.");
