@@ -1,12 +1,12 @@
 import Stripe from 'stripe'
-import sanityClient from '@sanity/client'
+import { createClient } from '@sanity/client';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-09-30.clover',
 })
 
 // Configura tu cliente de Sanity
-const sanity = sanityClient({
+const sanity = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
   apiVersion: '2025-10-16',

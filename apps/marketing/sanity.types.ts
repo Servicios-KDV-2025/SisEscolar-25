@@ -13,6 +13,39 @@
  */
 
 // Source: schema.json
+export type CarBlock = {
+  _type: "CarBlock";
+  image?: {
+    asset?: {
+      _ref: string;
+      _type: "reference";
+      _weak?: boolean;
+      [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+    };
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+  title?: string;
+  subtitle?: string;
+  body?: string;
+};
+
+export type FaqItem = {
+  _type: "faqItem";
+  question?: string;
+  answer?: string;
+};
+
+export type FaqBlock = {
+  _type: "faqBlock";
+  title?: string;
+  items?: Array<{
+    _key: string;
+  } & FaqItem>;
+};
+
 export type FeatureBlock = {
   _type: "featureBlock";
   title?: string;
@@ -194,21 +227,26 @@ export type ImagewithText = {
 
 export type InfoBlock = {
   _type: "infoBlock";
-  icon?: {
-    asset?: {
-      _ref: string;
-      _type: "reference";
-      _weak?: boolean;
-      [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
-    };
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
   title?: string;
   subtitle?: string;
-  description?: string;
+  items?: Array<{
+    icon?: {
+      asset?: {
+        _ref: string;
+        _type: "reference";
+        _weak?: boolean;
+        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+      };
+      media?: unknown;
+      hotspot?: SanityImageHotspot;
+      crop?: SanityImageCrop;
+      _type: "image";
+    };
+    title?: string;
+    description?: string;
+    _type: "infoItem";
+    _key: string;
+  }>;
 };
 
 export type PaymentStatus = {
@@ -445,6 +483,10 @@ export type Page = {
   } & PaymentStatus | {
     _key: string;
   } & FeatureBlock | {
+    _key: string;
+  } & FaqBlock | {
+    _key: string;
+  } & CarBlock | {
     asset?: {
       _ref: string;
       _type: "reference";
@@ -599,6 +641,10 @@ export type Home = {
   } & PaymentStatus | {
     _key: string;
   } & FeatureBlock | {
+    _key: string;
+  } & FaqBlock | {
+    _key: string;
+  } & CarBlock | {
     asset?: {
       _ref: string;
       _type: "reference";
@@ -740,7 +786,7 @@ export type SanityAssetSourceData = {
   url?: string;
 };
 
-export type AllSanitySchemaTypes = FeatureBlock | Grid | PriceBlock | ContentWithMedia | CarouselAvatar | Acordeon | Carousel | ImagewithText | InfoBlock | PaymentStatus | CtaSection | StatsSection | FeatureSection | FeatureItem | HeroSection | LinkExternal | Price | Project | Page | Duration | Settings | Footer | LinkInternal | Nav | Home | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageHotspot | SanityImageCrop | SanityFileAsset | SanityImageAsset | SanityImageMetadata | Geopoint | Slug | SanityAssetSourceData;
+export type AllSanitySchemaTypes = CarBlock | FaqItem | FaqBlock | FeatureBlock | Grid | PriceBlock | ContentWithMedia | CarouselAvatar | Acordeon | Carousel | ImagewithText | InfoBlock | PaymentStatus | CtaSection | StatsSection | FeatureSection | FeatureItem | HeroSection | LinkExternal | Price | Project | Page | Duration | Settings | Footer | LinkInternal | Nav | Home | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageHotspot | SanityImageCrop | SanityFileAsset | SanityImageAsset | SanityImageMetadata | Geopoint | Slug | SanityAssetSourceData;
 export declare const internalGroqTypeReferenceTo: unique symbol;
 // Source: ./sanity/lib/queries.ts
 // Variable: homePageQuery
@@ -819,6 +865,24 @@ export type HomePageQueryResult = {
     _key: string;
   } | {
     _key: string;
+    _type: "CarBlock";
+    image?: {
+      asset?: {
+        _ref: string;
+        _type: "reference";
+        _weak?: boolean;
+        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+      };
+      media?: unknown;
+      hotspot?: SanityImageHotspot;
+      crop?: SanityImageCrop;
+      _type: "image";
+    };
+    title?: string;
+    subtitle?: string;
+    body?: string;
+  } | {
+    _key: string;
     _type: "carousel";
     title?: string;
     images?: Array<{
@@ -844,6 +908,13 @@ export type HomePageQueryResult = {
       _type: "benefitItem";
       _key: string;
     }>;
+  } | {
+    _key: string;
+    _type: "faqBlock";
+    title?: string;
+    items?: Array<{
+      _key: string;
+    } & FaqItem>;
   } | {
     _key: string;
     _type: "featureBlock";
@@ -935,21 +1006,26 @@ export type HomePageQueryResult = {
   } | {
     _key: string;
     _type: "infoBlock";
-    icon?: {
-      asset?: {
-        _ref: string;
-        _type: "reference";
-        _weak?: boolean;
-        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
-      };
-      media?: unknown;
-      hotspot?: SanityImageHotspot;
-      crop?: SanityImageCrop;
-      _type: "image";
-    };
     title?: string;
     subtitle?: string;
-    description?: string;
+    items?: Array<{
+      icon?: {
+        asset?: {
+          _ref: string;
+          _type: "reference";
+          _weak?: boolean;
+          [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+        };
+        media?: unknown;
+        hotspot?: SanityImageHotspot;
+        crop?: SanityImageCrop;
+        _type: "image";
+      };
+      title?: string;
+      description?: string;
+      _type: "infoItem";
+      _key: string;
+    }>;
   } | {
     _key: string;
     _type: "paymentStatus";
@@ -1010,6 +1086,24 @@ export type PagesBySlugQueryResult = {
     _key: string;
   } | {
     _key: string;
+    _type: "CarBlock";
+    image?: {
+      asset?: {
+        _ref: string;
+        _type: "reference";
+        _weak?: boolean;
+        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+      };
+      media?: unknown;
+      hotspot?: SanityImageHotspot;
+      crop?: SanityImageCrop;
+      _type: "image";
+    };
+    title?: string;
+    subtitle?: string;
+    body?: string;
+  } | {
+    _key: string;
     _type: "carousel";
     title?: string;
     images?: Array<{
@@ -1035,6 +1129,13 @@ export type PagesBySlugQueryResult = {
       _type: "benefitItem";
       _key: string;
     }>;
+  } | {
+    _key: string;
+    _type: "faqBlock";
+    title?: string;
+    items?: Array<{
+      _key: string;
+    } & FaqItem>;
   } | {
     _key: string;
     _type: "featureBlock";
@@ -1126,21 +1227,26 @@ export type PagesBySlugQueryResult = {
   } | {
     _key: string;
     _type: "infoBlock";
-    icon?: {
-      asset?: {
-        _ref: string;
-        _type: "reference";
-        _weak?: boolean;
-        [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
-      };
-      media?: unknown;
-      hotspot?: SanityImageHotspot;
-      crop?: SanityImageCrop;
-      _type: "image";
-    };
     title?: string;
     subtitle?: string;
-    description?: string;
+    items?: Array<{
+      icon?: {
+        asset?: {
+          _ref: string;
+          _type: "reference";
+          _weak?: boolean;
+          [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+        };
+        media?: unknown;
+        hotspot?: SanityImageHotspot;
+        crop?: SanityImageCrop;
+        _type: "image";
+      };
+      title?: string;
+      description?: string;
+      _type: "infoItem";
+      _key: string;
+    }>;
   } | {
     _key: string;
     _type: "paymentStatus";

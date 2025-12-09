@@ -65,8 +65,16 @@ export default defineField({
         defineArrayMember({
             name: 'featureBlock',
             type: 'featureBlock',
-        })
-        ,
+        }),
+        defineArrayMember({
+            name: 'faqBlock',
+            type: 'faqBlock',
+        }),
+        defineArrayMember({
+            name: 'CarBlock',
+            type: 'CarBlock',  
+        }),
+        
         defineField({
             type: 'image',
             icon: ImageIcon,

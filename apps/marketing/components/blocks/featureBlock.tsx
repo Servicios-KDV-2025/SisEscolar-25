@@ -39,7 +39,7 @@ export default function FeatureBlock({
             </h2>
 
             <div className="space-y-5 md:space-y-6">
-              {features.map((feature, index) => (
+              {(features ?? []).map((feature, index) => (
                 <div key={index} className="space-y-1.5">
                   <h3 className="text-base md:text-lg font-semibold text-gray-900">
                     • {feature.targetAudience}

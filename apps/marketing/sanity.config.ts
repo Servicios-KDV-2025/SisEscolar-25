@@ -25,7 +25,7 @@ import featureItem from '@/sanity/schemas/objects/modules/featureItem'
 import featuresection from '@/sanity/schemas/objects/modules/featuresection'
 import statsection from '@/sanity/schemas/objects/modules/statsection'
 import ctaSection from '@/sanity/schemas/objects/modules/ctaSection'
-import infoBlock from '@/sanity/schemas/objects/modules/infoBlock1'
+import infoBlock from '@/sanity/schemas/objects/modules/infoBlock'
 import ImagewithText from '@/sanity/schemas/objects/modules/ImagewithText'
 import carousel from '@/sanity/schemas/objects/modules/carousel'
 import acordeon from './sanity/schemas/objects/modules/acordeon'
@@ -36,6 +36,9 @@ import priceblock from './sanity/schemas/objects/modules/priceblock'
 import { gridType } from './sanity/schemas/objects/modules/gridType'
 import paymentStatus from '@/sanity/schemas/objects/modules/Payment'
 import { featureBlock } from './sanity/schemas/objects/modules/featureBlock'
+import { faqBlock } from './sanity/schemas/objects/modules/faqBlock'
+import { faqItem } from './sanity/schemas/objects/modules/faqItem'
+import { CarBlock } from './sanity/schemas/objects/modules/CarBlock'
 const title =
   process.env.NEXT_PUBLIC_SANITY_PROJECT_TITLE || 'Next.js Personal Website with Sanity.io'
 
@@ -77,6 +80,9 @@ export default defineConfig({
       priceblock,
       gridType,
       featureBlock,
+      faqBlock,
+      faqItem,
+      CarBlock,
     ],
   },
   plugins: [
