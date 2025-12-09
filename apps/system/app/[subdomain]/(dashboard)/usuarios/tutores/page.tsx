@@ -64,7 +64,7 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription } from "@repo/ui/components/shadcn/alert";
 import { z } from "@repo/zod-config/index";
-import { toast } from "sonner";
+import { toast } from "@repo/ui/sonner";
 import {
   tutorSchema,
   tutorCreateSchema,
@@ -255,6 +255,7 @@ export default function TutorPage() {
 
   //   Mensajes de toast personalizados
   const toastMessages = useCrudToastMessages("Tutor");
+  const toastMessagesFiscal = useCrudToastMessages("Datos Fiscales");
 
   // Hook del CRUD Dialog para datos fiscales
   const {
@@ -384,13 +385,8 @@ export default function TutorPage() {
       country: "MXN" as const,
     };
 
-    try {
-      await createFiscalData(fiscalDataToCreate);
-      toast.success("Datos fiscales creados exitosamente");
-    } catch (error) {
-      toast.error(`Error al crear datos fiscales: ${error instanceof Error ? error.message : "Error desconocido"}`);
-      throw error;
-    }
+    // Los toasts ahora los maneja el CrudDialog automáticamente
+    await createFiscalData(fiscalDataToCreate);
   };
 
   const handleFiscalUpdate = async (formData: Record<string, unknown>) => {
@@ -408,13 +404,8 @@ export default function TutorPage() {
       updatedBy: currentUser._id,
     };
 
-    try {
-      await updateFiscalData(fiscalDataToUpdate);
-      toast.success("Datos fiscales actualizados exitosamente");
-    } catch (error) {
-      toast.error(`Error al actualizar datos fiscales: ${error instanceof Error ? error.message : "Error desconocido"}`);
-      throw error;
-    }
+    // Los toasts ahora los maneja el CrudDialog automáticamente
+    await updateFiscalData(fiscalDataToUpdate);
   };
 
   const handleFiscalDelete = async (deleteData: Record<string, unknown>) => {
@@ -422,13 +413,8 @@ export default function TutorPage() {
       throw new Error("ID de datos fiscales no disponible");
     }
 
-    try {
-      await deleteFiscalData({ id: deleteData._id as Id<"fiscalData"> });
-      toast.success("Datos fiscales eliminados exitosamente");
-    } catch (error) {
-      toast.error(`Error al eliminar datos fiscales: ${error instanceof Error ? error.message : "Error desconocido"}`);
-      throw error;
-    }
+    // Los toasts ahora los maneja el CrudDialog automáticamente
+    await deleteFiscalData({ id: deleteData._id as Id<"fiscalData"> });
   };
 
   // Funciones CRUD para tutores
@@ -647,7 +633,6 @@ export default function TutorPage() {
       day: "numeric",
     });
   };
-
 
   const getInitials = (name: string, lastName?: string) => {
     const first = name.charAt(0).toUpperCase();
@@ -868,13 +853,6 @@ export default function TutorPage() {
       required: false,
       placeholder: 'Dirección completa',
       className: 'md:col-span-2'
-    },
-    {
-      name: 'phone',
-      label: 'Teléfono',
-      type: 'tel',
-      required: false,
-      placeholder: '555 1234567'
     },
     {
       name: 'status',
@@ -1133,15 +1111,17 @@ export default function TutorPage() {
             <CardTitle>
               <div className="flex flex-col gap-2">
                 <span>Lista de Tutores</span>
-                <Badge
-                  variant="outline"
-                  className="bg-orange-50 text-orange-700 border-orange-200 w-fit"
-                >
-                  {filteredUsers.length} tutores
-                </Badge>
+                {canCreateUsersTutores && (
+                  <Badge
+                    variant="outline"
+                    className="bg-orange-50 text-orange-700 border-orange-200 w-fit"
+                  >
+                    {filteredUsers.length} tutores
+                  </Badge>
+                )}
               </div>
             </CardTitle>
-            {canCreateUsersTutores && (
+            {canCreateUsersTutores ? (
               <Button
                 size="lg"
                 className="gap-2 bg-orange-600 hover:bg-orange-700"
@@ -1151,7 +1131,14 @@ export default function TutorPage() {
                 <Plus className="w-4 h-4" />
                 Agregar Tutor
               </Button>
-            )}
+            ) : canReadUsersTutores && !canCreateUsersTutores ? (
+              <Badge
+                variant="outline"
+                className="bg-orange-50 text-orange-700 border-orange-200 w-fit px-4 flex items-center"
+              >
+                {filteredUsers.length} tutores
+              </Badge>
+            ) : null}
           </div>
         </CardHeader>
         <CardContent>
@@ -1291,16 +1278,18 @@ export default function TutorPage() {
                                 <Pencil className="h-4 w-4" />
                               </Button>
                             )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleOpenFiscalEdit(user)}
-                              className="h-8 w-8 p-0"
-                              disabled={isCrudLoading}
-                              title="Datos fiscales"
-                            >
-                              <FileText className="h-4 w-4" />
-                            </Button>
+                            {canCreateUsersTutores && canUpdateUsersTutores && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenFiscalEdit(user)}
+                                className="h-8 w-8 p-0"
+                                disabled={isCrudLoading}
+                                title="Datos fiscales"
+                              >
+                                <FileText className="h-4 w-4" />
+                              </Button>
+                            )}
                             {canDeleteUsersTutores && (
                               <Button
                                 variant="ghost"
@@ -1417,15 +1406,17 @@ export default function TutorPage() {
                             Editar
                           </Button>
                         )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenFiscalEdit(user)}
-                          disabled={isCrudLoading}
-                        >
-                          <FileText className="h-4 w-4 mr-1" />
-                          Datos Fiscales
-                        </Button>
+                        {canCreateUsersTutores && canUpdateUsersTutores && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenFiscalEdit(user)}
+                            disabled={isCrudLoading}
+                          >
+                            <FileText className="h-4 w-4 mr-1" />
+                            Datos Fiscales
+                          </Button>
+                        )}
                         {canDeleteUsersTutores && (
                           <Button
                             variant="outline"
@@ -1453,20 +1444,20 @@ export default function TutorPage() {
         operation={operation}
         title={
           operation === "create"
-            ? "Agregar Tutor"
+            ? "Registrar Nuevo Tutor"
             : operation === "edit"
-              ? "Editar Tutor"
+              ? "Actualizar Información del Tutor"
               : operation === "view"
-                ? "Ver Tutor"
-                : "Desactivar Tutor"
+                ? "Perfil del Tutor"
+                : ""
         }
         description={
           operation === "create"
-            ? "Completa la información para agregar un nuevo tutor al sistema"
+            ? "Completa los datos para incorporar un nuevo tutor y fortalecer el acompañamiento del alumno."
             : operation === "edit"
-              ? "Modifica la información del tutor"
+              ? "Modifica los datos del tutor para asegurar que la información esté correcta y actualizada."
               : operation === "view"
-                ? "Información detallada del tutor"
+                ? "Visualiza toda la información registrada del tutor."
                 : undefined
         }
         schema={getSchemaForOperation(operation)}
@@ -1476,7 +1467,6 @@ export default function TutorPage() {
           email: "",
           // password: "",
           address: "",
-          phone: "",
           status: "active"
         }}
         data={data}
@@ -1485,7 +1475,7 @@ export default function TutorPage() {
         onSubmit={operation === "create" ? handleCreate : handleUpdate}
         onDelete={() => handleDelete(data || {})}
         deleteConfirmationTitle="¿Desactivar tutor?"
-        deleteConfirmationDescription="Esta acción desactivará al tutor de esta escuela. El usuario mantendrá su información en el sistema y podrá ser reactivado posteriormente."
+        deleteConfirmationDescription="Esta acción desactivará al tutor dentro de esta escuela. Su información permanecerá en el sistema y podrá reactivarse cuando sea necesario."
         isLoading={isLoading}
         isSubmitting={userActions.isCreating || userActions.isUpdating}
         isDeleting={userActions.isDeleting}
@@ -1552,6 +1542,8 @@ export default function TutorPage() {
         isLoading={isLoading}
         isSubmitting={false} // TODO: Add loading states for fiscal operations
         isDeleting={false}
+        toastMessages={toastMessagesFiscal}
+        disableDefaultToasts={false}
       >
         {(form, currentOperation) => (
           <CrudFields

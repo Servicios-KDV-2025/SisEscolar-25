@@ -30,6 +30,7 @@ import { useQuery } from "convex/react";
 import { api } from "@repo/convex/convex/_generated/api";
 import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
 import CrudFields, { TypeFields } from '@repo/ui/components/dialog/crud-fields';
+import TutorView from "../../../../../components/students/tutorview";
 
 // Tipos para los datos de grupos y tutores
 interface Group {
@@ -62,6 +63,7 @@ export default function AlumnosPage() {
     isAdmin,
     isTeacher,
     isTutor,
+    currentRole,
     isLoading: permissionsLoading,
     error: permissionsError,
   } = usePermissions(currentSchool?.school._id);
@@ -114,6 +116,17 @@ export default function AlumnosPage() {
   const schoolCycles = useQuery(
     api.functions.schoolCycles.ObtenerCiclosEscolares,
     currentSchool?.school._id ? { escuelaID: currentSchool.school._id as Id<"school"> } : 'skip'
+  );
+
+  // Obtener estudiantes del tutor si el usuario es tutor
+  const tutorStudents = useQuery(
+    api.functions.student.getStudentsByTutor,
+    currentSchool?.school._id && currentUser?._id && isTutor
+      ? {
+          schoolId: currentSchool.school._id as Id<"school">,
+          tutorId: currentUser._id as Id<"user">,
+        }
+      : 'skip'
   );
 
   // Hook para obtener la siguiente matrícula disponible
@@ -566,6 +579,75 @@ export default function AlumnosPage() {
     }
   ];
 
+  if (currentRole === "tutor" && !isLoading && !permissionsLoading) {
+ 
+    if (tutorStudents === undefined || groups === undefined || schoolCycles === undefined || tutors === undefined) {
+      return (
+        <div className="space-y-8 p-6">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-background border">
+            <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
+            <div className="relative p-8">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-indigo-500/10 rounded-xl">
+                      <GraduationCap className="h-8 w-8 text-indigo-600" />
+                    </div>
+                    <div>
+                      <h1 className="text-4xl font-bold tracking-tight">Alumnos</h1>
+                      <p className="text-lg text-muted-foreground">
+                        Información de los estudiantes que tiene asignados
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Cargando información de tus alumnos...</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="space-y-8 p-6">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-background border">
+          <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
+          <div className="relative p-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-indigo-500/10 rounded-xl">
+                    <GraduationCap className="h-8 w-8 text-indigo-600" />
+                  </div>
+                  <div>
+                    <h1 className="text-4xl font-bold tracking-tight">Alumnos</h1>
+                    <p className="text-lg text-muted-foreground">
+                      Información de los estudiantes que tiene asignados
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <TutorView
+          students={tutorStudents || []}
+          groups={groups || []}
+          schoolCycles={schoolCycles || []}
+          tutors={tutors || []}
+          isLoading={tutorStudents === undefined || groups === undefined || schoolCycles === undefined || tutors === undefined}
+        />
+      </div>
+    );
+  }
+
   return showNotAuth ? (
     <NotAuth
       pageName="Alumnos"
@@ -1016,20 +1098,20 @@ export default function AlumnosPage() {
         operation={operation}
         title={
           operation === "create"
-            ? "Agregar Alumno"
+            ? "Registrar Nuevo Alumno"
             : operation === "edit"
-              ? "Editar Alumno"
+              ? "Actualizar Información del Alumno"
               : operation === "view"
-                ? "Ver Alumno"
-                : "Eliminar Alumno"
+                ? "Perfil del Alumno"
+                : ""
         }
         description={
           operation === "create"
-            ? "Completa la información para agregar un nuevo alumno"
+            ? "Ingresa los datos necesarios para dar de alta a un nuevo alumno y comenzar su trayectoria escolar."
             : operation === "edit"
-              ? "Modifica la información del alumno"
+              ? "Ajusta o corrige los datos del alumno para mantener su información siempre al día."
               : operation === "view"
-                ? "Información detallada del alumno"
+                ? "Consulta la información completa y actual del alumno."
                 : undefined
         }
         schema={studentSchema}
@@ -1040,7 +1122,7 @@ export default function AlumnosPage() {
         onSubmit={operation === "create" ? handleCreate : handleUpdate}
         onDelete={handleDelete}
         deleteConfirmationTitle="¿Eliminar alumno?"
-        deleteConfirmationDescription="Esta acción eliminará permanentemente al alumno del sistema. Esta acción no se puede deshacer."
+        deleteConfirmationDescription="Esta acción eliminará permanentemente al alumno del sistema. No podrá deshacerse, por lo que te recomendamos confirmar cuidadosamente."
         toastMessages={toastMessages}
         disableDefaultToasts={false}
         onError={() => {

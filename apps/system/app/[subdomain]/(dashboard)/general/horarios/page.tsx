@@ -356,24 +356,30 @@ export default function SchedulePage() {
                 <CardTitle>
                   <div className="flex flex-col gap-2">
                     <span>Lista de Horarios</span>
+                    {canCreateSchedule && (
+                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                        {filteredSchedules.length} horarios
+                      </Badge>
+                    )}
+                  </div>
+                </CardTitle>
+             
+                {canCreateSchedule ? (
+                    <Button
+                      size="lg"
+                      className="gap-2"
+                      onClick={openCreate}
+                      disabled={isCreating}
+                    >
+                      <Plus className="h-4 w-4" />
+                      {isCreating ? "Creando..." : "Agregar Horario"}
+                    </Button>
+                  ) : canReadSchedule ? (
                     <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
                       {filteredSchedules.length} horarios
                     </Badge>
-                  </div>
-                </CardTitle>
-
-                {canCreateSchedule && (
-                  <Button
-                    size="lg"
-                    className="gap-2"
-                    onClick={openCreate}
-                    disabled={isCreating}
-                  >
-                    <Plus className="h-4 w-4" />
-                    {isCreating ? "Creando..." : "Agregar Horario"}
-                  </Button>
-                )}
-              </div>
+                  ) : null}
+             </div>
             </CardHeader>
             <CardContent>
               {isDataLoading ? (
@@ -504,16 +510,18 @@ export default function SchedulePage() {
               operation === "create"
                 ? "Crear Nuevo Horario"
                 : operation === "edit"
-                  ? "Editar Horario"
-                  : "Ver Horario"
+                  ? "Actualizar Horario"
+                  : "Detalles del Horario"
             }
             description={
               operation === "create"
-                ? "Completa la información del nuevo horario"
+                ? "Completa la información necesaria para generar un nuevo horario y organizar adecuadamente las actividades."
                 : operation === "edit"
-                  ? "Modifica la información del horario"
-                  : "Información del horario"
+                  ? "Modifica los datos del horario para mantener una programación clara y vigente."
+                  : "Consulta la información completa de este horario."
             }
+            deleteConfirmationTitle="¿Eliminar Horario?"
+            deleteConfirmationDescription="Esta acción eliminará de forma definitiva el horario del sistema. No podrá deshacerse."
             schema={scheduleSchema}
             defaultValues={{
               name: "",
@@ -527,8 +535,6 @@ export default function SchedulePage() {
             onOpenChange={close}
             onSubmit={handleSubmit}
             onDelete={handleDelete}
-            deleteConfirmationTitle="¿Eliminar periodo?"
-            deleteConfirmationDescription="Esta acción no se puede deshacer. El periodo será eliminado permanentemente."
             toastMessages={toastMessages}
             disableDefaultToasts={false}
           >

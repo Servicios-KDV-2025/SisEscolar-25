@@ -30,6 +30,7 @@ import type * as functions_classSchedule from "../functions/classSchedule.js";
 import type * as functions_classroom from "../functions/classroom.js";
 import type * as functions_eventType from "../functions/eventType.js";
 import type * as functions_facturapi from "../functions/facturapi.js";
+import type * as functions_fileStorage from "../functions/fileStorage.js";
 import type * as functions_fiscalData from "../functions/fiscalData.js";
 import type * as functions_gradeRubrics from "../functions/gradeRubrics.js";
 import type * as functions_grades from "../functions/grades.js";
@@ -79,6 +80,7 @@ declare const fullApi: ApiFromModules<{
   "functions/classroom": typeof functions_classroom;
   "functions/eventType": typeof functions_eventType;
   "functions/facturapi": typeof functions_facturapi;
+  "functions/fileStorage": typeof functions_fileStorage;
   "functions/fiscalData": typeof functions_fiscalData;
   "functions/gradeRubrics": typeof functions_gradeRubrics;
   "functions/grades": typeof functions_grades;

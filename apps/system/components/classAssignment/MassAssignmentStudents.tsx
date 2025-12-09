@@ -194,7 +194,7 @@ export default function MassAssignmentStudets({ isOpen, onClose, schoolId, stude
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">Asignación masiva</DialogTitle>
           <DialogDescription>
-            Seleccionar múltiples estudiantes y asígnalos a una clase específica
+            Selecciona varios estudiantes y asígnalos fácilmente a una clase específica.
           </DialogDescription>
         </DialogHeader>
 
@@ -203,7 +203,10 @@ export default function MassAssignmentStudets({ isOpen, onClose, schoolId, stude
           <Card className="flex flex-col w-1/2 mr-4">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center justify-between">
-                <span>Seleccionar Estudiantes ({selectedStudents.size} seleccionados)</span>
+                <div className='flex flex-col'>
+                  <span>Seleccionar Estudiantes</span>
+                  <span>({selectedStudents.size} seleccionados)</span>
+                </div>
                 <Button
                   variant='outline'
                   size='sm'
@@ -214,7 +217,7 @@ export default function MassAssignmentStudets({ isOpen, onClose, schoolId, stude
                 </Button>
               </CardTitle>
               <CardDescription>
-                Busca y selecciona los estudiantes a asignar
+                Busca y selecciona a los estudiantes que deseas asignar.
               </CardDescription>
               {/* Busqueda */}
               <div className="relative">
@@ -271,7 +274,7 @@ export default function MassAssignmentStudets({ isOpen, onClose, schoolId, stude
                               <Badge variant='outline' className="text-xs bg-red-50 border-red-200 text-red-600">
                                 Ya asignado
                               </Badge>
-                            ):(
+                            ) : (
                               <Badge variant='outline' className="text-xs bg-green-50 border-green-200 text-green-600">
                                 Sin asignar
                               </Badge>
@@ -303,7 +306,7 @@ export default function MassAssignmentStudets({ isOpen, onClose, schoolId, stude
                   Seleccionar Clase
                 </CardTitle>
                 <CardDescription>
-                  Elige la clase a la que se asignan los estudiantes seleccionados
+                  Elige la clase a la que se asignarán los estudiantes seleccionados.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -389,29 +392,29 @@ export default function MassAssignmentStudets({ isOpen, onClose, schoolId, stude
                 </CardContent>
               </Card>
             ) : (
-              <Card>
+              <Card className='space-y-0'>
                 <CardHeader>
                   <CardTitle className="text-sm">Resumen</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between">
-                    <span>Estudiantes seleccionados:</span>
-                    <Badge variant='outline'>{selectedStudents.size}</Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Clase seleccionada:</span>
-                    <Badge variant={selectedClass ? 'default' : 'outline'}>
-                      {selectedClass ? 'Si' : 'No'}
-                    </Badge>
-                  </div>
-                  {selectedClass && selectedStudents.size > 0 && (
-                    <div className="p-3 bg-primary/10 rounded-lg">
-                      <p className="text-sm text-primary font-medium">
-                        Se asignarán {selectedStudents.size} estudandes a la clase seleccionada.
-                      </p>
+                  <CardContent className="space-y-1">
+                    <div className="flex justify-between">
+                      <span>Estudiantes seleccionados:</span>
+                      <Badge variant='outline'>{selectedStudents.size}</Badge>
                     </div>
-                  )}
-                </CardContent>
+                    <div className="flex justify-between">
+                      <span>Clase seleccionada:</span>
+                      <Badge variant={selectedClass ? 'default' : 'outline'}>
+                        {selectedClass ? 'Si' : 'No'}
+                      </Badge>
+                    </div>
+                    {selectedClass && selectedStudents.size > 0 && (
+                      <div className="p-3 bg-primary/10 rounded-lg">
+                        <p className="text-sm text-primary font-medium">
+                          Se asignarán {selectedStudents.size} estudandes a la clase seleccionada.
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </CardHeader>
               </Card>
             )}
           </div>
@@ -449,7 +452,7 @@ export default function MassAssignmentStudets({ isOpen, onClose, schoolId, stude
                 </>
               )}
             </Button>
-          </div>  
+          </div>
           {/* )} */}
         </DialogFooter>
       </DialogContent>

@@ -52,6 +52,19 @@ export const usePermissions = (schoolId?: string) => {
     { action: "read", resource: "users_alumnos" },
     { action: "update", resource: "users_alumnos" },
     { action: "delete", resource: "users_alumnos" },
+
+    //Politicas de Cobro
+    { action: "create", resource: "politicas_de_cobro" },
+    { action: "read", resource: "politicas_de_cobro" },
+    { action: "update", resource: "politicas_de_cobro" },
+    { action: "delete", resource: "politicas_de_cobro" },
+
+    //Pagos
+    { action: "create", resource: "pagos" },
+    { action: "read", resource: "pagos" },
+    { action: "update", resource: "pagos" },
+    { action: "delete", resource: "pagos" },
+
     //Aulas
     { action: "create", resource: "classroom" },
     { action: "read", resource: "classroom" },
@@ -168,6 +181,17 @@ export const usePermissions = (schoolId?: string) => {
       "update:users_personal": true,
       "delete:users_personal": true,
 
+      //Politicas de Cobro
+      "create:politicas_de_cobro": true,
+      "read:politicas_de_cobro": true,
+      "update:politicas_de_cobro": true,
+      "delete:politicas_de_cobro": true,
+      //Pagos
+      "create:pagos": true,
+      "read:pagos": true,
+      "update:pagos": true,
+      "delete:pagos": true,
+
       //Aulas
       "create:classroom": true,
       "read:classroom": true,
@@ -235,10 +259,10 @@ export const usePermissions = (schoolId?: string) => {
       "update:rubrics": true,
       "delete:rubrics": true,
       // Assignance
-      "create:assignance": true,
-      "read:assignance": true,
-      "update:assignance": true,
-      "delete:assignance": true,
+      "create:assignance": false,
+      "read:assignance": false,
+      "update:assignance": false,
+      "delete:assignance": false,
       // Term Averages
       "create:termAverages": false,  // Solo lectura
       "read:termAverages": true,
@@ -276,6 +300,16 @@ export const usePermissions = (schoolId?: string) => {
       "read:users_personal": true,
       "update:users_personal": true,
       "delete:users_personal": false,
+      //Politicas de Cobro
+      "create:politicas_de_cobro": true,
+      "read:politicas_de_cobro": true,
+      "update:politicas_de_cobro": true,
+      "delete:politicas_de_cobro": true,
+      //Pagos
+      "create:pagos": true,
+      "read:pagos": true,
+      "update:pagos": true,
+      "delete:pagos": true,
       //Aulas
       "create:classroom": true,
       "read:classroom": true,
@@ -343,10 +377,10 @@ export const usePermissions = (schoolId?: string) => {
       "update:rubrics": false,
       "delete:rubrics": false,
       // Assignance
-      "create:assignance": true,
-      "read:assignance": true,
-      "update:assignance": true,
-      "delete:assignance": true,
+      "create:assignance": false,
+      "read:assignance": false,
+      "update:assignance": false,
+      "delete:assignance": false,
       // Term Averages
       "create:termAverages": false,  // Solo lectura
       "read:termAverages": true,
@@ -384,6 +418,16 @@ export const usePermissions = (schoolId?: string) => {
       "read:users_personal": true,
       "update:users_personal": false,
       "delete:users_personal": false,
+      //Politicas de Cobro
+      "create:politicas_de_cobro": false,
+      "read:politicas_de_cobro": true,
+      "update:politicas_de_cobro": false,
+      "delete:politicas_de_cobro": false,
+      //Pagos
+      "create:pagos": false,
+      "read:pagos": true,
+      "update:pagos": false,
+      "delete:pagos": false,
       //Aulas
       "create:classroom": false,
       "read:classroom": true,
@@ -453,7 +497,7 @@ export const usePermissions = (schoolId?: string) => {
       "delete:rubrics": false,
       // Assignance
       "create:assignance": false,
-      "read:assignance": true,
+      "read:assignance": false,
       "update:assignance": false,
       "delete:assignance": false,
       // Term Averages
@@ -484,7 +528,7 @@ export const usePermissions = (schoolId?: string) => {
 
       // permisos pagina de alumnos
       "create:users_alumnos": false,
-      "read:users_alumnos": true,
+      "read:users_alumnos": false,
       "update:users_alumnos": false,
       "delete:users_alumnos": false,
 
@@ -493,6 +537,16 @@ export const usePermissions = (schoolId?: string) => {
       "read:users_personal": false,
       "update:users_personal": false,
       "delete:users_personal": false,
+      //Politicas de Cobro
+      "create:politicas_de_cobro": false,
+      "read:politicas_de_cobro": false,
+      "update:politicas_de_cobro": false,
+      "delete:politicas_de_cobro": false,
+      //Pagos
+      "create:pagos": false,
+      "read:pagos": false,
+      "update:pagos": false,
+      "delete:pagos": false,
       //Aulas
       "create:classroom": false,
       "read:classroom": false,
@@ -515,7 +569,7 @@ export const usePermissions = (schoolId?: string) => {
       "delete:schedule": false,
       // Ciclos Escolares
       "create:schoolCycle": false,
-      "read:schoolCycle": false,
+      "read:schoolCycle": true,
       "update:schoolCycle": false,
       "delete:schoolCycle": false,
       // Calendario Escolar
@@ -587,7 +641,7 @@ export const usePermissions = (schoolId?: string) => {
 
       // permisos pagina de alumnos
       "create:users_alumnos": false,
-      "read:users_alumnos": false,
+      "read:users_alumnos": true,
       "update:users_alumnos": false,
       "delete:users_alumnos": false,
 
@@ -596,6 +650,18 @@ export const usePermissions = (schoolId?: string) => {
       "read:users_personal": false,
       "update:users_personal": false,
       "delete:users_personal": false,
+
+      //Politicas de Cobro
+      "create:politicas_de_cobro": false,
+      "read:politicas_de_cobro": false,
+      "update:politicas_de_cobro": false,
+      "delete:politicas_de_cobro": false,
+      //Pagos
+      "create:pagos": false,
+      "read:pagos": true, // Solo puede ver los pagos de sus hijos
+      "update:pagos": false,
+      "delete:pagos": false,
+
       //Aulas
       "create:classroom": false,
       "read:classroom": false,
@@ -805,6 +871,31 @@ export const usePermissions = (schoolId?: string) => {
     return { canViewAll: false, tutorId: undefined, teacherId: undefined };
   }, [currentUser, currentRole]);
 
+  // Función para verificar si se permiten acciones de edición basadas en el estado del ciclo escolar
+  const canEditBasedOnCycleStatus = React.useCallback((cycleStatus?: string) => {
+    // Si no hay ciclo seleccionado o no tiene estado, permitir edición
+    if (!cycleStatus) return true;
+
+    // Solo permitir edición si el ciclo está activo
+    return cycleStatus === "active";
+  }, []);
+
+  // Función para verificar permisos considerando el estado del ciclo
+  const hasPermissionWithCycleCheck = React.useCallback((permission: string, cycleStatus?: string) => {
+    const hasBasePermission = permissions[permission] || false;
+
+    // Si no tiene el permiso base, no permitir
+    if (!hasBasePermission) return false;
+
+    // Para acciones de escritura (create, update, delete), verificar estado del ciclo
+    if (permission.includes('create:') || permission.includes('update:') || permission.includes('delete:')) {
+      return canEditBasedOnCycleStatus(cycleStatus);
+    }
+
+    // Para acciones de lectura, siempre permitir
+    return true;
+  }, [permissions, canEditBasedOnCycleStatus]);
+
   return {
     // Estado
     permissions,
@@ -830,6 +921,17 @@ export const usePermissions = (schoolId?: string) => {
     canReadUsers: permissions["read:users"] || false,
     canUpdateUsers: permissions["update:users"] || false,
     canDeleteUsers: permissions["delete:users"] || false,
+
+    //Politicas de Cobro
+    canCreatePoliticaDeCobro: permissions["create:politicas_de_cobro"] || false,
+    canReadPoliticaDeCobro: permissions["read:politicas_de_cobro"] || false,
+    canUpdatePoliticaDeCobro: permissions["update:politicas_de_cobro"] || false,
+    canDeletePoliticaDeCobro: permissions["delete:politicas_de_cobro"] || false,
+    //Pagos
+    canCreatePagos: permissions["create:pagos"] || false,
+    canReadPagos: permissions["read:pagos"] || false,
+    canUpdatePagos: permissions["update:pagos"] || false,
+    canDeletePagos: permissions["delete:pagos"] || false,
     //Aulas
     canCreateClassroom: permissions["create:classroom"] || false,
     canReadClassroom: permissions["read:classroom"] || false,
@@ -942,6 +1044,10 @@ export const usePermissions = (schoolId?: string) => {
 
     // Filtros para estudiantes
     getStudentFilters,
+
+    // Funciones para control de ciclo escolar
+    canEditBasedOnCycleStatus,
+    hasPermissionWithCycleCheck,
   };
 }
 

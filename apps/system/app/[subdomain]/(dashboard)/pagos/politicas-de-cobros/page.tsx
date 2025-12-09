@@ -5,6 +5,8 @@ import { BillingRuleCard } from "../../../../../components/billingRules/BillingR
 import { useUserWithConvex } from "stores/userStore";
 import { useCurrentSchool } from "stores/userSchoolsStore";
 import { useBillingRule } from "stores/billingRuleStore";
+import { usePermissions } from "../../../../../hooks/usePermissions";
+import NotAuth from "../../../../../components/NotAuth";
 import {
   CrudDialog,
   useCrudDialog,
@@ -55,7 +57,17 @@ export default function BillingRulePage() {
     currentUser?._id
   );
 
-  const isLoading = !isLoaded || userLoading || schoolLoading;
+  // Obtener permisos del usuario
+  const {
+    canCreatePoliticaDeCobro,
+    canReadPoliticaDeCobro,
+    canUpdatePoliticaDeCobro,
+    canDeletePoliticaDeCobro,
+    isLoading: permissionsLoading,
+    error: permissionsError,
+  } = usePermissions(currentSchool?.school._id);
+
+  const isLoading = !isLoaded || userLoading || schoolLoading || permissionsLoading;
 
   const {
     billingRules,
@@ -144,13 +156,21 @@ export default function BillingRulePage() {
     await deleteBillingRule(id);
     //   Los toasts ahora los maneja el CrudDialog automáticamente
   };
-if (!isLoaded || userLoading || schoolLoading) {
+    if (isLoading) {
+    return <GeneralDashboardSkeleton nc={3} />;
+  }
+
+  // Verificar error de permisos o falta de permiso de lectura
+  if ((permissionsError || !canReadPoliticaDeCobro) && !permissionsLoading && !isLoading) {
     return (
-    
-        <GeneralDashboardSkeleton nc={3} />
-      
+      <NotAuth
+        pageName="Políticas de Cobros"
+        pageDetails="Administra las políticas de cobros del sistema"
+        icon={Scale}
+      />
     );
   }
+
   return (
     <div className="space-y-8 p-6">
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border">
@@ -288,34 +308,14 @@ if (!isLoaded || userLoading || schoolLoading) {
             <CardTitle>
               <div className="flex flex-col gap-2">
                 <span>Lista de Políticas de Cobros</span>
-                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
-                  {filteredBillingRules.length} políticas
-                </Badge>
+                {canCreatePoliticaDeCobro && (
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                    {filteredBillingRules.length} políticas
+                  </Badge>
+                )}
               </div>
             </CardTitle>
-            <Button
-              size="lg"
-              className="gap-2"
-              onClick={openCreate}
-              disabled={isCreatingBillingRule}
-            >
-              <Plus className="h-4 w-4" />
-              Agregar Política
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <GeneralDashboardSkeleton nc={3}/>
-          ) : filteredBillingRules.length === 0 ? (
-            <div className="text-center py-12">
-              <Scale className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">
-                No se encontraron políticas
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                Intenta ajustar los filtros o no hay políticas registradas.
-              </p>
+            {canCreatePoliticaDeCobro ? (
               <Button
                 size="lg"
                 className="gap-2"
@@ -325,6 +325,36 @@ if (!isLoaded || userLoading || schoolLoading) {
                 <Plus className="h-4 w-4" />
                 Agregar Política
               </Button>
+            ) : canReadPoliticaDeCobro && !canCreatePoliticaDeCobro ? (
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit px-4 flex items-center">
+                {filteredBillingRules.length} políticas
+              </Badge>
+            ) : null}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <GeneralDashboardSkeleton nc={3} />
+          ) : filteredBillingRules.length === 0 ? (
+            <div className="text-center py-12">
+              <Scale className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">
+                No se encontraron políticas
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                Intenta ajustar los filtros o no hay políticas registradas.
+              </p>
+              {canCreatePoliticaDeCobro && (
+                <Button
+                  size="lg"
+                  className="gap-2"
+                  onClick={openCreate}
+                  disabled={isCreatingBillingRule}
+                >
+                  <Plus className="h-4 w-4" />
+                  Agregar Política
+                </Button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-9">
@@ -337,6 +367,8 @@ if (!isLoaded || userLoading || schoolLoading) {
                   openDelete={openDelete}
                   isUpdatingBillingRule={isUpdatingBillingRule}
                   isDeletingBillingRule={isDeletingBillingRule}
+                  canUpdate={canUpdatePoliticaDeCobro}
+                  canDelete={canDeletePoliticaDeCobro}
                 />
               ))}
             </div>
@@ -348,18 +380,20 @@ if (!isLoaded || userLoading || schoolLoading) {
         operation={operation}
         title={
           operation === "create"
-            ? "Crear Nueva Políticas de Cobros"
+            ? "Crear Nueva Política de Cobros"
             : operation === "edit"
-              ? "Editar Políticas de Cobros"
-              : "Ver Políticas de Cobros"
+              ? "Actualizar Política de Cobros"
+              : "Detalles de la Política de Cobros"
         }
         description={
           operation === "create"
-            ? "Completa la información de la nueva política"
+            ? "Ingresa los detalles necesarios para establecer una nueva política de cobros y asegurar una gestión clara y ordenada."
             : operation === "edit"
-              ? "Modifica la información de la política"
-              : "Información de la política"
+              ? "Ajusta o corrige la información de esta política para mantener su contenido vigente y preciso."
+              : "Consulta la información completa y actual de esta política."
         }
+        deleteConfirmationTitle='¿Eliminar Política de Cobros?'
+        deleteConfirmationDescription='Esta acción eliminará permanentemente la política del sistema. No se podrá recuperar una vez eliminada.'
         schema={billingRuleSchema}
         defaultValues={{
           name: "",

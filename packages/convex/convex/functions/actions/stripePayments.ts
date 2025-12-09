@@ -617,3 +617,66 @@ export const processPaymentAction = action({
     };
   },
 });
+
+/**
+ * Obtiene la URL del recibo de Stripe para un cargo específico.
+ * Esta función realiza una petición HTTP a la API de Stripe para obtener
+ * la URL del recibo de un cargo específico en una cuenta conectada.
+ *
+ * @param chargeId - ID del cargo de Stripe (debe comenzar con 'ch_')
+ * @param stripeAccountId - ID de la cuenta conectada de Stripe
+ * @returns La URL del recibo si está disponible
+ */
+export const getStripeReceiptUrl = action({
+  args: {
+    chargeId: v.string(),
+    stripeAccountId: v.string(),
+  },
+  handler: async (ctx, args): Promise<{ invoiceUrl?: string; error?: string }> => {
+    if (!args.chargeId || !args.chargeId.startsWith("ch_")) {
+      return { error: "ID de cargo inválido. Debe comenzar con 'ch_'" };
+    }
+
+    if (!args.stripeAccountId) {
+      return { error: "ID de cuenta de Stripe requerido" };
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const chargeResp = await fetch(`https://api.stripe.com/v1/charges/${args.chargeId}`, {
+        headers: {
+          Authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}`,
+          "Stripe-Account": args.stripeAccountId,
+          "Content-Type": "application/json",
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!chargeResp.ok) {
+        const errorData = await chargeResp.json().catch(() => ({}));
+        console.log("Charge no encontrado o error en Stripe:", errorData.message || chargeResp.status);
+        return { error: errorData.message || "Error al obtener el recibo de Stripe" };
+      }
+
+      const charge = await chargeResp.json();
+
+      if (!charge || !charge.receipt_url) {
+        console.log("Charge encontrado pero sin receipt_url");
+        return { error: "El recibo no está disponible aún" };
+      }
+
+      return {
+        invoiceUrl: charge.receipt_url,
+      };
+    } catch (error) {
+      console.error("Error obteniendo charge:", error);
+      return {
+        error: error instanceof Error ? error.message : "Error desconocido al obtener el recibo",
+      };
+    }
+  },
+});

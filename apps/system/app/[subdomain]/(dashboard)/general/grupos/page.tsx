@@ -373,12 +373,14 @@ export default function GroupPage() {
                 <CardTitle>
                   <div className="flex flex-col gap-2">
                     <span>Lista de los grupos</span>
-                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
-                      {filteredGroups.length} grupos
-                    </Badge>
+                    {canCreateGroup && (
+                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                        {filteredGroups.length} grupos
+                      </Badge>
+                    )}
                   </div>
                 </CardTitle>
-                {canCreateGroup && (
+                {canCreateGroup ? (
                   <Button
                     size="lg"
                     className="gap-2"
@@ -388,7 +390,11 @@ export default function GroupPage() {
                     <Plus className="h-4 w-4" />
                     Agregar Grupo
                   </Button>
-                )}
+                ) : canReadGroup ? (
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">
+                    {filteredGroups.length} grupos
+                  </Badge>
+                ) : null}
               </div>
             </CardHeader>
             <CardContent>
@@ -440,16 +446,18 @@ export default function GroupPage() {
               operation === "create"
                 ? "Crear Nuevo Grupo"
                 : operation === "edit"
-                  ? "Editar Grupo"
-                  : "Ver Grupo"
+                  ? "Actualizar Grupo"
+                  : "Detalles del Grupo"
             }
             description={
               operation === "create"
-                ? "Completa la información del nuevo grupo"
+                ? "Completa los datos necesarios para formar un nuevo grupo dentro de la institución."
                 : operation === "edit"
-                  ? "Modifica la información del grupo"
-                  : "Información del grupo"
+                  ? "Modifica la información del grupo para mantener sus datos precisos y actualizados."
+                  : "Revisa toda la información registrada de este grupo."
             }
+            deleteConfirmationTitle="¿Eliminar Grupo?"
+            deleteConfirmationDescription="Esta acción eliminará permanentemente el grupo del sistema. No será posible recuperarlo posteriormente."
             schema={groupSchema}
             defaultValues={{
               grade: "1°",

@@ -90,7 +90,6 @@ import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages"
 import { GeneralDashboardSkeleton } from "../../../../../components/skeletons/GeneralDashboardSkeleton";
 import CrudFields, { TypeFields } from '@repo/ui/components/dialog/crud-fields';
 
-
 // Tipo para los usuarios que vienen de Convex
 type UserFromConvex = {
   _id: Id<"user">;
@@ -123,8 +122,6 @@ type SearchUserResult = {
   createdAt: number;
   updatedAt: number;
 };
-
-
 
 // Función para obtener el esquema correcto según la operación
 const getSchemaForOperation = (operation: string) => {
@@ -1075,10 +1072,12 @@ export default function PersonalPage() {
                     </Badge>
                   ))}
                 </div>
-                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">{filteredUsers.length} usuarios</Badge>
+                {canCreateUsersPersonal && (
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit">{filteredUsers.length} usuarios</Badge>
+                )}
               </div>
             </CardTitle>
-            {canCreateUsersPersonal && (
+            {canCreateUsersPersonal ? (
               <Button
                 size="lg"
                 className="gap-2"
@@ -1088,7 +1087,11 @@ export default function PersonalPage() {
                 <Plus className="w-4 h-4" />
                 Agregar Personal
               </Button>
-            )}
+            ) : canReadUsersPersonal && !canCreateUsersPersonal ? (
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 w-fit px-4 flex items-center">
+                {filteredUsers.length} usuarios
+              </Badge>
+            ) : null}
           </div>
         </CardHeader>
 
@@ -1379,20 +1382,20 @@ export default function PersonalPage() {
         operation={operation}
         title={
           operation === "create"
-            ? "Agregar Personal"
+            ? "Registrar Nuevo Personal"
             : operation === "edit"
-              ? "Editar Personal"
+              ? "Actualizar Información del Personal"
               : operation === "view"
-                ? "Ver Personal"
-                : "Desactivar Personal"
+                ? "Perfil del Personal"
+                : ""
         }
         description={
           operation === "create"
-            ? "Completa la información para agregar nuevo personal al sistema"
+            ? "Proporciona los datos necesarios para integrar a un nuevo miembro al personal de la institución."
             : operation === "edit"
-              ? "Modifica la información del personal"
+              ? "Realiza ajustes en los datos del personal para mantener la información clara y actualizada."
               : operation === "view"
-                ? "Información detallada del personal"
+                ? "Accede a la información completa del personal."
                 : undefined
         }
         schema={getSchemaForOperation(operation)}
@@ -1412,7 +1415,7 @@ export default function PersonalPage() {
         onSubmit={operation === "create" ? handleCreate : handleUpdate}
         onDelete={() => handleDelete(data || {})}
         deleteConfirmationTitle="¿Desactivar personal?"
-        deleteConfirmationDescription="Esta acción desactivará al personal de esta escuela. El usuario mantendrá su información en el sistema y podrá ser reactivado posteriormente."
+        deleteConfirmationDescription="Al desactivar a esta persona, dejará de aparecer como personal activo de la escuela. Su información se conservará y podrá reactivarse más adelante si es necesario."
         isLoading={isLoading}
         isSubmitting={userActions.isCreating || userActions.isUpdating}
         isDeleting={userActions.isDeleting}

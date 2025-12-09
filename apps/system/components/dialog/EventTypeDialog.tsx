@@ -21,7 +21,6 @@ import {
   FormMessage,
 } from "@repo/ui/components/shadcn/form";
 import { Input } from "@repo/ui/components/shadcn/input";
-// import { Textarea } from "@repo/ui/components/shadcn/textarea";
 import { Button } from "@repo/ui/components/shadcn/button";
 import {
   Select,
@@ -280,30 +279,27 @@ export default function EventTypeDialog({
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-gray-900">
             {confirmingDelete
-              ? "Confirmar Eliminación"
+              ? "¿Eliminar tipo de evento?"
               : !canUpdateCalendar
-                ? "Detalle del Tipo de Evento"
+                ? "Ver Tipo de Evento"
                 : tipoEventoEditar
-                  ? "Editar Tipo de Evento"
+                  ? "Actualizar Tipo de Evento"
                   : "Crear Nuevo Tipo de Evento"}
           </DialogTitle>
           <DialogDescription className="text-gray-600">
             {confirmingDelete
-              ? "¿Estás seguro? Esta acción no se puede deshacer."
+              ? "Esta acción no se puede deshacer. El tipo de evento será eliminado permanentemente."
               : tipoEventoEditar
-                ? "Modifica la información del tipo de evento."
+                ? "Modifica los datos del tipo de evento."
                 : !canUpdateCalendar
                   ? "Información detallada del tipo de evento."
-                  : "Define un nuevo tipo de evento para tus actividades."}
+                  : "Define la información del nuevo tipo de evento para usarlo en tus actividades."}
           </DialogDescription>
         </DialogHeader>
 
         {confirmingDelete ? (
-          <div className="py-6">
-            <p className="text-center">
-              El tipo de evento será eliminado permanentemente.
-            </p>
-            <div className="flex justify-end gap-3 pt-6 mt-6 border-t">
+          <div>
+            <div className="flex justify-end gap-3 pt-6 border-t">
               <Button
                 variant="outline"
                 onClick={() => setConfirmingDelete(false)}
@@ -327,7 +323,7 @@ export default function EventTypeDialog({
           </div>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
               <CrudFields
                 fields={[{
                   name: 'name',

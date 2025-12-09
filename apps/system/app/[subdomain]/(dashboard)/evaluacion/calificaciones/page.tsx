@@ -10,7 +10,7 @@ import {
 } from "@repo/ui/components/shadcn/card";
 import {
   Select,
-  SelectContent,  
+  SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -38,12 +38,19 @@ import { TaskFormData, taskFormSchema } from '@/types/form/taskSchema';
 import { useTask } from 'stores/taskStore';
 import { useCrudToastMessages } from "../../../../../hooks/useCrudToastMessages";
 import { GeneralDashboardSkeleton } from "components/skeletons/GeneralDashboardSkeleton";
+import { AlertCircle, RefreshCw, XCircle } from '@repo/ui/icons';
 
 export default function GradeManagementDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSchoolCycle, setSelectedSchoolCycle] = useState<string>("");
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [selectedTerm, setSelectedTerm] = useState<string>("");
+  const [isSlowLoading, setIsSlowLoading] = useState(false);
+  const [loadingTime, setLoadingTime] = useState(0);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [connectionError, setConnectionError] = useState(false);
+
+
 
   const { user: clerkUser } = useUser();
   const { currentUser, isLoading: userLoading } = useUserWithConvex(
@@ -52,7 +59,7 @@ export default function GradeManagementDashboard() {
   const {
     currentSchool,
     isLoading: schoolLoading,
-    
+
   } = useCurrentSchool(currentUser?._id);
 
   const { createTask } = useTask(currentSchool?.school._id);
@@ -81,12 +88,16 @@ export default function GradeManagementDashboard() {
   const permissions = usePermissions();
 
   const {
-    canCreateAssignance,
     canCreateRubric,
     canUpdateRubric,
     currentRole,
     isLoading: permissionsLoading,
+    hasPermissionWithCycleCheck,
   } = permissions;
+
+  // Restricción: Solo teachers pueden realizar acciones CRUD
+  const canTeacherCreateRubric = canCreateRubric && currentRole === 'teacher';
+  const canTeacherUpdateRubric = canUpdateRubric && currentRole === 'teacher';
 
   // Fetch data with Convex
   const schoolCycles = useQuery(
@@ -165,32 +176,155 @@ export default function GradeManagementDashboard() {
     api.functions.termAverages.upsertTermAverage
   );
 
+  // ✅ VARIABLES DE LOADING (Línea ~168)
+  const isInitialLoading = userLoading || schoolLoading || permissionsLoading;
+
+  const isTableDataLoading =
+    assignments === undefined ||
+    classes === undefined ||
+    terms === undefined ||
+    schoolCycles === undefined ||
+    students === undefined ||
+    rubrics === undefined ||
+    grades === undefined;
+
+  const hasNoData =
+    !selectedClass ||
+    !selectedTerm ||
+    students?.length === 0 ||
+    rubrics?.length === 0 ||
+    connectionError ||
+    loadingTimeout;
+
   // State synchronization and initial value setting
+  // 1. Efecto para inicializar el Ciclo Escolar
   useEffect(() => {
-    // Establece el ciclo escolar por defecto si no hay uno seleccionado
     if (schoolCycles && schoolCycles.length > 0 && !selectedSchoolCycle) {
-      setSelectedSchoolCycle(schoolCycles[0]!._id as string);
-    }
+      console.log("Buscando ciclo activo en:", schoolCycles);
 
-    // Establece la clase por defecto si no hay una seleccionada
-    if (classes && classes.length > 0 && !selectedClass) {
-      setSelectedClass(classes[0]!._id as string);
-    }
+      // Buscamos el ciclo usando TODAS las variantes posibles
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const activeCycle = schoolCycles.find((c: any) => {
+        // Opción 1: Booleano directo
+        if (c.active === true) return true;
+        if (c.isActive === true) return true;
+        if (c.isCurrent === true) return true;
+        if (c.current === true) return true;
 
-    // Establece el periodo por defecto si no hay uno seleccionado
-    if (terms && terms.length > 0 && !selectedTerm) {
-      setSelectedTerm(terms[0]!._id as string);
+        // Opción 2: String "true"
+        if (String(c.active) === "true") return true;
+        if (String(c.isActive) === "true") return true;
+
+        // Opción 3: Estado de texto
+        if (c.status?.toLowerCase() === "active") return true;
+        if (c.status?.toLowerCase() === "activo") return true;
+        if (c.state?.toLowerCase() === "active") return true;
+
+        return false;
+      });
+
+      if (activeCycle) {
+        console.log("¡ENCONTRADO! Ciclo activo:", activeCycle);
+        setSelectedSchoolCycle(activeCycle._id as string);
+      } else {
+        console.warn("NO SE ENCONTRÓ NINGÚN ACTIVO. Usando el primero por defecto.");
+        if (schoolCycles[0]) {
+          setSelectedSchoolCycle(schoolCycles[0]._id as string);
+        }
+        toast.info("No se detectó un ciclo activo. Se ha cargado el primer ciclo disponible.");
+      }
     }
-  }, [
-    schoolCycles, selectedSchoolCycle,
-    classes, selectedClass,
-    terms, selectedTerm
-  ]);
+  }, [schoolCycles, selectedSchoolCycle]);
+
+  // 2. Efecto para inicializar la Clase
+  useEffect(() => {
+    if (classes && classes.length > 0 && !selectedClass && selectedSchoolCycle) {
+      const cycle = schoolCycles?.find(c => c._id === selectedSchoolCycle);
+      // Solo auto-seleccionar si el ciclo está activo
+      if (cycle?.status === "active") {
+        setSelectedClass(classes[0]!._id as string);
+      }
+    }
+  }, [classes, selectedClass, selectedSchoolCycle, schoolCycles]);
+
+  // 3. Efecto para inicializar el Periodo
+  useEffect(() => {
+    if (terms && terms.length > 0 && !selectedTerm && selectedSchoolCycle) {
+      const cycle = schoolCycles?.find(c => c._id === selectedSchoolCycle);
+      // Solo auto-seleccionar si el ciclo está activo
+      if (cycle?.status === "active") {
+        setSelectedTerm(terms[0]!._id as string);
+      }
+    }
+  }, [terms, selectedTerm, selectedSchoolCycle, schoolCycles]);
 
   useEffect(() => {
-    setSelectedClass("");
-    setSelectedTerm("");
-  }, [selectedSchoolCycle]);
+    if (selectedSchoolCycle) {
+      // Resetear las selecciones dependientes cuando cambia el ciclo
+      setSelectedClass("");
+      setSelectedTerm("");
+
+      // Mostrar mensaje si el ciclo no está activo
+      const cycle = schoolCycles?.find(c => c._id === selectedSchoolCycle);
+      if (cycle?.status !== "active") {
+        toast.info(
+          <span style={{ color: '#ea580c' }}>
+            Este ciclo está {cycle?.status === "archived" ? "archivado" : "inactivo"}.
+            Los datos son de solo lectura.
+          </span>,
+          {
+            className: 'bg-white border border-orange-200',
+            unstyled: false,
+          }
+        );
+      }
+    }
+  }, [selectedSchoolCycle, schoolCycles]);
+
+  useEffect(() => {
+    if (!isTableDataLoading) {
+      setIsSlowLoading(false);
+      setLoadingTime(0);
+      setLoadingTimeout(false);
+      setConnectionError(false);
+      return;
+    }
+
+    const startTime = Date.now();
+
+    // Mostrar mensaje de "carga lenta" después de 5 segundos
+    const slowTimeoutId = setTimeout(() => {
+      setIsSlowLoading(true);
+    }, 5000);
+
+    // Mostrar error de conexión después de 15 segundos
+    const errorTimeoutId = setTimeout(() => {
+      setLoadingTimeout(true);
+      setConnectionError(true);
+
+      toast.error(
+        <span style={{ color: '#dc2626' }}>
+          Error al cargar los datos
+        </span>,
+        {
+          className: 'bg-white border border-red-200',
+          unstyled: false,
+          description: 'No se pudo conectar al servidor o no hay datos disponibles'
+        }
+      );
+    }, 15000); // 15 segundos
+
+    // Actualizar contador cada segundo
+    const intervalId = setInterval(() => {
+      setLoadingTime(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+
+    return () => {
+      clearTimeout(slowTimeoutId);
+      clearTimeout(errorTimeoutId);
+      clearInterval(intervalId);
+    };
+  }, [isTableDataLoading]);
 
   const filteredAndSortedStudents = students
     ? students
@@ -202,13 +336,11 @@ export default function GradeManagementDashboard() {
         return fullName.includes(searchTermLower);
       })
       .sort((a, b) => {
-        // Obtenemos los datos de forma segura, usando '' como fallback
         const lastNameA = a.student?.name || "";
         const lastNameB = b.student?.name || "";
         const nameA = a.student?.name || "";
         const nameB = b.student?.name || "";
 
-        // La lógica de comparación ahora es segura
         const lastNameComparison = lastNameA.localeCompare(lastNameB);
         if (lastNameComparison !== 0) {
           return lastNameComparison;
@@ -228,7 +360,6 @@ export default function GradeManagementDashboard() {
     )
       return;
 
-    // Recorre cada estudiante y guarda su promedio
     for (const student of students) {
       if (!student.student) continue;
 
@@ -237,7 +368,6 @@ export default function GradeManagementDashboard() {
 
       if (newAverage !== null) {
         try {
-          // Llama a la mutación para guardar el promedio del periodo
           await upsertTermAverage({
             studentClassId: studentClassId as Id<"studentClass">,
             termId: selectedTerm as Id<"term">,
@@ -280,30 +410,16 @@ export default function GradeManagementDashboard() {
     terms === undefined ||
     schoolCycles === undefined ||
     students === undefined ||
-    students.length === 0 ||
-    rubrics === undefined ||
-    rubrics.length === 0 ||
-    grades === undefined;
-  const isLoading =
-    userLoading ||
-    schoolLoading ||
-    permissionsLoading ||
-    assignments === undefined ||
-    classes === undefined ||
-    terms === undefined ||
-    schoolCycles === undefined ||
-    students === undefined ||
     rubrics === undefined ||
     grades === undefined;
 
-  // Logic to handle grade updates. This now uses the upsert mutation.
+  // Logic to handle grade updates.
   const handleUpdateGrade = async (
     studentClassId: string,
     assignmentId: string,
     score: number | null,
-    comments: string // Agrega el argumento de comentario aquí
+    comments: string
   ) => {
-    // Only proceed if a user is logged in and the score is a number
     if (!currentUser || score === null) return;
 
     try {
@@ -337,7 +453,6 @@ export default function GradeManagementDashboard() {
     }
   };
 
-  // Logic to calculate the student's weighted average
   const calculateAverage = (studentClassId: string): number | null => {
     if (!assignments || !rubrics || !grades) return null;
 
@@ -345,13 +460,11 @@ export default function GradeManagementDashboard() {
       (g) => g.studentClassId === studentClassId
     );
 
-    // 1. Crear un mapa para acumular los puntajes totales por rúbrica.
     const rubricTotals = new Map<
       Id<"gradeRubric">,
       { totalScore: number; totalMaxScore: number }
     >();
 
-    // 2. Iterar sobre las calificaciones y agrupar por rúbrica.
     studentGrades.forEach((grade) => {
       const assignment = assignments.find((a) => a._id === grade.assignmentId);
       if (assignment && grade.score !== null) {
@@ -370,18 +483,13 @@ export default function GradeManagementDashboard() {
       }
     });
 
-    // 3. Calcular el promedio final aplicando el peso de cada rúbrica.
     let finalGrade = 0;
     rubricTotals.forEach((totals, rubricId) => {
       const rubric = rubrics.find((r) => r._id === rubricId);
       if (rubric && totals.totalMaxScore > 0) {
-        // Calcular el porcentaje de la categoría (ej. 100% en Tareas)
         const rubricPercentage = Math.round(
           (totals.totalScore / totals.totalMaxScore) * 100
         );
-
-        // Multiplicar por el peso de la rúbrica (ej. 10% del total)
-        // Asumimos que el peso es un valor decimal (ej. 0.1 para 10%)
         finalGrade += rubricPercentage * rubric.weight;
       }
     });
@@ -389,24 +497,27 @@ export default function GradeManagementDashboard() {
     return Math.round(finalGrade);
   };
 
-  // Conditionally render based on data availability
-
-  // Check for missing data and display specific messages
   const hasSchoolCycles = schoolCycles && schoolCycles.length > 0;
   const hasClasses = classes && classes.length > 0;
   const hasTerms = terms && terms.length > 0;
 
+  // Get selected cycle status
+  const selectedCycle = schoolCycles?.find(c => c._id === selectedSchoolCycle);
+  const selectedCycleStatus = selectedCycle?.status;
+
+  // Check permissions with cycle status
+  // Check permissions with cycle status
+  const canCreateAssignanceWithCycle = hasPermissionWithCycleCheck("create:assignance", selectedCycleStatus);
+  const canTeacherCreateAssignance = canCreateAssignanceWithCycle && currentRole === 'teacher';
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!currentSchool?.school._id || !currentUser?._id) {
       console.error('Missing required IDs');
       return;
     }
 
-    // Combinar fecha y hora para crear el timestamp
     const dueDateTime = new Date(`${values.dueDate}T${values.dueTime}`);
     const dueTimestamp = dueDateTime.getTime();
 
-    // Aquí necesitarías la función createTask - puede que necesites importarla o crearla
     await createTask({
       classCatalogId: values.classCatalogId as Id<"classCatalog">,
       termId: values.termId as Id<"term">,
@@ -416,15 +527,12 @@ export default function GradeManagementDashboard() {
       dueDate: dueTimestamp,
       maxScore: parseInt(values.maxScore as string),
     });
-    //   Los toasts ahora los maneja el CrudDialog automáticamente
   }
 
-  if (isLoading) {
+  if (isInitialLoading) {
     return <GeneralDashboardSkeleton nc={0} />;
   }
 
-
-  // Main UI when all data is available
   return (
     <div className="space-y-8 p-6">
       {/* Header */}
@@ -447,7 +555,7 @@ export default function GradeManagementDashboard() {
                 </div>
               </div>
             </div>
-         
+
           </div>
         </div>
       </div>
@@ -513,22 +621,62 @@ export default function GradeManagementDashboard() {
                 />
               </div>
             </div>
-            <Select
-              value={selectedSchoolCycle}
-              onValueChange={setSelectedSchoolCycle}
-            >
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Ciclo Escolar" />
-              </SelectTrigger>
-              <SelectContent>
-                {hasSchoolCycles &&
-                  schoolCycles.map((cycle) => (
-                    <SelectItem key={cycle._id} value={cycle._id as string}>
-                      {cycle.name}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select
+                value={selectedSchoolCycle}
+                onValueChange={setSelectedSchoolCycle}
+              >
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Ciclo Escolar" />
+                </SelectTrigger>
+                <SelectContent>
+                  {hasSchoolCycles &&
+                    schoolCycles.map((cycle) => (
+                      <SelectItem key={cycle._id} value={cycle._id as string}>
+                        <div className="flex items-center gap-2">
+                          <span>{cycle.name}</span>
+                          {cycle.status === "archived" && (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs ml-1">
+                              Archivado
+                            </Badge>
+                          )}
+                          {cycle.status === "inactive" ? (
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs ml-1">
+                              Inactivo
+                            </Badge>
+                          ) : cycle.status === "active" ? (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs ml-1">
+                              Activo
+                            </Badge>
+                          ) : null}
+                        </div>
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              {selectedSchoolCycle && schoolCycles && (
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const selected = schoolCycles.find(c => c._id === selectedSchoolCycle);
+                    if (selected?.status === "archived") {
+                      return (
+                        <Badge className="bg-blue-100 text-blue-800 border border-blue-200 whitespace-nowrap">
+                          Ciclo Archivado
+                        </Badge>
+                      );
+                    }
+                    if (selected?.status === "inactive") {
+                      return (
+                        <Badge className="bg-yellow-100 text-yellow-800 border border-yellow-200 whitespace-nowrap">
+                          Ciclo Inactivo
+                        </Badge>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              )}
+            </div>
             {hasClasses && (
               <Select
                 value={selectedClass}
@@ -577,26 +725,27 @@ export default function GradeManagementDashboard() {
           <CardTitle>
             <div className="flex flex-col gap-2">
             <span>Calificaciones</span>
-            <Badge
-              variant="outline"
-              className="bg-black-50 text-black-700 border-black-200 w-fit"
-            >
-              {assignments?.length} asignaciones
-            </Badge>
+            {canTeacherCreateAssignance && (
+              <Badge
+                variant="outline"
+                className="bg-black-50 text-black-700 border-black-200 w-fit"
+              >
+                {assignments?.length} asignaciones
+              </Badge>
+            )}
             </div>
           </CardTitle>
-          <div className="flex flex-col gap-2 md:flex-row">
-          {canCreateAssignance &&
-                <Button
-                  className="cursor-pointer"
-                  onClick={openCreate}
-                  size="lg"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Agregar Asignación
-                </Button>
-              }
-              {currentRole !== 'tutor' && (
+          {canTeacherCreateAssignance ? (
+            <div className="flex flex-col gap-2 md:flex-row">
+              <Button
+                className="cursor-pointer"
+                onClick={openCreate}
+                size="lg"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Agregar Asignación
+              </Button>
+              {canTeacherUpdateRubric && (
                 <Button
                   onClick={handleSaveAverages}
                   size="lg"
@@ -605,102 +754,234 @@ export default function GradeManagementDashboard() {
                     isDataLoading ||
                     !currentSchool ||
                     !students ||
-                    students.length === 0 ||
-                    currentRole === 'auditor'
+                    students.length === 0
                   }
                 >
                   <SaveAll className="w-4 h-4" />
                   Guardar Promedios
                 </Button>
               )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 md:flex-row">
+              {canTeacherUpdateRubric && (
+                <Button
+                  onClick={handleSaveAverages}
+                  size="lg"
+                  className="gap-2"
+                  disabled={
+                    isDataLoading ||
+                    !currentSchool ||
+                    !students ||
+                    students.length === 0
+                  }
+                >
+                  <SaveAll className="w-4 h-4" />
+                  Guardar Promedios
+                </Button>
+              )}
+              <Badge
+                variant="outline"
+                className="bg-black-50 text-black-700 border-black-200 w-fit"
+              >
+                {assignments?.length} asignaciones
+              </Badge>
+            </div>
+          )}
           </div>
         </CardHeader>
         <CardContent className="w-full">
           {
-            isLoading
+            isTableDataLoading && !loadingTimeout
               ? (
-                <div className="space-y-4 text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                  <p className="text-muted-foreground">
+                <div className="space-y-4 text-center py-8">
+                  {/* Spinner con contador de tiempo */}
+                  <div className="relative inline-flex">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                    {loadingTime > 0 && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {loadingTime}s
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Mensaje principal */}
+                  <p className="text-muted-foreground font-medium">
                     Cargando calificaciones...
                   </p>
-                </div>
-              ) : (isDataLoading || !hasSchoolCycles || !hasClasses || !hasTerms) ? (
-                <div className="flex justify-center">
-                  <div className="space-y-4 text-center">
-                    <BookCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">
-                      No se pueden mostrar las calificaciones
-                    </h3>
 
-                    {currentRole !== 'tutor' ? (
-                      <p className="">Registra:</p>
-                    ) : (
-                      <p className="">Comunicate con soporte para más información.</p>
-                    )}
-                    <div className="flex flex-col items-center gap-4 w-full" >
-                      {/*esta es la 1ra fila de botones*/}
-                      <div className="flex flex-row gap-4 justify-center w-full"  >
-                        {(!assignments && canCreateRubric) && (
-                          <Link href={`/evaluacion/asignaciones`}>
-                            <Button>
-                              <Plus className="w-4 h-4" />
-                              Asignaciones
-                            </Button>
-                          </Link>
-                        )}
-
-                        {!hasTerms && (
-                          <Link href={`/administracion/periodos`}>
-                            <Button>
-                              <Plus className="w-4 h-4" />
-                              Periodos
-                            </Button>
-                          </Link>
-                        )}
-                        {!hasClasses && (
-                          <Link href={`/administracion/clases`}>
-                            <Button>
-                              <Plus className="w-4 h-4" />
-                              Clases
-                            </Button>
-                          </Link>
-                        )}
-
+                  {/* Mensaje de carga lenta (aparece después de 5 segundos) */}
+                  {isSlowLoading && (
+                    <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      <div className="flex items-center justify-center gap-2 text-orange-600">
+                        <AlertCircle className="h-5 w-5" />
+                        <p className="font-medium">
+                          Esto está tomando más tiempo de lo esperado...
+                        </p>
                       </div>
 
-                      {/*esta es la 2da fila de botones*/}
-                      {canCreateRubric &&
-                        <div className="flex flex-row gap-4 justify-center w-full">
+                      
+                    </div>
+                  )}
+                </div>
+              ) : (hasNoData || !hasSchoolCycles || !hasClasses || !hasTerms) ? (
+                <div className="flex justify-center">
+                  <div className="space-y-4 text-center">
+                    {/* Ícono según el tipo de error */}
+                    {connectionError ? (
+                      <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    ) : (
+                      <BookCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    )}
 
-                          {!hasSchoolCycles && (
-                            <Link href='/administracion/ciclos-escolares'>
+                    {/* Título según el tipo de error */}
+                    <h3 className="text-lg font-medium mb-2">
+                      {connectionError
+                        ? "Error de conexión al servidor"
+                        : "No se pueden mostrar las calificaciones"
+                      }
+                    </h3>
+
+                    {/* Mensaje específico según el error */}
+                    {connectionError ? (
+                      <div className="space-y-3">
+                        <p className="text-muted-foreground">
+                          No se pudo cargar la información. Esto puede deberse a:
+                        </p>
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-left max-w-md mx-auto">
+                          <ul className="space-y-2">
+                            <li className="flex items-start gap-2">
+                              <span className="text-red-500 mt-0.5">•</span>
+                              <span>Problemas de conexión a internet</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-red-500 mt-0.5">•</span>
+                              <span>El servidor no responde</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-red-500 mt-0.5">•</span>
+                              <span>No existen datos para este ciclo/clase/periodo</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-red-500 mt-0.5">•</span>
+                              <span>Tiempo de espera agotado</span>
+                            </li>
+                          </ul>
+                        </div>
+
+                        <div className="flex gap-2 justify-center pt-4">
+                          <Button
+                            onClick={() => {
+                              setConnectionError(false);
+                              setLoadingTimeout(false);
+                              window.location.reload();
+                            }}
+                            className="gap-2"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                            Reintentar
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setConnectionError(false);
+                              setLoadingTimeout(false);
+                            }}
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+
+                        <p className="text-xs text-muted-foreground mt-4">
+                          Si el problema persiste, verifica tu conexión a internet o contacta a soporte técnico.
+                        </p>
+                      </div>
+                    ) : 
+                       selectedCycleStatus && selectedCycleStatus !== "active" ? (
+                        <div className="space-y-3">
+                          <p className="text-muted-foreground">
+                            Este ciclo está {selectedCycleStatus === "archived" ? "archivado" : "inactivo"}.
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Selecciona una clase y periodo para ver los datos históricos.
+                          </p>
+                        </div>
+                      ) : !selectedClass || !selectedTerm ? (
+                        <p className="text-muted-foreground">
+                          Selecciona una clase y un periodo para ver las calificaciones.
+                        </p>
+                      ) : currentRole !== 'tutor' ? (
+                        <p className="text-muted-foreground">Registra:</p>
+                      ) : (
+                        <p className="text-muted-foreground">Comunícate con soporte para más información.</p>
+                      )}
+
+                    {/* Solo mostrar botones si el ciclo está activo Y no hay datos */}
+                    {!connectionError && selectedCycleStatus === "active" && (
+                      <div className="flex flex-col items-center gap-4 w-full" >
+                        {/*esta es la 1ra fila de botones*/}
+                        <div className="flex flex-row gap-4 justify-center w-full"  >
+                          {(!assignments && canCreateRubric) && (
+                            <Link href={`/evaluacion/asignaciones`}>
                               <Button>
                                 <Plus className="w-4 h-4" />
-                                Ciclos Escolares
+                                Asignaciones
                               </Button>
                             </Link>
                           )}
-                          {(!rubrics || rubrics.length === 0) && (
-                            <Link href={`/evaluacion/rubricas`}>
+
+                          {!hasTerms && (
+                            <Link href={`/administracion/periodos`}>
                               <Button>
                                 <Plus className="w-4 h-4" />
-                                Rubricas
+                                Periodos
                               </Button>
                             </Link>
                           )}
-                          {(!students || students.length === 0) && (
-                            <Link href={`/administracion/asignacion-de-clases`}>
+                          {!hasClasses && (
+                            <Link href={`/administracion/clases`}>
                               <Button>
                                 <Plus className="w-4 h-4" />
-                                Asignación de clases{" "}
+                                Clases
                               </Button>
                             </Link>
                           )}
                         </div>
-                      }
-                    </div>
+
+                        {/*esta es la 2da fila de botones*/}
+                        {canTeacherCreateRubric &&
+                          <div className="flex flex-row gap-4 justify-center w-full">
+                            {!hasSchoolCycles && (
+                              <Link href='/administracion/ciclos-escolares'>
+                                <Button>
+                                  <Plus className="w-4 h-4" />
+                                  Ciclos Escolares
+                                </Button>
+                              </Link>
+                            )}
+                            {(!rubrics || rubrics.length === 0) && (
+                              <Link href={`/evaluacion/rubricas`}>
+                                <Button>
+                                  <Plus className="w-4 h-4" />
+                                  Rubricas
+                                </Button>
+                              </Link>
+                            )}
+                            {(!students || students.length === 0) && (
+                              <Link href={`/administracion/asignacion-de-clases`}>
+                                <Button>
+                                  <Plus className="w-4 h-4" />
+                                  Asignación de clases{" "}
+                                </Button>
+                              </Link>
+                            )}
+                          </div>
+                        }
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -712,18 +993,19 @@ export default function GradeManagementDashboard() {
                       grades={grades!}
                       onGradeUpdate={handleUpdateGrade}
                       calculateAverage={calculateAverage}
-                      canUpdateRubric={canUpdateRubric}
+                      canUpdateRubric={canTeacherUpdateRubric}
                     />
                   </div>
                 </div>
-              )}
+              )
+          }
         </CardContent>
       </Card>
 
       <CrudDialog
         operation={operation}
-        title="Crear Nueva Asignación"
-        description="Define una nueva Asignación para tus estudiantes"
+        title="Registrar Nueva Calificación"
+        description="Ingresa la calificación correspondiente para el alumno y mantén actualizado su desempeño académico."
         schema={taskFormSchema}
         defaultValues={{
           name: '',
