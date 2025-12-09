@@ -1,7 +1,3 @@
-// ============================================
-// SANITY SCHEMA: featureBlock.ts
-// ============================================
-
 export const featureBlock = {
   name: 'featureBlock',
   title: 'Bloque de Características',
