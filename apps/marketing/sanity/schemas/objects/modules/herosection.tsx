@@ -1,6 +1,6 @@
 import { InfoOutlineIcon, SparklesIcon } from "@sanity/icons";
 import { LayoutDashboard } from "lucide-react";
-import { defineType } from "sanity";
+import { defineField, defineType } from "sanity";
 
 export default defineType({
     type: "object",
@@ -39,6 +39,51 @@ export default defineType({
                             }
                        ]
                     }
+                }
+            ]
+        },
+        {
+            type :"array",
+            name : "butons",
+            title : "Botones primarios",
+            of: [
+                {
+                    type : 'object',
+                    name : 'button',
+                    fields : [
+                    defineField({
+                        name : 'linkType',
+                        title : 'Tipo de enlace',
+                        type: 'string',
+                        options :{
+                            list: [
+                                {
+                                title : 'Interno',
+                                value: 'internal'
+                            },
+                            {
+                                title : 'Externo',
+                                value: 'external'
+                            },
+                            ],
+                        layout : 'radio',
+                        direction : 'horizontal'
+                        },
+                        initialValue : 'internal'
+                    }),
+                    defineField({
+                        name : 'linkInternal', 
+                        title : 'Enlace Interno',
+                        type :  'linkInternal',
+                        hidden : ({parent}) => parent?.linkType !== 'internal'                                                                                                                                                                                        
+                    }),
+                    defineField({
+                        name : 'linkExternal', 
+                        title : 'Enlace Externo',
+                        type :  'linkExternal',
+                        hidden : ({parent}) => parent?.linkType !== 'external'                                                                                                                                                                                        
+                    })
+                    ]
                 }
             ]
         }

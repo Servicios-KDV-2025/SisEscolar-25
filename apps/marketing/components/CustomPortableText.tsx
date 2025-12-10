@@ -72,8 +72,9 @@ export function CustomPortableText({
         )
       },
       hero: (({ value }) => {
-        const { titulo } = value || {};
-        return <HeroSection titulo={titulo} />
+        const { titulo , butons} = value || {};
+        console.log('Hero Section Value:', value);
+        return <HeroSection titulo={titulo} buttons={butons} />
       }),
       featureSection: ({ value }) => {
       const {title, subtitle, features} = value || {}
@@ -96,7 +97,7 @@ export function CustomPortableText({
       },
       carousel: ({ value }) => {
         const { title, images } = value || {};
-      return <CarouselBlock title={title} images={images} />;
+        return <CarouselBlock title={title} images={images} />;
       },
       acordeon: ({ value }) => { 
         return <Acordeon {...value} />

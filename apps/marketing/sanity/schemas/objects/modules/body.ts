@@ -61,8 +61,7 @@ export default defineField({
         defineArrayMember({
             name: 'paymentStatus',
             type: 'paymentStatus',
-        })
-        ,
+        }),
         defineField({
             type: 'image',
             icon: ImageIcon,

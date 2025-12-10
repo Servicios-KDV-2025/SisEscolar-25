@@ -1,4 +1,4 @@
-import { LinkInternal, Price } from '@/sanity.types'
+import { LinkInternal, Price, LinkExternal } from '@/sanity.types'
 import type {PortableTextBlock} from 'next-sanity'
 import type {Image} from 'sanity'
 
@@ -12,6 +12,13 @@ export interface MilestoneItem {
   image?: Image
   tags?: string[]
   title?: string
+}
+
+export interface ButtonItem {
+  _key: string;
+  linkType : 'internal' | 'external';
+  linkInternal?: LinkInternal;
+  linkExternal?: LinkExternal;
 }
 
 export interface StatsItems {
